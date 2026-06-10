@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html { -webkit-text-size-adjust: 100%; }
+body { @apply bg-cream text-ink font-body antialiased; }
+
+::selection { background: #B4622D; color: #F7F3EC; }
+
+.scrollbar-thin::-webkit-scrollbar { height: 6px; width: 6px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: #C8B89A; border-radius: 3px; }
+
+@layer components {
+  .input {
+    @apply w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink
+      placeholder:text-ink/35 focus:border-copper focus:outline-none focus:ring-2 focus:ring-copper/20;
+  }
+  .label { @apply mb-1 block text-[11px] font-semibold uppercase tracking-wider text-ink/50; }
+}

@@ -1,0 +1,235 @@
+"""SQLAlchemy models. Dates/times that the chef edits are stored as plain strings
+(YYYY-MM-DD / HH:MM) to keep timezone handling simple; audit timestamps are datetimes."""
+from datetime import datetime, timezone
+
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
+
+from .database import Base
+
+
+def utcnow():
+    return datetime.now(timezone.utc)
+
+
+class User(Base):
+    __tablename__ = "users"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    name: Mapped[str] = mapped_column(String(120), default="")
+    business_name: Mapped[str] = mapped_column(String(160), default="")
+    phone: Mapped[str] = mapped_column(String(40), default="")
+    avatar_url: Mapped[str] = mapped_column(String(500), default="")
+    role: Mapped[str] = mapped_column(String(20), default="chef")  # chef | admin
+    currency: Mapped[str] = mapped_column(String(8), default="GBP")
+    # pending | trialing | active | suspended | canceled
+    subscription_status: Mapped[str] = mapped_column(String(20), default="pending")
+    plan: Mapped[str] = mapped_column(String(20), default="")
+    onboarding_paid: Mapped[bool] = mapped_column(Boolean, default=False)
+    trial_ends_at: Mapped[str] = mapped_column(String(10), default="")  # YYYY-MM-DD
+    stripe_customer_id: Mapped[str] = mapped_column(String(120), default="")
+    stripe_subscription_id: Mapped[str] = mapped_column(String(120), default="")
+    admin_notes: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    last_login_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+
+
+class PlatformSettings(Base):
+    __tablename__ = "platform_settings"
+    id: Mapped[int] = mapped_column(primary_key=True)  # single row, id=1
+    currency: Mapped[str] = mapped_column(String(8), default="GBP")
+    trial_days: Mapped[int] = mapped_column(Integer, default=0)
+    plans: Mapped[dict] = mapped_column(JSON, default=dict)
+
+
+class Payment(Base):
+    __tablename__ = "payments"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(20), default="subscription")  # onboarding | subscription | manual
+    amount: Mapped[float] = mapped_column(Float, default=0)
+    currency: Mapped[str] = mapped_column(String(8), default="GBP")
+    provider: Mapped[str] = mapped_column(String(20), default="demo")  # stripe | demo | manual
+    reference: Mapped[str] = mapped_column(String(255), default="")
+    note: Mapped[str] = mapped_column(String(255), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class OwnedMixin:
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+
+
+class Client(OwnedMixin, Base):
+    __tablename__ = "clients"
+    name: Mapped[str] = mapped_column(String(160))
+    email: Mapped[str] = mapped_column(String(255), default="")
+    phone: Mapped[str] = mapped_column(String(40), default="")
+    company: Mapped[str] = mapped_column(String(160), default="")
+    address: Mapped[str] = mapped_column(String(400), default="")
+    dietary: Mapped[list] = mapped_column(JSON, default=list)     # ["vegetarian", ...]
+    allergies: Mapped[str] = mapped_column(Text, default="")
+    likes: Mapped[str] = mapped_column(Text, default="")
+    dislikes: Mapped[str] = mapped_column(Text, default="")
+    tags: Mapped[list] = mapped_column(JSON, default=list)
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
+class ClientReview(OwnedMixin, Base):
+    __tablename__ = "client_reviews"
+    client_id: Mapped[int] = mapped_column(ForeignKey("clients.id"), index=True)
+    booking_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    rating: Mapped[int] = mapped_column(Integer, default=5)  # 1..5
+    comment: Mapped[str] = mapped_column(Text, default="")
+    date: Mapped[str] = mapped_column(String(10), default="")
+
+
+class Recipe(OwnedMixin, Base):
+    __tablename__ = "recipes"
+    title: Mapped[str] = mapped_column(String(200))
+    category: Mapped[str] = mapped_column(String(80), default="")   # Starter / Main / Dessert / Canapé...
+    cuisine: Mapped[str] = mapped_column(String(80), default="")
+    servings: Mapped[int] = mapped_column(Integer, default=4)
+    prep_minutes: Mapped[int] = mapped_column(Integer, default=0)
+    cook_minutes: Mapped[int] = mapped_column(Integer, default=0)
+    description: Mapped[str] = mapped_column(Text, default="")
+    ingredients: Mapped[list] = mapped_column(JSON, default=list)   # [{id,name,qty,unit,note}]
+    steps: Mapped[list] = mapped_column(JSON, default=list)         # [str]
+    tags: Mapped[list] = mapped_column(JSON, default=list)
+    allergens: Mapped[list] = mapped_column(JSON, default=list)
+    image_url: Mapped[str] = mapped_column(String(500), default="")
+    cost_per_serving: Mapped[float] = mapped_column(Float, default=0)
+    price_per_serving: Mapped[float] = mapped_column(Float, default=0)
+    notes: Mapped[str] = mapped_column(Text, default="")
+    is_favorite: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class InventoryItem(OwnedMixin, Base):
+    __tablename__ = "inventory_items"
+    name: Mapped[str] = mapped_column(String(200))
+    category: Mapped[str] = mapped_column(String(80), default="")   # Produce / Dairy / Dry / Protein...
+    quantity: Mapped[float] = mapped_column(Float, default=0)
+    unit: Mapped[str] = mapped_column(String(30), default="")
+    low_stock_threshold: Mapped[float] = mapped_column(Float, default=0)
+    storage: Mapped[str] = mapped_column(String(30), default="pantry")  # pantry|fridge|freezer|dry|other
+    purchase_date: Mapped[str] = mapped_column(String(10), default="")
+    expiry_date: Mapped[str] = mapped_column(String(10), default="")
+    cost_per_unit: Mapped[float] = mapped_column(Float, default=0)
+    supplier: Mapped[str] = mapped_column(String(160), default="")
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
+class Booking(OwnedMixin, Base):
+    __tablename__ = "bookings"
+    client_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    title: Mapped[str] = mapped_column(String(200))
+    event_type: Mapped[str] = mapped_column(String(80), default="")  # Wedding / Private dinner...
+    status: Mapped[str] = mapped_column(String(20), default="enquiry")  # enquiry|quoted|confirmed|in_prep|completed|cancelled
+    date: Mapped[str] = mapped_column(String(10), default="")
+    start_time: Mapped[str] = mapped_column(String(5), default="")
+    end_time: Mapped[str] = mapped_column(String(5), default="")
+    venue_name: Mapped[str] = mapped_column(String(200), default="")
+    venue_address: Mapped[str] = mapped_column(String(400), default="")
+    guest_count: Mapped[int] = mapped_column(Integer, default=0)
+    quoted_price: Mapped[float] = mapped_column(Float, default=0)
+    deposit_paid: Mapped[bool] = mapped_column(Boolean, default=False)
+    menu: Mapped[list] = mapped_column(JSON, default=list)       # [{id,course,name,recipe_id,notes}]
+    equipment: Mapped[list] = mapped_column(JSON, default=list)  # [str]
+    dietary_notes: Mapped[str] = mapped_column(Text, default="")
+    setup_notes: Mapped[str] = mapped_column(Text, default="")
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
+class ShoppingList(OwnedMixin, Base):
+    __tablename__ = "shopping_lists"
+    booking_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    title: Mapped[str] = mapped_column(String(200))
+    shop_date: Mapped[str] = mapped_column(String(10), default="")
+    status: Mapped[str] = mapped_column(String(10), default="open")  # open | done
+    items: Mapped[list] = mapped_column(JSON, default=list)  # [{id,name,qty,unit,shop,category,est_cost,purchased,note}]
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
+class OnlineOrder(OwnedMixin, Base):
+    __tablename__ = "online_orders"
+    booking_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    supplier: Mapped[str] = mapped_column(String(200))
+    website: Mapped[str] = mapped_column(String(400), default="")
+    order_ref: Mapped[str] = mapped_column(String(120), default="")
+    items_summary: Mapped[str] = mapped_column(Text, default="")
+    order_date: Mapped[str] = mapped_column(String(10), default="")
+    expected_date: Mapped[str] = mapped_column(String(10), default="")
+    delivered_date: Mapped[str] = mapped_column(String(10), default="")
+    status: Mapped[str] = mapped_column(String(20), default="to_order")  # to_order|ordered|shipped|delivered|delayed|cancelled
+    tracking_url: Mapped[str] = mapped_column(String(500), default="")
+    cost: Mapped[float] = mapped_column(Float, default=0)
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
+class Task(OwnedMixin, Base):
+    __tablename__ = "tasks"
+    booking_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    title: Mapped[str] = mapped_column(String(300))
+    description: Mapped[str] = mapped_column(Text, default="")
+    category: Mapped[str] = mapped_column(String(20), default="prep")  # prep|shopping|admin|service|logistics|other
+    priority: Mapped[str] = mapped_column(String(10), default="medium")  # low|medium|high
+    status: Mapped[str] = mapped_column(String(10), default="todo")  # todo|doing|done
+    due_date: Mapped[str] = mapped_column(String(10), default="")
+    due_time: Mapped[str] = mapped_column(String(5), default="")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    completed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+
+
+class RoutePlan(OwnedMixin, Base):
+    __tablename__ = "route_plans"
+    booking_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    title: Mapped[str] = mapped_column(String(200))
+    date: Mapped[str] = mapped_column(String(10), default="")
+    start_location: Mapped[str] = mapped_column(String(400), default="")
+    stops: Mapped[list] = mapped_column(JSON, default=list)  # [{id,order,name,address,purpose,eta,duration_min,note,done}]
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
+class Design(OwnedMixin, Base):
+    __tablename__ = "designs"
+    booking_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    title: Mapped[str] = mapped_column(String(200))
+    canvas: Mapped[dict] = mapped_column(JSON, default=dict)  # {width,height,items:[{id,type,x,y,w,h,rotation,label,color}]}
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
+class Idea(OwnedMixin, Base):
+    __tablename__ = "ideas"
+    title: Mapped[str] = mapped_column(String(200), default="")
+    content: Mapped[str] = mapped_column(Text, default="")
+    tags: Mapped[list] = mapped_column(JSON, default=list)
+    pinned: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class Invoice(OwnedMixin, Base):
+    __tablename__ = "invoices"
+    booking_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    client_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    number: Mapped[str] = mapped_column(String(40), default="")
+    status: Mapped[str] = mapped_column(String(10), default="draft")  # draft|sent|paid|overdue|void
+    issue_date: Mapped[str] = mapped_column(String(10), default="")
+    due_date: Mapped[str] = mapped_column(String(10), default="")
+    paid_date: Mapped[str] = mapped_column(String(10), default="")
+    items: Mapped[list] = mapped_column(JSON, default=list)  # [{id,description,qty,unit_price}]
+    tax_rate: Mapped[float] = mapped_column(Float, default=0)  # percent
+    discount: Mapped[float] = mapped_column(Float, default=0)  # absolute
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
+class Expense(OwnedMixin, Base):
+    __tablename__ = "expenses"
+    booking_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    category: Mapped[str] = mapped_column(String(80), default="")  # Ingredients / Equipment / Travel / Staff...
+    description: Mapped[str] = mapped_column(String(300), default="")
+    amount: Mapped[float] = mapped_column(Float, default=0)
+    date: Mapped[str] = mapped_column(String(10), default="")
+    supplier: Mapped[str] = mapped_column(String(160), default="")
+    receipt_url: Mapped[str] = mapped_column(String(500), default="")
