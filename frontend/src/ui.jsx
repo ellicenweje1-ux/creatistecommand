@@ -42,6 +42,16 @@ const PATHS = {
   down: 'm6 9 6 6 6-6',
   copy: 'M8 8h12v12H8V8Zm-4 8V4h12',
   sun: 'M12 4V2m0 20v-2m8-8h2M2 12h2m13.7-5.7 1.4-1.4M4.9 19.1l1.4-1.4m11.4 0 1.4 1.4M4.9 4.9l1.4 1.4M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z',
+  lock: 'M7 10V8a5 5 0 0 1 10 0v2m-12 0h14v11H5V10Zm7 4v3',
+  pen: 'M12 19l7.5-7.5a2.5 2.5 0 0 0-3.5-3.5L8.5 15.5 7 19l5-1.5Zm3-9 2 2M4 21h16',
+  lineTool: 'M5 19 19 5m-2-1a2 2 0 1 0 4 0 2 2 0 0 0-4 0ZM3 20a2 2 0 1 0 4 0 2 2 0 0 0-4 0Z',
+  circleShape: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z',
+  squareShape: 'M5 5h14v14H5V5Z',
+  clipboard: 'M9 4h6v3H9V4ZM8 5H6v16h12V5h-2m-7 7h6m-6 4h4',
+  grid2: 'M4 4h7v7H4V4Zm9 0h7v7h-7V4ZM4 13h7v7H4v-7Zm9 0h7v7h-7v-7Z',
+  tag: 'M3 12V4h8l9 9-8 8-9-9Zm5.5-4.5h.01',
+  cup: 'M5 4h12v6a6 6 0 0 1-12 0V4Zm12 2h2a3 3 0 0 1-3 5M7 21h8m-4-5v5',
+  doc: 'M7 3h7l5 5v13H7V3Zm7 0v5h5M10 13h6m-6 4h6',
   moon: 'M20 14.5A8.5 8.5 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z',
   flame: 'M12 21c4 0 7-2.6 7-6.5 0-3-2-5-3.5-6.5-.3 1.6-1 2.6-2 3-0.1-2.9-1.5-5.5-4.5-7 .5 3-.6 4.4-2 6-1.3 1.4-2 3-2 4.5C5 18.4 8 21 12 21Z',
 }
@@ -311,7 +321,9 @@ export function Brand({ on = 'auto', small = false, className = '' }) {
       <Flame size={small ? 22 : 26} />
       <span className="font-display leading-none">
         <span className={cls('block font-semibold uppercase text-copper', small ? 'text-[12px] tracking-[0.18em]' : 'text-[14px] tracking-[0.2em]')}>The Creatiste</span>
-        <span className={cls('mt-0.5 block lowercase italic font-medium', small ? 'text-[15px]' : 'text-[17px]', second)}>command</span>
+        <span className={cls('mt-0.5 flex justify-between lowercase italic font-medium', small ? 'text-[15px]' : 'text-[17px]', second)}>
+          {'command'.split('').map((ch, i) => <span key={i}>{ch}</span>)}
+        </span>
       </span>
     </span>
   )

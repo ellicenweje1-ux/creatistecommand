@@ -21,7 +21,10 @@ class User(Base):
     business_name: Mapped[str] = mapped_column(String(160), default="")
     phone: Mapped[str] = mapped_column(String(40), default="")
     avatar_url: Mapped[str] = mapped_column(String(500), default="")
-    role: Mapped[str] = mapped_column(String(20), default="chef")  # chef | admin
+    role: Mapped[str] = mapped_column(String(20), default="chef")  # chef | admin | staff
+    owner_id: Mapped[int] = mapped_column(Integer, nullable=True)  # staff accounts belong to an owner
+    job_title: Mapped[str] = mapped_column(String(120), default="")
+    enquiry_token: Mapped[str] = mapped_column(String(64), default="")  # public enquiry-form link
     currency: Mapped[str] = mapped_column(String(8), default="GBP")
     # pending | trialing | active | suspended | canceled
     subscription_status: Mapped[str] = mapped_column(String(20), default="pending")
@@ -180,6 +183,7 @@ class Task(OwnedMixin, Base):
     due_date: Mapped[str] = mapped_column(String(10), default="")
     due_time: Mapped[str] = mapped_column(String(5), default="")
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    assignee_id: Mapped[int] = mapped_column(Integer, nullable=True)  # staff member assigned by the owner
     completed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
 
@@ -233,3 +237,97 @@ class Expense(OwnedMixin, Base):
     date: Mapped[str] = mapped_column(String(10), default="")
     supplier: Mapped[str] = mapped_column(String(160), default="")
     receipt_url: Mapped[str] = mapped_column(String(500), default="")
+
+
+class Appointment(OwnedMixin, Base):
+    """Tastings, consultations, site visits and calls."""
+    __tablename__ = "appointments"
+    client_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    booking_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    title: Mapped[str] = mapped_column(String(200))
+    kind: Mapped[str] = mapped_column(String(20), default="tasting")  # tasting|consultation|site_visit|call
+    date: Mapped[str] = mapped_column(String(10), default="")
+    start_time: Mapped[str] = mapped_column(String(5), default="")
+    end_time: Mapped[str] = mapped_column(String(5), default="")
+    location: Mapped[str] = mapped_column(String(400), default="")
+    status: Mapped[str] = mapped_column(String(20), default="scheduled")  # scheduled|completed|cancelled
+    notes: Mapped[str] = mapped_column(Text, default="")
+    outcome: Mapped[str] = mapped_column(Text, default="")
+
+
+class Shift(OwnedMixin, Base):
+    """Staff rota entries."""
+    __tablename__ = "shifts"
+    staff_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    booking_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    date: Mapped[str] = mapped_column(String(10), default="")
+    start_time: Mapped[str] = mapped_column(String(5), default="")
+    end_time: Mapped[str] = mapped_column(String(5), default="")
+    role_label: Mapped[str] = mapped_column(String(120), default="")  # e.g. Service / KP / Grill
+    location: Mapped[str] = mapped_column(String(300), default="")
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
+class PackingList(OwnedMixin, Base):
+    __tablename__ = "packing_lists"
+    booking_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    title: Mapped[str] = mapped_column(String(200))
+    items: Mapped[list] = mapped_column(JSON, default=list)  # [{id,name,qty,category,packed}]
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
+class Supplier(OwnedMixin, Base):
+    __tablename__ = "suppliers"
+    name: Mapped[str] = mapped_column(String(200))
+    category: Mapped[str] = mapped_column(String(120), default="")
+    contact_name: Mapped[str] = mapped_column(String(160), default="")
+    phone: Mapped[str] = mapped_column(String(40), default="")
+    email: Mapped[str] = mapped_column(String(255), default="")
+    website: Mapped[str] = mapped_column(String(400), default="")
+    address: Mapped[str] = mapped_column(String(400), default="")
+    account_ref: Mapped[str] = mapped_column(String(120), default="")
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
+class SupplierPrice(OwnedMixin, Base):
+    __tablename__ = "supplier_prices"
+    supplier_id: Mapped[int] = mapped_column(Integer, index=True)
+    item_name: Mapped[str] = mapped_column(String(200))
+    unit: Mapped[str] = mapped_column(String(40), default="")
+    price: Mapped[float] = mapped_column(Float, default=0)
+    last_checked: Mapped[str] = mapped_column(String(10), default="")
+    notes: Mapped[str] = mapped_column(String(300), default="")
+
+
+class Quote(OwnedMixin, Base):
+    """Client-facing quotes with a public approval link."""
+    __tablename__ = "quotes"
+    booking_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    client_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    number: Mapped[str] = mapped_column(String(40), default="")
+    title: Mapped[str] = mapped_column(String(200), default="")
+    items: Mapped[list] = mapped_column(JSON, default=list)  # [{id,description,qty,unit_price}]
+    tax_rate: Mapped[float] = mapped_column(Float, default=0)
+    discount: Mapped[float] = mapped_column(Float, default=0)
+    notes: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(20), default="draft")  # draft|sent|approved|declined|expired
+    public_token: Mapped[str] = mapped_column(String(64), default="", index=True)
+    valid_until: Mapped[str] = mapped_column(String(10), default="")
+    responded_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    responder_name: Mapped[str] = mapped_column(String(160), default="")
+    client_comment: Mapped[str] = mapped_column(Text, default="")
+
+
+class ActivityLog(Base):
+    """Audit trail: every change in a workspace, attributed to whoever made it."""
+    __tablename__ = "activity_logs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, index=True)        # workspace owner
+    actor_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    actor_name: Mapped[str] = mapped_column(String(160), default="")
+    actor_role: Mapped[str] = mapped_column(String(20), default="")  # owner|staff|client
+    action: Mapped[str] = mapped_column(String(20), default="")      # created|updated|deleted|completed
+    entity_type: Mapped[str] = mapped_column(String(60), default="")
+    entity_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    summary: Mapped[str] = mapped_column(String(300), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

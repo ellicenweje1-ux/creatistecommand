@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from ..auth import require_active
 from ..database import get_db
 from ..models import Booking, Idea, InventoryItem, OnlineOrder, ShoppingList, Task
-from ..utils import to_dict
+from ..utils import to_dict, ws_id
 from .finance import invoice_total
 from ..models import Expense, Invoice
 
@@ -23,11 +23,11 @@ def dashboard(db: Session = Depends(get_db), user=Depends(require_active)):
 
     upcoming = (
         db.query(Booking)
-        .filter(Booking.user_id == user.id, Booking.date >= today, Booking.date <= horizon,
+        .filter(Booking.user_id == ws_id(user), Booking.date >= today, Booking.date <= horizon,
                 Booking.status.notin_(["cancelled", "completed"]))
         .order_by(Booking.date.asc()).limit(6).all()
     )
-    inventory = db.query(InventoryItem).filter(InventoryItem.user_id == user.id).all()
+    inventory = db.query(InventoryItem).filter(InventoryItem.user_id == ws_id(user)).all()
     expiring = sorted(
         (i for i in inventory if i.expiry_date and today <= i.expiry_date <= soon),
         key=lambda i: i.expiry_date,
@@ -40,7 +40,7 @@ def dashboard(db: Session = Depends(get_db), user=Depends(require_active)):
 
     open_tasks = (
         db.query(Task)
-        .filter(Task.user_id == user.id, Task.status != "done")
+        .filter(Task.user_id == ws_id(user), Task.status != "done")
         .order_by(Task.due_date.asc()).all()
     )
     overdue = [t for t in open_tasks if t.due_date and t.due_date < today]
@@ -48,7 +48,7 @@ def dashboard(db: Session = Depends(get_db), user=Depends(require_active)):
 
     open_lists = (
         db.query(ShoppingList)
-        .filter(ShoppingList.user_id == user.id, ShoppingList.status == "open")
+        .filter(ShoppingList.user_id == ws_id(user), ShoppingList.status == "open")
         .order_by(ShoppingList.shop_date.asc()).all()
     )
     lists_payload = []
@@ -59,18 +59,18 @@ def dashboard(db: Session = Depends(get_db), user=Depends(require_active)):
 
     in_transit = (
         db.query(OnlineOrder)
-        .filter(OnlineOrder.user_id == user.id, OnlineOrder.status.in_(["ordered", "shipped", "delayed"]))
+        .filter(OnlineOrder.user_id == ws_id(user), OnlineOrder.status.in_(["ordered", "shipped", "delayed"]))
         .order_by(OnlineOrder.expected_date.asc()).limit(6).all()
     )
 
-    invs = db.query(Invoice).filter(Invoice.user_id == user.id).all()
+    invs = db.query(Invoice).filter(Invoice.user_id == ws_id(user)).all()
     month_paid = sum(invoice_total(i) for i in invs if i.status == "paid" and (i.paid_date or "").startswith(month_prefix))
     outstanding = sum(invoice_total(i) for i in invs if i.status in ("sent", "overdue"))
-    exps = db.query(Expense).filter(Expense.user_id == user.id).all()
+    exps = db.query(Expense).filter(Expense.user_id == ws_id(user)).all()
     month_expenses = sum(e.amount or 0 for e in exps if (e.date or "").startswith(month_prefix))
 
     pinned_ideas = (
-        db.query(Idea).filter(Idea.user_id == user.id, Idea.pinned.is_(True))
+        db.query(Idea).filter(Idea.user_id == ws_id(user), Idea.pinned.is_(True))
         .order_by(Idea.updated_at.desc()).limit(4).all()
     )
 

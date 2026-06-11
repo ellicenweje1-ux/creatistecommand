@@ -3,6 +3,7 @@ import { NavLink, Outlet, Route, Routes, useNavigate } from 'react-router-dom'
 import { RequireActive, RequireAdmin, RequireAuth, useAuth } from './auth'
 import { cls } from './format'
 import Admin from './pages/Admin'
+import Allergens from './pages/Allergens'
 import AuthPage from './pages/AuthPage'
 import BookingDetail from './pages/BookingDetail'
 import Bookings from './pages/Bookings'
@@ -15,33 +16,83 @@ import Inventory from './pages/Inventory'
 import Landing from './pages/Landing'
 import Onboarding from './pages/Onboarding'
 import Orders from './pages/Orders'
+import Packing from './pages/Packing'
+import PublicEnquiry from './pages/PublicEnquiry'
+import PublicQuote from './pages/PublicQuote'
+import Quotes from './pages/Quotes'
 import Recipes from './pages/Recipes'
 import RoutesPage from './pages/RoutesPage'
 import Settings from './pages/Settings'
 import Shopping from './pages/Shopping'
+import Suppliers from './pages/Suppliers'
+import Tastings from './pages/Tastings'
 import Tasks from './pages/Tasks'
-import { Brand, Icon } from './ui'
+import Team from './pages/Team'
+import { Brand, Icon, toast } from './ui'
 
-const NAV = [
-  { to: '/app', icon: 'home', label: 'Dashboard', end: true },
-  { to: '/app/bookings', icon: 'calendar', label: 'Bookings' },
-  { to: '/app/clients', icon: 'users', label: 'Clients' },
-  { to: '/app/recipes', icon: 'book', label: 'Recipes' },
-  { to: '/app/inventory', icon: 'box', label: 'Inventory' },
-  { to: '/app/shopping', icon: 'cart', label: 'Shopping' },
-  { to: '/app/orders', icon: 'truck', label: 'Orders' },
-  { to: '/app/tasks', icon: 'checks', label: 'Tasks' },
-  { to: '/app/routes', icon: 'map', label: 'Routes' },
-  { to: '/app/designs', icon: 'layout', label: 'Designs' },
-  { to: '/app/ideas', icon: 'bulb', label: 'Ideas' },
-  { to: '/app/finance', icon: 'coins', label: 'Finance' },
+const NAV_GROUPS = [
+  {
+    label: 'Operations',
+    items: [
+      { to: '/app', icon: 'home', label: 'Dashboard', end: true },
+      { to: '/app/bookings', icon: 'calendar', label: 'Bookings' },
+      { to: '/app/tastings', icon: 'cup', label: 'Tastings', min: 2 },
+      { to: '/app/tasks', icon: 'checks', label: 'Tasks' },
+      { to: '/app/routes', icon: 'map', label: 'Routes', min: 2 },
+      { to: '/app/team', icon: 'users', label: 'Team', min: 3 },
+    ],
+  },
+  {
+    label: 'Kitchen',
+    items: [
+      { to: '/app/recipes', icon: 'book', label: 'Recipes' },
+      { to: '/app/inventory', icon: 'box', label: 'Inventory' },
+      { to: '/app/shopping', icon: 'cart', label: 'Shopping' },
+      { to: '/app/packing', icon: 'clipboard', label: 'Packing' },
+      { to: '/app/orders', icon: 'truck', label: 'Orders', min: 2 },
+      { to: '/app/allergens', icon: 'grid2', label: 'Allergens' },
+      { to: '/app/suppliers', icon: 'tag', label: 'Suppliers', min: 2 },
+    ],
+  },
+  {
+    label: 'Business',
+    items: [
+      { to: '/app/clients', icon: 'users', label: 'Clients', min: 2 },
+      { to: '/app/quotes', icon: 'doc', label: 'Quotes', min: 3, ownerOnly: true },
+      { to: '/app/finance', icon: 'coins', label: 'Finance', min: 2, ownerOnly: true },
+      { to: '/app/designs', icon: 'layout', label: 'Designs', min: 2 },
+      { to: '/app/ideas', icon: 'bulb', label: 'Ideas' },
+    ],
+  },
 ]
 
-function Wordmark({ light = false }) {
-  return <Brand on={light ? 'dark' : 'auto'} small />
+const PLAN_NAMES = { 2: 'Pro Caterer', 3: 'Elite Kitchen' }
+
+function userLevel(user) {
+  if (!user) return 1
+  if (user.role === 'admin') return 3
+  return user.plan_level ?? ({ starter: 1, pro: 2, elite: 3 }[user.plan] || 1)
 }
 
-function SideLink({ item, onClick }) {
+function visibleItems(items, user) {
+  return items.filter((i) => !(i.ownerOnly && user?.is_staff))
+}
+
+function lockToast(item) {
+  toast(`${item.label} is part of the ${PLAN_NAMES[item.min]} plan — upgrade in Settings → Membership`, 'red')
+}
+
+function SideLink({ item, locked, onClick }) {
+  if (locked) {
+    return (
+      <button onClick={() => lockToast(item)}
+        className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-cream/30 hover:bg-white/5">
+        <Icon name={item.icon} size={17} />
+        <span className="flex-1 text-left">{item.label}</span>
+        <Icon name="lock" size={13} />
+      </button>
+    )
+  }
   return (
     <NavLink to={item.to} end={item.end} onClick={onClick}
       className={({ isActive }) => cls(
@@ -57,29 +108,46 @@ function AppShell() {
   const { user, logout } = useAuth()
   const [moreOpen, setMoreOpen] = useState(false)
   const navigate = useNavigate()
-  const mobileMain = NAV.slice(0, 4)
+  const level = userLevel(user)
+  const mobileMain = [NAV_GROUPS[0].items[0], NAV_GROUPS[0].items[1], NAV_GROUPS[0].items[3], NAV_GROUPS[1].items[2]]
+  const allItems = NAV_GROUPS.flatMap((g) => visibleItems(g.items, user))
 
   return (
     <div className="min-h-screen bg-base lg:pl-60">
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-white/5 bg-ink lg:flex">
-        <div className="px-5 pb-5 pt-6"><Wordmark light small /></div>
-        <nav className="scrollbar-thin flex-1 space-y-0.5 overflow-y-auto px-3">
-          {NAV.map((item) => <SideLink key={item.to} item={item} />)}
-          {user?.role === 'admin' && <SideLink item={{ to: '/app/admin', icon: 'shield', label: 'Admin' }} />}
+        <div className="px-5 pb-4 pt-6"><Brand on="dark" small /></div>
+        <nav className="scrollbar-thin flex-1 space-y-3 overflow-y-auto px-3 pb-2">
+          {NAV_GROUPS.map((group) => {
+            const items = visibleItems(group.items, user)
+            if (items.length === 0) return null
+            return (
+              <div key={group.label}>
+                <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-cream/25">{group.label}</p>
+                <div className="space-y-0.5">
+                  {items.map((item) => (
+                    <SideLink key={item.to} item={item} locked={item.min && level < item.min} />
+                  ))}
+                </div>
+              </div>
+            )
+          })}
         </nav>
         <div className="border-t border-white/10 p-3">
           <SideLink item={{ to: '/app/settings', icon: 'settings', label: 'Settings' }} />
+          {user?.role === 'admin' && <SideLink item={{ to: '/app/admin', icon: 'shield', label: 'Platform admin' }} />}
           <button onClick={logout} className="mt-0.5 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-cream/60 hover:bg-white/5 hover:text-cream">
             <Icon name="logout" size={17} /> Log out
           </button>
-          <p className="mt-3 truncate px-3 text-xs text-cream/35">{user?.business_name || user?.email}</p>
+          <p className="mt-2 truncate px-3 text-xs text-cream/35">
+            {user?.business_name || user?.email}{user?.is_staff ? ' · staff' : ''}
+          </p>
         </div>
       </aside>
 
       {/* Mobile top bar */}
       <header className="sticky top-0 z-40 flex items-center justify-between border-b border-line bg-base/95 px-4 py-3 backdrop-blur lg:hidden">
-        <button onClick={() => navigate('/app')}><Wordmark small /></button>
+        <button onClick={() => navigate('/app')}><Brand small /></button>
         <button onClick={() => setMoreOpen(true)} className="rounded-lg p-2 text-fg/60 hover:bg-fg/5"><Icon name="menu" /></button>
       </header>
 
@@ -104,19 +172,31 @@ function AppShell() {
       {/* Mobile "more" sheet */}
       {moreOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] lg:hidden" onClick={() => setMoreOpen(false)}>
-          <div className="absolute inset-x-0 bottom-0 rounded-t-2xl bg-base p-4 pb-8" onClick={(e) => e.stopPropagation()}>
+          <div className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-2xl bg-base p-4 pb-8" onClick={(e) => e.stopPropagation()}>
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-fg/15" />
             <div className="grid grid-cols-4 gap-3">
-              {[...NAV.slice(4), { to: '/app/settings', icon: 'settings', label: 'Settings' },
-                ...(user?.role === 'admin' ? [{ to: '/app/admin', icon: 'shield', label: 'Admin' }] : [])].map((item) => (
-                <NavLink key={item.to} to={item.to} onClick={() => setMoreOpen(false)}
-                  className="flex flex-col items-center gap-1.5 rounded-xl border border-line bg-card p-3 text-xs font-medium text-fg/70">
-                  <Icon name={item.icon} size={20} className="text-copper" />
-                  {item.label}
-                </NavLink>
-              ))}
+              {[...allItems, { to: '/app/settings', icon: 'settings', label: 'Settings' },
+                ...(user?.role === 'admin' ? [{ to: '/app/admin', icon: 'shield', label: 'Admin' }] : [])].map((item) => {
+                const locked = item.min && level < item.min
+                if (locked) {
+                  return (
+                    <button key={item.to} onClick={() => lockToast(item)}
+                      className="flex flex-col items-center gap-1.5 rounded-xl border border-line bg-card p-3 text-xs font-medium text-fg/30">
+                      <Icon name="lock" size={20} />
+                      {item.label}
+                    </button>
+                  )
+                }
+                return (
+                  <NavLink key={item.to} to={item.to} onClick={() => setMoreOpen(false)}
+                    className="flex flex-col items-center gap-1.5 rounded-xl border border-line bg-card p-3 text-xs font-medium text-fg/70">
+                    <Icon name={item.icon} size={20} className="text-copper" />
+                    {item.label}
+                  </NavLink>
+                )
+              })}
               <button onClick={logout} className="flex flex-col items-center gap-1.5 rounded-xl border border-line bg-card p-3 text-xs font-medium text-fg/70">
-                <Icon name="logout" size={20} className="text-red-700" /> Log out
+                <Icon name="logout" size={20} className="text-red-500" /> Log out
               </button>
             </div>
           </div>
@@ -133,17 +213,25 @@ export default function App() {
       <Route path="/login" element={<AuthPage mode="login" />} />
       <Route path="/register" element={<AuthPage mode="register" />} />
       <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
+      <Route path="/q/:token" element={<PublicQuote />} />
+      <Route path="/enquire/:token" element={<PublicEnquiry />} />
       <Route path="/app" element={<RequireAuth><RequireActive><AppShell /></RequireActive></RequireAuth>}>
         <Route index element={<Dashboard />} />
         <Route path="bookings" element={<Bookings />} />
         <Route path="bookings/:id" element={<BookingDetail />} />
+        <Route path="tastings" element={<Tastings />} />
         <Route path="clients" element={<Clients />} />
         <Route path="recipes" element={<Recipes />} />
         <Route path="inventory" element={<Inventory />} />
         <Route path="shopping" element={<Shopping />} />
+        <Route path="packing" element={<Packing />} />
         <Route path="orders" element={<Orders />} />
+        <Route path="allergens" element={<Allergens />} />
+        <Route path="suppliers" element={<Suppliers />} />
         <Route path="tasks" element={<Tasks />} />
         <Route path="routes" element={<RoutesPage />} />
+        <Route path="team" element={<Team />} />
+        <Route path="quotes" element={<Quotes />} />
         <Route path="designs" element={<Designs />} />
         <Route path="ideas" element={<Ideas />} />
         <Route path="finance" element={<Finance />} />

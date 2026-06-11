@@ -48,11 +48,19 @@ ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@creatistecommand.com")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin12345")
 ADMIN_NAME = os.getenv("ADMIN_NAME", "Platform Admin")
 
+# Email notifications (optional — silently disabled when unset)
+SMTP_HOST = os.getenv("SMTP_HOST", "")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM = os.getenv("SMTP_FROM", "The Creatiste Command <no-reply@creatistecommand.com>")
+
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
 ALLOWED_UPLOAD_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".pdf"}
 
 DEFAULT_CURRENCY = os.getenv("DEFAULT_CURRENCY", "GBP")
 
+PLANS_VERSION = 2
 DEFAULT_PLANS = {
     "starter": {
         "name": "Solo Chef",
@@ -64,6 +72,8 @@ DEFAULT_PLANS = {
             "Recipe master sheets",
             "Inventory with shelf-life alerts",
             "Shopping lists & prep tasks",
+            "Packing checklists",
+            "Allergen matrix generator",
             "Idea capture",
         ],
     },
@@ -75,10 +85,13 @@ DEFAULT_PLANS = {
         "features": [
             "Everything in Solo Chef",
             "Client portfolio & reviews",
+            "Tastings & consultations diary",
             "Online order tracking",
             "Prep-day route planner",
-            "Setup design canvas",
-            "Invoicing & expenses",
+            "Design studio with drawing tools",
+            "Supplier price book",
+            "Public enquiry form → bookings",
+            "Invoicing, expenses & email notifications",
         ],
     },
     "elite": {
@@ -88,7 +101,10 @@ DEFAULT_PLANS = {
         "tagline": "For teams that want the full command centre.",
         "features": [
             "Everything in Pro Caterer",
-            "AI sous-chef (menus, lists, prep plans)",
+            "Mise — your AI sous-chef",
+            "Staff logins, rotas & assignments",
+            "Owner oversight: full activity trail",
+            "Client quote approval links",
             "Finance reports & insights",
             "Priority onboarding & support",
         ],

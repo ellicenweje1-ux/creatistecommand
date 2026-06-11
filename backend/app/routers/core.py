@@ -5,10 +5,10 @@ from sqlalchemy.orm import Session
 from ..auth import require_active
 from ..database import get_db
 from ..models import (
-    Client, ClientReview, Design, Idea, InventoryItem, OnlineOrder,
-    Recipe, RoutePlan, ShoppingList, Task,
+    Appointment, Client, ClientReview, Design, Idea, InventoryItem, OnlineOrder,
+    PackingList, Recipe, RoutePlan, ShoppingList, Supplier, SupplierPrice, Task,
 )
-from ..utils import crud_router, get_owned, to_dict
+from ..utils import crud_router, get_owned, log_activity, to_dict, ws_id
 
 recipes = crud_router(Recipe, required=("title",), search_fields=("title", "category", "cuisine"))
 inventory = crud_router(
@@ -16,27 +16,35 @@ inventory = crud_router(
     default_order=lambda m: [m.name.asc()],
 )
 clients = crud_router(Client, required=("name",), search_fields=("name", "company", "email"),
-                      default_order=lambda m: [m.name.asc()])
+                      default_order=lambda m: [m.name.asc()], min_plan=2)
 ideas = crud_router(Idea, required=(), search_fields=("title", "content"),
                     default_order=lambda m: [m.pinned.desc(), m.created_at.desc()])
-designs = crud_router(Design, required=("title",), search_fields=("title",))
+designs = crud_router(Design, required=("title",), search_fields=("title",), min_plan=2)
 orders = crud_router(OnlineOrder, required=("supplier",), search_fields=("supplier", "order_ref", "items_summary"),
-                     default_order=lambda m: [m.expected_date.asc(), m.created_at.desc()])
+                     default_order=lambda m: [m.expected_date.asc(), m.created_at.desc()], min_plan=2)
 shopping = crud_router(ShoppingList, required=("title",), search_fields=("title",),
                        default_order=lambda m: [m.status.asc(), m.shop_date.asc()])
 tasks = crud_router(Task, required=("title",), search_fields=("title", "description"),
                     default_order=lambda m: [m.status.asc(), m.due_date.asc(), m.sort_order.asc()])
 routes = crud_router(RoutePlan, required=("title",), search_fields=("title",),
-                     default_order=lambda m: [m.date.asc()])
+                     default_order=lambda m: [m.date.asc()], min_plan=2)
+appointments = crud_router(Appointment, required=("title",), search_fields=("title", "location"),
+                           default_order=lambda m: [m.date.asc(), m.start_time.asc()], min_plan=2)
+packing = crud_router(PackingList, required=("title",), search_fields=("title",),
+                      default_order=lambda m: [m.created_at.desc()])
+suppliers = crud_router(Supplier, required=("name",), search_fields=("name", "category", "contact_name"),
+                        default_order=lambda m: [m.name.asc()], min_plan=2)
+supplier_prices = crud_router(SupplierPrice, required=("item_name",), search_fields=("item_name",),
+                              default_order=lambda m: [m.item_name.asc()], min_plan=2)
 
 
 # --- Client reviews (nested under clients) -------------------------------------------------
 @clients.get("/{client_id}/reviews")
 def list_reviews(client_id: int, db: Session = Depends(get_db), user=Depends(require_active)):
-    get_owned(db, Client, client_id, user.id)
+    get_owned(db, Client, client_id, ws_id(user))
     rows = (
         db.query(ClientReview)
-        .filter(ClientReview.user_id == user.id, ClientReview.client_id == client_id)
+        .filter(ClientReview.user_id == ws_id(user), ClientReview.client_id == client_id)
         .order_by(ClientReview.created_at.desc())
         .all()
     )
@@ -45,12 +53,12 @@ def list_reviews(client_id: int, db: Session = Depends(get_db), user=Depends(req
 
 @clients.post("/{client_id}/reviews", status_code=201)
 def add_review(client_id: int, payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_active)):
-    get_owned(db, Client, client_id, user.id)
+    get_owned(db, Client, client_id, ws_id(user))
     rating = int(payload.get("rating") or 5)
     if not 1 <= rating <= 5:
         raise HTTPException(422, "Rating must be 1-5")
     review = ClientReview(
-        user_id=user.id, client_id=client_id, rating=rating,
+        user_id=ws_id(user), client_id=client_id, rating=rating,
         comment=payload.get("comment") or "", date=payload.get("date") or "",
         booking_id=payload.get("booking_id"),
     )
@@ -62,7 +70,7 @@ def add_review(client_id: int, payload: dict = Body(...), db: Session = Depends(
 @clients.delete("/{client_id}/reviews/{review_id}", status_code=204)
 def delete_review(client_id: int, review_id: int, db: Session = Depends(get_db), user=Depends(require_active)):
     review = db.get(ClientReview, review_id)
-    if not review or review.user_id != user.id or review.client_id != client_id:
+    if not review or review.user_id != ws_id(user) or review.client_id != client_id:
         raise HTTPException(404, "Review not found")
     db.delete(review)
     db.commit()
@@ -71,7 +79,7 @@ def delete_review(client_id: int, review_id: int, db: Session = Depends(get_db),
 # --- Shopping list item toggle (fast path for mobile check-offs) ---------------------------
 @shopping.post("/{list_id}/toggle")
 def toggle_item(list_id: int, payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_active)):
-    shopping_list = get_owned(db, ShoppingList, list_id, user.id)
+    shopping_list = get_owned(db, ShoppingList, list_id, ws_id(user))
     item_id = payload.get("item_id")
     items = list(shopping_list.items or [])
     for item in items:
@@ -83,3 +91,31 @@ def toggle_item(list_id: int, payload: dict = Body(...), db: Session = Depends(g
     shopping_list.items = items
     db.commit()
     return to_dict(shopping_list)
+
+
+# --- Packing list item toggle (mirror of the shopping fast path) ---------------------------
+@packing.post("/{list_id}/toggle")
+def toggle_packed(list_id: int, payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_active)):
+    packing_list = get_owned(db, PackingList, list_id, ws_id(user))
+    items = list(packing_list.items or [])
+    for item in items:
+        if item.get("id") == payload.get("item_id"):
+            item["packed"] = not item.get("packed")
+            break
+    else:
+        raise HTTPException(404, "Item not found")
+    packing_list.items = items
+    log_activity(db, user, "updated", packing_list)
+    db.commit()
+    return to_dict(packing_list)
+
+
+# --- Supplier price search: "who sells X, cheapest first?" ----------------------------------
+@suppliers.get("/prices/search")
+def search_prices(q: str = "", db: Session = Depends(get_db), user=Depends(require_active)):
+    query = db.query(SupplierPrice).filter(SupplierPrice.user_id == ws_id(user))
+    if q:
+        query = query.filter(SupplierPrice.item_name.ilike(f"%{q}%"))
+    rows = query.order_by(SupplierPrice.price.asc()).limit(100).all()
+    names = {s.id: s.name for s in db.query(Supplier).filter(Supplier.user_id == ws_id(user)).all()}
+    return [{**to_dict(r), "supplier_name": names.get(r.supplier_id, "?")} for r in rows]

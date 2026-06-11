@@ -10,12 +10,12 @@ from .. import config
 from ..auth import require_active
 from ..database import get_db
 from ..models import Booking, Client, Idea, InventoryItem, Recipe
-from ..utils import extract_json, get_owned
+from ..utils import extract_json, get_owned, ws_id
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
 SYSTEM = (
-    "You are the AI sous-chef inside 'The Creatiste Command', a management platform for "
+    "You are Mise, the AI sous-chef inside 'The Creatiste Command', a management platform for "
     "professional private chefs and caterers. You are practical, precise and brief. "
     "You understand professional kitchen workflows: prep schedules, supplier shopping, "
     "shelf life, costing and event logistics. Always respond with VALID JSON ONLY — "
@@ -25,7 +25,14 @@ SYSTEM = (
 
 @router.get("/status")
 def ai_status():
-    return {"enabled": bool(config.ANTHROPIC_API_KEY), "model": config.AI_MODEL}
+    from ..mailer import email_enabled
+
+    return {
+        "enabled": bool(config.ANTHROPIC_API_KEY),
+        "model": config.AI_MODEL,
+        "name": "Mise",
+        "email_enabled": email_enabled(),
+    }
 
 
 def ask_json(user_prompt: str, max_tokens: int = 8000):
@@ -75,10 +82,10 @@ def generate_recipe(payload: dict = Body(...), user=Depends(require_active)):
 
 @router.post("/shopping-list")
 def generate_shopping_list(payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_active)):
-    booking = get_owned(db, Booking, int(payload.get("booking_id") or 0), user.id)
+    booking = get_owned(db, Booking, int(payload.get("booking_id") or 0), ws_id(user))
     recipe_ids = [m.get("recipe_id") for m in (booking.menu or []) if m.get("recipe_id")]
-    recipes = db.query(Recipe).filter(Recipe.user_id == user.id, Recipe.id.in_(recipe_ids)).all() if recipe_ids else []
-    stock = db.query(InventoryItem).filter(InventoryItem.user_id == user.id).all()
+    recipes = db.query(Recipe).filter(Recipe.user_id == ws_id(user), Recipe.id.in_(recipe_ids)).all() if recipe_ids else []
+    stock = db.query(InventoryItem).filter(InventoryItem.user_id == ws_id(user)).all()
 
     menu_lines = "\n".join(
         f"- {m.get('course', '')}: {m.get('name', '')} ({m.get('notes') or 'no notes'})" for m in (booking.menu or [])
@@ -110,7 +117,7 @@ def generate_shopping_list(payload: dict = Body(...), db: Session = Depends(get_
 
 @router.post("/prep-plan")
 def generate_prep_plan(payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_active)):
-    booking = get_owned(db, Booking, int(payload.get("booking_id") or 0), user.id)
+    booking = get_owned(db, Booking, int(payload.get("booking_id") or 0), ws_id(user))
     menu_lines = "\n".join(f"- {m.get('course', '')}: {m.get('name', '')}" for m in (booking.menu or [])) or "(menu TBC)"
     result = ask_json(
         f"Create a prep & logistics task plan for this booking, working backwards from the event date.\n\n"
@@ -132,7 +139,7 @@ def suggest_menu(payload: dict = Body(...), db: Session = Depends(get_db), user=
     brief = (payload.get("brief") or "").strip()
     client_block = ""
     if payload.get("client_id"):
-        client = get_owned(db, Client, int(payload["client_id"]), user.id)
+        client = get_owned(db, Client, int(payload["client_id"]), ws_id(user))
         client_block = (
             f"CLIENT: {client.name}\nDietary: {', '.join(client.dietary or []) or 'none'}\n"
             f"Allergies: {client.allergies or 'none'}\nLikes: {client.likes or '-'}\nDislikes: {client.dislikes or '-'}\n"
@@ -151,7 +158,7 @@ def suggest_menu(payload: dict = Body(...), db: Session = Depends(get_db), user=
 def polish_idea(payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_active)):
     text = (payload.get("text") or "").strip()
     if payload.get("idea_id"):
-        idea = get_owned(db, Idea, int(payload["idea_id"]), user.id)
+        idea = get_owned(db, Idea, int(payload["idea_id"]), ws_id(user))
         text = f"{idea.title}\n{idea.content}".strip()
     if not text:
         raise HTTPException(422, "Nothing to polish")

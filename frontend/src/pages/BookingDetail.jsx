@@ -9,6 +9,7 @@ import { DesignCard, DesignEditorModal } from './Designs'
 import { ExpenseFormModal, InvoiceEditorModal } from './Finance'
 import { OrderFormModal, OrderRow } from './Orders'
 import { NewRouteModal, RouteEditor } from './RoutesPage'
+import { NewPackingModal, PackEditor } from './Packing'
 import { ListEditor, NewListModal } from './Shopping'
 import { TaskComposer, TaskItem } from './Tasks'
 
@@ -16,7 +17,7 @@ import { TaskComposer, TaskItem } from './Tasks'
 function AIModal({ state, onClose, onApply }) {
   const { open, loading, kind, result } = state
   return (
-    <Modal open={open} onClose={onClose} title={loading ? 'Asking the AI sous-chef…' : `AI suggestion — ${kind}`}
+    <Modal open={open} onClose={onClose} title={loading ? 'Asking Mise…' : `Mise suggests — ${kind}`}
       footer={!loading && result && (
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>Discard</Button>
@@ -26,7 +27,7 @@ function AIModal({ state, onClose, onApply }) {
       {loading ? (
         <div className="flex flex-col items-center gap-3 py-10 text-fg/50">
           <Icon name="sparkle" size={28} className="animate-pulse text-copper" />
-          <p className="text-sm">Claude is thinking through your booking…</p>
+          <p className="text-sm">Mise is thinking through your booking…</p>
         </div>
       ) : result && (
         <div className="space-y-3 text-sm">
@@ -133,6 +134,7 @@ export default function BookingDetail() {
   const [ai, setAi] = useState({ open: false, loading: false, kind: '', result: null })
   const [aiBrief, setAiBrief] = useState('')
   const [newList, setNewList] = useState(false)
+  const [newPack, setNewPack] = useState(false)
   const [newRoute, setNewRoute] = useState(false)
   const [orderModal, setOrderModal] = useState({ open: false, initial: null })
   const [invoiceModal, setInvoiceModal] = useState({ open: false, initial: null })
@@ -188,6 +190,7 @@ export default function BookingDetail() {
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'shopping', label: 'Shopping', count: ws.shopping_lists.length },
+    { id: 'packing', label: 'Packing', count: (ws.packing_lists || []).length },
     { id: 'tasks', label: 'Tasks', count: ws.tasks.filter((t) => t.status !== 'done').length },
     { id: 'route', label: 'Route', count: ws.routes.length },
     { id: 'orders', label: 'Orders', count: ws.orders.length },
@@ -259,8 +262,8 @@ export default function BookingDetail() {
               ) : <p className="text-sm text-fg/45">No client linked. Edit the booking to attach one.</p>}
             </Card>
 
-            <Card title="AI sous-chef">
-              <p className="mb-3 text-xs text-fg/50">Let Claude draft the boring parts — review before applying.</p>
+            <Card title="Mise — your AI sous-chef">
+              <p className="mb-3 text-xs text-fg/50">Mise preps the boring parts — menus, lists, plans. Review before applying.</p>
               <div className="space-y-2">
                 <Input placeholder="Menu brief (e.g. 'summer garden party, 3 courses')" value={aiBrief} onChange={(e) => setAiBrief(e.target.value)} />
                 <Button className="w-full" variant="secondary" icon="sparkle"
@@ -291,6 +294,18 @@ export default function BookingDetail() {
             <ListEditor key={sl.id} list={sl} currency={cur} onChanged={load} onDeleted={load} />
           ))}
           <NewListModal open={newList} bookingId={b.id} defaultDate={b.date} onClose={() => setNewList(false)} onCreated={() => { setNewList(false); load() }} />
+        </div>
+      )}
+
+      {tab === 'packing' && (
+        <div className="space-y-4">
+          <div className="flex justify-end"><Button icon="plus" onClick={() => setNewPack(true)}>New packing list</Button></div>
+          {(ws.packing_lists || []).length === 0 ? (
+            <EmptyState icon="clipboard" title="Nothing to pack yet" hint="Build the van-load list: equipment, crockery, signage, safety kit — tick off as it goes in." />
+          ) : ws.packing_lists.map((pl) => (
+            <PackEditor key={pl.id} list={pl} onChanged={load} onDeleted={load} />
+          ))}
+          <NewPackingModal open={newPack} bookingId={b.id} onClose={() => setNewPack(false)} onCreated={() => { setNewPack(false); load() }} />
         </div>
       )}
 
@@ -355,6 +370,21 @@ export default function BookingDetail() {
 
       {tab === 'money' && (
         <div className="grid gap-5 lg:grid-cols-2">
+          {(ws.quotes || []).length > 0 && (
+            <Card title="Quotes" pad={false} className="lg:col-span-2">
+              <ul className="divide-y divide-line/70">
+                {ws.quotes.map((qt) => (
+                  <li key={qt.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
+                    <span className="font-medium">{qt.number || `Quote #${qt.id}`} <span className="text-fg/45">— {qt.title}</span></span>
+                    <span className="flex items-center gap-2">
+                      <Badge tone={{ draft: 'gray', sent: 'amber', approved: 'sage', declined: 'red', expired: 'ink' }[qt.status]}>{qt.status}</Badge>
+                      <Link to="/app/quotes" className="text-xs font-medium text-copper">Manage</Link>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
           <Card title="Invoices" action={<Button size="sm" icon="plus" onClick={() => setInvoiceModal({ open: true, initial: null })}>New invoice</Button>} pad={false}>
             {ws.invoices.length === 0 ? <p className="p-5 text-sm text-fg/45">No invoices for this booking yet.</p> : (
               <ul className="divide-y divide-line/70">

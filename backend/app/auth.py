@@ -1,4 +1,7 @@
-"""Password hashing (bcrypt), JWT issuing/verification and FastAPI auth dependencies."""
+"""Password hashing (bcrypt), JWT issuing/verification and FastAPI auth dependencies.
+
+Roles: admin (platform owner), chef (business owner / workspace owner), staff
+(belongs to a chef's workspace via owner_id — works on the owner's data)."""
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
@@ -9,6 +12,8 @@ from sqlalchemy.orm import Session
 from . import config
 from .database import get_db
 from .models import User
+
+PLAN_LEVELS = {"starter": 1, "pro": 2, "elite": 3}
 
 
 def hash_password(password: str) -> str:
@@ -31,6 +36,21 @@ def create_token(user: User) -> str:
     return jwt.encode(payload, config.SECRET_KEY, algorithm="HS256")
 
 
+def workspace_owner(db: Session, user: User) -> User:
+    """The chef account whose data this user works on (self unless staff)."""
+    if user.role == "staff" and user.owner_id:
+        owner = db.get(User, user.owner_id)
+        if owner:
+            return owner
+    return user
+
+
+def plan_level(owner: User) -> int:
+    if owner.role == "admin":
+        return 3
+    return PLAN_LEVELS.get(owner.plan, 3 if owner.subscription_status == "trialing" else 1)
+
+
 def get_current_user(
     authorization: str = Header(default=""),
     db: Session = Depends(get_db),
@@ -45,6 +65,9 @@ def get_current_user(
     user = db.get(User, int(payload["sub"]))
     if not user:
         raise HTTPException(401, "User no longer exists")
+    # staff accounts can be deactivated by their owner
+    if user.role == "staff" and user.subscription_status == "suspended":
+        raise HTTPException(403, "Your staff account has been deactivated — speak to the business owner.")
     return user
 
 
@@ -54,15 +77,41 @@ def _trial_expired(user: User) -> bool:
     return user.trial_ends_at < datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 
-def require_active(user: User = Depends(get_current_user)) -> User:
-    """Gate for chef workspace endpoints: subscription must be active (or in trial)."""
-    if user.role == "admin":
+def _owner_active(owner: User) -> bool:
+    if owner.role == "admin" or owner.subscription_status == "active":
+        return True
+    return owner.subscription_status == "trialing" and not _trial_expired(owner)
+
+
+def require_active(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
+    """Gate for workspace endpoints: the workspace owner's subscription must be active."""
+    owner = workspace_owner(db, user)
+    if _owner_active(owner):
+        user.workspace_id = owner.id
+        user.workspace_plan_level = plan_level(owner)
         return user
-    if user.subscription_status == "active":
-        return user
-    if user.subscription_status == "trialing" and not _trial_expired(user):
-        return user
+    if user.role == "staff":
+        raise HTTPException(403, "The business owner's subscription is inactive.")
     raise HTTPException(402, "Subscription required. Complete onboarding to activate your account.")
+
+
+def require_owner(user: User = Depends(require_active)) -> User:
+    """Owner-only areas (finance, quotes, team management, billing actions)."""
+    if user.role == "staff":
+        raise HTTPException(403, "This area is for the business owner.")
+    return user
+
+
+def require_plan(min_level: int):
+    """Feature gate by subscription tier (1=Solo, 2=Pro, 3=Elite)."""
+
+    def dep(user: User = Depends(require_active)) -> User:
+        if user.workspace_plan_level < min_level:
+            names = {2: "Pro Caterer", 3: "Elite Kitchen"}
+            raise HTTPException(403, f"This feature is part of the {names.get(min_level, 'higher')} plan — upgrade to unlock it.")
+        return user
+
+    return dep
 
 
 def require_admin(user: User = Depends(get_current_user)) -> User:

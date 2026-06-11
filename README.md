@@ -23,7 +23,15 @@ Chefs pay a **one-time onboarding fee + monthly subscription** to join; you (the
 | **Setup designs** | Drag-and-drop SVG floor planner: tables, buffet lines, bar, stations, dance floor — saved per booking |
 | **Ideas** | Instant capture (⌘+Enter), pinning, tags |
 | **Finance** | Invoices with line items/tax/discount, expenses with receipt uploads, monthly charts, profit, outstanding tracking |
-| **AI sous-chef** | Claude-powered: generate recipe sheets, **build shopping lists from a booking's menu minus current stock**, draft full prep plans working back from event day, suggest menus from client preferences, polish rough ideas |
+| **Tastings diary** | Tastings, consultations, site visits and calls — linked to clients and bookings |
+| **Packing checklists** | Van-load lists per booking with a one-tap standard kit |
+| **Allergen matrix** | Dish-by-allergen grid (UK FSA 14) generated from recipe sheets, printable |
+| **Supplier price book** | Suppliers + their prices, with cheapest-first item search |
+| **Quotes** | Client-facing **approval links** — clients approve/decline from their phone, no login; convert approved quotes to invoices |
+| **Public enquiry form** | Shareable branded link that feeds enquiries straight into Bookings (and emails the owner) |
+| **Team** | Staff logins scoped to the owner's workspace, rota/shifts, owner-set assignments, and a full **activity audit trail** of every change |
+| **Email notifications** | Enquiries, quote responses and staff assignments (SMTP-based, optional) |
+| **Mise — AI sous-chef** | Claude-powered: generate recipe sheets, **build shopping lists from a booking's menu minus current stock**, draft full prep plans working back from event day, suggest menus from client preferences, polish rough ideas |
 | **Admin** | Platform owner only: chef accounts, subscription statuses, plan & pricing editor, trial settings, MRR / revenue / payment history |
 
 ## Tech stack
@@ -56,7 +64,8 @@ Or just: `./scripts/start.sh` (production-style) / `./scripts/dev.sh` (hot reloa
 | Role | Email | Password |
 |---|---|---|
 | Platform admin | `admin@creatistecommand.com` | `admin12345` |
-| Demo chef (after seeding) | `chef@demo.kitchen` | `demo12345` |
+| Demo chef — owner (after seeding) | `chef@demo.kitchen` | `demo12345` |
+| Demo staff member (after seeding) | `staff@demo.kitchen` | `demo12345` |
 
 > ⚠️ **Change the admin password** (set `ADMIN_EMAIL` / `ADMIN_PASSWORD` env vars) before going live.
 
@@ -67,7 +76,8 @@ Copy `.env.example` and fill in what you need. Everything degrades gracefully:
 | Variable | Without it | With it |
 |---|---|---|
 | `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` | **Demo billing mode** — chef activation simulated, full flow testable end-to-end | Real Stripe Checkout charging the onboarding fee + monthly subscription; webhook keeps statuses in sync |
-| `ANTHROPIC_API_KEY` (or `EMERGENT_LLM_KEY`) | AI buttons return a friendly "not configured" message | Full AI sous-chef (model: `claude-opus-4-8`, configurable via `AI_MODEL`) |
+| `ANTHROPIC_API_KEY` (or `EMERGENT_LLM_KEY`) | Mise's buttons return a friendly "not configured" message | Mise, the AI sous-chef (model: `claude-opus-4-8`, configurable via `AI_MODEL`) |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_FROM` | Email notifications silently off | Enquiry, quote-response and assignment emails |
 | `SECRET_KEY` | Auto-generated and persisted for dev | Your own production signing key |
 
 ### Stripe setup (when ready to charge for real)

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from ..auth import require_active
 from ..database import get_db
 from ..models import Expense, Invoice
-from ..utils import crud_router, to_dict
+from ..utils import crud_router, to_dict, ws_id
 
 invoices = crud_router(
     Invoice, required=(), search_fields=("number", "notes"),
@@ -30,8 +30,8 @@ def invoice_total(inv: Invoice) -> float:
 @router.get("/summary")
 def summary(year: int | None = None, db: Session = Depends(get_db), user=Depends(require_active)):
     year = year or date.today().year
-    invs = db.query(Invoice).filter(Invoice.user_id == user.id).all()
-    exps = db.query(Expense).filter(Expense.user_id == user.id).all()
+    invs = db.query(Invoice).filter(Invoice.user_id == ws_id(user)).all()
+    exps = db.query(Expense).filter(Expense.user_id == ws_id(user)).all()
 
     monthly = [{"month": m, "invoiced": 0.0, "paid": 0.0, "expenses": 0.0} for m in range(1, 13)]
     totals = {"invoiced": 0.0, "paid": 0.0, "outstanding": 0.0, "expenses": 0.0}
@@ -86,5 +86,5 @@ def summary(year: int | None = None, db: Session = Depends(get_db), user=Depends
 @router.get("/next-invoice-number")
 def next_invoice_number(db: Session = Depends(get_db), user=Depends(require_active)):
     year = date.today().year
-    count = db.query(Invoice).filter(Invoice.user_id == user.id).count()
+    count = db.query(Invoice).filter(Invoice.user_id == ws_id(user)).count()
     return {"number": f"INV-{year}-{count + 1:03d}"}

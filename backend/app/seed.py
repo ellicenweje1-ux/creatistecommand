@@ -7,10 +7,11 @@ from datetime import date, timedelta
 
 from . import config
 from .auth import hash_password
-from .database import Base, SessionLocal, engine
+from .database import Base, SessionLocal, engine, ensure_columns
 from .models import (
-    Booking, Client, ClientReview, Design, Expense, Idea, InventoryItem, Invoice,
-    OnlineOrder, Payment, PlatformSettings, Recipe, RoutePlan, ShoppingList, Task, User,
+    Appointment, Booking, Client, ClientReview, Design, Expense, Idea, InventoryItem, Invoice,
+    OnlineOrder, PackingList, Payment, PlatformSettings, Quote, Recipe, RoutePlan, Shift,
+    ShoppingList, Supplier, SupplierPrice, Task, User,
 )
 
 DEMO_EMAIL = "chef@demo.kitchen"
@@ -23,19 +24,22 @@ def d(days: int) -> str:
 
 def run():
     Base.metadata.create_all(bind=engine)
+    ensure_columns()
     db = SessionLocal()
     try:
         if not db.get(PlatformSettings, 1):
             db.add(PlatformSettings(id=1, currency=config.DEFAULT_CURRENCY, trial_days=0, plans=config.DEFAULT_PLANS))
             db.commit()
-        if db.query(User).filter(User.email == DEMO_EMAIL).first():
-            print(f"Demo chef already exists: {DEMO_EMAIL}")
+        existing = db.query(User).filter(User.email == DEMO_EMAIL).first()
+        if existing:
+            seed_v2_extras(db, existing)
+            print(f"Demo chef already exists: {DEMO_EMAIL} (v2 extras ensured)")
             return
 
         chef = User(
             email=DEMO_EMAIL, password_hash=hash_password(DEMO_PASSWORD),
             name="Caroline Imoesiri", business_name="The Creatiste Kitchen",
-            phone="+44 7700 900123", subscription_status="active", plan="pro", onboarding_paid=True,
+            phone="+44 7700 900123", subscription_status="active", plan="elite", onboarding_paid=True,
         )
         db.add(chef)
         db.commit()
@@ -330,9 +334,85 @@ def run():
         ])
 
         db.commit()
+        seed_v2_extras(db, chef)
         print(f"Seeded demo chef: {DEMO_EMAIL} / {DEMO_PASSWORD}")
     finally:
         db.close()
+
+
+
+
+def seed_v2_extras(db, chef):
+    """Team, tastings, suppliers, packing and quote demo data (idempotent)."""
+    from .auth import hash_password as hp
+    import uuid
+
+    chef.plan = "elite"
+    if not chef.enquiry_token:
+        chef.enquiry_token = uuid.uuid4().hex
+    if db.query(User).filter(User.email == "staff@demo.kitchen").first():
+        db.commit()
+        return
+    uid = chef.id
+    booking = db.query(Booking).filter(Booking.user_id == uid).order_by(Booking.date.asc()).first()
+    bid = booking.id if booking else None
+
+    staff = User(
+        email="staff@demo.kitchen", password_hash=hp("demo12345"), name="Tomi Adeyemi",
+        job_title="Sous chef", role="staff", owner_id=uid, subscription_status="active",
+        business_name=chef.business_name, currency=chef.currency,
+    )
+    db.add(staff)
+    db.flush()
+
+    db.add_all([
+        Shift(user_id=uid, staff_id=staff.id, booking_id=bid, date=d(3), start_time="08:00", end_time="16:00",
+              role_label="Prep day", location="Home kitchen, SE15", notes="Cheesecakes + suya marinade"),
+        Shift(user_id=uid, staff_id=staff.id, booking_id=bid, date=d(5), start_time="13:00", end_time="23:30",
+              role_label="Service", location="Marquee — Riverside Walk"),
+        Task(user_id=uid, booking_id=bid, assignee_id=staff.id, title="Portion & wrap 12 cheesecakes",
+             category="prep", priority="high", status="todo", due_date=d(4)),
+        Task(user_id=uid, booking_id=bid, assignee_id=staff.id, title="Label allergen cards for buffet",
+             category="service", priority="medium", status="todo", due_date=d(5)),
+        Appointment(user_id=uid, title="Tasting — Whitfield anniversary menu", kind="tasting",
+                    date=d(9), start_time="14:00", end_time="15:30", location="Client home, Surrey",
+                    notes="3 menu routes; no coriander dishes for James", status="scheduled"),
+        Appointment(user_id=uid, title="Consultation — corporate Christmas party", kind="consultation",
+                    date=d(15), start_time="10:00", end_time="10:45", location="Video call",
+                    notes="120 covers, canapés + bowls", status="scheduled"),
+        PackingList(user_id=uid, booking_id=bid, title="Okafor 40th — van pack", items=[
+            {"id": "p1", "name": "Charcoal konro x2", "qty": 2, "category": "Equipment", "packed": True},
+            {"id": "p2", "name": "Chafing dishes", "qty": 6, "category": "Equipment", "packed": False},
+            {"id": "p3", "name": "Dinner plates", "qty": 66, "category": "Crockery", "packed": False},
+            {"id": "p4", "name": "Allergen signage set", "qty": 1, "category": "Service", "packed": False},
+            {"id": "p5", "name": "First aid + burns kit", "qty": 1, "category": "Safety", "packed": True},
+        ]),
+    ])
+
+    wholesaler = Supplier(user_id=uid, name="Booker Peckham", category="Wholesaler",
+                          contact_name="Trade counter", phone="020 7700 1234", account_ref="#4471")
+    fish = Supplier(user_id=uid, name="Moxon's Fishmongers", category="Fish",
+                    contact_name="Dan", phone="020 7700 5678", notes="Call before 7am for same-day")
+    db.add_all([wholesaler, fish])
+    db.flush()
+    db.add_all([
+        SupplierPrice(user_id=uid, supplier_id=wholesaler.id, item_name="Double cream", unit="L", price=3.20, last_checked=d(-2)),
+        SupplierPrice(user_id=uid, supplier_id=wholesaler.id, item_name="Cream cheese", unit="kg", price=5.40, last_checked=d(-2)),
+        SupplierPrice(user_id=uid, supplier_id=fish.id, item_name="Cod loin", unit="kg", price=34.00, last_checked=d(-7)),
+        SupplierPrice(user_id=uid, supplier_id=fish.id, item_name="Whole sea bream", unit="pcs", price=11.50, last_checked=d(-7)),
+    ])
+
+    client = db.query(Client).filter(Client.user_id == uid).first()
+    db.add(Quote(
+        user_id=uid, booking_id=None, client_id=client.id if client else None,
+        number="Q-2026-001", title="Whitfield anniversary dinner — proposal",
+        items=[{"id": "q1", "description": "Private dinner, 6 covers (3 courses + canapés)", "qty": 6, "unit_price": 110},
+               {"id": "q2", "description": "Wine pairing service", "qty": 1, "unit_price": 120}],
+        tax_rate=0, discount=0, status="sent", public_token=uuid.uuid4().hex, valid_until=d(14),
+        notes="Deposit 30% to confirm the date.",
+    ))
+    db.commit()
+    print("Seeded v2 extras: staff@demo.kitchen / demo12345, rota, suppliers, tasting, packing, quote")
 
 
 if __name__ == "__main__":

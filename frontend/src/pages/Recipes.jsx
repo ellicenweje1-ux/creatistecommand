@@ -75,7 +75,7 @@ function RecipeEditor({ open, onClose, onSaved, initial = null }) {
       <form onSubmit={save} className="space-y-4">
         {!initial?.id && (
           <div className="rounded-xl border border-copper/30 bg-copper/5 p-3">
-            <p className="mb-2 text-xs font-medium text-copper"><Icon name="sparkle" size={13} className="mr-1 inline" />Draft with the AI sous-chef</p>
+            <p className="mb-2 text-xs font-medium text-copper"><Icon name="sparkle" size={13} className="mr-1 inline" />Draft with Mise — your AI sous-chef</p>
             <div className="flex gap-2">
               <Input placeholder="e.g. 'smoked aubergine canapé, West African twist, 30 portions'" value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} />
               <Button type="button" variant="dark" disabled={aiBusy} onClick={generate}>{aiBusy ? 'Drafting…' : 'Generate'}</Button>

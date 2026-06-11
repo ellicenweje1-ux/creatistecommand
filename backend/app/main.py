@@ -5,9 +5,12 @@ from fastapi.staticfiles import StaticFiles
 
 from . import config
 from .auth import hash_password
-from .database import Base, SessionLocal, engine
+from .database import Base, SessionLocal, engine, ensure_columns
 from .models import PlatformSettings, User
-from .routers import admin, ai, auth_router, billing, bookings, core, dashboard, finance, uploads
+from fastapi import Depends
+
+from .auth import require_owner, require_plan
+from .routers import admin, ai, auth_router, billing, bookings, core, dashboard, finance, public, quotes, team, uploads
 
 app = FastAPI(title="The Creatiste Command", version="1.0.0")
 
@@ -36,9 +39,19 @@ app.include_router(core.orders, prefix=f"{API}/orders", tags=["orders"])
 app.include_router(core.shopping, prefix=f"{API}/shopping", tags=["shopping"])
 app.include_router(core.tasks, prefix=f"{API}/tasks", tags=["tasks"])
 app.include_router(core.routes, prefix=f"{API}/routes", tags=["routes"])
-app.include_router(finance.invoices, prefix=f"{API}/invoices", tags=["finance"])
-app.include_router(finance.expenses, prefix=f"{API}/expenses", tags=["finance"])
-app.include_router(finance.router, prefix=f"{API}/finance", tags=["finance"])
+app.include_router(core.appointments, prefix=f"{API}/appointments", tags=["appointments"])
+app.include_router(core.packing, prefix=f"{API}/packing", tags=["packing"])
+app.include_router(core.suppliers, prefix=f"{API}/suppliers", tags=["suppliers"])
+app.include_router(core.supplier_prices, prefix=f"{API}/supplier-prices", tags=["suppliers"])
+app.include_router(team.shifts, prefix=f"{API}/shifts", tags=["team"])
+app.include_router(team.router, prefix=API)
+app.include_router(quotes.router, prefix=f"{API}/quotes", tags=["quotes"])
+app.include_router(public.router, prefix=API)
+# Money is owner-only (staff never see finance) and part of the Pro tier upward
+_money = [Depends(require_owner), Depends(require_plan(2))]
+app.include_router(finance.invoices, prefix=f"{API}/invoices", tags=["finance"], dependencies=_money)
+app.include_router(finance.expenses, prefix=f"{API}/expenses", tags=["finance"], dependencies=_money)
+app.include_router(finance.router, prefix=f"{API}/finance", tags=["finance"], dependencies=_money)
 
 app.mount("/uploads", StaticFiles(directory=config.UPLOAD_DIR), name="uploads")
 
@@ -50,9 +63,19 @@ def health():
 
 @app.on_event("startup")
 def bootstrap():
+    import json
+    import uuid
+
     Base.metadata.create_all(bind=engine)
+    ensure_columns()
     db = SessionLocal()
     try:
+        settings = db.get(PlatformSettings, 1)
+        if settings and "Mise" not in json.dumps(settings.plans):
+            settings.plans = config.DEFAULT_PLANS  # roll plans forward to v2 feature lists
+        for owner in db.query(User).filter(User.role.in_(["chef", "admin"])).all():
+            if not owner.enquiry_token:
+                owner.enquiry_token = uuid.uuid4().hex
         if not db.get(PlatformSettings, 1):
             db.add(PlatformSettings(id=1, currency=config.DEFAULT_CURRENCY, trial_days=0, plans=config.DEFAULT_PLANS))
         if not db.query(User).filter(User.email == config.ADMIN_EMAIL.lower()).first():

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from ..auth import create_token, get_current_user, hash_password, verify_password
+from ..auth import create_token, get_current_user, hash_password, plan_level, verify_password, workspace_owner
 from ..database import get_db
 from ..models import PlatformSettings, User
 from ..utils import EMAIL_RE, to_dict
@@ -56,12 +56,26 @@ def login(payload: dict = Body(...), db: Session = Depends(get_db)):
         raise HTTPException(401, "Incorrect email or password")
     user.last_login_at = datetime.now(timezone.utc)
     db.commit()
-    return {"token": create_token(user), "user": user_payload(user)}
+    data = user_payload(user)
+    owner = workspace_owner(db, user)
+    data["plan"] = owner.plan
+    data["plan_level"] = plan_level(owner)
+    data["subscription_status"] = owner.subscription_status if user.role == "staff" else user.subscription_status
+    data["business_name"] = owner.business_name or data.get("business_name")
+    data["is_staff"] = user.role == "staff"
+    return {"token": create_token(user), "user": data}
 
 
 @router.get("/me")
-def me(user: User = Depends(get_current_user)):
-    return user_payload(user)
+def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    data = user_payload(user)
+    owner = workspace_owner(db, user)
+    data["plan"] = owner.plan
+    data["plan_level"] = plan_level(owner)
+    data["subscription_status"] = owner.subscription_status if user.role == "staff" else user.subscription_status
+    data["business_name"] = owner.business_name or data.get("business_name")
+    data["is_staff"] = user.role == "staff"
+    return data
 
 
 @router.put("/me")

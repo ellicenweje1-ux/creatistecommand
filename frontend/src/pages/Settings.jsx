@@ -110,13 +110,37 @@ export default function Settings() {
             ) : <p className="text-sm text-fg/45">Loading…</p>}
           </Card>
 
-          <Card title="AI sous-chef">
+          <Card title="Mise — your AI sous-chef">
             <p className="text-sm text-fg/65">
+              Mise handles your mise en place before you tie your apron: drafts recipe sheets, builds
+              shopping lists from a menu minus your stock, plans prep timelines back from event day and
+              polishes rough ideas.{' '}
               {aiStatus?.enabled
-                ? <>AI features are <span className="font-medium text-sage">enabled</span> (model: {aiStatus.model}).</>
-                : <>AI features are <span className="font-medium text-red-600">not configured</span>. The platform owner needs to set <code className="rounded bg-fg/5 px-1">ANTHROPIC_API_KEY</code> on the server to enable recipe generation, smart shopping lists and prep plans.</>}
+                ? <>Mise is <span className="font-medium text-sage">enabled</span> (model: {aiStatus.model}).</>
+                : <>Mise is <span className="font-medium text-red-600">not configured</span> — the platform owner needs to set <code className="rounded bg-fg/5 px-1">ANTHROPIC_API_KEY</code> on the server.</>}
             </p>
           </Card>
+
+          <Card title="Email notifications">
+            <p className="text-sm text-fg/65">
+              {aiStatus?.email_enabled
+                ? <>Email notifications are <span className="font-medium text-sage">on</span> — enquiries, quote responses and staff assignments are emailed automatically.</>
+                : <>Email notifications are <span className="font-medium text-red-600">off</span> — set <code className="rounded bg-fg/5 px-1">SMTP_HOST</code> (and friends) on the server to enable them.</>}
+            </p>
+          </Card>
+
+          {!user?.is_staff && (user?.plan_level ?? 1) >= 2 && user?.enquiry_token && (
+            <Card title="Public enquiry form">
+              <p className="mb-3 text-sm text-fg/65">
+                Share this link on your website or Instagram — enquiries land straight in your Bookings
+                as new leads (and email you{aiStatus?.email_enabled ? '' : ', once email is configured'}).
+              </p>
+              <div className="flex gap-2">
+                <Input readOnly value={`${window.location.origin}/enquire/${user.enquiry_token}`} onFocus={(e) => e.target.select()} />
+                <Button variant="secondary" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/enquire/${user.enquiry_token}`); toast('Link copied', 'sage') }}>Copy</Button>
+              </div>
+            </Card>
+          )}
 
           <Card title="Change password">
             <form onSubmit={changePassword} className="space-y-4">
