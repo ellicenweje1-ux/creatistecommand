@@ -7,7 +7,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from .. import config
-from ..auth import require_active
+from ..auth import get_current_user, require_active
 from ..database import get_db
 from ..models import Booking, Client, Idea, InventoryItem, Recipe
 from ..utils import extract_json, get_owned, ws_id
@@ -169,3 +169,52 @@ def polish_idea(payload: dict = Body(...), db: Session = Depends(get_db), user=D
         "Return JSON: {\"title\": str, \"content\": str, \"tags\": [str]}"
     )
     return result
+
+
+SUPPORT_SYSTEM = (
+    "You are Mise, the friendly in-app helper for 'The Creatiste Command' — a management platform "
+    "for private chefs and caterers. Answer questions about using the platform clearly and briefly, "
+    "in plain language for busy chefs.\n\n"
+    "PLATFORM KNOWLEDGE:\n"
+    "- Modules: Dashboard; Bookings (event pipeline with a per-booking workspace: menu, shopping, packing, "
+    "tasks, route, orders, designs, money); Tastings & consultations diary; Tasks; Route planner (opens in "
+    "Google Maps); Team (Elite: staff logins, rota, assignments, owner activity trail); Recipes; Inventory "
+    "with shelf-life alerts; Shopping lists grouped by shop; Packing checklists; Online order tracking; "
+    "Allergen matrix (UK FSA 14, from recipe allergen tags); Supplier price book with cheapest-first search; "
+    "Clients with reviews; Quotes with public client approval links (Elite); Finance (invoices & expenses, Pro+); "
+    "Design studio with drawing tools (Pro+); My Brain (idea capture); Mise the AI sous-chef (Elite).\n"
+    "- Plans: Solo Chef (core modules), Pro Caterer (adds clients, tastings, orders, routes, designs, suppliers, "
+    "enquiry form, invoicing, email), Elite Kitchen (adds Mise AI, Team/staff, quote approval links). "
+    "Pricing is shown on the landing page. There is a free trial for new chefs, then a one-time onboarding fee "
+    "plus monthly subscription. Owners manage their plan in Settings → Membership.\n"
+    "- Staff log in with their own email (created by the owner in Team → Staff); staff cannot see Finance or Quotes; "
+    "all staff changes appear in Team → Activity.\n"
+    "- Theme toggle (dark/light) is in Settings → Appearance. The public enquiry link is in Settings.\n\n"
+    "RULES: Be concise (under 120 words). If you genuinely cannot answer, or the issue is account/billing-specific "
+    "(refunds, payment failures, data problems, bugs), say so and tell the user to use the 'Send a support request' "
+    "form below the chat — do not invent answers."
+)
+
+
+@router.post("/support-chat")
+def support_chat(payload: dict = Body(...), user=Depends(get_current_user)):
+    if not config.ANTHROPIC_API_KEY:
+        raise HTTPException(503, "The AI helper is offline — please send a support request below instead.")
+    history = [
+        {"role": m.get("role"), "content": str(m.get("content", ""))[:2000]}
+        for m in (payload.get("messages") or [])[-12:]
+        if m.get("role") in ("user", "assistant") and m.get("content")
+    ]
+    if not history or history[-1]["role"] != "user":
+        raise HTTPException(422, "Send a message to ask about")
+    client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
+    try:
+        response = client.messages.create(
+            model=config.AI_MODEL, max_tokens=600, system=SUPPORT_SYSTEM, messages=history,
+        )
+    except anthropic.RateLimitError:
+        raise HTTPException(429, "Mise is busy — try again in a moment.")
+    except anthropic.APIError as exc:
+        raise HTTPException(502, f"AI service error: {getattr(exc, 'message', exc)}")
+    reply = "".join(b.text for b in response.content if b.type == "text").strip()
+    return {"reply": reply or "Sorry — I couldn't come up with an answer. Please send a support request below."}

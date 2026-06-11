@@ -9,7 +9,7 @@ from ..auth import require_admin
 from ..database import get_db
 from ..models import (
     Booking, Client, ClientReview, Design, Expense, Idea, InventoryItem, Invoice,
-    OnlineOrder, Payment, RoutePlan, Recipe, ShoppingList, Task, User,
+    OnlineOrder, Payment, RoutePlan, Recipe, ShoppingList, SupportTicket, Task, User,
 )
 from ..utils import to_dict
 from .billing import get_settings
@@ -136,3 +136,20 @@ def write_settings(payload: dict = Body(...), db: Session = Depends(get_db)):
         settings.plans = payload["plans"]
     db.commit()
     return {"currency": settings.currency, "trial_days": settings.trial_days, "plans": settings.plans}
+
+
+@router.get("/support")
+def support_tickets(db: Session = Depends(get_db)):
+    rows = db.query(SupportTicket).order_by(SupportTicket.created_at.desc()).limit(200).all()
+    return [to_dict(t) for t in rows]
+
+
+@router.patch("/support/{ticket_id}")
+def update_ticket(ticket_id: int, payload: dict = Body(...), db: Session = Depends(get_db)):
+    ticket = db.get(SupportTicket, ticket_id)
+    if not ticket:
+        raise HTTPException(404, "Ticket not found")
+    if payload.get("status") in ("open", "closed"):
+        ticket.status = payload["status"]
+    db.commit()
+    return to_dict(ticket)

@@ -30,6 +30,11 @@ export function NewListModal({ open, onClose, onCreated, bookingId = null, defau
 export function ListEditor({ list, onChanged, onDeleted, currency = 'GBP', startOpen = false }) {
   const [open, setOpen] = useState(startOpen)
   const [draft, setDraft] = useState({ name: '', qty: '', unit: '', shop: '', est_cost: '' })
+  const [shopOptions, setShopOptions] = useState([])
+  useEffect(() => {
+    if (!open) return
+    api.get('/suppliers').then((s) => setShopOptions(s.map((x) => x.name))).catch(() => {})
+  }, [open])
 
   const items = list.items || []
   const done = items.filter((i) => i.purchased).length
@@ -102,9 +107,12 @@ export function ListEditor({ list, onChanged, onDeleted, currency = 'GBP', start
             <Input className="col-span-12 sm:col-span-4" placeholder="Add item…" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
             <Input className="col-span-3 sm:col-span-1" placeholder="Qty" value={draft.qty} onChange={(e) => setDraft({ ...draft, qty: e.target.value })} />
             <Input className="col-span-3 sm:col-span-1" placeholder="Unit" value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.target.value })} />
-            <Input className="col-span-4 sm:col-span-3" placeholder="Shop (e.g. Butcher)" value={draft.shop} onChange={(e) => setDraft({ ...draft, shop: e.target.value })} />
+            <Input className="col-span-4 sm:col-span-3" placeholder="Shop (e.g. Butcher)" list={`shops-${list.id}`} value={draft.shop} onChange={(e) => setDraft({ ...draft, shop: e.target.value })} />
             <Input className="col-span-2 sm:col-span-1" placeholder="£" value={draft.est_cost} onChange={(e) => setDraft({ ...draft, est_cost: e.target.value })} />
             <Button className="col-span-12 sm:col-span-2" size="sm" icon="plus">Add</Button>
+            <datalist id={`shops-${list.id}`}>
+              {[...new Set([...shopOptions, 'Supermarket', 'Butcher', 'Fishmonger', 'Greengrocer', 'Wholesaler', 'Market', 'Online'])].map((s) => <option key={s} value={s} />)}
+            </datalist>
           </form>
 
           <div className="mt-3 flex justify-between border-t border-line/70 pt-3">

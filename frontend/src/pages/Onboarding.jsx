@@ -28,7 +28,7 @@ export default function Onboarding() {
     return () => clearInterval(tick)
   }, [params]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { if (isActive(user)) navigate('/app') }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (user?.subscription_status === 'active' || user?.role === 'admin') navigate('/app') }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const pay = async () => {
     setBusy(true)
@@ -67,6 +67,14 @@ export default function Onboarding() {
             Activation includes your one-time onboarding & setup fee plus your first month's membership.
             {pricing?.stripe_enabled ? ' Payment is handled securely by Stripe.' : ''}
           </p>
+          {user?.subscription_status === 'trialing' && (
+            <div className="mx-auto mt-4 max-w-md rounded-xl border border-copper/40 bg-copper/10 px-4 py-3 text-sm">
+              You're on your <span className="font-semibold">free trial</span>
+              {user.trial_ends_at ? <> — it ends <span className="font-semibold">{user.trial_ends_at}</span></> : null}.
+              Activate below to keep your kitchen, or{' '}
+              <button className="font-semibold text-copper underline" onClick={() => navigate('/app')}>keep exploring →</button>
+            </div>
+          )}
         </div>
 
         <div className="mt-10 grid gap-4 md:grid-cols-3">

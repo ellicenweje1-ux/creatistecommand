@@ -106,12 +106,14 @@ export default function Admin() {
   const [settings, setSettings] = useState(null)
   const [q, setQ] = useState('')
   const [selectedChef, setSelectedChef] = useState(null)
+  const [tickets, setTickets] = useState([])
 
   const load = () => {
     api.get('/admin/overview').then(setOverview).catch(toastErr)
     api.get('/admin/chefs').then(setChefs).catch(toastErr)
     api.get('/admin/payments').then(setPayments).catch(toastErr)
     api.get('/admin/settings').then(setSettings).catch(toastErr)
+    api.get('/admin/support').then(setTickets).catch(() => {})
   }
   useEffect(load, [])
   if (!overview) return <Spinner />
@@ -126,6 +128,7 @@ export default function Admin() {
         { id: 'overview', label: 'Overview' },
         { id: 'chefs', label: 'Chefs', count: chefs.length },
         { id: 'payments', label: 'Payments' },
+        { id: 'support', label: 'Support', count: tickets.filter((t) => t.status === 'open').length },
         { id: 'pricing', label: 'Pricing' },
       ]} />
 
@@ -212,6 +215,28 @@ export default function Admin() {
               {payments.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-fg/45">No payments recorded yet.</td></tr>}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {tab === 'support' && (
+        <div className="space-y-2.5">
+          {tickets.length === 0 ? (
+            <Card><p className="text-sm text-fg/45">No support requests yet.</p></Card>
+          ) : tickets.map((t) => (
+            <Card key={t.id}>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">#{t.id} — {t.subject}</p>
+                  <p className="text-xs text-fg/50">{t.name || '—'} · {t.email} · {new Date(t.created_at).toLocaleString()}</p>
+                </div>
+                <Button size="sm" variant={t.status === 'open' ? 'primary' : 'secondary'}
+                  onClick={() => api.patch(`/admin/support/${t.id}`, { status: t.status === 'open' ? 'closed' : 'open' }).then(load).catch(toastErr)}>
+                  {t.status === 'open' ? 'Mark resolved' : 'Reopen'}
+                </Button>
+              </div>
+              <p className="mt-2 whitespace-pre-wrap rounded-lg bg-parchment/50 px-3 py-2 text-sm text-fg/75">{t.message}</p>
+            </Card>
+          ))}
         </div>
       )}
 

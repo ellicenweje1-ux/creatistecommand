@@ -92,13 +92,17 @@ function QuoteEditor({ open, onClose, onSaved, initial = null, currency }) {
   )
 }
 
-export default function Quotes() {
+export function QuotesPanel({ locked = false }) {
   const { user } = useAuth()
   const cur = user?.currency || 'GBP'
   const [quotes, setQuotes] = useState(null)
   const [modal, setModal] = useState({ open: false, initial: null })
   const load = () => api.get('/quotes').then(setQuotes).catch(toastErr)
-  useEffect(load, [])
+  useEffect(() => { if (!locked) load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  if (locked) {
+    return <EmptyState icon="lock" title="Quotes are part of the Elite Kitchen plan"
+      hint="Upgrade in Settings → Membership to send client approval links your clients can accept from their phone." />
+  }
   if (!quotes) return <Spinner />
 
   const send = (q) =>
@@ -116,8 +120,10 @@ export default function Quotes() {
 
   return (
     <div>
-      <PageHeader title="Quotes" sub="Send a link — your client approves from their phone. No logins, no chasing."
-        actions={<Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>New quote</Button>} />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-fg/55">Send a link — your client approves from their phone. No logins, no chasing.</p>
+        <Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>New quote</Button>
+      </div>
       {quotes.length === 0 ? (
         <EmptyState icon="doc" title="No quotes yet" hint="Draft a quote, hit send, and share the approval link. You'll see (and get emailed) the moment they respond."
           action={<Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>New quote</Button>} />

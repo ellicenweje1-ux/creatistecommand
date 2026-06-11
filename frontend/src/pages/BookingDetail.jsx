@@ -378,7 +378,7 @@ export default function BookingDetail() {
                     <span className="font-medium">{qt.number || `Quote #${qt.id}`} <span className="text-fg/45">— {qt.title}</span></span>
                     <span className="flex items-center gap-2">
                       <Badge tone={{ draft: 'gray', sent: 'amber', approved: 'sage', declined: 'red', expired: 'ink' }[qt.status]}>{qt.status}</Badge>
-                      <Link to="/app/quotes" className="text-xs font-medium text-copper">Manage</Link>
+                      <Link to="/app/finance" className="text-xs font-medium text-copper">Manage</Link>
                     </span>
                   </li>
                 ))}

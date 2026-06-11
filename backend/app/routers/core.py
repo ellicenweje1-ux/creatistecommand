@@ -8,6 +8,8 @@ from ..models import (
     Appointment, Client, ClientReview, Design, Idea, InventoryItem, OnlineOrder,
     PackingList, Recipe, RoutePlan, ShoppingList, Supplier, SupplierPrice, Task,
 )
+from sqlalchemy.orm.attributes import flag_modified
+
 from ..utils import crud_router, get_owned, log_activity, to_dict, ws_id
 
 recipes = crud_router(Recipe, required=("title",), search_fields=("title", "category", "cuisine"))
@@ -81,15 +83,18 @@ def delete_review(client_id: int, review_id: int, db: Session = Depends(get_db),
 def toggle_item(list_id: int, payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_active)):
     shopping_list = get_owned(db, ShoppingList, list_id, ws_id(user))
     item_id = payload.get("item_id")
-    items = list(shopping_list.items or [])
-    for item in items:
-        if item.get("id") == item_id:
-            item["purchased"] = not item.get("purchased")
-            break
-    else:
+    old_items = shopping_list.items or []
+    if not any(item.get("id") == item_id for item in old_items):
         raise HTTPException(404, "Item not found")
-    shopping_list.items = items
+    # Build NEW dicts: mutating the loaded JSON in place looks unchanged to
+    # SQLAlchemy's change detection and is silently never written to the DB.
+    shopping_list.items = [
+        {**item, "purchased": not item.get("purchased")} if item.get("id") == item_id else item
+        for item in old_items
+    ]
+    flag_modified(shopping_list, "items")
     db.commit()
+    db.refresh(shopping_list)
     return to_dict(shopping_list)
 
 
@@ -97,16 +102,18 @@ def toggle_item(list_id: int, payload: dict = Body(...), db: Session = Depends(g
 @packing.post("/{list_id}/toggle")
 def toggle_packed(list_id: int, payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_active)):
     packing_list = get_owned(db, PackingList, list_id, ws_id(user))
-    items = list(packing_list.items or [])
-    for item in items:
-        if item.get("id") == payload.get("item_id"):
-            item["packed"] = not item.get("packed")
-            break
-    else:
+    item_id = payload.get("item_id")
+    old_items = packing_list.items or []
+    if not any(item.get("id") == item_id for item in old_items):
         raise HTTPException(404, "Item not found")
-    packing_list.items = items
+    packing_list.items = [
+        {**item, "packed": not item.get("packed")} if item.get("id") == item_id else item
+        for item in old_items
+    ]
+    flag_modified(packing_list, "items")
     log_activity(db, user, "updated", packing_list)
     db.commit()
+    db.refresh(packing_list)
     return to_dict(packing_list)
 
 

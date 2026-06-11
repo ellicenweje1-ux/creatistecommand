@@ -10,7 +10,7 @@ from .models import PlatformSettings, User
 from fastapi import Depends
 
 from .auth import require_owner, require_plan
-from .routers import admin, ai, auth_router, billing, bookings, core, dashboard, finance, public, quotes, team, uploads
+from .routers import admin, ai, auth_router, billing, bookings, core, dashboard, finance, public, quotes, support, team, uploads
 
 app = FastAPI(title="The Creatiste Command", version="1.0.0")
 
@@ -47,6 +47,7 @@ app.include_router(team.shifts, prefix=f"{API}/shifts", tags=["team"])
 app.include_router(team.router, prefix=API)
 app.include_router(quotes.router, prefix=f"{API}/quotes", tags=["quotes"])
 app.include_router(public.router, prefix=API)
+app.include_router(support.router, prefix=API)
 # Money is owner-only (staff never see finance) and part of the Pro tier upward
 _money = [Depends(require_owner), Depends(require_plan(2))]
 app.include_router(finance.invoices, prefix=f"{API}/invoices", tags=["finance"], dependencies=_money)
@@ -77,7 +78,7 @@ def bootstrap():
             if not owner.enquiry_token:
                 owner.enquiry_token = uuid.uuid4().hex
         if not db.get(PlatformSettings, 1):
-            db.add(PlatformSettings(id=1, currency=config.DEFAULT_CURRENCY, trial_days=0, plans=config.DEFAULT_PLANS))
+            db.add(PlatformSettings(id=1, currency=config.DEFAULT_CURRENCY, trial_days=config.DEFAULT_TRIAL_DAYS, plans=config.DEFAULT_PLANS))
         if not db.query(User).filter(User.email == config.ADMIN_EMAIL.lower()).first():
             db.add(User(
                 email=config.ADMIN_EMAIL.lower(),

@@ -35,7 +35,7 @@ export default function AuthPage({ mode }) {
         <form onSubmit={submit} className="w-full max-w-md rounded-2xl border border-line bg-card p-7 shadow-card">
           <h1 className="font-display text-2xl font-semibold">{isLogin ? 'Welcome back, chef.' : 'Set up your command centre.'}</h1>
           <p className="mt-1 text-sm text-fg/55">
-            {isLogin ? 'Log in to your kitchen.' : 'Create your account — choose your plan on the next step.'}
+            {isLogin ? 'Log in to your kitchen.' : 'Create your account — your free trial starts straight away, no card needed.'}
           </p>
           <div className="mt-6 space-y-4">
             {!isLogin && (
@@ -50,7 +50,7 @@ export default function AuthPage({ mode }) {
             </Field>
           </div>
           <Button className="mt-6 w-full" size="lg" disabled={busy}>
-            {busy ? 'One moment…' : isLogin ? 'Log in' : 'Create account'}
+            {busy ? 'One moment…' : isLogin ? 'Log in' : 'Start free trial'}
           </Button>
           <p className="mt-4 text-center text-sm text-fg/55">
             {isLogin ? (

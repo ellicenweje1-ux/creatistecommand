@@ -3,6 +3,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls, fmtDate, fmtMoney, INVOICE_STATUSES, INVOICE_TONES, invoiceTotal, todayISO, uid } from '../format'
 import { Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, Select, Spinner, StatCard, Tabs, Textarea, toastErr } from '../ui'
+import { QuotesPanel } from './Quotes'
 
 /* ------------------------------ invoice editor ------------------------------ */
 export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, bookingId = null, clientId = null, currency = 'GBP' }) {
@@ -210,7 +211,7 @@ export default function Finance() {
 
   return (
     <div>
-      <PageHeader title="Finance" sub="Invoices out, expenses in, profit visible."
+      <PageHeader title="Finance" sub="Quotes approved, invoices out, expenses in — profit visible."
         actions={
           <>
             <Button variant="secondary" icon="plus" onClick={() => setExpenseModal({ open: true, initial: null })}>Expense</Button>
@@ -220,9 +221,12 @@ export default function Finance() {
 
       <Tabs value={tab} onChange={setTab} tabs={[
         { id: 'overview', label: 'Overview' },
+        { id: 'quotes', label: 'Quotes' },
         { id: 'invoices', label: 'Invoices', count: invoices.length },
         { id: 'expenses', label: 'Expenses', count: expenses.length },
       ]} />
+
+      {tab === 'quotes' && <QuotesPanel locked={user?.role !== 'admin' && (user?.plan_level ?? 1) < 3} />}
 
       {tab === 'overview' && (
         <div className="space-y-5">

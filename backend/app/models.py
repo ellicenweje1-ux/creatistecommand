@@ -331,3 +331,15 @@ class ActivityLog(Base):
     entity_id: Mapped[int] = mapped_column(Integer, nullable=True)
     summary: Mapped[str] = mapped_column(String(300), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class SupportTicket(Base):
+    __tablename__ = "support_tickets"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, index=True, nullable=True)
+    email: Mapped[str] = mapped_column(String(255), default="")
+    name: Mapped[str] = mapped_column(String(160), default="")
+    subject: Mapped[str] = mapped_column(String(300), default="")
+    message: Mapped[str] = mapped_column(Text, default="")
+    status: Mapped[str] = mapped_column(String(10), default="open")  # open | closed
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)

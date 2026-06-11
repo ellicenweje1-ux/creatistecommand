@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, Outlet, Route, Routes, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, Route, Routes, useNavigate } from 'react-router-dom'
 import { RequireActive, RequireAdmin, RequireAuth, useAuth } from './auth'
 import { cls } from './format'
 import Admin from './pages/Admin'
@@ -19,10 +19,10 @@ import Orders from './pages/Orders'
 import Packing from './pages/Packing'
 import PublicEnquiry from './pages/PublicEnquiry'
 import PublicQuote from './pages/PublicQuote'
-import Quotes from './pages/Quotes'
 import Recipes from './pages/Recipes'
 import RoutesPage from './pages/RoutesPage'
 import Settings from './pages/Settings'
+import Support from './pages/Support'
 import Shopping from './pages/Shopping'
 import Suppliers from './pages/Suppliers'
 import Tastings from './pages/Tastings'
@@ -58,10 +58,9 @@ const NAV_GROUPS = [
     label: 'Business',
     items: [
       { to: '/app/clients', icon: 'users', label: 'Clients', min: 2 },
-      { to: '/app/quotes', icon: 'doc', label: 'Quotes', min: 3, ownerOnly: true },
       { to: '/app/finance', icon: 'coins', label: 'Finance', min: 2, ownerOnly: true },
       { to: '/app/designs', icon: 'layout', label: 'Designs', min: 2 },
-      { to: '/app/ideas', icon: 'bulb', label: 'Ideas' },
+      { to: '/app/ideas', icon: 'bulb', label: 'My Brain' },
     ],
   },
 ]
@@ -104,6 +103,18 @@ function SideLink({ item, locked, onClick }) {
   )
 }
 
+function TrialBanner({ user }) {
+  if (user?.is_staff || user?.subscription_status !== 'trialing') return null
+  const days = user.trial_ends_at
+    ? Math.max(0, Math.ceil((new Date(`${user.trial_ends_at}T23:59:59`) - new Date()) / 86400000))
+    : 0
+  return (
+    <Link to="/onboarding" className="block bg-copper px-4 py-2 text-center text-xs font-semibold text-ink transition-colors hover:bg-copper-dark">
+      Free trial — {days} day{days === 1 ? '' : 's'} left · Activate your kitchen now →
+    </Link>
+  )
+}
+
 function AppShell() {
   const { user, logout } = useAuth()
   const [moreOpen, setMoreOpen] = useState(false)
@@ -134,6 +145,7 @@ function AppShell() {
           })}
         </nav>
         <div className="border-t border-white/10 p-3">
+          <SideLink item={{ to: '/app/support', icon: 'help', label: 'Help & FAQs' }} />
           <SideLink item={{ to: '/app/settings', icon: 'settings', label: 'Settings' }} />
           {user?.role === 'admin' && <SideLink item={{ to: '/app/admin', icon: 'shield', label: 'Platform admin' }} />}
           <button onClick={logout} className="mt-0.5 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-cream/60 hover:bg-white/5 hover:text-cream">
@@ -150,6 +162,8 @@ function AppShell() {
         <button onClick={() => navigate('/app')}><Brand small /></button>
         <button onClick={() => setMoreOpen(true)} className="rounded-lg p-2 text-fg/60 hover:bg-fg/5"><Icon name="menu" /></button>
       </header>
+
+      <TrialBanner user={user} />
 
       <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-5 sm:px-6 lg:pb-10 lg:pt-8">
         <Outlet />
@@ -175,7 +189,7 @@ function AppShell() {
           <div className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-2xl bg-base p-4 pb-8" onClick={(e) => e.stopPropagation()}>
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-fg/15" />
             <div className="grid grid-cols-4 gap-3">
-              {[...allItems, { to: '/app/settings', icon: 'settings', label: 'Settings' },
+              {[...allItems, { to: '/app/support', icon: 'help', label: 'Help' }, { to: '/app/settings', icon: 'settings', label: 'Settings' },
                 ...(user?.role === 'admin' ? [{ to: '/app/admin', icon: 'shield', label: 'Admin' }] : [])].map((item) => {
                 const locked = item.min && level < item.min
                 if (locked) {
@@ -231,10 +245,10 @@ export default function App() {
         <Route path="tasks" element={<Tasks />} />
         <Route path="routes" element={<RoutesPage />} />
         <Route path="team" element={<Team />} />
-        <Route path="quotes" element={<Quotes />} />
         <Route path="designs" element={<Designs />} />
         <Route path="ideas" element={<Ideas />} />
         <Route path="finance" element={<Finance />} />
+        <Route path="support" element={<Support />} />
         <Route path="settings" element={<Settings />} />
         <Route path="admin" element={<RequireAdmin><Admin /></RequireAdmin>} />
       </Route>

@@ -33,6 +33,8 @@ export function NewRouteModal({ open, onClose, onCreated, bookingId = null, defa
 
 export function RouteEditor({ route, onChanged, onDeleted }) {
   const [draft, setDraft] = useState({ name: '', address: '', purpose: '', eta: '' })
+  const [suppliers, setSuppliers] = useState([])
+  useEffect(() => { api.get('/suppliers').then(setSuppliers).catch(() => {}) }, [])
   const stops = [...(route.stops || [])].sort((a, b) => (a.order || 0) - (b.order || 0))
 
   const saveStops = (next) =>
@@ -96,11 +98,17 @@ export function RouteEditor({ route, onChanged, onDeleted }) {
           ))}
         </ol>
         <form onSubmit={addStop} className="mt-3 grid grid-cols-12 gap-1.5">
-          <Input className="col-span-6 sm:col-span-3" placeholder="Stop name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+          <Input className="col-span-6 sm:col-span-3" placeholder="Stop name" list={`stops-${route.id}`} value={draft.name}
+            onChange={(e) => {
+              const v = e.target.value
+              const match = suppliers.find((s) => s.name === v)
+              setDraft({ ...draft, name: v, address: !draft.address && match?.address ? match.address : draft.address })
+            }} />
           <Input className="col-span-6 sm:col-span-4" placeholder="Address" value={draft.address} onChange={(e) => setDraft({ ...draft, address: e.target.value })} />
           <Input className="col-span-6 sm:col-span-2" placeholder="Purpose" value={draft.purpose} onChange={(e) => setDraft({ ...draft, purpose: e.target.value })} />
           <Input type="time" className="col-span-3 sm:col-span-1" value={draft.eta} onChange={(e) => setDraft({ ...draft, eta: e.target.value })} />
           <Button className="col-span-3 sm:col-span-2" size="sm" icon="plus">Add stop</Button>
+          <datalist id={`stops-${route.id}`}>{suppliers.map((s) => <option key={s.id} value={s.name} />)}</datalist>
         </form>
         {route.notes && <p className="mt-3 text-xs text-fg/50">📝 {route.notes}</p>}
       </div>

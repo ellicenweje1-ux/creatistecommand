@@ -129,8 +129,8 @@ export default function Dashboard() {
             )}
           </Card>
 
-          <Card title="Pinned ideas" action={<Link to="/app/ideas" className="text-xs font-medium text-copper">Ideas</Link>} pad={false}>
-            {data.pinned_ideas.length === 0 ? <p className="p-5 text-sm text-fg/45">Pin your best sparks of genius.</p> : (
+          <Card title="My Brain — pinned" action={<Link to="/app/ideas" className="text-xs font-medium text-copper">My Brain</Link>} pad={false}>
+            {data.pinned_ideas.length === 0 ? <p className="p-5 text-sm text-fg/45">Pin the things you must not forget.</p> : (
               <ul className="divide-y divide-line/70">
                 {data.pinned_ideas.map((i) => (
                   <li key={i.id} className="px-4 py-2.5">

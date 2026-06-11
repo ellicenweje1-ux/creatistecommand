@@ -82,9 +82,9 @@ export default function Ideas() {
 
   return (
     <div>
-      <PageHeader title="Ideas" sub="On-the-spot sparks, captured before service steals them." />
+      <PageHeader title="My Brain" sub="Offload new ideas, things to remember, things to keep in mind — captured before they’re clouded by a million things." />
       <form onSubmit={capture} className="mb-4 rounded-xl border border-line bg-card p-3 shadow-card">
-        <Textarea rows={2} placeholder="Quick capture… (first line becomes the title)" value={quick} onChange={(e) => setQuick(e.target.value)}
+        <Textarea rows={2} placeholder="Offload it here… (first line becomes the title)" value={quick} onChange={(e) => setQuick(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) capture(e) }} />
         <div className="mt-2 flex items-center justify-between">
           <p className="text-xs text-fg/40">⌘/Ctrl + Enter to save</p>
