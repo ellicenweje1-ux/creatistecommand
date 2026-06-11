@@ -14,15 +14,15 @@ export default {
         copper: 'rgb(var(--c-gold) / <alpha-value>)',     // champagne gold accent
         'copper-dark': 'rgb(var(--c-gold-deep) / <alpha-value>)',
         // Brand constants (identical in both themes)
-        ink: '#141210',
-        'ink-soft': '#252118',
-        cream: '#F4EFE3',
+        ink: '#0D0A07',
+        'ink-soft': '#1D1710',
+        cream: '#FFFBF5',
         sage: '#6B7D68',
         'sage-light': '#2A2F28',
         clay: '#C8B89A',
       },
       fontFamily: {
-        display: ['Fraunces', 'Georgia', 'serif'],
+        display: ['"Playfair Display"', 'Georgia', 'serif'],
         body: ['Outfit', 'system-ui', 'sans-serif'],
       },
       boxShadow: {

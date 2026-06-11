@@ -299,7 +299,7 @@ export function Flame({ size = 22, className = '' }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" aria-hidden>
       <path d="M11.2 21.6c-3.7-1.2-5.5-4.4-4.4-7.8.7-2.1 2.5-3.5 3.1-5.7.4-1.4.3-2.8-.2-4.3 2.9 1.4 4.6 3.7 4.7 6.3.1 2-1 3.5-1.1 5.2-.1 1.6.7 3 2.2 4.3-1.4.4-2.9.4-4.3 0Z" fill="rgb(var(--c-gold))" />
-      <path d="M16.8 20.9c2-1 3-3 2.3-5-.4-1.3-1.4-2.2-1.7-3.7-1.3 1.1-1.9 2.4-1.7 3.8.2 1 .9 1.8.8 2.8-.1.8-.7 1.5-1.6 2 .7.2 1.3.2 1.9.1Z" fill="#F4EFE3" />
+      <path d="M16.8 20.9c2-1 3-3 2.3-5-.4-1.3-1.4-2.2-1.7-3.7-1.3 1.1-1.9 2.4-1.7 3.8.2 1 .9 1.8.8 2.8-.1.8-.7 1.5-1.6 2 .7.2 1.3.2 1.9.1Z" fill="#FFFBF5" />
     </svg>
   )
 }
@@ -309,9 +309,9 @@ export function Brand({ on = 'auto', small = false, className = '' }) {
   return (
     <span className={cls('inline-flex items-center gap-2.5', className)}>
       <Flame size={small ? 22 : 26} />
-      <span className={cls('font-display font-semibold uppercase leading-none', small ? 'text-[12px] tracking-[0.16em]' : 'text-[14px] tracking-[0.18em]')}>
-        <span className="block text-copper">The Creatiste</span>
-        <span className={cls('mt-1 block', second)}>Command</span>
+      <span className="font-display leading-none">
+        <span className={cls('block font-semibold uppercase text-copper', small ? 'text-[12px] tracking-[0.18em]' : 'text-[14px] tracking-[0.2em]')}>The Creatiste</span>
+        <span className={cls('mt-0.5 block lowercase italic font-medium', small ? 'text-[15px]' : 'text-[17px]', second)}>command</span>
       </span>
     </span>
   )

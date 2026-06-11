@@ -6,22 +6,22 @@
    Dark is the signature look (sultry black + champagne gold + ivory).
    Light is the optional brighter mode chefs can switch to in Settings.     */
 :root {
-  --c-base: 245 240 229;      /* ivory page */
-  --c-card: 255 255 255;      /* white panels */
-  --c-parchment: 237 230 214; /* soft panels */
-  --c-line: 226 216 196;      /* borders */
-  --c-fg: 26 23 18;           /* near-black text */
-  --c-gold: 154 124 74;       /* deep champagne — keeps contrast on ivory */
-  --c-gold-deep: 128 100 56;
+  --c-base: 255 251 245;      /* brand ivory #FFFBF5 */
+  --c-card: 255 255 255;
+  --c-parchment: 245 238 226;
+  --c-line: 230 221 205;
+  --c-fg: 24 20 16;
+  --c-gold: 142 120 83;       /* brand gold #BFA987, deepened for contrast on ivory */
+  --c-gold-deep: 113 94 62;
 }
 .dark {
-  --c-base: 12 10 8;          /* signature black */
-  --c-card: 24 20 14;         /* warm charcoal panels */
-  --c-parchment: 33 28 19;
-  --c-line: 53 45 31;
-  --c-fg: 240 233 218;        /* ivory text */
-  --c-gold: 184 155 104;      /* lustrous champagne gold */
-  --c-gold-deep: 209 184 138;
+  --c-base: 0 0 0;            /* brand black */
+  --c-card: 26 21 14;         /* lifted warm charcoal panels */
+  --c-parchment: 36 30 20;
+  --c-line: 56 47 32;
+  --c-fg: 255 251 245;        /* brand ivory #FFFBF5 */
+  --c-gold: 191 169 135;      /* brand gold #BFA987 exact */
+  --c-gold-deep: 214 197 165;
 }
 
 html { -webkit-text-size-adjust: 100%; }
