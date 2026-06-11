@@ -19,9 +19,9 @@ function ChefModal({ chef, onClose, onSaved, plans }) {
     <Modal open={!!chef} onClose={onClose} title={chef.business_name || chef.name || chef.email}>
       <div className="space-y-4">
         <div className="rounded-lg bg-parchment/50 p-3 text-sm">
-          <p><span className="text-ink/50">Email:</span> {chef.email}</p>
-          <p><span className="text-ink/50">Joined:</span> {new Date(chef.created_at).toLocaleDateString()}</p>
-          <p><span className="text-ink/50">Bookings:</span> {chef.bookings_count} · <span className="text-ink/50">Onboarding paid:</span> {chef.onboarding_paid ? 'yes' : 'no'}</p>
+          <p><span className="text-fg/50">Email:</span> {chef.email}</p>
+          <p><span className="text-fg/50">Joined:</span> {new Date(chef.created_at).toLocaleDateString()}</p>
+          <p><span className="text-fg/50">Bookings:</span> {chef.bookings_count} · <span className="text-fg/50">Onboarding paid:</span> {chef.onboarding_paid ? 'yes' : 'no'}</p>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Subscription status">
@@ -146,15 +146,15 @@ export default function Admin() {
                     <span className="font-semibold">{overview.by_status[s]}</span>
                   </li>
                 ))}
-                {Object.keys(overview.by_status).length === 0 && <li className="px-4 py-4 text-sm text-ink/45">No chefs yet — share your landing page!</li>}
+                {Object.keys(overview.by_status).length === 0 && <li className="px-4 py-4 text-sm text-fg/45">No chefs yet — share your landing page!</li>}
               </ul>
             </Card>
             <Card title="Recent payments" pad={false}>
-              {overview.recent_payments.length === 0 ? <p className="p-5 text-sm text-ink/45">No payments yet.</p> : (
+              {overview.recent_payments.length === 0 ? <p className="p-5 text-sm text-fg/45">No payments yet.</p> : (
                 <ul className="divide-y divide-line/70">
                   {overview.recent_payments.map((p) => (
                     <li key={p.id} className="flex items-center justify-between px-4 py-2.5 text-sm">
-                      <div><p className="font-medium">{p.user_email}</p><p className="text-xs text-ink/45">{p.note || p.kind} · {p.provider}</p></div>
+                      <div><p className="font-medium">{p.user_email}</p><p className="text-xs text-fg/45">{p.note || p.kind} · {p.provider}</p></div>
                       <span className="font-semibold">{fmtMoney(p.amount, p.currency)}</span>
                     </li>
                   ))}
@@ -168,9 +168,9 @@ export default function Admin() {
       {tab === 'chefs' && (
         <div>
           <SearchInput value={q} onChange={setQ} className="mb-3 w-full sm:w-72" placeholder="Search chefs…" />
-          <div className="overflow-x-auto rounded-xl border border-line bg-white shadow-card">
+          <div className="overflow-x-auto rounded-xl border border-line bg-card shadow-card">
             <table className="w-full min-w-[640px] text-sm">
-              <thead><tr className="border-b border-line bg-parchment/50 text-left text-[11px] uppercase tracking-wider text-ink/45">
+              <thead><tr className="border-b border-line bg-parchment/50 text-left text-[11px] uppercase tracking-wider text-fg/45">
                 <th className="px-4 py-2.5">Chef</th><th className="px-4 py-2.5">Plan</th><th className="px-4 py-2.5">Status</th><th className="px-4 py-2.5">Bookings</th><th className="px-4 py-2.5">Joined</th>
               </tr></thead>
               <tbody className="divide-y divide-line/60">
@@ -178,15 +178,15 @@ export default function Admin() {
                   <tr key={c.id} className="cursor-pointer hover:bg-parchment/40" onClick={() => setSelectedChef(c)}>
                     <td className="px-4 py-3">
                       <p className="font-medium">{c.business_name || c.name || '—'}</p>
-                      <p className="text-xs text-ink/45">{c.email}</p>
+                      <p className="text-xs text-fg/45">{c.email}</p>
                     </td>
                     <td className="px-4 py-3 capitalize">{c.plan || '—'}</td>
                     <td className="px-4 py-3"><Badge tone={STATUS_TONE[c.subscription_status]}>{label(c.subscription_status)}</Badge></td>
                     <td className="px-4 py-3">{c.bookings_count}</td>
-                    <td className="px-4 py-3 text-ink/55">{new Date(c.created_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-3 text-fg/55">{new Date(c.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))}
-                {visibleChefs.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-ink/45">No chefs found.</td></tr>}
+                {visibleChefs.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-fg/45">No chefs found.</td></tr>}
               </tbody>
             </table>
           </div>
@@ -194,22 +194,22 @@ export default function Admin() {
       )}
 
       {tab === 'payments' && (
-        <div className="overflow-x-auto rounded-xl border border-line bg-white shadow-card">
+        <div className="overflow-x-auto rounded-xl border border-line bg-card shadow-card">
           <table className="w-full min-w-[560px] text-sm">
-            <thead><tr className="border-b border-line bg-parchment/50 text-left text-[11px] uppercase tracking-wider text-ink/45">
+            <thead><tr className="border-b border-line bg-parchment/50 text-left text-[11px] uppercase tracking-wider text-fg/45">
               <th className="px-4 py-2.5">When</th><th className="px-4 py-2.5">Chef</th><th className="px-4 py-2.5">Type</th><th className="px-4 py-2.5">Provider</th><th className="px-4 py-2.5 text-right">Amount</th>
             </tr></thead>
             <tbody className="divide-y divide-line/60">
               {payments.map((p) => (
                 <tr key={p.id}>
-                  <td className="px-4 py-3 text-ink/55">{new Date(p.created_at).toLocaleString()}</td>
+                  <td className="px-4 py-3 text-fg/55">{new Date(p.created_at).toLocaleString()}</td>
                   <td className="px-4 py-3">{p.user_email}</td>
                   <td className="px-4 py-3 capitalize">{p.kind}</td>
                   <td className="px-4 py-3 capitalize">{p.provider}</td>
                   <td className="px-4 py-3 text-right font-semibold">{fmtMoney(p.amount, p.currency)}</td>
                 </tr>
               ))}
-              {payments.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-ink/45">No payments recorded yet.</td></tr>}
+              {payments.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-fg/45">No payments recorded yet.</td></tr>}
             </tbody>
           </table>
         </div>

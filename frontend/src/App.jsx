@@ -20,7 +20,7 @@ import RoutesPage from './pages/RoutesPage'
 import Settings from './pages/Settings'
 import Shopping from './pages/Shopping'
 import Tasks from './pages/Tasks'
-import { Icon } from './ui'
+import { Brand, Icon } from './ui'
 
 const NAV = [
   { to: '/app', icon: 'home', label: 'Dashboard', end: true },
@@ -37,12 +37,8 @@ const NAV = [
   { to: '/app/finance', icon: 'coins', label: 'Finance' },
 ]
 
-function Wordmark({ light = false, small = false }) {
-  return (
-    <span className={cls('font-display font-semibold tracking-tight', small ? 'text-lg' : 'text-xl', light ? 'text-cream' : 'text-ink')}>
-      The Creatiste <em className="text-copper not-italic font-display italic">Command</em>
-    </span>
-  )
+function Wordmark({ light = false }) {
+  return <Brand on={light ? 'dark' : 'auto'} small />
 }
 
 function SideLink({ item, onClick }) {
@@ -64,9 +60,9 @@ function AppShell() {
   const mobileMain = NAV.slice(0, 4)
 
   return (
-    <div className="min-h-screen bg-cream lg:pl-60">
+    <div className="min-h-screen bg-base lg:pl-60">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col bg-ink lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-white/5 bg-ink lg:flex">
         <div className="px-5 pb-5 pt-6"><Wordmark light small /></div>
         <nav className="scrollbar-thin flex-1 space-y-0.5 overflow-y-auto px-3">
           {NAV.map((item) => <SideLink key={item.to} item={item} />)}
@@ -82,9 +78,9 @@ function AppShell() {
       </aside>
 
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-line bg-cream/95 px-4 py-3 backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-line bg-base/95 px-4 py-3 backdrop-blur lg:hidden">
         <button onClick={() => navigate('/app')}><Wordmark small /></button>
-        <button onClick={() => setMoreOpen(true)} className="rounded-lg p-2 text-ink/60 hover:bg-ink/5"><Icon name="menu" /></button>
+        <button onClick={() => setMoreOpen(true)} className="rounded-lg p-2 text-fg/60 hover:bg-fg/5"><Icon name="menu" /></button>
       </header>
 
       <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-5 sm:px-6 lg:pb-10 lg:pt-8">
@@ -92,34 +88,34 @@ function AppShell() {
       </main>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
         {mobileMain.map((item) => (
           <NavLink key={item.to} to={item.to} end={item.end}
-            className={({ isActive }) => cls('flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium', isActive ? 'text-copper' : 'text-ink/45')}>
+            className={({ isActive }) => cls('flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium', isActive ? 'text-copper' : 'text-fg/45')}>
             <Icon name={item.icon} size={19} />
             {item.label}
           </NavLink>
         ))}
-        <button onClick={() => setMoreOpen(true)} className="flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium text-ink/45">
+        <button onClick={() => setMoreOpen(true)} className="flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium text-fg/45">
           <Icon name="dots" size={19} /> More
         </button>
       </nav>
 
       {/* Mobile "more" sheet */}
       {moreOpen && (
-        <div className="fixed inset-0 z-50 bg-ink/45 backdrop-blur-[2px] lg:hidden" onClick={() => setMoreOpen(false)}>
-          <div className="absolute inset-x-0 bottom-0 rounded-t-2xl bg-cream p-4 pb-8" onClick={(e) => e.stopPropagation()}>
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-ink/15" />
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] lg:hidden" onClick={() => setMoreOpen(false)}>
+          <div className="absolute inset-x-0 bottom-0 rounded-t-2xl bg-base p-4 pb-8" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-fg/15" />
             <div className="grid grid-cols-4 gap-3">
               {[...NAV.slice(4), { to: '/app/settings', icon: 'settings', label: 'Settings' },
                 ...(user?.role === 'admin' ? [{ to: '/app/admin', icon: 'shield', label: 'Admin' }] : [])].map((item) => (
                 <NavLink key={item.to} to={item.to} onClick={() => setMoreOpen(false)}
-                  className="flex flex-col items-center gap-1.5 rounded-xl border border-line bg-white p-3 text-xs font-medium text-ink/70">
+                  className="flex flex-col items-center gap-1.5 rounded-xl border border-line bg-card p-3 text-xs font-medium text-fg/70">
                   <Icon name={item.icon} size={20} className="text-copper" />
                   {item.label}
                 </NavLink>
               ))}
-              <button onClick={logout} className="flex flex-col items-center gap-1.5 rounded-xl border border-line bg-white p-3 text-xs font-medium text-ink/70">
+              <button onClick={logout} className="flex flex-col items-center gap-1.5 rounded-xl border border-line bg-card p-3 text-xs font-medium text-fg/70">
                 <Icon name="logout" size={20} className="text-red-700" /> Log out
               </button>
             </div>

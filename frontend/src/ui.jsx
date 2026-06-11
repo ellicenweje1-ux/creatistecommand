@@ -41,6 +41,8 @@ const PATHS = {
   up: 'm6 15 6-6 6 6',
   down: 'm6 9 6 6 6-6',
   copy: 'M8 8h12v12H8V8Zm-4 8V4h12',
+  sun: 'M12 4V2m0 20v-2m8-8h2M2 12h2m13.7-5.7 1.4-1.4M4.9 19.1l1.4-1.4m11.4 0 1.4 1.4M4.9 4.9l1.4 1.4M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z',
+  moon: 'M20 14.5A8.5 8.5 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z',
   flame: 'M12 21c4 0 7-2.6 7-6.5 0-3-2-5-3.5-6.5-.3 1.6-1 2.6-2 3-0.1-2.9-1.5-5.5-4.5-7 .5 3-.6 4.4-2 6-1.3 1.4-2 3-2 4.5C5 18.4 8 21 12 21Z',
 }
 
@@ -55,11 +57,11 @@ export function Icon({ name, size = 18, className = '', strokeWidth = 1.8 }) {
 
 /* --------------------------------- buttons --------------------------------- */
 const BTN_VARIANTS = {
-  primary: 'bg-copper text-cream hover:bg-copper-dark shadow-sm',
+  primary: 'bg-copper text-ink hover:bg-copper-dark shadow-sm',
   dark: 'bg-ink text-cream hover:bg-ink-soft',
-  secondary: 'bg-white border border-line text-ink hover:border-copper/50 hover:text-copper',
-  ghost: 'text-ink/60 hover:text-ink hover:bg-ink/5',
-  danger: 'bg-white border border-red-200 text-red-700 hover:bg-red-50',
+  secondary: 'bg-card border border-line text-fg hover:border-copper/50 hover:text-copper',
+  ghost: 'text-fg/60 hover:text-fg hover:bg-fg/5',
+  danger: 'bg-card border border-red-400/40 text-red-600 hover:bg-red-500/10 dark:text-red-400',
 }
 
 export function Button({ variant = 'primary', size = 'md', icon, children, className = '', ...props }) {
@@ -79,7 +81,7 @@ export function Button({ variant = 'primary', size = 'md', icon, children, class
 export function IconButton({ icon, label, className = '', size = 16, ...props }) {
   return (
     <button title={label} aria-label={label}
-      className={cls('rounded-lg p-1.5 text-ink/45 transition-colors hover:bg-ink/5 hover:text-ink', className)} {...props}>
+      className={cls('rounded-lg p-1.5 text-fg/45 transition-colors hover:bg-fg/5 hover:text-fg', className)} {...props}>
       <Icon name={icon} size={size} />
     </button>
   )
@@ -88,7 +90,7 @@ export function IconButton({ icon, label, className = '', size = 16, ...props })
 /* ---------------------------------- layout --------------------------------- */
 export function Card({ title, action, children, className = '', pad = true }) {
   return (
-    <section className={cls('rounded-xl border border-line bg-white shadow-card', className)}>
+    <section className={cls('rounded-xl border border-line bg-card shadow-card', className)}>
       {(title || action) && (
         <header className="flex items-center justify-between gap-3 border-b border-line/70 px-4 py-3">
           <h3 className="font-display text-[15px] font-semibold">{title}</h3>
@@ -106,7 +108,7 @@ export function PageHeader({ title, sub, actions, backTo }) {
       <div>
         {backTo}
         <h1 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
-        {sub && <p className="mt-1 text-sm text-ink/55">{sub}</p>}
+        {sub && <p className="mt-1 text-sm text-fg/55">{sub}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -114,15 +116,15 @@ export function PageHeader({ title, sub, actions, backTo }) {
 }
 
 export function StatCard({ label: statLabel, value, hint, tone = 'ink', icon }) {
-  const tones = { ink: 'text-ink', copper: 'text-copper', sage: 'text-sage', red: 'text-red-700' }
+  const tones = { ink: 'text-fg', copper: 'text-copper', sage: 'text-sage', red: 'text-red-700' }
   return (
-    <div className="rounded-xl border border-line bg-white p-4 shadow-card">
+    <div className="rounded-xl border border-line bg-card p-4 shadow-card">
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-ink/45">{statLabel}</p>
-        {icon && <Icon name={icon} size={16} className="text-ink/30" />}
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-fg/45">{statLabel}</p>
+        {icon && <Icon name={icon} size={16} className="text-fg/30" />}
       </div>
       <p className={cls('mt-1.5 font-display text-2xl font-semibold', tones[tone])}>{value}</p>
-      {hint && <p className="mt-0.5 text-xs text-ink/45">{hint}</p>}
+      {hint && <p className="mt-0.5 text-xs text-fg/45">{hint}</p>}
     </div>
   )
 }
@@ -130,10 +132,10 @@ export function StatCard({ label: statLabel, value, hint, tone = 'ink', icon }) 
 const BADGE_TONES = {
   copper: 'bg-copper/10 text-copper-dark border-copper/25',
   sage: 'bg-sage/10 text-sage border-sage/25',
-  red: 'bg-red-50 text-red-700 border-red-200',
-  amber: 'bg-amber-50 text-amber-700 border-amber-200',
-  ink: 'bg-ink/5 text-ink/70 border-ink/15',
-  gray: 'bg-ink/[0.03] text-ink/50 border-line',
+  red: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-500/10 dark:text-red-300 dark:border-red-500/30',
+  amber: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-300 dark:border-amber-500/30',
+  ink: 'bg-fg/5 text-fg/70 border-fg/15',
+  gray: 'bg-fg/[0.03] text-fg/50 border-line',
 }
 
 export function Badge({ tone = 'gray', children, className = '' }) {
@@ -147,7 +149,7 @@ export function Badge({ tone = 'gray', children, className = '' }) {
 export function ProgressBar({ value, max = 100, className = '' }) {
   const pct = max ? Math.min(100, Math.round((value / max) * 100)) : 0
   return (
-    <div className={cls('h-1.5 w-full overflow-hidden rounded-full bg-ink/10', className)}>
+    <div className={cls('h-1.5 w-full overflow-hidden rounded-full bg-fg/10', className)}>
       <div className="h-full rounded-full bg-copper transition-all" style={{ width: `${pct}%` }} />
     </div>
   )
@@ -159,7 +161,7 @@ export function Field({ label: fieldLabel, children, hint, className = '' }) {
     <label className={cls('block', className)}>
       {fieldLabel && <span className="label">{fieldLabel}</span>}
       {children}
-      {hint && <span className="mt-1 block text-xs text-ink/40">{hint}</span>}
+      {hint && <span className="mt-1 block text-xs text-fg/40">{hint}</span>}
     </label>
   )
 }
@@ -173,10 +175,10 @@ export const Select = ({ children, ...props }) => (
 export function Toggle({ checked, onChange, label: toggleLabel }) {
   return (
     <button type="button" onClick={() => onChange(!checked)} className="flex items-center gap-2 text-sm">
-      <span className={cls('relative h-5 w-9 rounded-full transition-colors', checked ? 'bg-copper' : 'bg-ink/20')}>
-        <span className={cls('absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all', checked ? 'left-[18px]' : 'left-0.5')} />
+      <span className={cls('relative h-5 w-9 rounded-full transition-colors', checked ? 'bg-copper' : 'bg-fg/20')}>
+        <span className={cls('absolute top-0.5 h-4 w-4 rounded-full bg-cream shadow transition-all', checked ? 'left-[18px]' : 'left-0.5')} />
       </span>
-      {toggleLabel && <span className="text-ink/70">{toggleLabel}</span>}
+      {toggleLabel && <span className="text-fg/70">{toggleLabel}</span>}
     </button>
   )
 }
@@ -195,14 +197,14 @@ export function Modal({ open, onClose, title, children, wide = false, footer }) 
   }, [open, onClose])
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/45 p-0 backdrop-blur-[2px] sm:items-center sm:p-6" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <div className={cls('max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-cream shadow-pop sm:rounded-2xl', wide ? 'sm:max-w-3xl' : 'sm:max-w-lg')}>
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-cream/95 px-5 py-3.5 backdrop-blur">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-[2px] sm:items-center sm:p-6" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className={cls('max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-base shadow-pop sm:rounded-2xl', wide ? 'sm:max-w-3xl' : 'sm:max-w-lg')}>
+        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-base/95 px-5 py-3.5 backdrop-blur">
           <h2 className="font-display text-lg font-semibold">{title}</h2>
           <IconButton icon="x" label="Close" onClick={onClose} />
         </header>
         <div className="px-5 py-4">{children}</div>
-        {footer && <footer className="sticky bottom-0 border-t border-line bg-cream/95 px-5 py-3 backdrop-blur">{footer}</footer>}
+        {footer && <footer className="sticky bottom-0 border-t border-line bg-base/95 px-5 py-3 backdrop-blur">{footer}</footer>}
       </div>
     </div>
   )
@@ -211,10 +213,10 @@ export function Modal({ open, onClose, title, children, wide = false, footer }) 
 /* ---------------------------------- misc ----------------------------------- */
 export function EmptyState({ icon = 'box', title, hint, action }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-white/50 px-6 py-12 text-center">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-line bg-card/50 px-6 py-12 text-center">
       <div className="mb-3 rounded-full bg-parchment p-3 text-copper"><Icon name={icon} size={22} /></div>
       <p className="font-display font-semibold">{title}</p>
-      {hint && <p className="mt-1 max-w-sm text-sm text-ink/50">{hint}</p>}
+      {hint && <p className="mt-1 max-w-sm text-sm text-fg/50">{hint}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   )
@@ -234,9 +236,9 @@ export function Tabs({ tabs, value, onChange }) {
       {tabs.map((t) => (
         <button key={t.id} onClick={() => onChange(t.id)}
           className={cls('whitespace-nowrap rounded-t-lg px-3.5 py-2 text-sm font-medium transition-colors',
-            value === t.id ? 'border-b-2 border-copper text-copper' : 'text-ink/50 hover:text-ink')}>
+            value === t.id ? 'border-b-2 border-copper text-copper' : 'text-fg/50 hover:text-fg')}>
           {t.label}
-          {t.count !== undefined && <span className="ml-1.5 rounded-full bg-ink/8 px-1.5 text-[11px]">{t.count}</span>}
+          {t.count !== undefined && <span className="ml-1.5 rounded-full bg-fg/8 px-1.5 text-[11px]">{t.count}</span>}
         </button>
       ))}
     </div>
@@ -246,7 +248,7 @@ export function Tabs({ tabs, value, onChange }) {
 export function SearchInput({ value, onChange, placeholder = 'Search…', className = '' }) {
   return (
     <div className={cls('relative', className)}>
-      <Icon name="search" size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink/35" />
+      <Icon name="search" size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg/35" />
       <input className="input pl-9" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
     </div>
   )
@@ -283,10 +285,34 @@ export function Stars({ value = 0, onChange, size = 16 }) {
     <div className="flex gap-0.5">
       {[1, 2, 3, 4, 5].map((n) => (
         <button key={n} type="button" disabled={!onChange} onClick={() => onChange?.(n)}
-          className={n <= value ? 'text-copper' : 'text-ink/20'}>
+          className={n <= value ? 'text-copper' : 'text-fg/20'}>
           <Icon name="star" size={size} className={n <= value ? 'fill-copper' : ''} />
         </button>
       ))}
     </div>
+  )
+}
+
+
+/* ---------------------------------- brand ---------------------------------- */
+export function Flame({ size = 22, className = '' }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} className={className} fill="none" aria-hidden>
+      <path d="M11.2 21.6c-3.7-1.2-5.5-4.4-4.4-7.8.7-2.1 2.5-3.5 3.1-5.7.4-1.4.3-2.8-.2-4.3 2.9 1.4 4.6 3.7 4.7 6.3.1 2-1 3.5-1.1 5.2-.1 1.6.7 3 2.2 4.3-1.4.4-2.9.4-4.3 0Z" fill="rgb(var(--c-gold))" />
+      <path d="M16.8 20.9c2-1 3-3 2.3-5-.4-1.3-1.4-2.2-1.7-3.7-1.3 1.1-1.9 2.4-1.7 3.8.2 1 .9 1.8.8 2.8-.1.8-.7 1.5-1.6 2 .7.2 1.3.2 1.9.1Z" fill="#F4EFE3" />
+    </svg>
+  )
+}
+
+export function Brand({ on = 'auto', small = false, className = '' }) {
+  const second = on === 'dark' ? 'text-cream' : 'text-fg'
+  return (
+    <span className={cls('inline-flex items-center gap-2.5', className)}>
+      <Flame size={small ? 22 : 26} />
+      <span className={cls('font-display font-semibold uppercase leading-none', small ? 'text-[12px] tracking-[0.16em]' : 'text-[14px] tracking-[0.18em]')}>
+        <span className="block text-copper">The Creatiste</span>
+        <span className={cls('mt-1 block', second)}>Command</span>
+      </span>
+    </span>
   )
 }

@@ -61,7 +61,7 @@ export function RouteEditor({ route, onChanged, onDeleted }) {
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line/70 px-4 py-3">
         <div>
           <h3 className="font-display font-semibold">{route.title}</h3>
-          <p className="text-xs text-ink/50">{route.date ? fmtDate(route.date) : 'No date'}{route.start_location ? ` · from ${route.start_location}` : ''}</p>
+          <p className="text-xs text-fg/50">{route.date ? fmtDate(route.date) : 'No date'}{route.start_location ? ` · from ${route.start_location}` : ''}</p>
         </div>
         <div className="flex items-center gap-2">
           {maps && (
@@ -73,18 +73,18 @@ export function RouteEditor({ route, onChanged, onDeleted }) {
         </div>
       </header>
       <div className="px-4 py-3">
-        {stops.length === 0 && <p className="pb-2 text-sm text-ink/45">No stops yet — add your first stop below.</p>}
+        {stops.length === 0 && <p className="pb-2 text-sm text-fg/45">No stops yet — add your first stop below.</p>}
         <ol className="space-y-1.5">
           {stops.map((s, i) => (
             <li key={s.id} className={cls('group flex items-center gap-3 rounded-lg border border-line/70 bg-parchment/30 px-3 py-2', s.done && 'opacity-55')}>
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink font-display text-xs font-semibold text-cream">{i + 1}</span>
               <button onClick={() => toggleDone(s.id)}
-                className={cls('flex h-5 w-5 shrink-0 items-center justify-center rounded-md border', s.done ? 'border-sage bg-sage text-white' : 'border-ink/25 bg-white')}>
+                className={cls('flex h-5 w-5 shrink-0 items-center justify-center rounded-md border', s.done ? 'border-sage bg-sage text-white' : 'border-fg/25 bg-card')}>
                 {s.done && <Icon name="check" size={12} />}
               </button>
               <div className="min-w-0 flex-1">
                 <p className={cls('truncate text-sm font-medium', s.done && 'line-through')}>{s.name}</p>
-                <p className="truncate text-xs text-ink/50">{[s.purpose, s.address].filter(Boolean).join(' · ')}</p>
+                <p className="truncate text-xs text-fg/50">{[s.purpose, s.address].filter(Boolean).join(' · ')}</p>
               </div>
               {s.eta && <Badge tone="copper">{s.eta}</Badge>}
               <div className="flex opacity-0 transition-opacity group-hover:opacity-100">
@@ -102,7 +102,7 @@ export function RouteEditor({ route, onChanged, onDeleted }) {
           <Input type="time" className="col-span-3 sm:col-span-1" value={draft.eta} onChange={(e) => setDraft({ ...draft, eta: e.target.value })} />
           <Button className="col-span-3 sm:col-span-2" size="sm" icon="plus">Add stop</Button>
         </form>
-        {route.notes && <p className="mt-3 text-xs text-ink/50">📝 {route.notes}</p>}
+        {route.notes && <p className="mt-3 text-xs text-fg/50">📝 {route.notes}</p>}
       </div>
     </Card>
   )

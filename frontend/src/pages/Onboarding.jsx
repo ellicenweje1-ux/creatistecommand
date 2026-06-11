@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { isActive, useAuth } from '../auth'
 import { cls, fmtMoney } from '../format'
-import { Button, Icon, toast, toastErr } from '../ui'
+import { Brand, Button, Icon, toast, toastErr } from '../ui'
 
 export default function Onboarding() {
   const { user, logout, refresh } = useAuth()
@@ -54,16 +54,16 @@ export default function Onboarding() {
   const plan = pricing?.plans?.[selected]
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-base">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
-        <Link to="/" className="font-display text-xl font-semibold">The Creatiste <em className="italic text-copper">Command</em></Link>
-        <button onClick={logout} className="text-sm font-medium text-ink/50 hover:text-ink">Log out</button>
+        <Link to="/"><Brand /></Link>
+        <button onClick={logout} className="text-sm font-medium text-fg/50 hover:text-fg">Log out</button>
       </header>
       <main className="mx-auto max-w-5xl px-5 pb-20">
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-copper">Step 2 of 2 — activate your kitchen</p>
           <h1 className="mt-2 font-display text-3xl font-semibold md:text-4xl">Choose your plan, {user?.name?.split(' ')[0] || 'chef'}.</h1>
-          <p className="mt-3 text-ink/55">
+          <p className="mt-3 text-fg/55">
             Activation includes your one-time onboarding & setup fee plus your first month's membership.
             {pricing?.stripe_enabled ? ' Payment is handled securely by Stripe.' : ''}
           </p>
@@ -72,17 +72,17 @@ export default function Onboarding() {
         <div className="mt-10 grid gap-4 md:grid-cols-3">
           {pricing && Object.entries(pricing.plans).map(([key, p]) => (
             <button key={key} onClick={() => setSelected(key)}
-              className={cls('rounded-2xl border bg-white p-5 text-left shadow-card transition-all',
+              className={cls('rounded-2xl border bg-card p-5 text-left shadow-card transition-all',
                 selected === key ? 'border-copper ring-2 ring-copper/30' : 'border-line hover:border-copper/40')}>
               <div className="flex items-center justify-between">
                 <h3 className="font-display text-lg font-semibold">{p.name}</h3>
-                {selected === key && <span className="rounded-full bg-copper p-1 text-cream"><Icon name="check" size={12} /></span>}
+                {selected === key && <span className="rounded-full bg-copper p-1 text-ink"><Icon name="check" size={12} /></span>}
               </div>
-              <p className="mt-3 font-display text-3xl font-semibold">{fmtMoney(p.monthly, currency)}<span className="text-sm font-normal text-ink/45">/mo</span></p>
-              <p className="text-xs text-ink/50">+ {fmtMoney(p.onboarding, currency)} onboarding (one-time)</p>
+              <p className="mt-3 font-display text-3xl font-semibold">{fmtMoney(p.monthly, currency)}<span className="text-sm font-normal text-fg/45">/mo</span></p>
+              <p className="text-xs text-fg/50">+ {fmtMoney(p.onboarding, currency)} onboarding (one-time)</p>
               <ul className="mt-4 space-y-1.5">
                 {(p.features || []).slice(0, 5).map((f) => (
-                  <li key={f} className="flex items-start gap-1.5 text-xs text-ink/65">
+                  <li key={f} className="flex items-start gap-1.5 text-xs text-fg/65">
                     <Icon name="check" size={12} className="mt-0.5 shrink-0 text-sage" />{f}
                   </li>
                 ))}
@@ -92,11 +92,11 @@ export default function Onboarding() {
         </div>
 
         {plan && (
-          <div className="mx-auto mt-8 max-w-md rounded-2xl border border-line bg-white p-6 shadow-card">
+          <div className="mx-auto mt-8 max-w-md rounded-2xl border border-line bg-card p-6 shadow-card">
             <h3 className="font-display font-semibold">Due today</h3>
             <div className="mt-3 space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-ink/60">Onboarding & setup ({plan.name})</span><span>{user?.onboarding_paid ? 'Paid ✓' : fmtMoney(plan.onboarding, currency)}</span></div>
-              <div className="flex justify-between"><span className="text-ink/60">First month membership</span><span>{fmtMoney(plan.monthly, currency)}</span></div>
+              <div className="flex justify-between"><span className="text-fg/60">Onboarding & setup ({plan.name})</span><span>{user?.onboarding_paid ? 'Paid ✓' : fmtMoney(plan.onboarding, currency)}</span></div>
+              <div className="flex justify-between"><span className="text-fg/60">First month membership</span><span>{fmtMoney(plan.monthly, currency)}</span></div>
               <div className="flex justify-between border-t border-line pt-2 font-semibold">
                 <span>Total</span>
                 <span>{fmtMoney((user?.onboarding_paid ? 0 : plan.onboarding) + plan.monthly, currency)}</span>
@@ -106,7 +106,7 @@ export default function Onboarding() {
               {busy ? 'Processing…' : pricing?.stripe_enabled ? 'Pay securely with Stripe' : 'Activate my account'}
             </Button>
             {!pricing?.stripe_enabled && (
-              <p className="mt-3 text-center text-xs text-ink/40">
+              <p className="mt-3 text-center text-xs text-fg/40">
                 Demo billing mode — no Stripe key configured, so activation is simulated.
               </p>
             )}

@@ -101,7 +101,7 @@ export default function Inventory() {
         <SearchInput value={q} onChange={setQ} className="w-full sm:w-64" />
         {[['all', 'All'], ['expiring', 'Expiring'], ['low', 'Low stock']].map(([v, lbl]) => (
           <button key={v} onClick={() => setView(v)}
-            className={cls('rounded-full px-3.5 py-1.5 text-xs font-medium', view === v ? 'bg-ink text-cream' : 'border border-line bg-white text-ink/55')}>{lbl}</button>
+            className={cls('rounded-full px-3.5 py-1.5 text-xs font-medium', view === v ? 'bg-ink text-cream' : 'border border-line bg-card text-fg/55')}>{lbl}</button>
         ))}
         <Select value={storage} onChange={(e) => setStorage(e.target.value)} className="!w-32 !py-1.5 text-xs">
           <option value="all">All storage</option>
@@ -113,10 +113,10 @@ export default function Inventory() {
         <EmptyState icon="box" title="Nothing here" hint="Track what's in the pantry, fridge and freezer — with shelf life and low-stock alerts."
           action={<Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>Add item</Button>} />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-line bg-white shadow-card">
+        <div className="overflow-x-auto rounded-xl border border-line bg-card shadow-card">
           <table className="w-full min-w-[680px] text-sm">
             <thead>
-              <tr className="border-b border-line bg-parchment/50 text-left text-[11px] uppercase tracking-wider text-ink/45">
+              <tr className="border-b border-line bg-parchment/50 text-left text-[11px] uppercase tracking-wider text-fg/45">
                 <th className="px-4 py-2.5">Item</th>
                 <th className="px-4 py-2.5">Stock</th>
                 <th className="px-4 py-2.5">Storage</th>
@@ -132,22 +132,22 @@ export default function Inventory() {
                   <tr key={item.id} className="hover:bg-parchment/30">
                     <td className="cursor-pointer px-4 py-3" onClick={() => setModal({ open: true, initial: item })}>
                       <p className="font-medium">{item.name}</p>
-                      <p className="text-xs text-ink/45">{item.category}</p>
+                      <p className="text-xs text-fg/45">{item.category}</p>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        <button onClick={() => adjust(item, -1)} className="h-6 w-6 rounded border border-line text-ink/50 hover:border-copper hover:text-copper">−</button>
+                        <button onClick={() => adjust(item, -1)} className="h-6 w-6 rounded border border-line text-fg/50 hover:border-copper hover:text-copper">−</button>
                         <span className={cls('min-w-[64px] text-center font-medium', low && 'text-red-600')}>{item.quantity} {item.unit}</span>
-                        <button onClick={() => adjust(item, 1)} className="h-6 w-6 rounded border border-line text-ink/50 hover:border-copper hover:text-copper">+</button>
+                        <button onClick={() => adjust(item, 1)} className="h-6 w-6 rounded border border-line text-fg/50 hover:border-copper hover:text-copper">+</button>
                         {low ? <Badge tone="red">low</Badge> : null}
                       </div>
                     </td>
-                    <td className="px-4 py-3 capitalize text-ink/60">{item.storage}</td>
+                    <td className="px-4 py-3 capitalize text-fg/60">{item.storage}</td>
                     <td className="px-4 py-3">
-                      <span className="text-ink/60">{item.expiry_date ? fmtDate(item.expiry_date) : '—'}</span>
+                      <span className="text-fg/60">{item.expiry_date ? fmtDate(item.expiry_date) : '—'}</span>
                       <span className="ml-1.5">{expiryBadge(item)}</span>
                     </td>
-                    <td className="px-4 py-3 text-ink/60">{item.supplier || '—'}</td>
+                    <td className="px-4 py-3 text-fg/60">{item.supplier || '—'}</td>
                     <td className="px-4 py-3 text-right">
                       <IconButton icon="edit" label="Edit" onClick={() => setModal({ open: true, initial: item })} />
                       <IconButton icon="trash" label="Delete" onClick={() => remove(item)} />

@@ -2,18 +2,40 @@
 @tailwind components;
 @tailwind utilities;
 
-html { -webkit-text-size-adjust: 100%; }
-body { @apply bg-cream text-ink font-body antialiased; }
+/* ── The Creatiste brand themes ──────────────────────────────────────────────
+   Dark is the signature look (sultry black + champagne gold + ivory).
+   Light is the optional brighter mode chefs can switch to in Settings.     */
+:root {
+  --c-base: 245 240 229;      /* ivory page */
+  --c-card: 255 255 255;      /* white panels */
+  --c-parchment: 237 230 214; /* soft panels */
+  --c-line: 226 216 196;      /* borders */
+  --c-fg: 26 23 18;           /* near-black text */
+  --c-gold: 154 124 74;       /* deep champagne — keeps contrast on ivory */
+  --c-gold-deep: 128 100 56;
+}
+.dark {
+  --c-base: 12 10 8;          /* signature black */
+  --c-card: 24 20 14;         /* warm charcoal panels */
+  --c-parchment: 33 28 19;
+  --c-line: 53 45 31;
+  --c-fg: 240 233 218;        /* ivory text */
+  --c-gold: 184 155 104;      /* lustrous champagne gold */
+  --c-gold-deep: 209 184 138;
+}
 
-::selection { background: #B4622D; color: #F7F3EC; }
+html { -webkit-text-size-adjust: 100%; }
+body { @apply bg-base text-fg font-body antialiased; }
+
+::selection { background: rgb(var(--c-gold)); color: #141210; }
 
 .scrollbar-thin::-webkit-scrollbar { height: 6px; width: 6px; }
-.scrollbar-thin::-webkit-scrollbar-thumb { background: #C8B89A; border-radius: 3px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgb(var(--c-line)); border-radius: 3px; }
 
 @layer components {
   .input {
-    @apply w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink
-      placeholder:text-ink/35 focus:border-copper focus:outline-none focus:ring-2 focus:ring-copper/20;
+    @apply w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-fg
+      placeholder:text-fg/35 focus:border-copper focus:outline-none focus:ring-2 focus:ring-copper/25;
   }
-  .label { @apply mb-1 block text-[11px] font-semibold uppercase tracking-wider text-ink/50; }
+  .label { @apply mb-1 block text-[11px] font-semibold uppercase tracking-wider text-fg/50; }
 }

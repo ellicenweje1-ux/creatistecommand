@@ -58,39 +58,39 @@ export function ListEditor({ list, onChanged, onDeleted, currency = 'GBP', start
   return (
     <Card pad={false} className={list.status === 'done' ? 'opacity-70' : ''}>
       <button className="flex w-full items-center gap-3 px-4 py-3 text-left" onClick={() => setOpen(!open)}>
-        <Icon name={open ? 'chevronDown' : 'chevronRight'} size={15} className="shrink-0 text-ink/40" />
+        <Icon name={open ? 'chevronDown' : 'chevronRight'} size={15} className="shrink-0 text-fg/40" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <p className="truncate font-medium">{list.title}</p>
             {list.status === 'done' && <Badge tone="sage">done</Badge>}
           </div>
-          <p className="text-xs text-ink/45">{list.shop_date ? fmtDate(list.shop_date) : 'No date'} · {done}/{items.length} items · est {fmtMoney(total, currency)}</p>
+          <p className="text-xs text-fg/45">{list.shop_date ? fmtDate(list.shop_date) : 'No date'} · {done}/{items.length} items · est {fmtMoney(total, currency)}</p>
         </div>
         <div className="w-28 shrink-0"><ProgressBar value={done} max={items.length || 1} /></div>
       </button>
 
       {open && (
         <div className="border-t border-line/70 px-4 py-3">
-          {groups.length === 0 && <p className="pb-2 text-sm text-ink/45">Empty list — add the first item below.</p>}
+          {groups.length === 0 && <p className="pb-2 text-sm text-fg/45">Empty list — add the first item below.</p>}
           {groups.map(([shop, shopItems]) => (
             <div key={shop} className="mb-3">
               <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-copper">
                 <Icon name="pin" size={12} />{shop}
-                <span className="text-ink/35">({shopItems.filter((i) => i.purchased).length}/{shopItems.length})</span>
+                <span className="text-fg/35">({shopItems.filter((i) => i.purchased).length}/{shopItems.length})</span>
               </p>
               <ul className="space-y-1">
                 {shopItems.map((i) => (
                   <li key={i.id} className="group flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-parchment/50">
                     <button onClick={() => toggle(i.id)}
                       className={cls('flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors',
-                        i.purchased ? 'border-sage bg-sage text-white' : 'border-ink/25 bg-white')}>
+                        i.purchased ? 'border-sage bg-sage text-white' : 'border-fg/25 bg-card')}>
                       {i.purchased && <Icon name="check" size={12} />}
                     </button>
-                    <span className={cls('min-w-0 flex-1 truncate text-sm', i.purchased && 'text-ink/35 line-through')}>
-                      {i.name}{(i.qty || i.unit) ? <span className="text-ink/45"> — {i.qty} {i.unit}</span> : null}
-                      {i.note ? <span className="text-ink/35"> · {i.note}</span> : null}
+                    <span className={cls('min-w-0 flex-1 truncate text-sm', i.purchased && 'text-fg/35 line-through')}>
+                      {i.name}{(i.qty || i.unit) ? <span className="text-fg/45"> — {i.qty} {i.unit}</span> : null}
+                      {i.note ? <span className="text-fg/35"> · {i.note}</span> : null}
                     </span>
-                    {Number(i.est_cost) > 0 && <span className="shrink-0 text-xs text-ink/45">{fmtMoney(i.est_cost, currency)}</span>}
+                    {Number(i.est_cost) > 0 && <span className="shrink-0 text-xs text-fg/45">{fmtMoney(i.est_cost, currency)}</span>}
                     <IconButton icon="trash" label="Remove" className="opacity-0 group-hover:opacity-100" onClick={() => removeItem(i.id)} />
                   </li>
                 ))}
@@ -150,7 +150,7 @@ export default function Shopping() {
               <ListEditor list={l} currency={user?.currency} onChanged={load} onDeleted={load} />
             </div>
           ))}
-          {closed.length > 0 && <p className="pt-3 text-[11px] font-semibold uppercase tracking-wider text-ink/40">Completed</p>}
+          {closed.length > 0 && <p className="pt-3 text-[11px] font-semibold uppercase tracking-wider text-fg/40">Completed</p>}
           {closed.map((l) => <ListEditor key={l.id} list={l} currency={user?.currency} onChanged={load} onDeleted={load} />)}
         </div>
       )}

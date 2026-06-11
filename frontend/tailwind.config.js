@@ -1,18 +1,24 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
-        ink: '#1C1A17',
-        'ink-soft': '#2A2722',
-        cream: '#F7F3EC',
-        parchment: '#EFE8DB',
-        line: '#E3DACA',
-        copper: '#B4622D',
-        'copper-dark': '#934E20',
-        sage: '#5C6F5A',
-        'sage-light': '#EDF0EA',
+        // Theme-aware tokens (driven by CSS variables in index.css)
+        base: 'rgb(var(--c-base) / <alpha-value>)',       // page background
+        card: 'rgb(var(--c-card) / <alpha-value>)',       // panels & inputs
+        parchment: 'rgb(var(--c-parchment) / <alpha-value>)', // soft sub-panels
+        line: 'rgb(var(--c-line) / <alpha-value>)',       // borders
+        fg: 'rgb(var(--c-fg) / <alpha-value>)',           // primary text
+        copper: 'rgb(var(--c-gold) / <alpha-value>)',     // champagne gold accent
+        'copper-dark': 'rgb(var(--c-gold-deep) / <alpha-value>)',
+        // Brand constants (identical in both themes)
+        ink: '#141210',
+        'ink-soft': '#252118',
+        cream: '#F4EFE3',
+        sage: '#6B7D68',
+        'sage-light': '#2A2F28',
         clay: '#C8B89A',
       },
       fontFamily: {
@@ -20,10 +26,9 @@ export default {
         body: ['Outfit', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        card: '0 1px 2px rgba(28,26,23,0.05), 0 4px 16px rgba(28,26,23,0.06)',
-        pop: '0 8px 40px rgba(28,26,23,0.18)',
+        card: '0 1px 2px rgba(0,0,0,0.08), 0 4px 18px rgba(0,0,0,0.10)',
+        pop: '0 8px 44px rgba(0,0,0,0.45)',
       },
     },
   },
-  plugins: [],
 }

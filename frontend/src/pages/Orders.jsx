@@ -61,12 +61,12 @@ export function OrderRow({ order, onChanged, onEdit, currency = 'GBP', bookingLa
   const late = order.expected_date && order.expected_date < todayISO() && !['delivered', 'cancelled'].includes(order.status)
 
   return (
-    <div className="group flex flex-wrap items-center gap-3 rounded-xl border border-line bg-white px-4 py-3 shadow-card">
-      <Icon name="truck" size={18} className={cls('shrink-0', late || order.status === 'delayed' ? 'text-red-600' : 'text-ink/35')} />
+    <div className="group flex flex-wrap items-center gap-3 rounded-xl border border-line bg-card px-4 py-3 shadow-card">
+      <Icon name="truck" size={18} className={cls('shrink-0', late || order.status === 'delayed' ? 'text-red-600' : 'text-fg/35')} />
       <div className="min-w-0 flex-1 cursor-pointer" onClick={onEdit}>
-        <p className="truncate text-sm font-medium">{order.supplier}{order.order_ref && <span className="text-ink/40"> · {order.order_ref}</span>}</p>
-        <p className="truncate text-xs text-ink/50">{order.items_summary || 'No item summary'}{bookingLabel ? ` · ${bookingLabel}` : ''}</p>
-        <p className="text-xs text-ink/45">
+        <p className="truncate text-sm font-medium">{order.supplier}{order.order_ref && <span className="text-fg/40"> · {order.order_ref}</span>}</p>
+        <p className="truncate text-xs text-fg/50">{order.items_summary || 'No item summary'}{bookingLabel ? ` · ${bookingLabel}` : ''}</p>
+        <p className="text-xs text-fg/45">
           {order.expected_date ? `Expected ${fmtDate(order.expected_date)} (${relDays(order.expected_date)})` : 'No ETA'}
           {late && <span className="font-medium text-red-600"> — late, chase it</span>}
         </p>
@@ -108,7 +108,7 @@ export default function Orders() {
       <div className="mb-4 flex gap-1.5">
         {['active', 'done', 'all'].map((f) => (
           <button key={f} onClick={() => setFilter(f)}
-            className={cls('rounded-full px-3.5 py-1.5 text-xs font-medium capitalize', filter === f ? 'bg-ink text-cream' : 'border border-line bg-white text-ink/55')}>{f}</button>
+            className={cls('rounded-full px-3.5 py-1.5 text-xs font-medium capitalize', filter === f ? 'bg-ink text-cream' : 'border border-line bg-card text-fg/55')}>{f}</button>
         ))}
       </div>
       {visible.length === 0 ? (

@@ -145,7 +145,7 @@ export function ExpenseFormModal({ open, onClose, onSaved, initial = null, booki
           <Field label="Supplier"><Input value={form.supplier} onChange={set('supplier')} /></Field>
         </div>
         <Field label="Receipt" hint={form.receipt_url ? 'Receipt attached ✓' : 'Photo or PDF up to 10MB'}>
-          <input type="file" accept="image/*,.pdf" onChange={uploadReceipt} className="block w-full text-sm text-ink/60 file:mr-3 file:rounded-lg file:border-0 file:bg-ink file:px-3 file:py-2 file:text-xs file:font-medium file:text-cream" />
+          <input type="file" accept="image/*,.pdf" onChange={uploadReceipt} className="block w-full text-sm text-fg/60 file:mr-3 file:rounded-lg file:border-0 file:bg-ink file:px-3 file:py-2 file:text-xs file:font-medium file:text-cream" />
         </Field>
         <div className="flex justify-between gap-2">
           {initial?.id ? <Button type="button" variant="danger" icon="trash" onClick={remove}>Delete</Button> : <span />}
@@ -178,9 +178,9 @@ function MonthlyChart({ monthly, currency }) {
         ))}
       </div>
       <div className="mt-1 flex gap-1.5">
-        {MONTHS.map((m, i) => <span key={i} className="flex-1 text-center text-[10px] text-ink/40">{m}</span>)}
+        {MONTHS.map((m, i) => <span key={i} className="flex-1 text-center text-[10px] text-fg/40">{m}</span>)}
       </div>
-      <div className="mt-2 flex justify-center gap-4 text-[11px] text-ink/55">
+      <div className="mt-2 flex justify-center gap-4 text-[11px] text-fg/55">
         <span><span className="mr-1 inline-block h-2 w-2 rounded-sm bg-sage/80" />Paid</span>
         <span><span className="mr-1 inline-block h-2 w-2 rounded-sm bg-copper/30" />Invoiced</span>
         <span><span className="mr-1 inline-block h-2 w-2 rounded-sm bg-red-300" />Expenses</span>
@@ -237,12 +237,12 @@ export default function Finance() {
           </Card>
           <div className="grid gap-5 lg:grid-cols-2">
             <Card title="Awaiting payment" pad={false}>
-              {summary.open_invoices.length === 0 ? <p className="p-5 text-sm text-ink/45">Nothing outstanding. 🎉</p> : (
+              {summary.open_invoices.length === 0 ? <p className="p-5 text-sm text-fg/45">Nothing outstanding. 🎉</p> : (
                 <ul className="divide-y divide-line/70">
                   {summary.open_invoices.map((inv) => (
                     <li key={inv.id} className="flex cursor-pointer items-center justify-between px-4 py-3 hover:bg-parchment/40"
                       onClick={() => setInvoiceModal({ open: true, initial: inv })}>
-                      <div><p className="text-sm font-medium">{inv.number}</p><p className="text-xs text-ink/45">due {fmtDate(inv.due_date)}</p></div>
+                      <div><p className="text-sm font-medium">{inv.number}</p><p className="text-xs text-fg/45">due {fmtDate(inv.due_date)}</p></div>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">{fmtMoney(inv.total, cur)}</span>
                         <Badge tone={INVOICE_TONES[inv.status]}>{inv.status}</Badge>
@@ -253,12 +253,12 @@ export default function Finance() {
               )}
             </Card>
             <Card title="Spend by category" pad={false}>
-              {summary.by_category.length === 0 ? <p className="p-5 text-sm text-ink/45">No expenses logged yet.</p> : (
+              {summary.by_category.length === 0 ? <p className="p-5 text-sm text-fg/45">No expenses logged yet.</p> : (
                 <ul className="divide-y divide-line/70">
                   {summary.by_category.map((c) => (
                     <li key={c.category} className="px-4 py-2.5">
                       <div className="mb-1 flex justify-between text-sm"><span>{c.category}</span><span className="font-medium">{fmtMoney(c.amount, cur)}</span></div>
-                      <div className="h-1.5 rounded-full bg-ink/8">
+                      <div className="h-1.5 rounded-full bg-fg/8">
                         <div className="h-full rounded-full bg-copper/60" style={{ width: `${(c.amount / (summary.by_category[0]?.amount || 1)) * 100}%` }} />
                       </div>
                     </li>
@@ -272,17 +272,17 @@ export default function Finance() {
 
       {tab === 'invoices' && (
         invoices.length === 0 ? <EmptyState icon="coins" title="No invoices yet" action={<Button icon="plus" onClick={() => setInvoiceModal({ open: true, initial: null })}>New invoice</Button>} /> : (
-          <div className="overflow-hidden rounded-xl border border-line bg-white shadow-card">
+          <div className="overflow-hidden rounded-xl border border-line bg-card shadow-card">
             <table className="w-full text-sm">
-              <thead><tr className="border-b border-line bg-parchment/50 text-left text-[11px] uppercase tracking-wider text-ink/45">
+              <thead><tr className="border-b border-line bg-parchment/50 text-left text-[11px] uppercase tracking-wider text-fg/45">
                 <th className="px-4 py-2.5">Number</th><th className="px-4 py-2.5">Issued</th><th className="hidden px-4 py-2.5 sm:table-cell">Due</th><th className="px-4 py-2.5 text-right">Total</th><th className="px-4 py-2.5">Status</th>
               </tr></thead>
               <tbody className="divide-y divide-line/60">
                 {invoices.map((inv) => (
                   <tr key={inv.id} className="cursor-pointer hover:bg-parchment/40" onClick={() => setInvoiceModal({ open: true, initial: inv })}>
                     <td className="px-4 py-3 font-medium">{inv.number || `#${inv.id}`}</td>
-                    <td className="px-4 py-3 text-ink/60">{fmtDate(inv.issue_date)}</td>
-                    <td className="hidden px-4 py-3 text-ink/60 sm:table-cell">{fmtDate(inv.due_date)}</td>
+                    <td className="px-4 py-3 text-fg/60">{fmtDate(inv.issue_date)}</td>
+                    <td className="hidden px-4 py-3 text-fg/60 sm:table-cell">{fmtDate(inv.due_date)}</td>
                     <td className="px-4 py-3 text-right font-semibold">{fmtMoney(invoiceTotal(inv), cur)}</td>
                     <td className="px-4 py-3"><Badge tone={INVOICE_TONES[inv.status]}>{inv.status}</Badge></td>
                   </tr>
@@ -295,17 +295,17 @@ export default function Finance() {
 
       {tab === 'expenses' && (
         expenses.length === 0 ? <EmptyState icon="cart" title="No expenses logged" action={<Button icon="plus" onClick={() => setExpenseModal({ open: true, initial: null })}>Log expense</Button>} /> : (
-          <div className="overflow-hidden rounded-xl border border-line bg-white shadow-card">
+          <div className="overflow-hidden rounded-xl border border-line bg-card shadow-card">
             <table className="w-full text-sm">
-              <thead><tr className="border-b border-line bg-parchment/50 text-left text-[11px] uppercase tracking-wider text-ink/45">
+              <thead><tr className="border-b border-line bg-parchment/50 text-left text-[11px] uppercase tracking-wider text-fg/45">
                 <th className="px-4 py-2.5">Description</th><th className="hidden px-4 py-2.5 sm:table-cell">Category</th><th className="px-4 py-2.5">Date</th><th className="px-4 py-2.5 text-right">Amount</th>
               </tr></thead>
               <tbody className="divide-y divide-line/60">
                 {expenses.map((e) => (
                   <tr key={e.id} className="cursor-pointer hover:bg-parchment/40" onClick={() => setExpenseModal({ open: true, initial: e })}>
                     <td className="px-4 py-3 font-medium">{e.description}{e.receipt_url && <a href={e.receipt_url} target="_blank" rel="noreferrer" onClick={(ev) => ev.stopPropagation()} className="ml-2 text-copper underline">receipt</a>}</td>
-                    <td className="hidden px-4 py-3 text-ink/60 sm:table-cell">{e.category}</td>
-                    <td className="px-4 py-3 text-ink/60">{fmtDate(e.date)}</td>
+                    <td className="hidden px-4 py-3 text-fg/60 sm:table-cell">{e.category}</td>
+                    <td className="px-4 py-3 text-fg/60">{fmtDate(e.date)}</td>
                     <td className="px-4 py-3 text-right font-semibold">{fmtMoney(e.amount, cur)}</td>
                   </tr>
                 ))}

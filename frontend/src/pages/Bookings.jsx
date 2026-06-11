@@ -82,13 +82,13 @@ function CalendarView({ bookings }) {
   }
 
   return (
-    <div className="rounded-xl border border-line bg-white p-4 shadow-card">
+    <div className="rounded-xl border border-line bg-card p-4 shadow-card">
       <div className="mb-3 flex items-center justify-between">
         <Button variant="ghost" size="sm" icon="chevronLeft" onClick={() => shift(-1)} />
         <h3 className="font-display font-semibold">{first.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h3>
         <Button variant="ghost" size="sm" icon="chevronRight" onClick={() => shift(1)} />
       </div>
-      <div className="grid grid-cols-7 gap-px text-center text-[10px] font-semibold uppercase tracking-wider text-ink/40">
+      <div className="grid grid-cols-7 gap-px text-center text-[10px] font-semibold uppercase tracking-wider text-fg/40">
         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => <div key={d} className="py-1">{d}</div>)}
       </div>
       <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg bg-line">
@@ -98,16 +98,16 @@ function CalendarView({ bookings }) {
           const todays = byDate[dateStr] || []
           const isToday = dateStr === todayISO()
           return (
-            <div key={dateStr} className={cls('min-h-[72px] bg-white p-1', isToday && 'bg-copper/5')}>
-              <p className={cls('mb-0.5 text-right text-[11px]', isToday ? 'font-bold text-copper' : 'text-ink/40')}>{i + 1}</p>
+            <div key={dateStr} className={cls('min-h-[72px] bg-card p-1', isToday && 'bg-copper/5')}>
+              <p className={cls('mb-0.5 text-right text-[11px]', isToday ? 'font-bold text-copper' : 'text-fg/40')}>{i + 1}</p>
               {todays.slice(0, 2).map((b) => (
                 <Link key={b.id} to={`/app/bookings/${b.id}`}
                   className={cls('mb-0.5 block truncate rounded px-1 py-0.5 text-[10px] font-medium',
-                    b.status === 'cancelled' ? 'bg-ink/5 text-ink/40 line-through' : 'bg-copper/10 text-copper-dark hover:bg-copper/20')}>
+                    b.status === 'cancelled' ? 'bg-fg/5 text-fg/40 line-through' : 'bg-copper/10 text-copper-dark hover:bg-copper/20')}>
                   {b.title}
                 </Link>
               ))}
-              {todays.length > 2 && <p className="px-1 text-[9px] text-ink/40">+{todays.length - 2} more</p>}
+              {todays.length > 2 && <p className="px-1 text-[9px] text-fg/40">+{todays.length - 2} more</p>}
             </div>
           )
         })}
@@ -141,10 +141,10 @@ export default function Bookings() {
       <PageHeader title="Bookings" sub="Every event from enquiry to applause."
         actions={
           <>
-            <div className="flex rounded-lg border border-line bg-white p-0.5">
+            <div className="flex rounded-lg border border-line bg-card p-0.5">
               {['list', 'calendar'].map((v) => (
                 <button key={v} onClick={() => setView(v)}
-                  className={cls('rounded-md px-3 py-1.5 text-xs font-medium capitalize', view === v ? 'bg-ink text-cream' : 'text-ink/50')}>{v}</button>
+                  className={cls('rounded-md px-3 py-1.5 text-xs font-medium capitalize', view === v ? 'bg-ink text-cream' : 'text-fg/50')}>{v}</button>
               ))}
             </div>
             <Button icon="plus" onClick={() => setCreating(true)}>New booking</Button>
@@ -157,7 +157,7 @@ export default function Bookings() {
           <div className="mb-4 flex gap-1.5">
             {['upcoming', 'past', 'all'].map((f) => (
               <button key={f} onClick={() => setFilter(f)}
-                className={cls('rounded-full px-3.5 py-1.5 text-xs font-medium capitalize', filter === f ? 'bg-ink text-cream' : 'bg-white border border-line text-ink/55')}>{f}</button>
+                className={cls('rounded-full px-3.5 py-1.5 text-xs font-medium capitalize', filter === f ? 'bg-ink text-cream' : 'bg-card border border-line text-fg/55')}>{f}</button>
             ))}
           </div>
           {sorted.length === 0 ? (
@@ -167,14 +167,14 @@ export default function Bookings() {
             <div className="space-y-2.5">
               {sorted.map((b) => (
                 <Link key={b.id} to={`/app/bookings/${b.id}`}
-                  className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-line bg-white px-4 py-3.5 shadow-card transition-all hover:border-copper/40">
+                  className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-line bg-card px-4 py-3.5 shadow-card transition-all hover:border-copper/40">
                   <div className="w-16 shrink-0 text-center">
                     <p className="font-display text-2xl font-semibold leading-none text-copper">{b.date ? b.date.slice(8, 10) : '—'}</p>
-                    <p className="text-[10px] uppercase tracking-wider text-ink/45">{b.date ? fmtDate(b.date).replace(/^\w+ /, '') : 'no date'}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-fg/45">{b.date ? fmtDate(b.date).replace(/^\w+ /, '') : 'no date'}</p>
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{b.title}</p>
-                    <p className="truncate text-xs text-ink/50">
+                    <p className="truncate text-xs text-fg/50">
                       {b.event_type || 'Event'} · {b.guest_count} guests · {b.venue_name || 'venue TBC'}{b.date ? ` · ${relDays(b.date)}` : ''}
                     </p>
                   </div>

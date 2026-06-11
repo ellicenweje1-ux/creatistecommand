@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { isActive, useAuth } from '../auth'
-import { Button, Field, Input, toastErr } from '../ui'
+import { Brand, Button, Field, Input, toastErr } from '../ui'
 
 export default function AuthPage({ mode }) {
   const isLogin = mode === 'login'
@@ -27,16 +27,14 @@ export default function AuthPage({ mode }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-cream">
+    <div className="flex min-h-screen flex-col bg-base">
       <header className="mx-auto w-full max-w-6xl px-5 py-5">
-        <Link to="/" className="font-display text-xl font-semibold tracking-tight">
-          The Creatiste <em className="italic text-copper">Command</em>
-        </Link>
+        <Link to="/"><Brand /></Link>
       </header>
       <main className="flex flex-1 items-center justify-center px-5 pb-16">
-        <form onSubmit={submit} className="w-full max-w-md rounded-2xl border border-line bg-white p-7 shadow-card">
+        <form onSubmit={submit} className="w-full max-w-md rounded-2xl border border-line bg-card p-7 shadow-card">
           <h1 className="font-display text-2xl font-semibold">{isLogin ? 'Welcome back, chef.' : 'Set up your command centre.'}</h1>
-          <p className="mt-1 text-sm text-ink/55">
+          <p className="mt-1 text-sm text-fg/55">
             {isLogin ? 'Log in to your kitchen.' : 'Create your account — choose your plan on the next step.'}
           </p>
           <div className="mt-6 space-y-4">
@@ -54,7 +52,7 @@ export default function AuthPage({ mode }) {
           <Button className="mt-6 w-full" size="lg" disabled={busy}>
             {busy ? 'One moment…' : isLogin ? 'Log in' : 'Create account'}
           </Button>
-          <p className="mt-4 text-center text-sm text-ink/55">
+          <p className="mt-4 text-center text-sm text-fg/55">
             {isLogin ? (
               <>New here? <Link to="/register" className="font-medium text-copper">Create an account</Link></>
             ) : (

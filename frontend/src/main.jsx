@@ -6,6 +6,8 @@ import { AuthProvider } from './auth'
 import './index.css'
 import { Toaster } from './ui'
 
+document.documentElement.classList.toggle('dark', (localStorage.getItem('cc_theme') || 'dark') === 'dark')
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>

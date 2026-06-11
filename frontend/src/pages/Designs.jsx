@@ -6,22 +6,22 @@ import { Button, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, 
 
 const ITEM_TYPES = {
   round_table: { label: 'Round table', w: 110, h: 110, color: '#5C6F5A' },
-  rect_table: { label: 'Long table', w: 240, h: 70, color: '#B4622D' },
+  rect_table: { label: 'Long table', w: 240, h: 70, color: '#9A7C4A' },
   chair: { label: 'Chair', w: 34, h: 34, color: '#8A6D3B' },
-  buffet: { label: 'Buffet line', w: 300, h: 60, color: '#B4622D' },
-  bar: { label: 'Bar', w: 200, h: 60, color: '#1C1A17' },
+  buffet: { label: 'Buffet line', w: 300, h: 60, color: '#9A7C4A' },
+  bar: { label: 'Bar', w: 200, h: 60, color: '#141210' },
   station: { label: 'Chef station', w: 140, h: 90, color: '#7A4E9E' },
   stage: { label: 'Stage / DJ', w: 220, h: 110, color: '#444444' },
   dance_floor: { label: 'Dance floor', w: 220, h: 220, color: '#C8B89A' },
   plant: { label: 'Plant', w: 44, h: 44, color: '#3E7C4F' },
   entrance: { label: 'Entrance', w: 100, h: 40, color: '#888888' },
-  text: { label: 'Text label', w: 140, h: 30, color: '#1C1A17' },
+  text: { label: 'Text label', w: 140, h: 30, color: '#B89B68' },
 }
 
 function CanvasItem({ item, selected, onPointerDown }) {
   const cx = item.x + item.w / 2
   const cy = item.y + item.h / 2
-  const stroke = selected ? '#B4622D' : 'rgba(28,26,23,0.25)'
+  const stroke = selected ? 'rgb(var(--c-gold))' : 'rgba(135,122,96,0.5)'
   const common = { onPointerDown, style: { cursor: 'move' }, transform: `rotate(${item.rotation || 0} ${cx} ${cy})` }
   const labelEl = (fill = '#fff', dy = 4) => (
     <text x={cx} y={cy + dy} textAnchor="middle" fontSize="13" fontFamily="Outfit, sans-serif" fill={fill} pointerEvents="none">
@@ -39,7 +39,7 @@ function CanvasItem({ item, selected, onPointerDown }) {
   if (item.type === 'text') {
     return (
       <g {...common}>
-        <rect x={item.x} y={item.y} width={item.w} height={item.h} fill={selected ? 'rgba(180,98,45,0.08)' : 'transparent'} stroke={selected ? stroke : 'transparent'} strokeDasharray="4 3" />
+        <rect x={item.x} y={item.y} width={item.w} height={item.h} fill={selected ? 'rgba(184,155,104,0.12)' : 'transparent'} stroke={selected ? stroke : 'transparent'} strokeDasharray="4 3" />
         <text x={cx} y={cy + 5} textAnchor="middle" fontSize="15" fontWeight="600" fontFamily="Fraunces, serif" fill={item.color} pointerEvents="none">{item.label}</text>
       </g>
     )
@@ -135,19 +135,19 @@ export function DesignEditorModal({ open, design, onClose, onSaved }) {
       <div className="mb-3 flex flex-wrap gap-1.5">
         {Object.entries(ITEM_TYPES).map(([type, spec]) => (
           <button key={type} onClick={() => addItem(type)}
-            className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs font-medium text-ink/70 transition-colors hover:border-copper hover:text-copper">
+            className="rounded-lg border border-line bg-card px-2.5 py-1.5 text-xs font-medium text-fg/70 transition-colors hover:border-copper hover:text-copper">
             + {spec.label}
           </button>
         ))}
       </div>
 
       <svg ref={svgRef} viewBox={`0 0 ${canvas.width} ${canvas.height}`}
-        className="w-full touch-none rounded-xl border border-line bg-white shadow-inner"
+        className="w-full touch-none rounded-xl border border-line bg-card shadow-inner"
         onPointerMove={onMove} onPointerUp={endDrag} onPointerLeave={endDrag}
         onPointerDown={() => setSelectedId(null)}>
         <defs>
           <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
-            <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(28,26,23,0.06)" strokeWidth="1" />
+            <path d="M 50 0 L 0 0 0 50" fill="none" stroke="rgba(140,126,98,0.16)" strokeWidth="1" />
           </pattern>
         </defs>
         <rect width={canvas.width} height={canvas.height} fill="url(#grid)" />
@@ -157,7 +157,7 @@ export function DesignEditorModal({ open, design, onClose, onSaved }) {
       </svg>
 
       {selected ? (
-        <div className="mt-3 grid grid-cols-2 items-end gap-2 rounded-xl border border-line bg-white p-3 sm:grid-cols-6">
+        <div className="mt-3 grid grid-cols-2 items-end gap-2 rounded-xl border border-line bg-card p-3 sm:grid-cols-6">
           <Field label="Label" className="col-span-2"><Input value={selected.label} onChange={(e) => updateSelected({ label: e.target.value })} /></Field>
           <Field label="W"><Input type="number" min="20" value={selected.w} onChange={(e) => updateSelected({ w: Number(e.target.value) || 20 })} /></Field>
           <Field label="H"><Input type="number" min="20" value={selected.h} onChange={(e) => updateSelected({ h: Number(e.target.value) || 20 })} /></Field>
@@ -172,7 +172,7 @@ export function DesignEditorModal({ open, design, onClose, onSaved }) {
           </div>
         </div>
       ) : (
-        <p className="mt-3 text-center text-xs text-ink/40">Add elements from the palette, drag to position, click to select & edit.</p>
+        <p className="mt-3 text-center text-xs text-fg/40">Add elements from the palette, drag to position, click to select & edit.</p>
       )}
     </Modal>
   )
@@ -185,7 +185,7 @@ export function DesignCard({ design, onOpen, onDeleted }) {
     if (window.confirm('Delete this design?')) api.del(`/designs/${design.id}`).then(onDeleted).catch(toastErr)
   }
   return (
-    <button onClick={onOpen} className="group overflow-hidden rounded-xl border border-line bg-white text-left shadow-card transition-all hover:border-copper/40">
+    <button onClick={onOpen} className="group overflow-hidden rounded-xl border border-line bg-card text-left shadow-card transition-all hover:border-copper/40">
       <svg viewBox={`0 0 ${canvas.width} ${canvas.height}`} className="aspect-[10/7] w-full bg-parchment/40">
         {(canvas.items || []).map((item) => (
           <CanvasItem key={item.id} item={item} selected={false} onPointerDown={() => {}} />
@@ -194,7 +194,7 @@ export function DesignCard({ design, onOpen, onDeleted }) {
       <div className="flex items-center justify-between px-3.5 py-2.5">
         <div>
           <p className="text-sm font-medium">{design.title}</p>
-          <p className="text-xs text-ink/45">{(canvas.items || []).length} elements</p>
+          <p className="text-xs text-fg/45">{(canvas.items || []).length} elements</p>
         </div>
         <IconButton icon="trash" label="Delete" className="opacity-0 group-hover:opacity-100" onClick={remove} />
       </div>

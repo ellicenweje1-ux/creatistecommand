@@ -25,7 +25,7 @@ function IdeaCard({ idea, onChanged }) {
   }
 
   return (
-    <div className={cls('flex flex-col rounded-xl border bg-white p-4 shadow-card', idea.pinned ? 'border-copper/50' : 'border-line')}>
+    <div className={cls('flex flex-col rounded-xl border bg-card p-4 shadow-card', idea.pinned ? 'border-copper/50' : 'border-line')}>
       {editing ? (
         <div className="space-y-2">
           <Input value={form.title || ''} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Title" />
@@ -39,16 +39,16 @@ function IdeaCard({ idea, onChanged }) {
         <>
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-display font-semibold leading-snug">{idea.title || 'Untitled idea'}</h3>
-            <button onClick={pin} className={idea.pinned ? 'text-copper' : 'text-ink/25 hover:text-ink/50'} title={idea.pinned ? 'Unpin' : 'Pin'}>
+            <button onClick={pin} className={idea.pinned ? 'text-copper' : 'text-fg/25 hover:text-fg/50'} title={idea.pinned ? 'Unpin' : 'Pin'}>
               <Icon name="star" size={16} />
             </button>
           </div>
-          <p className="mt-2 flex-1 whitespace-pre-wrap text-sm leading-relaxed text-ink/70">{idea.content}</p>
+          <p className="mt-2 flex-1 whitespace-pre-wrap text-sm leading-relaxed text-fg/70">{idea.content}</p>
           {(idea.tags || []).length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1">{idea.tags.map((t) => <Badge key={t} tone="gray">{t}</Badge>)}</div>
           )}
           <div className="mt-3 flex items-center justify-between border-t border-line/60 pt-2.5">
-            <span className="text-[11px] text-ink/35">{new Date(idea.created_at).toLocaleDateString()}</span>
+            <span className="text-[11px] text-fg/35">{new Date(idea.created_at).toLocaleDateString()}</span>
             <div className="flex gap-1">
               <IconButton icon="sparkle" label="Polish with AI" onClick={polish} className={polishing ? 'animate-pulse text-copper' : ''} />
               <IconButton icon="edit" label="Edit" onClick={() => setEditing(true)} />
@@ -83,11 +83,11 @@ export default function Ideas() {
   return (
     <div>
       <PageHeader title="Ideas" sub="On-the-spot sparks, captured before service steals them." />
-      <form onSubmit={capture} className="mb-4 rounded-xl border border-line bg-white p-3 shadow-card">
+      <form onSubmit={capture} className="mb-4 rounded-xl border border-line bg-card p-3 shadow-card">
         <Textarea rows={2} placeholder="Quick capture… (first line becomes the title)" value={quick} onChange={(e) => setQuick(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) capture(e) }} />
         <div className="mt-2 flex items-center justify-between">
-          <p className="text-xs text-ink/40">⌘/Ctrl + Enter to save</p>
+          <p className="text-xs text-fg/40">⌘/Ctrl + Enter to save</p>
           <Button size="sm" icon="bulb">Capture</Button>
         </div>
       </form>

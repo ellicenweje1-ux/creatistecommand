@@ -80,11 +80,11 @@ function ClientDetail({ client, onEdit, onChanged }) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="font-display text-xl font-semibold">{client.name}</h2>
-            {client.company && <p className="text-sm text-ink/55">{client.company}</p>}
-            <div className="mt-2 space-y-1 text-sm text-ink/65">
-              {client.phone && <p><Icon name="phone" size={13} className="mr-1.5 inline text-ink/35" />{client.phone}</p>}
-              {client.email && <p><Icon name="mail" size={13} className="mr-1.5 inline text-ink/35" />{client.email}</p>}
-              {client.address && <p><Icon name="pin" size={13} className="mr-1.5 inline text-ink/35" />{client.address}</p>}
+            {client.company && <p className="text-sm text-fg/55">{client.company}</p>}
+            <div className="mt-2 space-y-1 text-sm text-fg/65">
+              {client.phone && <p><Icon name="phone" size={13} className="mr-1.5 inline text-fg/35" />{client.phone}</p>}
+              {client.email && <p><Icon name="mail" size={13} className="mr-1.5 inline text-fg/35" />{client.email}</p>}
+              {client.address && <p><Icon name="pin" size={13} className="mr-1.5 inline text-fg/35" />{client.address}</p>}
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
@@ -100,21 +100,21 @@ function ClientDetail({ client, onEdit, onChanged }) {
           {(client.tags || []).map((t) => <Badge key={t} tone="ink">{t}</Badge>)}
           {(client.dietary || []).map((d) => <Badge key={d} tone="sage">{d}</Badge>)}
         </div>
-        {client.allergies && <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">⚠ Allergies: {client.allergies}</p>}
+        {client.allergies && <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">⚠ Allergies: {client.allergies}</p>}
         <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-          {client.likes && <div><p className="label">Loves</p><p className="text-ink/70">{client.likes}</p></div>}
-          {client.dislikes && <div><p className="label">Avoid</p><p className="text-ink/70">{client.dislikes}</p></div>}
+          {client.likes && <div><p className="label">Loves</p><p className="text-fg/70">{client.likes}</p></div>}
+          {client.dislikes && <div><p className="label">Avoid</p><p className="text-fg/70">{client.dislikes}</p></div>}
         </div>
-        {client.notes && <p className="mt-3 border-t border-line/60 pt-3 text-sm text-ink/60">{client.notes}</p>}
+        {client.notes && <p className="mt-3 border-t border-line/60 pt-3 text-sm text-fg/60">{client.notes}</p>}
       </Card>
 
       <Card title={`Bookings (${bookings.length})`} pad={false}>
-        {bookings.length === 0 ? <p className="p-4 text-sm text-ink/45">No bookings yet for this client.</p> : (
+        {bookings.length === 0 ? <p className="p-4 text-sm text-fg/45">No bookings yet for this client.</p> : (
           <ul className="divide-y divide-line/70">
             {bookings.map((b) => (
               <li key={b.id}>
                 <Link to={`/app/bookings/${b.id}`} className="flex items-center justify-between px-4 py-2.5 hover:bg-parchment/40">
-                  <div><p className="text-sm font-medium">{b.title}</p><p className="text-xs text-ink/45">{fmtDate(b.date)} · {b.guest_count} guests</p></div>
+                  <div><p className="text-sm font-medium">{b.title}</p><p className="text-xs text-fg/45">{fmtDate(b.date)} · {b.guest_count} guests</p></div>
                   <Badge tone={BOOKING_TONES[b.status]}>{label(b.status)}</Badge>
                 </Link>
               </li>
@@ -129,12 +129,12 @@ function ClientDetail({ client, onEdit, onChanged }) {
             <div key={r.id} className="rounded-lg border border-line bg-parchment/30 p-3">
               <div className="flex items-center justify-between">
                 <Stars value={r.rating} />
-                <div className="flex items-center gap-2 text-xs text-ink/45">
+                <div className="flex items-center gap-2 text-xs text-fg/45">
                   {r.date && fmtDate(r.date)}
                   <IconButton icon="trash" label="Delete review" onClick={() => api.del(`/clients/${client.id}/reviews/${r.id}`).then(loadExtras).catch(toastErr)} />
                 </div>
               </div>
-              {r.comment && <p className="mt-1.5 text-sm text-ink/70">"{r.comment}"</p>}
+              {r.comment && <p className="mt-1.5 text-sm text-fg/70">"{r.comment}"</p>}
             </div>
           ))}
           <form onSubmit={addReview} className="rounded-lg border border-dashed border-line p-3">
@@ -180,14 +180,14 @@ export default function Clients() {
             <div className="space-y-1.5">
               {visible.map((c) => (
                 <button key={c.id} onClick={() => setSelectedId(c.id)}
-                  className={cls('flex w-full items-center gap-3 rounded-xl border bg-white px-3.5 py-2.5 text-left shadow-card transition-all',
+                  className={cls('flex w-full items-center gap-3 rounded-xl border bg-card px-3.5 py-2.5 text-left shadow-card transition-all',
                     selected?.id === c.id ? 'border-copper ring-1 ring-copper/30' : 'border-line hover:border-copper/40')}>
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink font-display text-sm font-semibold text-cream">
                     {c.name.slice(0, 1).toUpperCase()}
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium">{c.name}</span>
-                    <span className="block truncate text-xs text-ink/45">{c.company || c.email || c.phone || '—'}</span>
+                    <span className="block truncate text-xs text-fg/45">{c.company || c.email || c.phone || '—'}</span>
                   </span>
                 </button>
               ))}

@@ -143,7 +143,7 @@ function RecipeEditor({ open, onClose, onSaved, initial = null }) {
           <Field label="Price / serving"><Input type="number" step="0.01" min="0" value={form.price_per_serving} onChange={set('price_per_serving')} /></Field>
         </div>
         <Field label="Photo" hint={form.image_url ? 'Image attached ✓' : undefined}>
-          <input type="file" accept="image/*" onChange={uploadImage} className="block w-full text-sm text-ink/60 file:mr-3 file:rounded-lg file:border-0 file:bg-ink file:px-3 file:py-2 file:text-xs file:font-medium file:text-cream" />
+          <input type="file" accept="image/*" onChange={uploadImage} className="block w-full text-sm text-fg/60 file:mr-3 file:rounded-lg file:border-0 file:bg-ink file:px-3 file:py-2 file:text-xs file:font-medium file:text-cream" />
         </Field>
         <Field label="Chef's notes"><Textarea rows={2} value={form.notes} onChange={set('notes')} /></Field>
         <div className="flex justify-end gap-2">
@@ -168,15 +168,15 @@ function RecipeView({ recipe, onClose, onEdit, currency }) {
         <Badge tone="gray">{recipe.prep_minutes + recipe.cook_minutes} min total</Badge>
         {(recipe.allergens || []).map((a) => <Badge key={a} tone="red">{a}</Badge>)}
       </div>
-      {recipe.description && <p className="mb-4 text-sm text-ink/65">{recipe.description}</p>}
+      {recipe.description && <p className="mb-4 text-sm text-fg/65">{recipe.description}</p>}
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <h4 className="label">Ingredients</h4>
           <ul className="space-y-1 text-sm">
             {(recipe.ingredients || []).map((i, idx) => (
               <li key={idx} className="flex justify-between gap-2 border-b border-line/50 pb-1">
-                <span>{i.name}{i.note ? <span className="text-ink/40"> · {i.note}</span> : null}</span>
-                <span className="shrink-0 text-ink/55">{i.qty} {i.unit}</span>
+                <span>{i.name}{i.note ? <span className="text-fg/40"> · {i.note}</span> : null}</span>
+                <span className="shrink-0 text-fg/55">{i.qty} {i.unit}</span>
               </li>
             ))}
           </ul>
@@ -185,7 +185,7 @@ function RecipeView({ recipe, onClose, onEdit, currency }) {
           <h4 className="label">Method</h4>
           <ol className="space-y-2 text-sm">
             {(recipe.steps || []).map((s, idx) => (
-              <li key={idx} className="flex gap-2"><span className="font-display font-semibold text-copper">{idx + 1}.</span><span className="text-ink/75">{s}</span></li>
+              <li key={idx} className="flex gap-2"><span className="font-display font-semibold text-copper">{idx + 1}.</span><span className="text-fg/75">{s}</span></li>
             ))}
           </ol>
         </div>
@@ -197,7 +197,7 @@ function RecipeView({ recipe, onClose, onEdit, currency }) {
             <span className="ml-2 font-medium text-sage">({Math.round((1 - recipe.cost_per_serving / recipe.price_per_serving) * 100)}% margin)</span>}
         </p>
       )}
-      {recipe.notes && <p className="mt-3 text-sm text-ink/55"><span className="font-medium">Notes:</span> {recipe.notes}</p>}
+      {recipe.notes && <p className="mt-3 text-sm text-fg/55"><span className="font-medium">Notes:</span> {recipe.notes}</p>}
     </Modal>
   )
 }
@@ -237,7 +237,7 @@ export default function Recipes() {
         <div className="scrollbar-thin flex gap-1.5 overflow-x-auto">
           {['all', ...CATEGORIES].map((c) => (
             <button key={c} onClick={() => setCat(c)}
-              className={cls('whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium', cat === c ? 'bg-ink text-cream' : 'border border-line bg-white text-ink/55')}>{c}</button>
+              className={cls('whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium', cat === c ? 'bg-ink text-cream' : 'border border-line bg-card text-fg/55')}>{c}</button>
           ))}
         </div>
       </div>
@@ -248,24 +248,24 @@ export default function Recipes() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((r) => (
             <button key={r.id} onClick={() => setViewing(r)}
-              className="group overflow-hidden rounded-xl border border-line bg-white text-left shadow-card transition-all hover:border-copper/40">
-              <div className="relative h-32 bg-gradient-to-br from-parchment to-clay/40">
+              className="group overflow-hidden rounded-xl border border-line bg-card text-left shadow-card transition-all hover:border-copper/40">
+              <div className="relative h-32 bg-gradient-to-br from-parchment to-copper/25">
                 {r.image_url && <img src={r.image_url} alt="" className="h-full w-full object-cover" />}
-                <button onClick={(e) => toggleFav(r, e)} className={cls('absolute right-2 top-2 rounded-full bg-white/90 p-1.5 shadow', r.is_favorite ? 'text-copper' : 'text-ink/30')}>
+                <button onClick={(e) => toggleFav(r, e)} className={cls('absolute right-2 top-2 rounded-full bg-white/90 p-1.5 shadow', r.is_favorite ? 'text-copper' : 'text-fg/30')}>
                   <Icon name="star" size={15} />
                 </button>
               </div>
               <div className="p-3.5">
                 <p className="font-display font-semibold leading-tight">{r.title}</p>
-                <p className="mt-0.5 text-xs text-ink/50">{[r.category, r.cuisine, `serves ${r.servings}`].filter(Boolean).join(' · ')}</p>
+                <p className="mt-0.5 text-xs text-fg/50">{[r.category, r.cuisine, `serves ${r.servings}`].filter(Boolean).join(' · ')}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-1">
                   {(r.allergens || []).slice(0, 3).map((a) => <Badge key={a} tone="red">{a}</Badge>)}
                   {(r.tags || []).slice(0, 2).map((t) => <Badge key={t} tone="gray">{t}</Badge>)}
                 </div>
-                <div className="mt-2 flex items-center justify-between text-xs text-ink/45">
+                <div className="mt-2 flex items-center justify-between text-xs text-fg/45">
                   <span>{r.prep_minutes + r.cook_minutes} min</span>
                   <span className="flex items-center gap-2">
-                    {r.price_per_serving > 0 && <span className="font-medium text-ink/70">{fmtMoney(r.price_per_serving, user?.currency)}/pp</span>}
+                    {r.price_per_serving > 0 && <span className="font-medium text-fg/70">{fmtMoney(r.price_per_serving, user?.currency)}/pp</span>}
                     <IconButton icon="trash" label="Delete" className="opacity-0 group-hover:opacity-100" onClick={(e) => remove(r, e)} />
                   </span>
                 </div>

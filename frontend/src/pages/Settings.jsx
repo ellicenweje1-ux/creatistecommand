@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { fmtMoney, label, SYMBOLS } from '../format'
-import { Badge, Button, Card, Field, Input, PageHeader, Select, toast, toastErr } from '../ui'
+import { cls, fmtMoney, label, SYMBOLS } from '../format'
+import { Badge, Button, Card, Field, Icon, Input, PageHeader, Select, toast, toastErr } from '../ui'
 
 export default function Settings() {
   const { user, setUser } = useAuth()
@@ -32,6 +32,13 @@ export default function Settings() {
 
   const statusTone = { active: 'sage', trialing: 'copper', pending: 'amber', suspended: 'red', canceled: 'ink' }
 
+  const [theme, setThemeState] = useState(() => localStorage.getItem('cc_theme') || 'dark')
+  const setTheme = (t) => {
+    localStorage.setItem('cc_theme', t)
+    document.documentElement.classList.toggle('dark', t === 'dark')
+    setThemeState(t)
+  }
+
   return (
     <div>
       <PageHeader title="Settings" sub="Profile, security, membership." />
@@ -54,23 +61,40 @@ export default function Settings() {
         </Card>
 
         <div className="space-y-5">
+          <Card title="Appearance">
+            <p className="mb-3 text-sm text-fg/60">
+              The signature Creatiste look is dark & sultry — switch to the brighter mode whenever it
+              suits the light you're working in. Applies across every module.
+            </p>
+            <div className="flex gap-2">
+              {[['dark', 'moon', 'Dark — signature'], ['light', 'sun', 'Light — bright kitchen']].map(([t, ic, lbl]) => (
+                <button key={t} type="button" onClick={() => setTheme(t)}
+                  className={cls('flex flex-1 flex-col items-center gap-1.5 rounded-xl border p-3 text-xs font-medium transition-all',
+                    theme === t ? 'border-copper ring-2 ring-copper/30 text-copper' : 'border-line text-fg/55 hover:border-copper/40')}>
+                  <Icon name={ic} size={18} />
+                  {lbl}
+                </button>
+              ))}
+            </div>
+          </Card>
+
           <Card title="Membership">
             {billing ? (
               <div className="space-y-3 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-ink/60">Status</span>
+                  <span className="text-fg/60">Status</span>
                   <Badge tone={statusTone[billing.subscription_status] || 'gray'}>{label(billing.subscription_status)}</Badge>
                 </div>
-                <div className="flex items-center justify-between"><span className="text-ink/60">Plan</span><span className="font-medium capitalize">{billing.plan || '—'}</span></div>
-                <div className="flex items-center justify-between"><span className="text-ink/60">Onboarding fee</span><span>{billing.onboarding_paid ? 'Paid ✓' : 'Not paid'}</span></div>
-                {billing.trial_ends_at && <div className="flex items-center justify-between"><span className="text-ink/60">Trial ends</span><span>{billing.trial_ends_at}</span></div>}
+                <div className="flex items-center justify-between"><span className="text-fg/60">Plan</span><span className="font-medium capitalize">{billing.plan || '—'}</span></div>
+                <div className="flex items-center justify-between"><span className="text-fg/60">Onboarding fee</span><span>{billing.onboarding_paid ? 'Paid ✓' : 'Not paid'}</span></div>
+                {billing.trial_ends_at && <div className="flex items-center justify-between"><span className="text-fg/60">Trial ends</span><span>{billing.trial_ends_at}</span></div>}
                 {billing.payments?.length > 0 && (
                   <div className="border-t border-line/70 pt-3">
                     <p className="label">Payment history</p>
                     <ul className="space-y-1.5">
                       {billing.payments.slice(0, 6).map((p) => (
                         <li key={p.id} className="flex justify-between text-xs">
-                          <span className="text-ink/60">{p.note || p.kind} <span className="text-ink/35">({p.provider})</span></span>
+                          <span className="text-fg/60">{p.note || p.kind} <span className="text-fg/35">({p.provider})</span></span>
                           <span className="font-medium">{fmtMoney(p.amount, p.currency)}</span>
                         </li>
                       ))}
@@ -83,14 +107,14 @@ export default function Settings() {
                   </div>
                 )}
               </div>
-            ) : <p className="text-sm text-ink/45">Loading…</p>}
+            ) : <p className="text-sm text-fg/45">Loading…</p>}
           </Card>
 
           <Card title="AI sous-chef">
-            <p className="text-sm text-ink/65">
+            <p className="text-sm text-fg/65">
               {aiStatus?.enabled
                 ? <>AI features are <span className="font-medium text-sage">enabled</span> (model: {aiStatus.model}).</>
-                : <>AI features are <span className="font-medium text-red-600">not configured</span>. The platform owner needs to set <code className="rounded bg-ink/5 px-1">ANTHROPIC_API_KEY</code> on the server to enable recipe generation, smart shopping lists and prep plans.</>}
+                : <>AI features are <span className="font-medium text-red-600">not configured</span>. The platform owner needs to set <code className="rounded bg-fg/5 px-1">ANTHROPIC_API_KEY</code> on the server to enable recipe generation, smart shopping lists and prep plans.</>}
             </p>
           </Card>
 

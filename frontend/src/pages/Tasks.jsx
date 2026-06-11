@@ -17,7 +17,7 @@ export function TaskComposer({ bookingId = null, onCreated }) {
       .then(() => { setTitle(''); setDue(''); onCreated() }).catch(toastErr)
   }
   return (
-    <form onSubmit={submit} className="flex flex-wrap gap-2 rounded-xl border border-line bg-white p-2.5 shadow-card">
+    <form onSubmit={submit} className="flex flex-wrap gap-2 rounded-xl border border-line bg-card p-2.5 shadow-card">
       <Input className="min-w-[180px] flex-1" placeholder="Add a task… (e.g. Cure the cod — 48h ahead)" value={title} onChange={(e) => setTitle(e.target.value)} />
       <Input type="date" className="w-40" value={due} onChange={(e) => setDue(e.target.value)} />
       <Select className="w-32" value={category} onChange={(e) => setCategory(e.target.value)}>
@@ -47,15 +47,15 @@ export function TaskItem({ task, onChanged, bookingLabel }) {
 
   const overdue = task.status !== 'done' && task.due_date && task.due_date < todayISO()
   return (
-    <div className={cls('group flex items-center gap-3 rounded-xl border border-line bg-white px-3.5 py-2.5 shadow-card', task.status === 'done' && 'opacity-60')}>
+    <div className={cls('group flex items-center gap-3 rounded-xl border border-line bg-card px-3.5 py-2.5 shadow-card', task.status === 'done' && 'opacity-60')}>
       <button onClick={toggle}
         className={cls('flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors',
-          task.status === 'done' ? 'border-sage bg-sage text-white' : 'border-ink/25 bg-white hover:border-copper')}>
+          task.status === 'done' ? 'border-sage bg-sage text-white' : 'border-fg/25 bg-card hover:border-copper')}>
         {task.status === 'done' && <Icon name="check" size={12} />}
       </button>
       <div className="min-w-0 flex-1 cursor-pointer" onClick={() => setEditing(true)}>
         <p className={cls('truncate text-sm font-medium', task.status === 'done' && 'line-through')}>{task.title}</p>
-        <p className="truncate text-xs text-ink/45">
+        <p className="truncate text-xs text-fg/45">
           {task.due_date ? `${fmtDate(task.due_date)}${task.due_time ? ` ${task.due_time}` : ''}` : 'No due date'}
           {bookingLabel ? ` · ${bookingLabel}` : ''}{task.description ? ` · ${task.description}` : ''}
         </p>
@@ -125,12 +125,12 @@ export default function Tasks() {
       <div className="mt-4 flex flex-wrap gap-1.5">
         {['open', 'done', 'all'].map((f) => (
           <button key={f} onClick={() => setFilter(f)}
-            className={cls('rounded-full px-3.5 py-1.5 text-xs font-medium capitalize', filter === f ? 'bg-ink text-cream' : 'border border-line bg-white text-ink/55')}>{f}</button>
+            className={cls('rounded-full px-3.5 py-1.5 text-xs font-medium capitalize', filter === f ? 'bg-ink text-cream' : 'border border-line bg-card text-fg/55')}>{f}</button>
         ))}
-        <span className="mx-1 self-center text-ink/20">|</span>
+        <span className="mx-1 self-center text-fg/20">|</span>
         {['all', ...CATEGORIES].map((c) => (
           <button key={c} onClick={() => setCatFilter(c)}
-            className={cls('rounded-full px-3 py-1.5 text-xs font-medium capitalize', catFilter === c ? 'bg-copper text-cream' : 'border border-line bg-white text-ink/55')}>{c}</button>
+            className={cls('rounded-full px-3 py-1.5 text-xs font-medium capitalize', catFilter === c ? 'bg-copper text-ink' : 'border border-line bg-card text-fg/55')}>{c}</button>
         ))}
       </div>
       {visible.length === 0 ? (
@@ -139,7 +139,7 @@ export default function Tasks() {
         <div className="mt-4 space-y-5">
           {groups.map(([name, list]) => list.length > 0 && (
             <div key={name}>
-              <p className={cls('mb-2 text-[11px] font-semibold uppercase tracking-wider', name === 'Overdue' ? 'text-red-600' : 'text-ink/40')}>{name} · {list.length}</p>
+              <p className={cls('mb-2 text-[11px] font-semibold uppercase tracking-wider', name === 'Overdue' ? 'text-red-600' : 'text-fg/40')}>{name} · {list.length}</p>
               <div className="space-y-1.5">
                 {list.map((t) => <TaskItem key={t.id} task={t} onChanged={load} bookingLabel={bookingTitle(t.booking_id)} />)}
               </div>

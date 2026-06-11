@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls, fmtMoney } from '../format'
-import { Button, Icon } from '../ui'
+import { Brand, Button, Icon } from '../ui'
 
 const FEATURES = [
   { icon: 'calendar', title: 'Bookings & calendar', text: 'Every enquiry, quote and confirmed event in one diary — with guest counts, venues, menus and dietary flags attached.' },
@@ -35,14 +35,12 @@ export default function Landing() {
   const currency = pricing?.currency || 'GBP'
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-base">
       {/* Nav */}
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
-        <span className="font-display text-xl font-semibold tracking-tight">
-          The Creatiste <em className="italic text-copper">Command</em>
-        </span>
+        <Brand />
         <nav className="flex items-center gap-2">
-          <a href="#pricing" className="hidden px-3 text-sm font-medium text-ink/60 hover:text-ink sm:block">Pricing</a>
+          <a href="#pricing" className="hidden px-3 text-sm font-medium text-fg/60 hover:text-fg sm:block">Pricing</a>
           {user ? (
             <Link to="/app"><Button variant="dark">Open the app</Button></Link>
           ) : (
@@ -62,7 +60,7 @@ export default function Landing() {
         <h1 className="max-w-3xl font-display text-4xl font-semibold leading-[1.08] tracking-tight md:text-6xl">
           Run every booking like a <em className="italic text-copper">brigade of one.</em>
         </h1>
-        <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink/60">
+        <p className="mt-5 max-w-2xl text-lg leading-relaxed text-fg/60">
           Stock lists, shopping runs, prep schedules, supplier orders, client preferences, floor plans and invoices —
           the entire back-of-house of your business in one command centre, built to be used on the move.
         </p>
@@ -72,9 +70,9 @@ export default function Landing() {
         </div>
         <div className="mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-4">
           {[['10,000×', 'less chaos on prep day'], ['1 place', 'for stock, shops & schedules'], ['0 lost', 'on-the-spot ideas'], ['24/7', 'in your pocket']].map(([big, small]) => (
-            <div key={small} className="bg-white p-5">
+            <div key={small} className="bg-card p-5">
               <p className="font-display text-2xl font-semibold text-copper">{big}</p>
-              <p className="mt-1 text-sm text-ink/55">{small}</p>
+              <p className="mt-1 text-sm text-fg/55">{small}</p>
             </div>
           ))}
         </div>
@@ -102,10 +100,10 @@ export default function Landing() {
         <h2 className="font-display text-3xl font-semibold">From sign-up to service.</h2>
         <div className="mt-8 grid gap-4 md:grid-cols-4">
           {STEPS.map(([title, text], i) => (
-            <div key={title} className="rounded-xl border border-line bg-white p-5 shadow-card">
+            <div key={title} className="rounded-xl border border-line bg-card p-5 shadow-card">
               <span className="font-display text-3xl font-semibold text-copper/30">{String(i + 1).padStart(2, '0')}</span>
               <h3 className="mt-2 font-display font-semibold">{title}</h3>
-              <p className="mt-1 text-sm text-ink/55">{text}</p>
+              <p className="mt-1 text-sm text-fg/55">{text}</p>
             </div>
           ))}
         </div>
@@ -115,21 +113,21 @@ export default function Landing() {
       <section id="pricing" className="bg-parchment py-16">
         <div className="mx-auto max-w-6xl px-5">
           <h2 className="font-display text-3xl font-semibold md:text-4xl">Onboarding + membership.</h2>
-          <p className="mt-3 max-w-2xl text-ink/60">
+          <p className="mt-3 max-w-2xl text-fg/60">
             Every chef starts with a one-time onboarding & setup fee, then a monthly membership.
             {pricing?.trial_days ? ` Includes a ${pricing.trial_days}-day free trial.` : ''}
           </p>
           <div className="mt-10 grid gap-5 md:grid-cols-3">
             {pricing ? Object.entries(pricing.plans).map(([key, plan]) => (
-              <div key={key} className={cls('flex flex-col rounded-2xl border bg-white p-6 shadow-card', key === 'pro' ? 'border-copper ring-2 ring-copper/25' : 'border-line')}>
-                {key === 'pro' && <span className="mb-2 self-start rounded-full bg-copper px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-cream">Most popular</span>}
+              <div key={key} className={cls('flex flex-col rounded-2xl border bg-card p-6 shadow-card', key === 'pro' ? 'border-copper ring-2 ring-copper/25' : 'border-line')}>
+                {key === 'pro' && <span className="mb-2 self-start rounded-full bg-copper px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-ink">Most popular</span>}
                 <h3 className="font-display text-xl font-semibold">{plan.name}</h3>
-                <p className="mt-1 text-sm text-ink/55">{plan.tagline}</p>
-                <p className="mt-4 font-display text-4xl font-semibold">{fmtMoney(plan.monthly, currency)}<span className="text-base font-normal text-ink/45">/month</span></p>
-                <p className="text-sm text-ink/50">+ {fmtMoney(plan.onboarding, currency)} one-time onboarding</p>
+                <p className="mt-1 text-sm text-fg/55">{plan.tagline}</p>
+                <p className="mt-4 font-display text-4xl font-semibold">{fmtMoney(plan.monthly, currency)}<span className="text-base font-normal text-fg/45">/month</span></p>
+                <p className="text-sm text-fg/50">+ {fmtMoney(plan.onboarding, currency)} one-time onboarding</p>
                 <ul className="mt-5 flex-1 space-y-2">
                   {(plan.features || []).map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-ink/70">
+                    <li key={f} className="flex items-start gap-2 text-sm text-fg/70">
                       <Icon name="check" size={15} className="mt-0.5 shrink-0 text-sage" />{f}
                     </li>
                   ))}
@@ -138,7 +136,7 @@ export default function Landing() {
                   <Button className="w-full" variant={key === 'pro' ? 'primary' : 'secondary'}>Choose {plan.name}</Button>
                 </Link>
               </div>
-            )) : <p className="text-ink/40">Loading plans…</p>}
+            )) : <p className="text-fg/40">Loading plans…</p>}
           </div>
         </div>
       </section>
@@ -150,7 +148,7 @@ export default function Landing() {
         </h2>
         <Link to={user ? '/app' : '/register'} className="mt-8 inline-block"><Button size="lg" icon="arrowRight">Get started today</Button></Link>
       </section>
-      <footer className="border-t border-line py-8 text-center text-sm text-ink/40">
+      <footer className="border-t border-line py-8 text-center text-sm text-fg/40">
         © {new Date().getFullYear()} The Creatiste Command — the command centre for chefs & caterers.
       </footer>
     </div>
