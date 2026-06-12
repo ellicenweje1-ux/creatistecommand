@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, Route, Routes, useNavigate } from 'react-router-dom'
 import { RequireActive, RequireAdmin, RequireAuth, useAuth } from './auth'
 import { cls } from './format'
+import { useOfflineState } from './offline'
 import Admin from './pages/Admin'
 import Allergens from './pages/Allergens'
 import AuthPage from './pages/AuthPage'
@@ -107,6 +108,28 @@ function SideLink({ item, locked, onClick }) {
   )
 }
 
+/* Connectivity chip: shows when the kitchen is offline (with how many changes are
+   waiting) and while queued changes are syncing back to the cloud. */
+function OfflineChip() {
+  const { online, pending, syncing } = useOfflineState()
+  if (online && !pending && !syncing) return null
+  const text = !online
+    ? pending
+      ? `Offline — ${pending} change${pending === 1 ? '' : 's'} saved on this device`
+      : 'Offline — your work is saved on this device'
+    : syncing
+      ? 'Back online — syncing your changes…'
+      : `${pending} change${pending === 1 ? '' : 's'} waiting to sync`
+  return (
+    <div className={cls(
+      'fixed bottom-16 left-1/2 z-[60] -translate-x-1/2 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-medium shadow-lg backdrop-blur lg:bottom-4',
+      !online ? 'border-amber-500/40 bg-amber-500/15 text-amber-600 dark:text-amber-300' : 'border-copper/40 bg-copper/15 text-copper')}>
+      <span className={cls('mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle', !online ? 'bg-amber-500' : 'animate-pulse bg-copper')} />
+      {text}
+    </div>
+  )
+}
+
 function TrialBanner({ user }) {
   if (user?.is_staff || user?.subscription_status !== 'trialing') return null
   const days = user.trial_ends_at
@@ -124,6 +147,14 @@ function AppShell() {
   const [moreOpen, setMoreOpen] = useState(false)
   const navigate = useNavigate()
   const level = userLevel(user)
+  // After offline changes replay to the server, remount the current page so it
+  // refetches and swaps optimistic local copies for the server's records.
+  const [syncEpoch, setSyncEpoch] = useState(0)
+  useEffect(() => {
+    const bump = () => setSyncEpoch((n) => n + 1)
+    window.addEventListener('cc-synced', bump)
+    return () => window.removeEventListener('cc-synced', bump)
+  }, [])
   // Daily-use shortcuts; Home (the module guide at /app) stays reachable via the
   // brand logo tap and the "More" sheet.
   const mobileMain = [NAV_GROUPS[0].items[1], NAV_GROUPS[0].items[2], NAV_GROUPS[0].items[4], NAV_GROUPS[1].items[2]]
@@ -174,8 +205,10 @@ function AppShell() {
       <FounderExperience />
 
       <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-5 sm:px-6 lg:pb-10 lg:pt-8">
-        <Outlet />
+        <Outlet key={syncEpoch} />
       </main>
+
+      <OfflineChip />
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">

@@ -59,6 +59,7 @@ def status(db: Session = Depends(get_db), user: User = Depends(get_current_user)
         "onboarding_paid": user.onboarding_paid,
         "trial_ends_at": user.trial_ends_at,
         "stripe_enabled": stripe_enabled(),
+        "has_stripe_customer": bool(user.stripe_customer_id),
         "payments": [to_dict(p) for p in payments],
     }
 
@@ -79,11 +80,19 @@ def plan_info(db: Session, settings: PlatformSettings, plan_key: str) -> dict | 
 
 
 def _activate(db: Session, user: User, plan_key: str, provider: str, reference: str, settings: PlatformSettings):
+    """Flip the account active and record the activation payments. Safe to call twice for
+    the same checkout (webhook + redirect confirmation): payment rows are keyed on the
+    Stripe reference, so duplicates are skipped."""
     plan = plan_info(db, settings, plan_key)
     if not plan:
         raise HTTPException(422, "Unknown plan")
     user.plan = plan_key
     user.subscription_status = "active"
+    if reference and db.query(Payment).filter(
+        Payment.user_id == user.id, Payment.reference == reference
+    ).first():
+        db.commit()
+        return
     if not user.onboarding_paid:
         user.onboarding_paid = True
         if plan.get("onboarding"):  # founders have the fee waived — no zero-amount record
@@ -148,7 +157,7 @@ def checkout(payload: dict = Body(...), db: Session = Depends(get_db), user: Use
         line_items=line_items,
         customer_email=user.email if not user.stripe_customer_id else None,
         customer=user.stripe_customer_id or None,
-        success_url=f"{config.APP_URL}/onboarding?paid=1",
+        success_url=f"{config.APP_URL}/onboarding?paid=1&session_id={{CHECKOUT_SESSION_ID}}",
         cancel_url=f"{config.APP_URL}/onboarding?cancelled=1",
         metadata={"user_id": str(user.id), "plan": plan_key},
         subscription_data=subscription_data,
@@ -168,13 +177,61 @@ def demo_activate(payload: dict = Body(...), db: Session = Depends(get_db), user
     return {"ok": True, "subscription_status": user.subscription_status, "plan": user.plan}
 
 
+@router.post("/confirm")
+def confirm(payload: dict = Body(...), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Called when the user lands back from Stripe Checkout (?paid=1&session_id=...).
+    Verifies the session server-side and activates immediately — so activation works
+    even before the webhook is configured, and without waiting for it to arrive."""
+    if not stripe_enabled():
+        raise HTTPException(400, "Stripe not configured")
+    session_id = (payload.get("session_id") or "").strip()
+    if not session_id:
+        raise HTTPException(422, "session_id required")
+    stripe = _stripe()
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+    except Exception as exc:
+        raise HTTPException(502, f"Stripe error: {exc}")
+    if str((session.get("metadata") or {}).get("user_id") or "") != str(user.id):
+        raise HTTPException(403, "This checkout session belongs to a different account")
+    if session.get("payment_status") not in ("paid", "no_payment_required") or session.get("status") != "complete":
+        return {"status": session.get("payment_status") or "incomplete"}
+    user.stripe_customer_id = session.get("customer") or user.stripe_customer_id
+    user.stripe_subscription_id = session.get("subscription") or user.stripe_subscription_id
+    settings = get_settings(db)
+    _activate(db, user, (session.get("metadata") or {}).get("plan") or user.plan, "stripe", session_id, settings)
+    return {"status": "active"}
+
+
+@router.post("/portal")
+def portal(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Stripe customer portal: update card, view invoices, cancel — all self-serve."""
+    if not stripe_enabled():
+        raise HTTPException(400, "Stripe not configured — billing is in demo mode")
+    if not user.stripe_customer_id:
+        raise HTTPException(400, "No Stripe customer on this account yet — subscribe first")
+    try:
+        session = _stripe().billing_portal.Session.create(
+            customer=user.stripe_customer_id,
+            return_url=f"{config.APP_URL}/app/settings",
+        )
+    except Exception as exc:
+        raise HTTPException(502, f"Stripe error: {exc}")
+    return {"url": session.url}
+
+
 @router.post("/cancel")
 def cancel(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     if stripe_enabled() and user.stripe_subscription_id:
+        # Real subscription: cancel at period end — the chef keeps the access they've
+        # paid for, and the webhook flips the account to canceled when Stripe ends it.
         try:
-            _stripe().Subscription.modify(user.stripe_subscription_id, cancel_at_period_end=True)
+            sub = _stripe().Subscription.modify(user.stripe_subscription_id, cancel_at_period_end=True)
         except Exception as exc:  # surface Stripe errors as API errors
             raise HTTPException(502, f"Stripe error: {exc}")
+        ends = sub.get("current_period_end")
+        ends_at = datetime.fromtimestamp(ends, tz=timezone.utc).strftime("%Y-%m-%d") if ends else None
+        return {"ok": True, "ends_at": ends_at}
     user.subscription_status = "canceled"
     db.commit()
     return {"ok": True}
@@ -208,11 +265,45 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
             user.stripe_customer_id = data.get("customer") or user.stripe_customer_id
             user.stripe_subscription_id = data.get("subscription") or user.stripe_subscription_id
             _activate(db, user, data.get("metadata", {}).get("plan") or user.plan, "stripe", data.get("id", ""), settings)
+    elif etype in ("invoice.paid", "invoice.payment_succeeded"):
+        # Monthly renewals (and recovery after a failed payment): reactivate and record
+        # the real charge. The first invoice of a subscription is skipped — checkout
+        # activation already recorded it.
+        sub_id = data.get("subscription")
+        user = db.query(User).filter(User.stripe_subscription_id == sub_id).first() if sub_id else None
+        if user:
+            if user.subscription_status in ("suspended", "pending", "trialing"):
+                user.subscription_status = "active"
+            amount = (data.get("amount_paid") or 0) / 100
+            reference = data.get("id") or ""
+            already = reference and db.query(Payment).filter(
+                Payment.user_id == user.id, Payment.reference == reference
+            ).first()
+            if amount > 0 and not already and data.get("billing_reason") != "subscription_create":
+                plan = plan_info(db, settings, user.plan) or {}
+                db.add(Payment(
+                    user_id=user.id, kind="subscription", amount=amount,
+                    currency=(data.get("currency") or settings.currency).upper(),
+                    provider="stripe", reference=reference,
+                    note=f"Monthly subscription — {plan.get('name', user.plan)}",
+                ))
+            db.commit()
     elif etype == "invoice.payment_failed":
         sub_id = data.get("subscription")
         user = db.query(User).filter(User.stripe_subscription_id == sub_id).first() if sub_id else None
         if user:
             user.subscription_status = "suspended"
+            db.commit()
+    elif etype == "customer.subscription.updated":
+        user = db.query(User).filter(User.stripe_subscription_id == data.get("id")).first()
+        if user:
+            stripe_status = data.get("status")
+            if stripe_status in ("past_due", "unpaid"):
+                user.subscription_status = "suspended"
+            elif stripe_status == "canceled":
+                user.subscription_status = "canceled"
+            elif stripe_status in ("active", "trialing") and user.subscription_status in ("suspended", "canceled", "pending"):
+                user.subscription_status = "active"  # payment recovered / cancellation undone
             db.commit()
     elif etype == "customer.subscription.deleted":
         user = db.query(User).filter(User.stripe_subscription_id == data.get("id")).first()
