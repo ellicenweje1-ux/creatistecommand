@@ -3,7 +3,11 @@
 Read this first in every new session. It replaces lost chat history.
 
 **Founder / platform owner:** Ellice Nweje — founder of The Creatiste Command
-(account owner, ellicenweje1@gmail.com).
+(account owner, ellicenweje1@gmail.com). NOTE on "Caroline" in older notes: that's
+Ellice's aunt, who runs **The Creatiste Catering**. The project previously ran under
+Caroline's account, so earlier sessions credited her as owner — but the founder
+directing this project is **Ellice**. Caroline is a separate person; some
+operational lines below still say "Caroline" where they now mean Ellice.
 
 ## Latest session (2026-06-12, second session — Founders Membership)
 - Built the **Founders Membership**: a private, invite-only launch programme for the
@@ -54,9 +58,10 @@ Read this first in every new session. It replaces lost chat history.
 
 ## What this is
 **The Creatiste Command** — a subscription SaaS platform for private chefs & caterers,
-owned by Caroline (The Creatiste Catering). Chefs pay a one-time onboarding fee +
-monthly subscription; Caroline is the platform admin. Built end-to-end in Claude Code
-sessions; this file is the continuity bridge between sessions/accounts.
+founded by Ellice Nweje. (The Creatiste Catering is the namesake catering business run
+by Ellice's aunt Caroline; earlier sessions ran under Caroline's account.) Chefs pay a
+one-time onboarding fee + monthly subscription; the founder is the platform admin. Built
+end-to-end in Claude Code sessions; this file is the continuity bridge between sessions.
 
 ## Deployment (IMPORTANT)
 - Hosted on **Render** (web service, native Python runtime, free tier so far).
