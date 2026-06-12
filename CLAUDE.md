@@ -2,6 +2,19 @@
 
 Read this first in every new session. It replaces lost chat history.
 
+## Latest session (2026-06-12)
+- Moved the project onto the owner's own GitHub + Claude Code account (the only
+  thing that was on someone else's account was the old Claude history — code and
+  Render were already the owner's). Nothing to "transfer": every session reads
+  this file automatically, so context carries over.
+- Created **`main`** as the canonical branch (copy of `claude/vigilant-volta-da1cu9`).
+  Owner to do the two one-time dropdown flips — see Deployment below. Verify they're
+  done before relying on a push to `main` to deploy.
+- No app code changed this session — only branch reorg + these notes.
+- **Pick up here:** roadmap below is untouched. Recommended first build = wire real
+  Stripe (keys + webhook + checkout) so the platform takes real payments instead of
+  demo mode. Work one roadmap item per session, then update this file before /clear.
+
 ## What this is
 **The Creatiste Command** — a subscription SaaS platform for private chefs & caterers,
 owned by Caroline (The Creatiste Catering). Chefs pay a one-time onboarding fee +
