@@ -2,7 +2,44 @@
 
 Read this first in every new session. It replaces lost chat history.
 
-## Latest session (2026-06-12)
+## Latest session (2026-06-12, second session — Founders Membership)
+- Built the **Founders Membership**: a private, invite-only launch programme for the
+  platform's first chefs. Developed on `claude/vibrant-newton-jah29i` — merge to
+  `main` to deploy.
+- How it works (all editable live in **Admin → Founders**):
+  - Secret invite link `/founders/<code>` (code auto-generated at bootstrap, stored
+    in `platform_settings.founders` JSON). Never linked from public pages; wrong
+    code and closed programme both 404 identically. Caroline shares it by hand.
+  - Limited **founding seats** (default 10). Full Elite access (`plan="founders"`,
+    level 3) at a **lifetime rate** (default £59/mo vs £129 Elite) with the
+    onboarding fee **waived** (default £0 vs £399). Normal 3-day trial still applies.
+  - Register with `founders_code` → numbered seat (`founder_number`), gold badge in
+    sidebar/Settings, founders-only activation card on /onboarding (Stripe checkout
+    and demo mode both handle plan `founders`).
+  - **Walkthrough onboarding**: 5-step welcome tour on first login (persisted via
+    `users.tour_done`); last step sets up the day-5 catch-up expectation.
+  - **Day-5 check-in** (`CHECK_IN_AFTER_DAYS=5` in routers/founders.py): modal asks
+    Caroline's 3 questions (thoughts / how it benefited / what to change) →
+    `founder_feedback` table + email to SUPPORT_EMAIL; snoozable per session,
+    reappears until sent.
+  - **Direct line**: founders' support tickets get "[Founders direct line #N]" in
+    the email subject + a priority note on the Support page.
+  - **Admin → Founders tab**: seats/pricing editor, copy/regenerate invite link,
+    close/reopen programme (closing kills the link for good; existing founders keep
+    their rate + number), member list with days-in and check-in answers (click a
+    row to read). ChefModal checkbox can grandfather an existing chef in. Overview
+    MRR counts founders at the founders rate.
+- New files: `backend/app/routers/founders.py`, `frontend/src/founders.jsx`
+  (badge + tour + check-in components), `frontend/src/pages/Founders.jsx` (invite
+  page). DB: additive columns on users/platform_settings via `ensure_columns`,
+  new `founder_feedback` table via `create_all` — existing DBs migrate on boot.
+- Verified end-to-end with Playwright (invite → register → tour → activate →
+  backdated day-5 check-in → admin reads feedback → close programme kills link).
+- **Pick up here:** wire real Stripe keys + webhook (founders checkout already
+  builds the right line items); then SMTP so founder check-ins/support actually
+  email Caroline.
+
+## Previous session (2026-06-12)
 - Moved the project onto the owner's own GitHub + Claude Code account (the only
   thing that was on someone else's account was the old Claude history — code and
   Render were already the owner's). Nothing to "transfer": every session reads
@@ -10,10 +47,7 @@ Read this first in every new session. It replaces lost chat history.
 - Created **`main`** as the canonical branch (copy of `claude/vigilant-volta-da1cu9`).
   Owner to do the two one-time dropdown flips — see Deployment below. Verify they're
   done before relying on a push to `main` to deploy.
-- No app code changed this session — only branch reorg + these notes.
-- **Pick up here:** roadmap below is untouched. Recommended first build = wire real
-  Stripe (keys + webhook + checkout) so the platform takes real payments instead of
-  demo mode. Work one roadmap item per session, then update this file before /clear.
+- No app code changed that session — only branch reorg + notes.
 
 ## What this is
 **The Creatiste Command** — a subscription SaaS platform for private chefs & caterers,
@@ -76,6 +110,11 @@ sessions; this file is the continuity bridge between sessions/accounts.
 - Tiers: Solo Chef £39/mo+£99, Pro Caterer £69/mo+£199, Elite Kitchen £129/mo+£399
   (all editable live in Admin → Pricing). Quotes/Team/Mise are Elite; clients/
   tastings/orders/routes/designs/suppliers/enquiry/finance are Pro+.
+- **Founders Membership** (launch only): invite-only via secret link in Admin →
+  Founders; limited seats; full Elite access at a lifetime rate (£59/mo, onboarding
+  waived by default). Walkthrough on first login + day-5 feedback check-in. Closing
+  the programme removes it permanently; founders keep their rate. See latest
+  session notes above for the full mechanics.
 
 ## Logins (local/demo; live DB resets on deploy and reseeds nothing automatically —
 ## bootstrap creates only admin; run seed manually if demo data wanted)

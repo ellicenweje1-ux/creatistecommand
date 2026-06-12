@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { fmtMoney, label } from '../format'
-import { Badge, Button, Card, Field, Input, Modal, PageHeader, SearchInput, Select, Spinner, StatCard, Tabs, Textarea, toast, toastErr } from '../ui'
+import { Badge, Button, Card, Field, Icon, Input, Modal, PageHeader, SearchInput, Select, Spinner, StatCard, Tabs, Textarea, toast, toastErr } from '../ui'
 
 const STATUS_TONE = { active: 'sage', trialing: 'copper', pending: 'amber', suspended: 'red', canceled: 'ink' }
 const STATUSES = ['pending', 'trialing', 'active', 'suspended', 'canceled']
 
 function ChefModal({ chef, onClose, onSaved, plans }) {
   const [form, setForm] = useState({})
-  useEffect(() => { if (chef) setForm({ subscription_status: chef.subscription_status, plan: chef.plan, admin_notes: chef.admin_notes || '' }) }, [chef])
+  useEffect(() => { if (chef) setForm({ subscription_status: chef.subscription_status, plan: chef.plan, admin_notes: chef.admin_notes || '', is_founder: !!chef.is_founder }) }, [chef])
   if (!chef) return null
   const save = () => api.patch(`/admin/chefs/${chef.id}`, form).then(() => { toast('Chef updated', 'sage'); onSaved() }).catch(toastErr)
   const remove = () => {
@@ -33,9 +33,17 @@ function ChefModal({ chef, onClose, onSaved, plans }) {
             <Select value={form.plan || ''} onChange={(e) => setForm({ ...form, plan: e.target.value })}>
               <option value="">—</option>
               {Object.keys(plans || {}).map((p) => <option key={p} value={p}>{plans[p].name}</option>)}
+              {(form.is_founder || chef.plan === 'founders') && <option value="founders">Founders Membership</option>}
             </Select>
           </Field>
         </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={!!form.is_founder} onChange={(e) => setForm({ ...form, is_founder: e.target.checked })} />
+          <span>
+            Founding member{chef.founder_number ? ` #${chef.founder_number}` : ''} — lifetime founders rate
+            {!chef.is_founder && <span className="text-fg/45"> (tick to grandfather this chef into the programme)</span>}
+          </span>
+        </label>
         <Field label="Admin notes"><Textarea rows={3} value={form.admin_notes} onChange={(e) => setForm({ ...form, admin_notes: e.target.value })} /></Field>
         <div className="flex justify-between">
           <Button variant="danger" icon="trash" onClick={remove}>Delete chef</Button>
@@ -98,6 +106,119 @@ function PlansEditor({ settings, onSaved }) {
   )
 }
 
+function FoundersPanel({ data, onSaved }) {
+  const [cfg, setCfg] = useState(null)
+  const [viewing, setViewing] = useState(null) // member whose check-in is open
+  useEffect(() => {
+    if (data) setCfg({ monthly: data.config.monthly, onboarding: data.config.onboarding, spots: data.config.spots })
+  }, [data])
+  if (!data || !cfg) return <Spinner />
+
+  const link = `${window.location.origin}${data.invite_path}`
+  const open = data.config.enabled && data.spots_taken < data.config.spots
+  const save = (extra = {}) =>
+    api.put('/admin/founders', {
+      monthly: Number(cfg.monthly) || 0, onboarding: Number(cfg.onboarding) || 0,
+      spots: Number(cfg.spots) || 0, ...extra,
+    }).then(() => { toast('Founders programme saved', 'sage'); onSaved() }).catch(toastErr)
+  const toggleProgramme = () => {
+    if (data.config.enabled && !window.confirm(
+      'Close the founders programme? The invite link dies immediately and the offer never returns to the public. Existing founders keep their lifetime rate.'
+    )) return
+    save({ enabled: !data.config.enabled })
+  }
+
+  return (
+    <div className="space-y-5">
+      <Card title="Founders programme" action={<Badge tone={open ? 'sage' : 'red'}>{open ? 'open' : 'closed'}</Badge>}>
+        <div className="space-y-4">
+          <p className="text-sm leading-relaxed text-fg/60">
+            The private launch membership for your first chefs: full Elite access at a lifetime rate, joined only
+            through the secret link below — it never appears on the public site.{' '}
+            <span className="font-medium text-fg/80">{data.spots_taken} of {data.config.spots} founding seats claimed.</span>{' '}
+            Closing the programme (or filling every seat) kills the link for good; existing founders keep their rate.
+          </p>
+          <div className="grid grid-cols-3 gap-3 sm:max-w-md">
+            <Field label="Founding seats"><Input type="number" min="0" value={cfg.spots} onChange={(e) => setCfg({ ...cfg, spots: e.target.value })} /></Field>
+            <Field label="Monthly (for life)"><Input type="number" step="0.01" value={cfg.monthly} onChange={(e) => setCfg({ ...cfg, monthly: e.target.value })} /></Field>
+            <Field label="Onboarding fee" hint="0 = waived"><Input type="number" step="0.01" value={cfg.onboarding} onChange={(e) => setCfg({ ...cfg, onboarding: e.target.value })} /></Field>
+          </div>
+          <Field label="Private invite link" hint="Share by hand with invited chefs only.">
+            <div className="flex gap-2">
+              <Input readOnly value={link} onFocus={(e) => e.target.select()} />
+              <Button variant="secondary" onClick={() => { navigator.clipboard.writeText(link); toast('Invite link copied', 'sage') }}>Copy</Button>
+            </div>
+          </Field>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex gap-2">
+              <Button variant="secondary" size="sm"
+                onClick={() => window.confirm('Generate a new invite link? The current link stops working immediately.') && save({ new_code: true })}>
+                New link
+              </Button>
+              <Button variant={data.config.enabled ? 'danger' : 'secondary'} size="sm" onClick={toggleProgramme}>
+                {data.config.enabled ? 'Close the programme' : 'Reopen the programme'}
+              </Button>
+            </div>
+            <Button onClick={() => save()}>Save</Button>
+          </div>
+        </div>
+      </Card>
+
+      <Card title={`Founding members (${data.members.length})`} pad={false}>
+        {data.members.length === 0 ? (
+          <p className="p-5 text-sm text-fg/45">No founding seats claimed yet — share the invite link with your first chefs.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead><tr className="border-b border-line bg-parchment/50 text-left text-[11px] uppercase tracking-wider text-fg/45">
+                <th className="px-4 py-2.5">#</th><th className="px-4 py-2.5">Chef</th><th className="px-4 py-2.5">Joined</th><th className="px-4 py-2.5">Days in</th><th className="px-4 py-2.5">Status</th><th className="px-4 py-2.5">Day-5 check-in</th>
+              </tr></thead>
+              <tbody className="divide-y divide-line/60">
+                {data.members.map((m) => (
+                  <tr key={m.id} className={m.feedback ? 'cursor-pointer hover:bg-parchment/40' : ''}
+                    onClick={() => m.feedback && setViewing(m)}>
+                    <td className="px-4 py-3 font-display font-semibold text-copper">#{m.founder_number}</td>
+                    <td className="px-4 py-3">
+                      <p className="font-medium">{m.business_name || m.name || '—'}</p>
+                      <p className="text-xs text-fg/45">{m.email}</p>
+                    </td>
+                    <td className="px-4 py-3 text-fg/55">{m.founder_since || '—'}</td>
+                    <td className="px-4 py-3">{m.days_in}</td>
+                    <td className="px-4 py-3"><Badge tone={STATUS_TONE[m.subscription_status] || 'gray'}>{label(m.subscription_status)}</Badge></td>
+                    <td className="px-4 py-3">
+                      {m.feedback
+                        ? <Badge tone="sage"><Icon name="check" size={11} /> received — view</Badge>
+                        : m.days_in >= 5 ? <Badge tone="copper">awaiting</Badge> : <Badge tone="gray">day {m.days_in} of 5</Badge>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <Modal open={!!viewing} onClose={() => setViewing(null)}
+        title={viewing ? `Check-in — Founding member #${viewing.founder_number}` : ''}>
+        {viewing?.feedback && (
+          <div className="space-y-4 text-sm">
+            <p className="text-xs text-fg/45">
+              {viewing.business_name || viewing.name || viewing.email} · {viewing.email} ·
+              submitted {new Date(viewing.feedback.created_at).toLocaleString()}
+            </p>
+            {[['Thoughts on the programme', 'thoughts'], ['How it benefited them', 'benefits'], ["What they'd change / like to see", 'changes']].map(([t, k]) => (
+              <div key={k}>
+                <p className="label">{t}</p>
+                <p className="whitespace-pre-wrap rounded-lg bg-parchment/50 px-3 py-2 text-fg/75">{viewing.feedback[k] || '—'}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </Modal>
+    </div>
+  )
+}
+
 export default function Admin() {
   const [tab, setTab] = useState('overview')
   const [overview, setOverview] = useState(null)
@@ -107,6 +228,7 @@ export default function Admin() {
   const [q, setQ] = useState('')
   const [selectedChef, setSelectedChef] = useState(null)
   const [tickets, setTickets] = useState([])
+  const [founders, setFounders] = useState(null)
 
   const load = () => {
     api.get('/admin/overview').then(setOverview).catch(toastErr)
@@ -114,6 +236,7 @@ export default function Admin() {
     api.get('/admin/payments').then(setPayments).catch(toastErr)
     api.get('/admin/settings').then(setSettings).catch(toastErr)
     api.get('/admin/support').then(setTickets).catch(() => {})
+    api.get('/admin/founders').then(setFounders).catch(() => {})
   }
   useEffect(load, [])
   if (!overview) return <Spinner />
@@ -127,6 +250,7 @@ export default function Admin() {
       <Tabs value={tab} onChange={setTab} tabs={[
         { id: 'overview', label: 'Overview' },
         { id: 'chefs', label: 'Chefs', count: chefs.length },
+        { id: 'founders', label: 'Founders', count: founders?.members?.length },
         { id: 'payments', label: 'Payments' },
         { id: 'support', label: 'Support', count: tickets.filter((t) => t.status === 'open').length },
         { id: 'pricing', label: 'Pricing' },
@@ -239,6 +363,8 @@ export default function Admin() {
           ))}
         </div>
       )}
+
+      {tab === 'founders' && <FoundersPanel data={founders} onSaved={load} />}
 
       {tab === 'pricing' && <PlansEditor settings={settings} onSaved={load} />}
 

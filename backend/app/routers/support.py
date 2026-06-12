@@ -24,9 +24,12 @@ def create_request(payload: dict = Body(...), db: Session = Depends(get_db), use
     db.add(ticket)
     db.commit()
     db.refresh(ticket)
+    # Founders hold a direct line — their requests are flagged so they jump the queue.
+    founder_tag = f"[Founders direct line #{user.founder_number}] " if user.is_founder else ""
     mailer.send_email(
-        config.SUPPORT_EMAIL, f"[Support #{ticket.id}] {subject}",
-        f"From: {ticket.name} <{ticket.email}>\nPlan/business: {user.business_name or '-'}\n\n{message}\n\n"
-        f"— The Creatiste Command support",
+        config.SUPPORT_EMAIL, f"{founder_tag}[Support #{ticket.id}] {subject}",
+        f"From: {ticket.name} <{ticket.email}>\nPlan/business: {user.business_name or '-'}\n"
+        + (f"Founding member #{user.founder_number} — priority.\n" if user.is_founder else "")
+        + f"\n{message}\n\n— The Creatiste Command support",
     )
     return {"ok": True, "ticket_id": ticket.id}

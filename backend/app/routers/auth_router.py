@@ -28,6 +28,20 @@ def register(payload: dict = Body(...), db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == email).first():
         raise HTTPException(409, "An account with this email already exists")
 
+    # Founders programme: a valid secret invite code claims a founding seat.
+    founder_cfg = None
+    founders_code = (payload.get("founders_code") or "").strip()
+    if founders_code:
+        from .founders import founders_config, founders_taken
+
+        founder_cfg = founders_config(db)
+        if (
+            founders_code != founder_cfg.get("code")
+            or not founder_cfg.get("enabled")
+            or founders_taken(db) >= int(founder_cfg.get("spots") or 0)
+        ):
+            raise HTTPException(410, "The founders programme has closed — you can still join on a standard plan.")
+
     settings = db.get(PlatformSettings, 1)
     trial_days = settings.trial_days if settings else 0
     user = User(
@@ -38,6 +52,13 @@ def register(payload: dict = Body(...), db: Session = Depends(get_db)):
         phone=(payload.get("phone") or "").strip(),
         currency=settings.currency if settings else "GBP",
     )
+    if founder_cfg:
+        from .founders import founders_taken
+
+        user.is_founder = True
+        user.founder_number = founders_taken(db) + 1
+        user.founder_since = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        user.plan = "founders"  # full Elite access at the lifetime founders rate
     if trial_days > 0:
         user.subscription_status = "trialing"
         user.trial_ends_at = (datetime.now(timezone.utc) + timedelta(days=trial_days)).strftime("%Y-%m-%d")

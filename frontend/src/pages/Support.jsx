@@ -121,6 +121,15 @@ export default function Support() {
           {FAQS.map(([q, a]) => <Faq key={q} q={q} a={a} />)}
         </div>
         <div className="space-y-5 lg:col-span-2">
+          {user?.is_founder && (
+            <div className="flex items-start gap-2.5 rounded-xl border border-copper/40 bg-copper/10 px-4 py-3">
+              <Icon name="star" size={16} className="mt-0.5 shrink-0 text-copper" />
+              <p className="text-sm leading-relaxed text-fg/75">
+                <span className="font-semibold text-copper">Founders direct line</span> — as Founding member
+                #{user.founder_number}, your requests go straight to the founder and jump the queue.
+              </p>
+            </div>
+          )}
           <MiseChat onEscalate={() => formRef.current?.scrollIntoView({ behavior: 'smooth' })} />
           <div ref={formRef}>
             <Card title="Send a support request">

@@ -10,7 +10,7 @@ from .models import PlatformSettings, User
 from fastapi import Depends
 
 from .auth import require_owner, require_plan
-from .routers import admin, ai, auth_router, billing, bookings, core, dashboard, finance, public, quotes, support, team, uploads
+from .routers import admin, ai, auth_router, billing, bookings, core, dashboard, finance, founders, public, quotes, support, team, uploads
 
 app = FastAPI(title="The Creatiste Command", version="1.0.0")
 
@@ -47,6 +47,7 @@ app.include_router(team.shifts, prefix=f"{API}/shifts", tags=["team"])
 app.include_router(team.router, prefix=API)
 app.include_router(quotes.router, prefix=f"{API}/quotes", tags=["quotes"])
 app.include_router(public.router, prefix=API)
+app.include_router(founders.router, prefix=API)
 app.include_router(support.router, prefix=API)
 # Money is owner-only (staff never see finance) and part of the Pro tier upward
 _money = [Depends(require_owner), Depends(require_plan(2))]
@@ -72,13 +73,17 @@ def bootstrap():
     db = SessionLocal()
     try:
         settings = db.get(PlatformSettings, 1)
-        if settings and "Mise" not in json.dumps(settings.plans):
+        if not settings:
+            settings = PlatformSettings(id=1, currency=config.DEFAULT_CURRENCY, trial_days=config.DEFAULT_TRIAL_DAYS, plans=config.DEFAULT_PLANS)
+            db.add(settings)
+        elif "Mise" not in json.dumps(settings.plans):
             settings.plans = config.DEFAULT_PLANS  # roll plans forward to v2 feature lists
+        if not (settings.founders or {}).get("code"):
+            # initialise the founders programme with its secret invite code
+            settings.founders = {**config.DEFAULT_FOUNDERS, **(settings.founders or {}), "code": uuid.uuid4().hex[:12]}
         for owner in db.query(User).filter(User.role.in_(["chef", "admin"])).all():
             if not owner.enquiry_token:
                 owner.enquiry_token = uuid.uuid4().hex
-        if not db.get(PlatformSettings, 1):
-            db.add(PlatformSettings(id=1, currency=config.DEFAULT_CURRENCY, trial_days=config.DEFAULT_TRIAL_DAYS, plans=config.DEFAULT_PLANS))
         if not db.query(User).filter(User.email == config.ADMIN_EMAIL.lower()).first():
             db.add(User(
                 email=config.ADMIN_EMAIL.lower(),

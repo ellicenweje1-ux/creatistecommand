@@ -63,23 +63,40 @@ def status(db: Session = Depends(get_db), user: User = Depends(get_current_user)
     }
 
 
+def plan_info(db: Session, settings: PlatformSettings, plan_key: str) -> dict | None:
+    """Resolve a plan's name/pricing: the standard tiers from settings.plans, plus the
+    private founders membership (lifetime rate — never listed on public pages)."""
+    if plan_key == "founders":
+        from .founders import founders_config
+
+        cfg = founders_config(db, settings)
+        return {
+            "name": cfg.get("name") or "Founders Membership",
+            "monthly": cfg.get("monthly") or 0,
+            "onboarding": cfg.get("onboarding") or 0,
+        }
+    return settings.plans.get(plan_key)
+
+
 def _activate(db: Session, user: User, plan_key: str, provider: str, reference: str, settings: PlatformSettings):
-    plan = settings.plans.get(plan_key)
+    plan = plan_info(db, settings, plan_key)
     if not plan:
         raise HTTPException(422, "Unknown plan")
     user.plan = plan_key
     user.subscription_status = "active"
     if not user.onboarding_paid:
         user.onboarding_paid = True
-        db.add(Payment(
-            user_id=user.id, kind="onboarding", amount=plan.get("onboarding", 0),
-            currency=settings.currency, provider=provider, reference=reference,
-            note=f"Onboarding fee — {plan.get('name', plan_key)}",
-        ))
+        if plan.get("onboarding"):  # founders have the fee waived — no zero-amount record
+            db.add(Payment(
+                user_id=user.id, kind="onboarding", amount=plan.get("onboarding", 0),
+                currency=settings.currency, provider=provider, reference=reference,
+                note=f"Onboarding fee — {plan.get('name', plan_key)}",
+            ))
     db.add(Payment(
         user_id=user.id, kind="subscription", amount=plan.get("monthly", 0),
         currency=settings.currency, provider=provider, reference=reference,
-        note=f"Monthly subscription — {plan.get('name', plan_key)}",
+        note=f"Monthly subscription — {plan.get('name', plan_key)}"
+        + (" (lifetime founders rate)" if plan_key == "founders" else ""),
     ))
     db.commit()
 
@@ -88,7 +105,9 @@ def _activate(db: Session, user: User, plan_key: str, provider: str, reference: 
 def checkout(payload: dict = Body(...), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     settings = get_settings(db)
     plan_key = payload.get("plan") or ""
-    plan = settings.plans.get(plan_key)
+    if plan_key == "founders" and not user.is_founder:
+        raise HTTPException(403, "The founders membership is private — by invitation only.")
+    plan = plan_info(db, settings, plan_key)
     if not plan:
         raise HTTPException(422, "Unknown plan")
     if not stripe_enabled():
@@ -131,8 +150,11 @@ def checkout(payload: dict = Body(...), db: Session = Depends(get_db), user: Use
 def demo_activate(payload: dict = Body(...), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     if stripe_enabled():
         raise HTTPException(400, "Stripe is configured — use the checkout flow")
+    plan_key = payload.get("plan") or ""
+    if plan_key == "founders" and not user.is_founder:
+        raise HTTPException(403, "The founders membership is private — by invitation only.")
     settings = get_settings(db)
-    _activate(db, user, payload.get("plan") or "", "demo", "demo-checkout", settings)
+    _activate(db, user, plan_key, "demo", "demo-checkout", settings)
     return {"ok": True, "subscription_status": user.subscription_status, "plan": user.plan}
 
 

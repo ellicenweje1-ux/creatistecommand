@@ -13,7 +13,8 @@ from . import config
 from .database import get_db
 from .models import User
 
-PLAN_LEVELS = {"starter": 1, "pro": 2, "elite": 3}
+# founders = the private launch membership: full Elite access at a lifetime rate
+PLAN_LEVELS = {"starter": 1, "pro": 2, "elite": 3, "founders": 3}
 
 
 def hash_password(password: str) -> str:

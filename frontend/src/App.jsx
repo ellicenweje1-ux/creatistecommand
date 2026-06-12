@@ -11,6 +11,8 @@ import Clients from './pages/Clients'
 import Dashboard from './pages/Dashboard'
 import Designs from './pages/Designs'
 import Finance from './pages/Finance'
+import FoundersInvite from './pages/Founders'
+import FounderExperience, { FounderBadge } from './founders'
 import Ideas from './pages/Ideas'
 import Inventory from './pages/Inventory'
 import Landing from './pages/Landing'
@@ -154,6 +156,7 @@ function AppShell() {
           <p className="mt-2 truncate px-3 text-xs text-cream/35">
             {user?.business_name || user?.email}{user?.is_staff ? ' · staff' : ''}
           </p>
+          {user?.is_founder && <FounderBadge number={user.founder_number} className="mx-3 mt-1.5" />}
         </div>
       </aside>
 
@@ -164,6 +167,7 @@ function AppShell() {
       </header>
 
       <TrialBanner user={user} />
+      <FounderExperience />
 
       <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-5 sm:px-6 lg:pb-10 lg:pt-8">
         <Outlet />
@@ -229,6 +233,7 @@ export default function App() {
       <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
       <Route path="/q/:token" element={<PublicQuote />} />
       <Route path="/enquire/:token" element={<PublicEnquiry />} />
+      <Route path="/founders/:code" element={<FoundersInvite />} />
       <Route path="/app" element={<RequireAuth><RequireActive><AppShell /></RequireActive></RequireAuth>}>
         <Route index element={<Dashboard />} />
         <Route path="bookings" element={<Bookings />} />

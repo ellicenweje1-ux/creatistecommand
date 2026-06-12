@@ -67,6 +67,26 @@ ALLOWED_UPLOAD_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".pdf"}
 
 DEFAULT_CURRENCY = os.getenv("DEFAULT_CURRENCY", "GBP")
 
+# Founders Membership — the private launch programme for the platform's first chefs.
+# Joined only through the secret invite link (Admin → Founders); never shown on public
+# pages. All values editable live from the admin. Once the programme is closed (or every
+# seat is taken) the link dies for good — existing founders keep their lifetime rate.
+DEFAULT_FOUNDERS = {
+    "enabled": True,
+    "name": "Founders Membership",
+    "tagline": "A private launch membership for the first chefs on the platform — once the founding seats are gone, it's gone.",
+    "monthly": 59,      # lifetime rate — never rises while the membership stays active
+    "onboarding": 0,    # 0 = onboarding fee waived for founders
+    "spots": 10,        # maximum number of founding members
+    "perks": [
+        "Full Elite Kitchen access at a lifetime founders rate — locked for as long as you stay",
+        "Onboarding fee waived, with a personal walkthrough to get you started",
+        "A direct line to the founder — your requests jump the queue",
+        "Real influence over the roadmap — founders shape what gets built next",
+        "Founding member badge & number — early-adopter recognition, forever",
+    ],
+}
+
 PLANS_VERSION = 2
 DEFAULT_PLANS = {
     "starter": {

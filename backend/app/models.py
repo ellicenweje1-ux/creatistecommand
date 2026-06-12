@@ -33,6 +33,11 @@ class User(Base):
     trial_ends_at: Mapped[str] = mapped_column(String(10), default="")  # YYYY-MM-DD
     stripe_customer_id: Mapped[str] = mapped_column(String(120), default="")
     stripe_subscription_id: Mapped[str] = mapped_column(String(120), default="")
+    # Founders programme (private launch membership — lifetime rate, numbered seat)
+    is_founder: Mapped[bool] = mapped_column(Boolean, default=False)
+    founder_number: Mapped[int] = mapped_column(Integer, nullable=True)
+    founder_since: Mapped[str] = mapped_column(String(10), default="")  # YYYY-MM-DD
+    tour_done: Mapped[bool] = mapped_column(Boolean, default=False)  # welcome walkthrough finished
     admin_notes: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     last_login_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
@@ -44,6 +49,7 @@ class PlatformSettings(Base):
     currency: Mapped[str] = mapped_column(String(8), default="GBP")
     trial_days: Mapped[int] = mapped_column(Integer, default=0)
     plans: Mapped[dict] = mapped_column(JSON, default=dict)
+    founders: Mapped[dict] = mapped_column(JSON, nullable=True)  # founders programme config (see config.DEFAULT_FOUNDERS)
 
 
 class Payment(Base):
@@ -330,6 +336,18 @@ class ActivityLog(Base):
     entity_type: Mapped[str] = mapped_column(String(60), default="")
     entity_id: Mapped[int] = mapped_column(Integer, nullable=True)
     summary: Mapped[str] = mapped_column(String(300), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class FounderFeedback(Base):
+    """Day-5 founders check-in: thoughts on the programme, how it benefited them,
+    and what they'd change — one (updatable) entry per founding member."""
+    __tablename__ = "founder_feedback"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    thoughts: Mapped[str] = mapped_column(Text, default="")
+    benefits: Mapped[str] = mapped_column(Text, default="")
+    changes: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 

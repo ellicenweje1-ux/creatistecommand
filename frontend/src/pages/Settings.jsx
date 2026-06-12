@@ -10,11 +10,13 @@ export default function Settings() {
   const [pw, setPw] = useState({ current: '', new: '' })
   const [billing, setBilling] = useState(null)
   const [aiStatus, setAiStatus] = useState(null)
+  const [founders, setFounders] = useState(null)
 
   useEffect(() => {
     if (user) setProfile({ name: user.name || '', business_name: user.business_name || '', phone: user.phone || '', currency: user.currency || 'GBP' })
     api.get('/billing/status').then(setBilling).catch(() => {})
     api.get('/ai/status').then(setAiStatus).catch(() => {})
+    if (user?.is_founder && !user?.is_staff) api.get('/founders/status').then(setFounders).catch(() => {})
   }, [user])
 
   const saveProfile = (e) => {
@@ -78,6 +80,35 @@ export default function Settings() {
             </div>
           </Card>
 
+          {founders && (
+            <Card title={`Founding member #${founders.founder_number}`}>
+              <div className="space-y-3 text-sm">
+                <p className="leading-relaxed text-fg/65">
+                  You're one of the platform's founding chefs — your {fmtMoney(founders.monthly, founders.currency)}/month
+                  rate is locked for life, and your voice steers the roadmap.
+                </p>
+                <ul className="space-y-1.5">
+                  {(founders.perks || []).map((p) => (
+                    <li key={p} className="flex items-start gap-2 leading-relaxed text-fg/70">
+                      <Icon name="star" size={13} className="mt-0.5 shrink-0 text-copper" />{p}
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex items-center justify-between border-t border-line/70 pt-3">
+                  <span className="text-fg/60">Member since</span><span>{founders.founder_since || '—'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-fg/60">Day-{founders.check_in_after_days} check-in</span>
+                  {founders.feedback_submitted
+                    ? <Badge tone="sage">submitted — thank you</Badge>
+                    : founders.check_in_due
+                      ? <Badge tone="copper">due — see the pop-up on your dashboard</Badge>
+                      : <Badge tone="gray">day {founders.days_in} of {founders.check_in_after_days}</Badge>}
+                </div>
+              </div>
+            </Card>
+          )}
+
           <Card title="Membership">
             {billing ? (
               <div className="space-y-3 text-sm">
@@ -85,7 +116,10 @@ export default function Settings() {
                   <span className="text-fg/60">Status</span>
                   <Badge tone={statusTone[billing.subscription_status] || 'gray'}>{label(billing.subscription_status)}</Badge>
                 </div>
-                <div className="flex items-center justify-between"><span className="text-fg/60">Plan</span><span className="font-medium capitalize">{billing.plan || '—'}</span></div>
+                <div className="flex items-center justify-between">
+                  <span className="text-fg/60">Plan</span>
+                  <span className="font-medium capitalize">{billing.plan === 'founders' ? 'Founders Membership — lifetime rate' : billing.plan || '—'}</span>
+                </div>
                 <div className="flex items-center justify-between"><span className="text-fg/60">Onboarding fee</span><span>{billing.onboarding_paid ? 'Paid ✓' : 'Not paid'}</span></div>
                 {billing.trial_ends_at && <div className="flex items-center justify-between"><span className="text-fg/60">Trial ends</span><span>{billing.trial_ends_at}</span></div>}
                 {billing.payments?.length > 0 && (
