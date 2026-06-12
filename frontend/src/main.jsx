@@ -4,9 +4,17 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { AuthProvider } from './auth'
 import './index.css'
+import { initOffline } from './offline'
 import { Toaster } from './ui'
 
 document.documentElement.classList.toggle('dark', (localStorage.getItem('cc_theme') || 'dark') === 'dark')
+
+// Offline support: watch connectivity + replay queued changes, and (in production
+// builds) install the service worker that lets the app open with no connection.
+initOffline()
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}))
+}
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

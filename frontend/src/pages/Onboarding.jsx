@@ -84,9 +84,12 @@ export default function Onboarding() {
     if (user?.is_founder) api.get('/founders/status').then(setFounders).catch(toastErr)
   }, [user?.is_founder])
 
-  // After Stripe redirects back, poll until the webhook flips the account active.
+  // Back from Stripe Checkout: confirm the session server-side straight away (works
+  // even if the webhook isn't configured/delayed), then poll until the account flips.
   useEffect(() => {
     if (!params.get('paid')) return
+    const sessionId = params.get('session_id')
+    if (sessionId) api.post('/billing/confirm', { session_id: sessionId }).catch(() => {})
     let tries = 0
     const tick = setInterval(async () => {
       tries += 1

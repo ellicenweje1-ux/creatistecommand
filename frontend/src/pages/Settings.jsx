@@ -3,7 +3,64 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { perkIcon, perkTitle } from '../booking'
 import { cls, fmtMoney, label, SYMBOLS } from '../format'
+import { getInstallPrompt, isStandalone } from '../offline'
 import { Badge, Button, Card, Field, Icon, Input, PageHeader, Select, toast, toastErr } from '../ui'
+
+/* "Use it as an app": install to the home screen (PWA) + how offline mode works. */
+function MobileAppCard() {
+  const [installable, setInstallable] = useState(!!getInstallPrompt())
+  const [installed, setInstalled] = useState(isStandalone())
+  useEffect(() => {
+    const onReady = () => setInstallable(true)
+    window.addEventListener('cc-installable', onReady)
+    return () => window.removeEventListener('cc-installable', onReady)
+  }, [])
+
+  const install = async () => {
+    const prompt = getInstallPrompt()
+    if (!prompt) return
+    prompt.prompt()
+    const choice = await prompt.userChoice.catch(() => null)
+    if (choice?.outcome === 'accepted') { setInstalled(true); toast('Installed — find Creatiste on your home screen', 'sage') }
+  }
+
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
+
+  return (
+    <Card title="Use it as an app — online or offline">
+      <div className="space-y-3 text-sm text-fg/65">
+        <p>
+          Install The Creatiste Command on your phone or tablet and it behaves like a native app:
+          opens from your home screen, full screen, and <span className="font-medium text-fg">keeps working with no signal</span> —
+          in a basement kitchen, a venue with no Wi-Fi, or mid-flight.
+        </p>
+        <ul className="space-y-1.5 text-xs leading-relaxed">
+          <li className="flex gap-1.5"><Icon name="check" size={13} className="mt-0.5 shrink-0 text-sage" />Everything you've viewed is available offline — bookings, recipes, lists, tasks, the lot.</li>
+          <li className="flex gap-1.5"><Icon name="check" size={13} className="mt-0.5 shrink-0 text-sage" />Changes made offline are saved on the device and <span className="font-medium text-fg">sync automatically</span> when you're back online.</li>
+          <li className="flex gap-1.5"><Icon name="check" size={13} className="mt-0.5 shrink-0 text-sage" />Changes made on the website reach the app over the cloud the moment it's online.</li>
+        </ul>
+        {installed ? (
+          <p className="rounded-lg border border-sage/40 bg-sage/10 px-3 py-2 text-xs font-medium text-sage">
+            You're running the installed app ✓
+          </p>
+        ) : installable ? (
+          <Button size="sm" icon="arrowRight" onClick={install}>Install on this device</Button>
+        ) : isIOS ? (
+          <p className="rounded-lg border border-line bg-fg/[0.03] px-3 py-2 text-xs leading-relaxed">
+            On iPhone/iPad: open this site in <span className="font-medium text-fg">Safari</span>, tap the
+            <span className="font-medium text-fg"> Share</span> button, then
+            <span className="font-medium text-fg"> "Add to Home Screen"</span>.
+          </p>
+        ) : (
+          <p className="rounded-lg border border-line bg-fg/[0.03] px-3 py-2 text-xs leading-relaxed">
+            In Chrome or Edge: open the browser menu (⋮) and choose
+            <span className="font-medium text-fg"> "Install app"</span> / "Add to Home screen".
+          </p>
+        )}
+      </div>
+    </Card>
+  )
+}
 
 export default function Settings() {
   const { user, setUser } = useAuth()
@@ -29,8 +86,14 @@ export default function Settings() {
     api.put('/auth/password', pw).then(() => { setPw({ current: '', new: '' }); toast('Password updated', 'sage') }).catch(toastErr)
   }
   const cancelSub = () => {
-    if (!window.confirm('Cancel your subscription? You will lose access to the workspace.')) return
-    api.post('/billing/cancel').then(() => window.location.reload()).catch(toastErr)
+    if (!window.confirm('Cancel your subscription? With Stripe billing you keep access until the end of the period you’ve already paid for.')) return
+    api.post('/billing/cancel').then((r) => {
+      if (r?.ends_at) toast(`Cancellation set — your membership stays active until ${r.ends_at}`, 'sage')
+      setTimeout(() => window.location.reload(), r?.ends_at ? 1800 : 0)
+    }).catch(toastErr)
+  }
+  const openPortal = () => {
+    api.post('/billing/portal').then((r) => window.location.assign(r.url)).catch(toastErr)
   }
 
   const statusTone = { active: 'sage', trialing: 'copper', pending: 'amber', suspended: 'red', canceled: 'ink' }
@@ -146,6 +209,12 @@ export default function Settings() {
                     </ul>
                   </div>
                 )}
+                {user?.role !== 'admin' && (billing.stripe_enabled && billing.has_stripe_customer) && (
+                  <div className="border-t border-line/70 pt-3">
+                    <Button variant="secondary" size="sm" icon="external" onClick={openPortal}>Manage billing — card, invoices & receipts</Button>
+                    <p className="mt-1.5 text-xs text-fg/40">Opens your secure Stripe billing portal.</p>
+                  </div>
+                )}
                 {user?.role !== 'admin' && billing.subscription_status === 'active' && (
                   <div className="border-t border-line/70 pt-3 text-right">
                     <Button variant="danger" size="sm" onClick={cancelSub}>Cancel subscription</Button>
@@ -154,6 +223,8 @@ export default function Settings() {
               </div>
             ) : <p className="text-sm text-fg/45">Loading…</p>}
           </Card>
+
+          <MobileAppCard />
 
           <Card title="Mise — your AI sous-chef">
             <p className="text-sm text-fg/65">
