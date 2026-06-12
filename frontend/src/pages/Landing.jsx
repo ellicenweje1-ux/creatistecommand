@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
@@ -40,6 +40,67 @@ const FEATURES = [
   { icon: 'coins', title: 'Quotes, invoices & finances', text: 'Quote, invoice, log expenses and watch profit per month — without leaving your command centre.' },
   { icon: 'shield', title: 'Built for the move', text: 'Fully responsive: at the pass, in the van, at the market. Your whole operation in your pocket.' },
 ]
+
+/* Tier comparison matrix — each row is [benefit, minimum plan level that includes it].
+   Levels mirror the server-side gating: 1 = Solo Chef, 2 = Pro Caterer, 3 = Elite Kitchen. */
+const PLAN_LEVELS = { starter: 1, pro: 2, elite: 3 }
+const COMPARE = [
+  {
+    group: 'Plan & run events',
+    rows: [
+      ['Bookings & event calendar', 1],
+      ['Prep & service task lists', 1],
+      ['Live kitchen dashboard', 1],
+      ['Tastings & consultations diary', 2],
+      ['Client portfolio & preferences', 2],
+      ['Prep-day route planner', 2],
+      ['Public enquiry form → bookings', 2],
+    ],
+  },
+  {
+    group: 'Kitchen & shopping',
+    rows: [
+      ['Recipe master sheets', 1],
+      ['Allergen matrix generator', 1],
+      ['Inventory with shelf-life alerts', 1],
+      ['Multi-shop shopping lists', 1],
+      ['Packing checklists', 1],
+      ['Online order tracking', 2],
+      ['Supplier price book', 2],
+    ],
+  },
+  {
+    group: 'Business & money',
+    rows: [
+      ['My Brain — idea capture', 1],
+      ['Design studio & floor plans', 2],
+      ['Invoicing & expense tracking', 2],
+      ['Monthly profit overview', 2],
+      ['Email notifications', 2],
+      ['Client quote approval links', 3],
+    ],
+  },
+  {
+    group: 'Team & the edge',
+    rows: [
+      ['Mise — your AI sous-chef', 3],
+      ['Staff logins, rotas & assignments', 3],
+      ['Owner oversight: activity trail', 3],
+      ['Priority onboarding & support', 3],
+    ],
+  },
+]
+
+function CompareCell({ included, highlight }) {
+  return (
+    <td className={cls('py-2.5 text-center', highlight && 'bg-copper/[0.06]')}>
+      {included
+        ? <Icon name="check" size={17} className="inline text-sage" strokeWidth={2.2} />
+        : <Icon name="x" size={14} className="inline text-fg/25" />}
+      <span className="sr-only">{included ? 'Included' : 'Not included'}</span>
+    </td>
+  )
+}
 
 const STEPS = [
   ['Create your account', 'Sign up in under a minute with your business details.'],
@@ -220,6 +281,72 @@ export default function Landing() {
               </div>
             )) : <p className="text-fg/40">Loading plans…</p>}
           </div>
+
+          {/* Tier-by-tier comparison table */}
+          {pricing && (
+            <div id="compare" className="mt-14">
+              <h3 className="font-display text-2xl font-semibold md:text-3xl">Every benefit, <em className="italic text-copper">tier by tier.</em></h3>
+              <p className="mt-2 max-w-2xl text-sm text-fg/55">
+                A <Icon name="check" size={13} className="inline -translate-y-px text-sage" strokeWidth={2.4} /> means it&rsquo;s included in that membership;
+                a <Icon name="x" size={11} className="inline -translate-y-px text-fg/40" /> means it unlocks on a higher tier.
+                Start where the business is today and move up when it grows.
+              </p>
+              <div className="mt-6 overflow-x-auto rounded-2xl border border-line bg-card shadow-card">
+                <table className="w-full min-w-[620px] border-collapse text-left">
+                  <thead>
+                    <tr className="border-b border-line">
+                      <th scope="col" className="px-4 py-4 align-bottom sm:px-5">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-fg/45">What you get</span>
+                      </th>
+                      {Object.entries(pricing.plans).map(([key, plan]) => (
+                        <th key={key} scope="col" className={cls('w-28 px-3 py-4 text-center align-bottom sm:w-36', key === 'pro' && 'bg-copper/[0.06]')}>
+                          {key === 'pro' && <span className="mb-1.5 inline-block rounded-full bg-copper px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink">Most popular</span>}
+                          <p className="font-display text-[15px] font-semibold leading-tight">{plan.name}</p>
+                          <p className="mt-0.5 text-xs font-normal text-fg/50">{fmtMoney(plan.monthly, currency)}/mo</p>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {COMPARE.map(({ group, rows }) => (
+                      <Fragment key={group}>
+                        <tr className="border-b border-line/70 bg-parchment/60">
+                          <td colSpan={1 + Object.keys(pricing.plans).length} className="px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-copper sm:px-5">
+                            {group}
+                          </td>
+                        </tr>
+                        {rows.map(([benefit, min]) => (
+                          <tr key={benefit} className="border-b border-line/40 last:border-line/70">
+                            <th scope="row" className="px-4 py-2.5 text-sm font-normal text-fg/80 sm:px-5">{benefit}</th>
+                            {Object.entries(pricing.plans).map(([key], i) => (
+                              <CompareCell key={key} included={(PLAN_LEVELS[key] ?? i + 1) >= min} highlight={key === 'pro'} />
+                            ))}
+                          </tr>
+                        ))}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td className="px-4 py-4 text-xs text-fg/45 sm:px-5">One-time onboarding fee<br />— then pick your tier</td>
+                      {Object.entries(pricing.plans).map(([key, plan]) => (
+                        <td key={key} className={cls('px-3 py-4 text-center', key === 'pro' && 'bg-copper/[0.06]')}>
+                          <p className="text-xs text-fg/55">{fmtMoney(plan.onboarding, currency)} once</p>
+                          <Link to={user ? '/onboarding' : '/register'} className="mt-2 inline-block">
+                            <Button size="sm" variant={key === 'pro' ? 'primary' : 'secondary'}>Choose</Button>
+                          </Link>
+                        </td>
+                      ))}
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <p className="mt-3 text-xs text-fg/45">
+                Every membership includes the personal onboarding video call{pricing.trial_days ? `, a ${pricing.trial_days}-day free trial` : ''},
+                unlimited bookings and recipes, and the full command centre on any device — phone, tablet or laptop.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

@@ -67,3 +67,14 @@ body { @apply bg-base text-fg font-body antialiased; }
 @media (prefers-reduced-motion: reduce) {
   .if-orb { animation: none; }
 }
+
+/* ── Portal home — module bubbles ────────────────────────────────────────────
+   Staggered entrance for the module guide on /app; delays are set inline. */
+.bubble-in { opacity: 0; animation: bubble-in 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
+@keyframes bubble-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bubble-in { animation: none; opacity: 1; }
+}

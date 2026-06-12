@@ -8,7 +8,44 @@ this platform; all decisions are hers. (Git-history heads-up: some early commits
 authored under a relative's Google login that was used to access Claude, so older
 commit authorship may show a different name/email — the project is entirely Ellice's.)
 
-## Latest session (2026-06-12, fourth wave — landing intro film + hook sections)
+## Latest session (2026-06-12, fifth wave — tier comparison table + portal Home guide)
+- Branch `claude/determined-carson-cogamv` — merge to `main` to deploy.
+- **Tier comparison table** on the public landing page (`pages/Landing.jsx`,
+  `#compare` inside the `#pricing` section): tick/✗ matrix so visitors can compare
+  memberships at a glance. 24 rows in 4 groups (Plan & run events / Kitchen &
+  shopping / Business & money / Team & the edge); each row is `[benefit, min plan
+  level]` in the `COMPARE` const — **levels mirror the real server gating** (1 Solo,
+  2 Pro, 3 Elite; quotes/team/Mise=3, clients/tastings/orders/routes/suppliers/
+  designs/finance/enquiry=2). Plan names/prices/trial copy stay live from
+  `/billing/plans`; only the matrix rows are hardcoded — if Ellice changes what a
+  tier includes, update `COMPARE` too. Pro column highlighted + "Most popular";
+  tfoot = onboarding fee + Choose CTAs; ticks have `sr-only` Included/Not included;
+  mobile h-scrolls (min-w 620px table in overflow wrapper).
+- **Portal Home — module guide** (`pages/Home.jsx`, now the `/app` index route):
+  21 circular module "bubbles" in 4 groups (Run the operation / In the kitchen /
+  Grow the business / Help & housekeeping). Hover (or keyboard focus) = floating
+  blurb tooltip; click = guide modal: what it is, "Why it earns its place" (3 ticks),
+  "How to use it well" (numbered steps), gold "Chef's tip", plan badge + "Open X"
+  CTA that navigates. Plan-locked bubbles (below user's level) show a lock chip,
+  dimmed icon, and the modal swaps in an upgrade banner + "See membership options"
+  → /app/settings (content still visible = upsell). `ownerOnly` modules
+  (Finance/Quotes) hidden from staff, mirroring the sidebar. All copy lives in the
+  `GROUPS` const in Home.jsx — edit there to reword any module guide. Stagger
+  entrance via `.bubble-in` (index.css). Tooltip is `z-[45]` — above the fixed
+  sidebar (z-40, was clipping left-column tooltips), below modals (z-50).
+- **Dashboard moved** `/app` → `/app/dashboard` (Home took the index). Sidebar:
+  Home (icon `home`) then Dashboard (new `pulse` icon in ui.jsx). Mobile bottom nav
+  unchanged (Dashboard/Bookings/Tasks/Shopping) — `mobileMain` indices in App.jsx
+  updated for the inserted Home item; Home reachable on mobile via brand-logo tap
+  (→ /app) and the More sheet. All existing `navigate('/app')` flows (login,
+  onboarding success, founders tour first login) now land on the guide — intended.
+- Verified with Playwright (desktop + 390px, dark + light): tick matrix counts
+  Solo 9 / Pro 19 / Elite 24 of 24, tfoot CTAs, mobile h-scroll; 21 bubbles for
+  elite owner / 10 locks on Solo / 19 bubbles for staff; hover tooltip, modal
+  content, CTA navigation, locked modal → settings; bottom nav + More sheet; no
+  console errors.
+
+## Previous session (2026-06-12, fourth wave — landing intro film + hook sections)
 - **Embedded intro film** on the public landing page (`frontend/src/introfilm.jsx`,
   branch `claude/nice-tesla-az74mn`): a 6-scene, ~70s animated brand film that looks
   and behaves like a video player (poster + play button, segmented click-to-seek

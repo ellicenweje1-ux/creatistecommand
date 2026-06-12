@@ -13,6 +13,7 @@ import Designs from './pages/Designs'
 import Finance from './pages/Finance'
 import FoundersInvite from './pages/Founders'
 import FounderExperience, { FounderBadge } from './founders'
+import Home from './pages/Home'
 import Ideas from './pages/Ideas'
 import Inventory from './pages/Inventory'
 import Landing from './pages/Landing'
@@ -36,7 +37,8 @@ const NAV_GROUPS = [
   {
     label: 'Operations',
     items: [
-      { to: '/app', icon: 'home', label: 'Dashboard', end: true },
+      { to: '/app', icon: 'home', label: 'Home', end: true },
+      { to: '/app/dashboard', icon: 'pulse', label: 'Dashboard' },
       { to: '/app/bookings', icon: 'calendar', label: 'Bookings' },
       { to: '/app/tastings', icon: 'cup', label: 'Tastings', min: 2 },
       { to: '/app/tasks', icon: 'checks', label: 'Tasks' },
@@ -122,7 +124,9 @@ function AppShell() {
   const [moreOpen, setMoreOpen] = useState(false)
   const navigate = useNavigate()
   const level = userLevel(user)
-  const mobileMain = [NAV_GROUPS[0].items[0], NAV_GROUPS[0].items[1], NAV_GROUPS[0].items[3], NAV_GROUPS[1].items[2]]
+  // Daily-use shortcuts; Home (the module guide at /app) stays reachable via the
+  // brand logo tap and the "More" sheet.
+  const mobileMain = [NAV_GROUPS[0].items[1], NAV_GROUPS[0].items[2], NAV_GROUPS[0].items[4], NAV_GROUPS[1].items[2]]
   const allItems = NAV_GROUPS.flatMap((g) => visibleItems(g.items, user))
 
   return (
@@ -235,7 +239,8 @@ export default function App() {
       <Route path="/enquire/:token" element={<PublicEnquiry />} />
       <Route path="/founders/:code" element={<FoundersInvite />} />
       <Route path="/app" element={<RequireAuth><RequireActive><AppShell /></RequireActive></RequireAuth>}>
-        <Route index element={<Dashboard />} />
+        <Route index element={<Home />} />
+        <Route path="dashboard" element={<Dashboard />} />
         <Route path="bookings" element={<Bookings />} />
         <Route path="bookings/:id" element={<BookingDetail />} />
         <Route path="tastings" element={<Tastings />} />
