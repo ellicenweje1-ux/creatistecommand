@@ -10,7 +10,7 @@ from .models import PlatformSettings, User
 from fastapi import Depends
 
 from .auth import require_owner, require_plan
-from .routers import admin, ai, auth_router, billing, bookings, core, dashboard, finance, founders, public, quotes, support, team, uploads
+from .routers import admin, ai, auth_router, billing, bookings, core, dashboard, finance, founders, onboarding, public, quotes, support, team, uploads
 
 app = FastAPI(title="The Creatiste Command", version="1.0.0")
 
@@ -48,6 +48,7 @@ app.include_router(team.router, prefix=API)
 app.include_router(quotes.router, prefix=f"{API}/quotes", tags=["quotes"])
 app.include_router(public.router, prefix=API)
 app.include_router(founders.router, prefix=API)
+app.include_router(onboarding.router, prefix=API)
 app.include_router(support.router, prefix=API)
 # Money is owner-only (staff never see finance) and part of the Pro tier upward
 _money = [Depends(require_owner), Depends(require_plan(2))]
@@ -81,9 +82,18 @@ def bootstrap():
         if not (settings.founders or {}).get("code"):
             # initialise the founders programme with its secret invite code
             settings.founders = {**config.DEFAULT_FOUNDERS, **(settings.founders or {}), "code": uuid.uuid4().hex[:12]}
+        elif any(isinstance(p, str) for p in settings.founders.get("perks") or []):
+            # roll plain-string perks forward to the structured badge format
+            settings.founders = {**settings.founders, "perks": config.DEFAULT_FOUNDERS["perks"]}
+        if settings.trial_days == 3:
+            settings.trial_days = 5  # old default → the 5-day trial (still editable in Admin → Pricing)
         for owner in db.query(User).filter(User.role.in_(["chef", "admin"])).all():
             if not owner.enquiry_token:
                 owner.enquiry_token = uuid.uuid4().hex
+            # Verification gate arrived after these accounts: anyone already trialing
+            # or active was onboarded the old way — don't lock them out.
+            if not owner.onboarded_at and owner.subscription_status in ("trialing", "active"):
+                owner.onboarded_at = owner.created_at.strftime("%Y-%m-%d") if owner.created_at else "2026-01-01"
         if not db.query(User).filter(User.email == config.ADMIN_EMAIL.lower()).first():
             db.add(User(
                 email=config.ADMIN_EMAIL.lower(),

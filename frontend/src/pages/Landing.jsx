@@ -28,9 +28,9 @@ const FEATURES = [
 
 const STEPS = [
   ['Create your account', 'Sign up in under a minute with your business details.'],
-  ['Choose your plan', 'Pick the tier that fits your kitchen and complete onboarding.'],
+  ['Book your onboarding call', 'A personal video session to set up and verify your kitchen — your free trial unlocks the moment it’s done.'],
   ['Load your world', 'Add recipes, stock and clients — or start from your next booking.'],
-  ['Run the pass', 'Plan, shop, prep and serve with everything in one place.'],
+  ['Run the pass', 'Plan, shop, prep and serve — and pick the plan that fits when your trial ends.'],
 ]
 
 export default function Landing() {
@@ -120,8 +120,8 @@ export default function Landing() {
         <div className="mx-auto max-w-6xl px-5">
           <h2 className="font-display text-3xl font-semibold md:text-4xl">Onboarding + membership.</h2>
           <p className="mt-3 max-w-2xl text-fg/60">
-            Every chef starts with a one-time onboarding & setup fee, then a monthly membership.
-            {pricing?.trial_days ? ` Includes a ${pricing.trial_days}-day free trial.` : ''}
+            Every chef starts with a personal onboarding session, a one-time setup fee, then a monthly membership.
+            {pricing?.trial_days ? ` Includes a ${pricing.trial_days}-day free trial after your onboarding call — no card needed for the trial.` : ''}
           </p>
           <div className="mt-10 grid gap-5 md:grid-cols-3">
             {pricing ? Object.entries(pricing.plans).map(([key, plan]) => (

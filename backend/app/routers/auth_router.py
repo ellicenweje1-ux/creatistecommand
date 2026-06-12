@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -43,7 +43,6 @@ def register(payload: dict = Body(...), db: Session = Depends(get_db)):
             raise HTTPException(410, "The founders programme has closed — you can still join on a standard plan.")
 
     settings = db.get(PlatformSettings, 1)
-    trial_days = settings.trial_days if settings else 0
     user = User(
         email=email,
         password_hash=hash_password(password),
@@ -59,9 +58,9 @@ def register(payload: dict = Body(...), db: Session = Depends(get_db)):
         user.founder_number = founders_taken(db) + 1
         user.founder_since = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         user.plan = "founders"  # full Elite access at the lifetime founders rate
-    if trial_days > 0:
-        user.subscription_status = "trialing"
-        user.trial_ends_at = (datetime.now(timezone.utc) + timedelta(days=trial_days)).strftime("%Y-%m-%d")
+    # Accounts start "pending": every client books an onboarding call first, and the
+    # free trial only starts once the admin marks that session complete (see
+    # routers/admin.py) — verification before access.
     user.last_login_at = datetime.now(timezone.utc)
     db.add(user)
     db.commit()

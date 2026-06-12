@@ -6,11 +6,13 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from .. import config, mailer
 from ..auth import require_admin
 from ..database import get_db
 from ..models import (
     Booking, Client, ClientReview, Design, Expense, FounderFeedback, Idea, InventoryItem,
-    Invoice, OnlineOrder, Payment, RoutePlan, Recipe, ShoppingList, SupportTicket, Task, User,
+    Invoice, OnboardingSession, OnlineOrder, Payment, RoutePlan, Recipe, ShoppingList,
+    SupportTicket, Task, User,
 )
 from ..utils import to_dict
 from .billing import get_settings
@@ -83,6 +85,9 @@ def update_chef(user_id: int, payload: dict = Body(...), db: Session = Depends(g
     for field in ("subscription_status", "plan", "admin_notes", "trial_ends_at", "onboarding_paid"):
         if field in payload:
             setattr(user, field, payload[field])
+    # Hand-activating a chef counts as verification — don't leave them locked out.
+    if payload.get("subscription_status") in ("active", "trialing") and not user.onboarded_at:
+        user.onboarded_at = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     # Granting founder status by hand (e.g. grandfathering an early chef into the programme)
     if payload.get("is_founder") and not user.is_founder:
         user.is_founder = True
@@ -206,6 +211,116 @@ def update_founders(payload: dict = Body(...), db: Session = Depends(get_db)):
     settings.founders = cfg
     db.commit()
     return _founders_payload(db)
+
+
+def _mark_onboarded(db: Session, user: User):
+    """The verification moment: unlock the workspace and start the free trial."""
+    today = datetime.now(timezone.utc)
+    if not user.onboarded_at:
+        user.onboarded_at = today.strftime("%Y-%m-%d")
+    if user.subscription_status == "pending":
+        trial_days = get_settings(db).trial_days
+        if trial_days > 0:
+            user.subscription_status = "trialing"
+            user.trial_ends_at = (today + timedelta(days=trial_days)).strftime("%Y-%m-%d")
+
+
+@router.get("/onboarding")
+def onboarding_sessions(db: Session = Depends(get_db)):
+    """Ellice's call calendar: every onboarding & founders check-in session."""
+    rows = (
+        db.query(OnboardingSession)
+        .order_by(OnboardingSession.date.desc(), OnboardingSession.start_time.desc())
+        .limit(300)
+        .all()
+    )
+    users = {u.id: u for u in db.query(User).all()}
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    out = []
+    for s in rows:
+        u = users.get(s.user_id)
+        out.append({
+            **to_dict(s),
+            "user_email": u.email if u else "?",
+            "user_name": (u.business_name or u.name) if u else "?",
+            "user_plan": u.plan if u else "",
+            "is_founder": bool(u.is_founder) if u else False,
+            "founder_number": u.founder_number if u else None,
+            "user_onboarded": bool(u.onboarded_at) if u else False,
+        })
+    upcoming = sorted(
+        [s for s in out if s["status"] == "booked" and s["date"] >= today],
+        key=lambda s: (s["date"], s["start_time"]),
+    )
+    past = [s for s in out if s not in upcoming]
+    return {"upcoming": upcoming, "past": past, "today": today}
+
+
+@router.patch("/onboarding/{session_id}")
+def update_session(session_id: int, payload: dict = Body(...), db: Session = Depends(get_db)):
+    session = db.get(OnboardingSession, session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    for field in ("notes", "transcript"):
+        if field in payload:
+            setattr(session, field, str(payload[field] or ""))
+    status = payload.get("status")
+    if status in ("booked", "completed", "cancelled", "no_show"):
+        session.status = status
+        if status == "completed" and session.kind == "onboarding":
+            user = db.get(User, session.user_id)
+            if user:
+                _mark_onboarded(db, user)
+                mailer.send_email(
+                    user.email, "You're in — your kitchen is unlocked",
+                    f"Hi {user.name or 'chef'},\n\nGreat speaking with you! Your onboarding is complete and "
+                    f"your kitchen is now unlocked.\nYour {get_settings(db).trial_days}-day free trial starts "
+                    f"today{' — your founders rate is waiting at activation' if user.is_founder else ''}.\n\n"
+                    f"Log in and start commanding: {config.APP_URL}\n\n— Ellice, The Creatiste Command",
+                )
+    db.commit()
+    db.refresh(session)
+    return to_dict(session)
+
+
+@router.post("/onboarding/{session_id}/summarize")
+def summarize_session(session_id: int, db: Session = Depends(get_db)):
+    """AI key points from the call: paste the transcript (or rough notes), get a
+    structured summary saved on the session."""
+    from .ai import ask_json
+
+    session = db.get(OnboardingSession, session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    source = (session.transcript or session.notes or "").strip()
+    if not source:
+        raise HTTPException(422, "Paste the call transcript (or notes) first, then summarise.")
+    user = db.get(User, session.user_id)
+    result = ask_json(
+        f"Summarise this {KINDS_LABEL.get(session.kind, 'onboarding')} video call between the founder of a "
+        f"chef-management SaaS platform and a client chef ({user.name or user.email if user else 'client'}, "
+        f"business: {user.business_name or '-' if user else '-'}).\n\n"
+        f"CALL TRANSCRIPT / NOTES:\n---\n{source[:24000]}\n---\n\n"
+        "Return JSON: {\"summary\": str (3-4 sentences), \"key_points\": [str], "
+        "\"action_items\": [str (each prefixed 'Ellice:' or 'Client:')], "
+        "\"feature_requests\": [str], \"sentiment\": str (one line on how the client feels)}",
+        max_tokens=4000,
+    )
+    lines = [result.get("summary", "").strip(), ""]
+    for title, key in (("Key points", "key_points"), ("Action items", "action_items"), ("Feature requests", "feature_requests")):
+        items = [i for i in (result.get(key) or []) if str(i).strip()]
+        if items:
+            lines.append(f"{title}:")
+            lines.extend(f"• {i}" for i in items)
+            lines.append("")
+    if result.get("sentiment"):
+        lines.append(f"Sentiment: {result['sentiment']}")
+    session.ai_summary = "\n".join(lines).strip()
+    db.commit()
+    return {"ai_summary": session.ai_summary}
+
+
+KINDS_LABEL = {"onboarding": "onboarding", "checkin": "founders day-5 feedback"}
 
 
 @router.get("/support")

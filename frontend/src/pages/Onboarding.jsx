@@ -2,9 +2,73 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { isActive, useAuth } from '../auth'
+import { SessionCard, SlotPicker, perkTitle } from '../booking'
 import { cls, fmtMoney } from '../format'
 import { FounderBadge } from '../founders'
 import { Brand, Button, Icon, Spinner, toast, toastErr } from '../ui'
+
+/* Two-step activation, verification-first:
+   Step 1 — book the onboarding video session. The workspace stays locked until the
+            platform owner marks that call complete; the free trial starts right then.
+   Step 2 — choose a plan (or the founders card) and activate. */
+
+function BookingStep({ user, refresh, trialDays }) {
+  const [mine, setMine] = useState(null)
+  const [rebooking, setRebooking] = useState(false)
+  const load = () => api.get('/onboarding/mine').then(setMine).catch(toastErr)
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const booked = mine?.sessions?.find((s) => s.kind === 'onboarding' && s.status === 'booked')
+
+  // While waiting on the call, quietly poll so the page unlocks itself the moment
+  // Ellice marks the session complete.
+  useEffect(() => {
+    if (!booked) return
+    const tick = setInterval(() => refresh().catch(() => {}), 8000)
+    return () => clearInterval(tick)
+  }, [booked]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!mine) return <Spinner />
+
+  return (
+    <div className="mx-auto mt-10 max-w-xl space-y-5">
+      {booked && !rebooking ? (
+        <>
+          <SessionCard
+            session={booked}
+            title="Your onboarding session is booked"
+            note="This call is how we verify and set up every kitchen personally. The moment it's done, your workspace unlocks and your free trial starts."
+            onRebook={() => setRebooking(true)}
+            onCancelled={load}
+          />
+          <div className="rounded-xl border border-line bg-card p-4 text-sm leading-relaxed text-fg/60">
+            <p className="font-display font-semibold text-fg">What happens next</p>
+            <ol className="mt-2 list-decimal space-y-1 pl-4">
+              <li>Join the video call at your booked time — bring your questions.</li>
+              <li>We walk through your kitchen together and verify your account.</li>
+              <li>Your {trialDays || 5}-day free trial unlocks immediately after — no card needed for the trial.</li>
+            </ol>
+          </div>
+        </>
+      ) : (
+        <div className="rounded-2xl border border-line bg-card p-6 shadow-card">
+          <h3 className="font-display text-lg font-semibold">Pick a time for your onboarding session</h3>
+          <p className="mb-4 mt-1 text-sm text-fg/55">
+            A {user?.is_founder ? 'personal founders ' : ''}video call with Ellice to set up your kitchen and
+            verify your account — your {trialDays || 5}-day free trial starts as soon as it's complete.
+          </p>
+          <SlotPicker kind="onboarding" confirmLabel="Book my session"
+            onBooked={() => { toast('Session booked — see you on the call!', 'sage'); setRebooking(false); load() }} />
+          {rebooking && (
+            <button className="mt-3 text-xs text-fg/45 hover:text-fg/70" onClick={() => setRebooking(false)}>
+              ← Keep my current booking
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function Onboarding() {
   const { user, logout, refresh } = useAuth()
@@ -33,7 +97,9 @@ export default function Onboarding() {
     return () => clearInterval(tick)
   }, [params]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { if (user?.subscription_status === 'active' || user?.role === 'admin') navigate('/app') }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (user?.role === 'admin' || (user?.subscription_status === 'active' && user?.onboarded_at)) navigate('/app')
+  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const pay = async () => {
     setBusy(true)
@@ -57,6 +123,7 @@ export default function Onboarding() {
 
   const currency = pricing?.currency || 'GBP'
   const plan = pricing?.plans?.[selected]
+  const needsCall = user && user.role !== 'admin' && !user.onboarded_at
 
   return (
     <div className="min-h-screen bg-base">
@@ -66,27 +133,41 @@ export default function Onboarding() {
       </header>
       <main className="mx-auto max-w-5xl px-5 pb-20">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-copper">Step 2 of 2 — activate your kitchen</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-copper">
+            {needsCall ? 'Step 1 of 2 — your onboarding session' : 'Step 2 of 2 — activate your kitchen'}
+          </p>
           <h1 className="mt-2 font-display text-3xl font-semibold md:text-4xl">
-            {user?.is_founder ? `Activate your founding seat, ${user?.name?.split(' ')[0] || 'chef'}.` : `Choose your plan, ${user?.name?.split(' ')[0] || 'chef'}.`}
+            {needsCall
+              ? `Let's get you onboarded, ${user?.name?.split(' ')[0] || 'chef'}.`
+              : user?.is_founder
+                ? `Activate your founding seat, ${user?.name?.split(' ')[0] || 'chef'}.`
+                : `Choose your plan, ${user?.name?.split(' ')[0] || 'chef'}.`}
           </h1>
           <p className="mt-3 text-fg/55">
-            {user?.is_founder
-              ? 'Your founders rate covers everything — locked for as long as you stay.'
-              : "Activation includes your one-time onboarding & setup fee plus your first month's membership."}
-            {pricing?.stripe_enabled ? ' Payment is handled securely by Stripe.' : ''}
+            {needsCall
+              ? 'Every kitchen on the platform is onboarded personally. Book your video session below — access unlocks once it’s complete.'
+              : user?.is_founder
+                ? 'Your founders rate covers everything — locked for as long as you stay.'
+                : "Activation includes your one-time onboarding & setup fee plus your first month's membership."}
+            {!needsCall && pricing?.stripe_enabled ? ' Payment is handled securely by Stripe.' : ''}
           </p>
-          {user?.subscription_status === 'trialing' && (
+          {!needsCall && user?.subscription_status === 'trialing' && (
             <div className="mx-auto mt-4 max-w-md rounded-xl border border-copper/40 bg-copper/10 px-4 py-3 text-sm">
               You're on your <span className="font-semibold">free trial</span>
               {user.trial_ends_at ? <> — it ends <span className="font-semibold">{user.trial_ends_at}</span></> : null}.
-              Activate below to keep your kitchen, or{' '}
-              <button className="font-semibold text-copper underline" onClick={() => navigate('/app')}>keep exploring →</button>
+              {pricing?.stripe_enabled
+                ? ' Subscribe now and your card is only charged when the trial ends.'
+                : ' Activate below to keep your kitchen, or'}{' '}
+              {!pricing?.stripe_enabled && (
+                <button className="font-semibold text-copper underline" onClick={() => navigate('/app')}>keep exploring →</button>
+              )}
             </div>
           )}
         </div>
 
-        {user?.is_founder ? (
+        {needsCall ? (
+          <BookingStep user={user} refresh={refresh} trialDays={pricing?.trial_days} />
+        ) : user?.is_founder ? (
           /* Founders skip the plan grid — one membership, one lifetime rate */
           founders ? (
             <div className="mx-auto mt-10 max-w-md rounded-2xl border border-copper bg-card p-6 shadow-card ring-2 ring-copper/25">
@@ -100,8 +181,8 @@ export default function Onboarding() {
               <p className="mt-1 text-sm font-medium text-copper">Your lifetime founders rate — it never rises while you stay.</p>
               <ul className="mt-4 space-y-1.5">
                 {(founders.perks || []).map((p) => (
-                  <li key={p} className="flex items-start gap-1.5 text-xs leading-relaxed text-fg/65">
-                    <Icon name="check" size={12} className="mt-0.5 shrink-0 text-sage" />{p}
+                  <li key={perkTitle(p)} className="flex items-start gap-1.5 text-xs leading-relaxed text-fg/65">
+                    <Icon name="check" size={12} className="mt-0.5 shrink-0 text-sage" />{perkTitle(p)}
                   </li>
                 ))}
               </ul>

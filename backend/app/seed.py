@@ -40,6 +40,7 @@ def run():
             email=DEMO_EMAIL, password_hash=hash_password(DEMO_PASSWORD),
             name="Ellice Nweje", business_name="The Creatiste Kitchen",
             phone="+44 7700 900123", subscription_status="active", plan="elite", onboarding_paid=True,
+            onboarded_at="2026-01-05",  # demo account skips the live onboarding-call gate
         )
         db.add(chef)
         db.commit()

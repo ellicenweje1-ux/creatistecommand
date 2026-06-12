@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api } from './api'
 import { useAuth } from './auth'
-import { cls } from './format'
+import { SlotPicker } from './booking'
+import { cls, fmtDate } from './format'
 import { Button, Field, Icon, Modal, Textarea, toast, toastErr } from './ui'
 
 /* Everything founders-specific that lives inside the app shell: the numbered badge,
@@ -39,8 +40,8 @@ const tourSteps = (n) => [
   },
   {
     icon: 'flame',
-    title: 'Your direct line — and a catch-up on day 5',
-    text: 'Anything you need goes straight to the founder via Help & FAQs. After your first 5 days we’ll check in right here for your thoughts, what’s helped, and what you’d change — founders steer the roadmap.',
+    title: 'Your direct line — and a catch-up call on day 5',
+    text: 'Anything you need goes straight to the founder via Help & FAQs. On day 5 of your trial we’ll book a proper video call to hear your thoughts, what’s helped, and what you’d change — founders steer the roadmap.',
   },
 ]
 
@@ -77,6 +78,7 @@ function FounderWelcome({ status, onDone }) {
 function FounderCheckIn({ status, onDone, onSnooze }) {
   const [form, setForm] = useState({ thoughts: '', benefits: '', changes: '' })
   const [busy, setBusy] = useState(false)
+  const [booked, setBooked] = useState(null)
   const submit = (e) => {
     e.preventDefault()
     setBusy(true)
@@ -87,25 +89,46 @@ function FounderCheckIn({ status, onDone, onSnooze }) {
   }
   return (
     <Modal open onClose={onSnooze} title={`Founders check-in — day ${status.days_in}`}>
-      <form onSubmit={submit} className="space-y-4">
-        <p className="text-sm leading-relaxed text-fg/65">
-          You've had {status.days_in} days in the kitchen with the platform. Three quick questions —
-          your answers go straight to the founder and shape what gets built next.
-        </p>
-        <Field label="Your thoughts on the programme so far">
-          <Textarea rows={3} value={form.thoughts} onChange={(e) => setForm({ ...form, thoughts: e.target.value })} placeholder="Honest is best…" />
-        </Field>
-        <Field label="How has it benefited you?">
-          <Textarea rows={3} value={form.benefits} onChange={(e) => setForm({ ...form, benefits: e.target.value })} placeholder="Where has it saved you time, stress or money?" />
-        </Field>
-        <Field label="What would you change — or like to see?">
-          <Textarea rows={3} value={form.changes} onChange={(e) => setForm({ ...form, changes: e.target.value })} placeholder="Missing features, rough edges, wild ideas…" />
-        </Field>
-        <div className="flex items-center justify-between">
-          <button type="button" onClick={onSnooze} className="text-sm text-fg/45 hover:text-fg/70">Remind me later</button>
-          <Button disabled={busy}>{busy ? 'Sending…' : 'Send to the founder'}</Button>
+      {booked ? (
+        <div className="py-4 text-center">
+          <span className="mx-auto inline-flex rounded-full bg-copper/10 p-4 text-copper"><Icon name="calendar" size={26} /></span>
+          <h3 className="mt-3 font-display text-lg font-semibold">Call booked — {fmtDate(booked.date)} at {booked.start_time}</h3>
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-fg/60">
+            Ellice will meet you on the video call to dig into your feedback properly.
+            The join link is in your email and under Settings → your founders card.
+          </p>
+          <Button className="mt-4" onClick={onDone}>Done</Button>
         </div>
-      </form>
+      ) : (
+        <div className="space-y-5">
+          <p className="text-sm leading-relaxed text-fg/65">
+            You've had {status.days_in} days in the kitchen — time for the founders catch-up.
+            Book a video call with Ellice to talk it through in depth: your thoughts on the
+            programme, how it's benefited you, and what you'd change or like to see.
+          </p>
+          <div className="rounded-xl border border-copper/30 bg-copper/[0.05] p-3.5">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-copper">Book your check-in call</p>
+            <SlotPicker kind="checkin" compact confirmLabel="Book the call"
+              onBooked={(s) => { toast('Check-in call booked — speak soon!', 'sage'); setBooked(s) }} />
+          </div>
+          <form onSubmit={submit} className="space-y-3 border-t border-line/70 pt-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-fg/40">Or jot it down ahead of the call</p>
+            <Field label="Your thoughts on the programme so far">
+              <Textarea rows={2} value={form.thoughts} onChange={(e) => setForm({ ...form, thoughts: e.target.value })} placeholder="Honest is best…" />
+            </Field>
+            <Field label="How has it benefited you?">
+              <Textarea rows={2} value={form.benefits} onChange={(e) => setForm({ ...form, benefits: e.target.value })} placeholder="Where has it saved you time, stress or money?" />
+            </Field>
+            <Field label="What would you change — or like to see?">
+              <Textarea rows={2} value={form.changes} onChange={(e) => setForm({ ...form, changes: e.target.value })} placeholder="Missing features, rough edges, wild ideas…" />
+            </Field>
+            <div className="flex items-center justify-between">
+              <button type="button" onClick={onSnooze} className="text-sm text-fg/45 hover:text-fg/70">Remind me later</button>
+              <Button variant="secondary" disabled={busy}>{busy ? 'Sending…' : 'Send written feedback'}</Button>
+            </div>
+          </form>
+        </div>
+      )}
     </Modal>
   )
 }

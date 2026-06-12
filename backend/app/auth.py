@@ -79,13 +79,20 @@ def _trial_expired(user: User) -> bool:
 
 
 def _owner_active(owner: User) -> bool:
-    if owner.role == "admin" or owner.subscription_status == "active":
+    if owner.role == "admin":
+        return True
+    # Verification gate: nobody uses the platform before their onboarding session
+    # is marked complete — regardless of trial or payment state.
+    if not owner.onboarded_at:
+        return False
+    if owner.subscription_status == "active":
         return True
     return owner.subscription_status == "trialing" and not _trial_expired(owner)
 
 
 def require_active(user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> User:
-    """Gate for workspace endpoints: the workspace owner's subscription must be active."""
+    """Gate for workspace endpoints: the workspace owner must be onboarded (verified
+    on a call with the platform owner) and their subscription active or in trial."""
     owner = workspace_owner(db, user)
     if _owner_active(owner):
         user.workspace_id = owner.id
@@ -93,6 +100,8 @@ def require_active(user: User = Depends(get_current_user), db: Session = Depends
         return user
     if user.role == "staff":
         raise HTTPException(403, "The business owner's subscription is inactive.")
+    if not owner.onboarded_at:
+        raise HTTPException(402, "Book your onboarding session to unlock your kitchen — your free trial starts right after the call.")
     raise HTTPException(402, "Subscription required. Complete onboarding to activate your account.")
 
 

@@ -133,6 +133,16 @@ def checkout(payload: dict = Body(...), db: Session = Depends(get_db), user: Use
             },
             "quantity": 1,
         })
+    subscription_data = {"metadata": {"user_id": str(user.id), "plan": plan_key}}
+    # Subscribing mid-trial: take the card now, start billing when the trial ends —
+    # the remaining free days stay free and renewal is automatic from then on.
+    if user.subscription_status == "trialing" and user.trial_ends_at:
+        remaining = (
+            datetime.strptime(user.trial_ends_at, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+            - datetime.now(timezone.utc)
+        ).days + 1
+        if remaining > 0:
+            subscription_data["trial_period_days"] = remaining
     session = stripe.checkout.Session.create(
         mode="subscription",
         line_items=line_items,
@@ -141,7 +151,7 @@ def checkout(payload: dict = Body(...), db: Session = Depends(get_db), user: Use
         success_url=f"{config.APP_URL}/onboarding?paid=1",
         cancel_url=f"{config.APP_URL}/onboarding?cancelled=1",
         metadata={"user_id": str(user.id), "plan": plan_key},
-        subscription_data={"metadata": {"user_id": str(user.id), "plan": plan_key}},
+        subscription_data=subscription_data,
     )
     return {"url": session.url}
 

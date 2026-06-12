@@ -41,7 +41,9 @@ export default function AuthPage({ mode }) {
             {isLogin ? 'Welcome back, chef.' : foundersCode ? 'Claim your founding seat.' : 'Set up your command centre.'}
           </h1>
           <p className="mt-1 text-sm text-fg/55">
-            {isLogin ? 'Log in to your kitchen.' : 'Create your account — your free trial starts straight away, no card needed.'}
+            {isLogin
+              ? 'Log in to your kitchen.'
+              : 'Create your account, then book your personal onboarding call — your 5-day free trial starts the moment it’s done. No card needed for the trial.'}
           </p>
           {foundersCode && (
             <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-copper/40 bg-copper/10 px-3.5 py-3 text-sm">

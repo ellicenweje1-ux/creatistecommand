@@ -33,6 +33,7 @@ def ensure_columns():
             "enquiry_token": "VARCHAR(64) DEFAULT ''",
             "is_founder": "BOOLEAN DEFAULT 0", "founder_number": "INTEGER",
             "founder_since": "VARCHAR(10) DEFAULT ''", "tour_done": "BOOLEAN DEFAULT 0",
+            "onboarded_at": "VARCHAR(10) DEFAULT ''",
         },
         "platform_settings": {"founders": "JSON"},
         "tasks": {"assignee_id": "INTEGER"},

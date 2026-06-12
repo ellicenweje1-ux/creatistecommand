@@ -31,6 +31,9 @@ class User(Base):
     plan: Mapped[str] = mapped_column(String(20), default="")
     onboarding_paid: Mapped[bool] = mapped_column(Boolean, default=False)
     trial_ends_at: Mapped[str] = mapped_column(String(10), default="")  # YYYY-MM-DD
+    # Verification gate: set when the admin marks the onboarding call complete.
+    # Empty = not yet onboarded → no workspace access; the trial clock starts here.
+    onboarded_at: Mapped[str] = mapped_column(String(10), default="")  # YYYY-MM-DD
     stripe_customer_id: Mapped[str] = mapped_column(String(120), default="")
     stripe_subscription_id: Mapped[str] = mapped_column(String(120), default="")
     # Founders programme (private launch membership — lifetime rate, numbered seat)
@@ -337,6 +340,26 @@ class ActivityLog(Base):
     entity_id: Mapped[int] = mapped_column(Integer, nullable=True)
     summary: Mapped[str] = mapped_column(String(300), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class OnboardingSession(Base):
+    """Bookable video calls with the platform owner: the mandatory onboarding /
+    verification session for every new client, and founders' day-5 check-in calls."""
+    __tablename__ = "onboarding_sessions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(20), default="onboarding")  # onboarding | checkin
+    date: Mapped[str] = mapped_column(String(10), default="")   # YYYY-MM-DD
+    start_time: Mapped[str] = mapped_column(String(5), default="")  # HH:MM
+    duration_min: Mapped[int] = mapped_column(Integer, default=45)
+    meeting_url: Mapped[str] = mapped_column(String(500), default="")
+    provider: Mapped[str] = mapped_column(String(20), default="jitsi")  # zoom | jitsi | custom
+    status: Mapped[str] = mapped_column(String(20), default="booked")  # booked | completed | cancelled | no_show
+    notes: Mapped[str] = mapped_column(Text, default="")        # admin notes
+    transcript: Mapped[str] = mapped_column(Text, default="")   # pasted call transcript
+    ai_summary: Mapped[str] = mapped_column(Text, default="")   # Claude-generated key points
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
 
 class FounderFeedback(Base):

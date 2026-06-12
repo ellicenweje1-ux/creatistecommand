@@ -14,12 +14,13 @@ from sqlalchemy.orm import Session
 from .. import config, mailer
 from ..auth import get_current_user
 from ..database import get_db
-from ..models import FounderFeedback, PlatformSettings, User
+from ..models import FounderFeedback, OnboardingSession, PlatformSettings, User
 from .billing import CURRENCY_SYMBOLS, get_settings
 
 router = APIRouter(prefix="/founders", tags=["founders"])
 
 # "Once the client has used the programme for 5 days, we will speak again."
+# Day 5 of the trial = a booked check-in call + written feedback, both via the modal.
 CHECK_IN_AFTER_DAYS = 5
 
 
@@ -40,10 +41,13 @@ def founders_taken(db: Session) -> int:
 
 
 def founders_days_in(user: User) -> int:
-    if not user.founder_since:
+    """Days actually using the platform: counted from onboarding completion (when the
+    trial starts), falling back to the join date for legacy rows."""
+    anchor = user.onboarded_at or user.founder_since
+    if not anchor:
         return 0
     try:
-        return max(0, (datetime.now(timezone.utc).date() - date.fromisoformat(user.founder_since)).days)
+        return max(0, (datetime.now(timezone.utc).date() - date.fromisoformat(anchor)).days)
     except ValueError:
         return 0
 
@@ -84,6 +88,15 @@ def status(db: Session = Depends(get_db), user: User = Depends(get_current_user)
     cfg = founders_config(db, settings)
     feedback = db.query(FounderFeedback).filter(FounderFeedback.user_id == user.id).first()
     days_in = founders_days_in(user)
+    # The day-5 moment is a call, not just a form: surface any booked check-in call
+    # so the modal can show "you're booked" instead of nagging.
+    call = (
+        db.query(OnboardingSession)
+        .filter(OnboardingSession.user_id == user.id, OnboardingSession.kind == "checkin",
+                OnboardingSession.status.in_(["booked", "completed"]))
+        .order_by(OnboardingSession.created_at.desc())
+        .first()
+    )
     return {
         "is_founder": True,
         "founder_number": user.founder_number,
@@ -92,7 +105,11 @@ def status(db: Session = Depends(get_db), user: User = Depends(get_current_user)
         "check_in_after_days": CHECK_IN_AFTER_DAYS,
         "tour_done": bool(user.tour_done),
         "feedback_submitted": bool(feedback),
-        "check_in_due": days_in >= CHECK_IN_AFTER_DAYS and not feedback,
+        "check_in_due": days_in >= CHECK_IN_AFTER_DAYS and not (feedback or call),
+        "checkin_call": {
+            "id": call.id, "date": call.date, "start_time": call.start_time,
+            "meeting_url": call.meeting_url, "status": call.status,
+        } if call else None,
         "name": cfg.get("name") or "Founders Membership",
         "monthly": cfg.get("monthly") or 0,
         "onboarding": cfg.get("onboarding") or 0,

@@ -61,6 +61,9 @@ export function RequireAuth({ children }) {
 export function RequireActive({ children }) {
   const { user } = useAuth()
   if (!isActive(user)) return <Navigate to="/onboarding" replace />
+  // Verification gate: owners must complete their onboarding call before the
+  // workspace opens (staff inherit their owner's state, checked server-side).
+  if (user.role !== 'admin' && !user.is_staff && !user.onboarded_at) return <Navigate to="/onboarding" replace />
   return children
 }
 

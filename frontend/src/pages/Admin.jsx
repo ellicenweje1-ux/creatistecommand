@@ -106,6 +106,133 @@ function PlansEditor({ settings, onSaved }) {
   )
 }
 
+const SESSION_TONE = { booked: 'copper', completed: 'sage', cancelled: 'ink', no_show: 'red' }
+const KIND_LABEL = { onboarding: 'Onboarding', checkin: 'Founders check-in' }
+
+function SessionModal({ session, onClose, onSaved }) {
+  const [form, setForm] = useState({ notes: '', transcript: '' })
+  const [summary, setSummary] = useState('')
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    if (session) { setForm({ notes: session.notes || '', transcript: session.transcript || '' }); setSummary(session.ai_summary || '') }
+  }, [session])
+  if (!session) return null
+
+  const patch = (extra = {}, msg = 'Session saved') =>
+    api.patch(`/admin/onboarding/${session.id}`, { ...form, ...extra })
+      .then(() => { toast(msg, 'sage'); onSaved() }).catch(toastErr)
+  const complete = () => {
+    const unlocks = session.kind === 'onboarding' && !session.user_onboarded
+    if (unlocks && !window.confirm(`Mark this call complete? ${session.user_name || session.user_email} will be verified — their kitchen unlocks and the free trial starts now.`)) return
+    patch({ status: 'completed' }, unlocks ? 'Completed — their trial has started' : 'Marked complete')
+  }
+  const summarize = () => {
+    setBusy(true)
+    api.patch(`/admin/onboarding/${session.id}`, form)
+      .then(() => api.post(`/admin/onboarding/${session.id}/summarize`))
+      .then((r) => { setSummary(r.ai_summary); toast('Key points extracted', 'sage') })
+      .catch(toastErr)
+      .finally(() => setBusy(false))
+  }
+
+  return (
+    <Modal open onClose={onClose} wide title={`${KIND_LABEL[session.kind] || session.kind} — ${session.user_name || session.user_email}`}>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-parchment/50 p-3 text-sm">
+          <div>
+            <p><span className="text-fg/50">When:</span> {session.date} at {session.start_time} ({session.duration_min} min)</p>
+            <p><span className="text-fg/50">Client:</span> {session.user_email}{session.is_founder ? ` · Founding member #${session.founder_number}` : ''}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge tone={SESSION_TONE[session.status]}>{label(session.status)}</Badge>
+            <a href={session.meeting_url} target="_blank" rel="noreferrer"><Button size="sm" icon="external">Join call</Button></a>
+          </div>
+        </div>
+        {session.status === 'booked' && (
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={complete} icon="check">
+              {session.kind === 'onboarding' && !session.user_onboarded ? 'Complete — verify & start trial' : 'Mark complete'}
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => patch({ status: 'no_show' }, 'Marked as no-show')}>No-show</Button>
+            <Button size="sm" variant="danger" onClick={() => patch({ status: 'cancelled' }, 'Session cancelled')}>Cancel session</Button>
+          </div>
+        )}
+        <Field label="Call notes">
+          <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Anything worth remembering from the call…" />
+        </Field>
+        <Field label="Transcript" hint="Paste the transcript (Zoom emails you one after cloud-recorded calls) or rough notes, then let AI pull out the key points.">
+          <Textarea rows={5} value={form.transcript} onChange={(e) => setForm({ ...form, transcript: e.target.value })} placeholder="Paste the call transcript here…" />
+        </Field>
+        {summary && (
+          <div>
+            <p className="label">AI key points</p>
+            <p className="whitespace-pre-wrap rounded-lg border border-copper/25 bg-copper/[0.06] px-3 py-2 text-sm text-fg/80">{summary}</p>
+          </div>
+        )}
+        <div className="flex items-center justify-between">
+          <Button variant="secondary" icon="sparkle" disabled={busy || !(form.transcript || form.notes)} onClick={summarize}>
+            {busy ? 'Summarising…' : 'Summarise with AI'}
+          </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" onClick={onClose}>Close</Button>
+            <Button onClick={() => patch()}>Save</Button>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+function OnboardingPanel({ data, onSaved }) {
+  const [selected, setSelected] = useState(null)
+  if (!data) return <Spinner />
+  const { upcoming, past } = data
+  const byDate = upcoming.reduce((acc, s) => { (acc[s.date] = acc[s.date] || []).push(s); return acc }, {})
+
+  const Row = ({ s }) => (
+    <button onClick={() => setSelected(s)}
+      className="flex w-full flex-wrap items-center gap-3 px-4 py-3 text-left text-sm hover:bg-parchment/40">
+      <span className="font-display font-semibold">{s.start_time}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-medium">{s.user_name || s.user_email}</span>
+        <span className="block truncate text-xs text-fg/45">{s.user_email}</span>
+      </span>
+      {s.is_founder && <Badge tone="copper">founder #{s.founder_number}</Badge>}
+      <Badge tone={s.kind === 'checkin' ? 'amber' : 'gray'}>{KIND_LABEL[s.kind]}</Badge>
+      <Badge tone={SESSION_TONE[s.status]}>{label(s.status)}</Badge>
+      {s.ai_summary && <Icon name="sparkle" size={14} className="text-copper" />}
+    </button>
+  )
+
+  return (
+    <div className="space-y-5">
+      <Card title={`Upcoming calls (${upcoming.length})`} pad={false}>
+        {upcoming.length === 0 ? (
+          <p className="p-5 text-sm text-fg/45">Nothing booked — new sign-ups book their onboarding call themselves, and it lands here.</p>
+        ) : Object.entries(byDate).map(([date, list]) => (
+          <div key={date}>
+            <p className="border-b border-line/60 bg-parchment/50 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-fg/45">
+              {date === data.today ? `Today — ${date}` : date}
+            </p>
+            <div className="divide-y divide-line/60">{list.map((s) => <Row key={s.id} s={s} />)}</div>
+          </div>
+        ))}
+      </Card>
+      <Card title={`Past & resolved (${past.length})`} pad={false}>
+        {past.length === 0 ? <p className="p-5 text-sm text-fg/45">No past sessions yet.</p> : (
+          <div className="divide-y divide-line/60">{past.slice(0, 30).map((s) => (
+            <div key={s.id} className="flex items-center gap-2">
+              <span className="pl-4 text-xs text-fg/40">{s.date}</span>
+              <div className="flex-1"><Row s={s} /></div>
+            </div>
+          ))}</div>
+        )}
+      </Card>
+      <SessionModal session={selected} onClose={() => setSelected(null)} onSaved={() => { setSelected(null); onSaved() }} />
+    </div>
+  )
+}
+
 function FoundersPanel({ data, onSaved }) {
   const [cfg, setCfg] = useState(null)
   const [viewing, setViewing] = useState(null) // member whose check-in is open
@@ -229,6 +356,7 @@ export default function Admin() {
   const [selectedChef, setSelectedChef] = useState(null)
   const [tickets, setTickets] = useState([])
   const [founders, setFounders] = useState(null)
+  const [sessions, setSessions] = useState(null)
 
   const load = () => {
     api.get('/admin/overview').then(setOverview).catch(toastErr)
@@ -237,6 +365,7 @@ export default function Admin() {
     api.get('/admin/settings').then(setSettings).catch(toastErr)
     api.get('/admin/support').then(setTickets).catch(() => {})
     api.get('/admin/founders').then(setFounders).catch(() => {})
+    api.get('/admin/onboarding').then(setSessions).catch(() => {})
   }
   useEffect(load, [])
   if (!overview) return <Spinner />
@@ -250,6 +379,7 @@ export default function Admin() {
       <Tabs value={tab} onChange={setTab} tabs={[
         { id: 'overview', label: 'Overview' },
         { id: 'chefs', label: 'Chefs', count: chefs.length },
+        { id: 'onboarding', label: 'Onboarding', count: sessions?.upcoming?.length },
         { id: 'founders', label: 'Founders', count: founders?.members?.length },
         { id: 'payments', label: 'Payments' },
         { id: 'support', label: 'Support', count: tickets.filter((t) => t.status === 'open').length },
@@ -363,6 +493,8 @@ export default function Admin() {
           ))}
         </div>
       )}
+
+      {tab === 'onboarding' && <OnboardingPanel data={sessions} onSaved={load} />}
 
       {tab === 'founders' && <FoundersPanel data={founders} onSaved={load} />}
 

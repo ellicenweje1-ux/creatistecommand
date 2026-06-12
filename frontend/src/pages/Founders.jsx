@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
+import { perkIcon, perkText, perkTitle } from '../booking'
 import { fmtMoney } from '../format'
 import { Brand, Button, Icon, Spinner } from '../ui'
 
@@ -51,23 +52,31 @@ export default function FoundersInvite() {
             <p className="mt-4 text-lg leading-relaxed text-cream/60">{offer.tagline}</p>
           </div>
 
-          <div className="mx-auto mt-10 grid max-w-4xl gap-5 md:grid-cols-5">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 md:col-span-3">
-              <h2 className="font-display text-lg font-semibold text-copper">What founding members hold</h2>
-              <ul className="mt-4 space-y-3">
-                {offer.perks.map((p) => (
-                  <li key={p} className="flex items-start gap-2.5 text-sm leading-relaxed text-cream/75">
-                    <Icon name="check" size={15} className="mt-0.5 shrink-0 text-copper" />{p}
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-5 border-t border-white/10 pt-4 text-sm leading-relaxed text-cream/55">
-                In your first week we'll walk you through the platform personally — and after 5 days
-                we'll check in for your thoughts, what's helped, and what you'd change.
-              </p>
+          {/* Founder privilege badges */}
+          <div className="mx-auto mt-10 grid max-w-4xl gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {offer.perks.map((p) => (
+              <div key={perkTitle(p)} className="rounded-2xl border border-copper/25 bg-white/[0.04] p-5 transition-colors hover:border-copper/60">
+                <span className="inline-flex items-center gap-2 rounded-full border border-copper/40 bg-copper/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-copper">
+                  <Icon name={perkIcon(p)} size={12} /> Founders only
+                </span>
+                <h3 className="mt-3 font-display text-base font-semibold text-cream">{perkTitle(p)}</h3>
+                {perkText(p) && <p className="mt-1.5 text-sm leading-relaxed text-cream/55">{perkText(p)}</p>}
+              </div>
+            ))}
+          </div>
+
+          <div className="mx-auto mt-8 grid max-w-4xl gap-5 md:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+              <h2 className="font-display text-lg font-semibold text-copper">How joining works</h2>
+              <ol className="mt-4 space-y-2.5 text-sm leading-relaxed text-cream/70">
+                <li className="flex gap-2.5"><span className="font-display font-semibold text-copper">1.</span> Claim your seat — no card needed.</li>
+                <li className="flex gap-2.5"><span className="font-display font-semibold text-copper">2.</span> Book your personal onboarding video call with Ellice — we set up your kitchen together and verify your account.</li>
+                <li className="flex gap-2.5"><span className="font-display font-semibold text-copper">3.</span> Your {offer.trial_days || 5}-day free trial unlocks the moment the call's done.</li>
+                <li className="flex gap-2.5"><span className="font-display font-semibold text-copper">4.</span> On day 5 we book your check-in call — your thoughts, what's helped, what you'd change — then you keep your kitchen at the lifetime rate.</li>
+              </ol>
             </div>
 
-            <div className="flex flex-col rounded-2xl border border-copper/40 bg-copper/[0.07] p-6 md:col-span-2">
+            <div className="flex flex-col rounded-2xl border border-copper/40 bg-copper/[0.07] p-6">
               <p className="text-xs font-semibold uppercase tracking-widest text-copper">Lifetime founders rate</p>
               <p className="mt-3 font-display text-5xl font-semibold">
                 {fmtMoney(offer.monthly, offer.currency)}<span className="text-base font-normal text-cream/45">/month</span>
@@ -82,7 +91,7 @@ export default function FoundersInvite() {
                 ) : (
                   <>Onboarding fee <span className="font-semibold text-copper">waived</span> (normally {fmtMoney(offer.compare_onboarding, offer.currency)}).</>
                 )}
-                {offer.trial_days > 0 && <> Starts with a {offer.trial_days}-day free trial — no card needed.</>}
+                {offer.trial_days > 0 && <> {offer.trial_days}-day free trial after your onboarding call — no card needed for the trial.</>}
               </p>
               <div className="flex-1" />
               <Link to={`/register?founders=${code}`} className="mt-6 block">

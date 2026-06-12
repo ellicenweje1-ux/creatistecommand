@@ -8,7 +8,48 @@ this platform; all decisions are hers. (Git-history heads-up: some early commits
 authored under a relative's Google login that was used to access Claude, so older
 commit authorship may show a different name/email — the project is entirely Ellice's.)
 
-## Latest session (2026-06-12, second session — Founders Membership)
+## Latest session (2026-06-12, third wave — onboarding calls, 5-day trial, badges)
+- **Verification-first access**: every new account (founder or standard) must book a
+  **video onboarding session** and have Ellice mark it complete before the workspace
+  opens. Register → status stays `pending` → /onboarding shows a slot picker (Step 1
+  of 2) → booked card with join link → on completion (`Admin → Onboarding`) the user
+  gets `users.onboarded_at` and the **5-day free trial** starts right then
+  (DEFAULT_TRIAL_DAYS=5; boot migrates old 3→5). Gate enforced server-side in
+  `auth._owner_active` + client-side in RequireActive; pre-existing active/trialing
+  users are grandfathered at boot (onboarded_at = created_at).
+- **Booking system** (`routers/onboarding.py`, `frontend/src/booking.jsx`):
+  Mon–Sat 09:00–17:00 slots, 45 min, 14-day horizon, 3h lead, global calendar
+  (everyone books Ellice), double-book → 409, rebook replaces, cancel endpoint,
+  emails to client + SUPPORT_EMAIL. Video link per session: **Zoom** auto-created
+  when ZOOM_ACCOUNT_ID/CLIENT_ID/CLIENT_SECRET set (server-to-server OAuth);
+  `MEETING_URL` env = fixed personal room; default = unique **Jitsi Meet** room
+  (free, zero setup, works in demo).
+- **Admin → Onboarding tab**: Ellice's call calendar (upcoming grouped by date +
+  past), session modal with join link, Complete (= verify & start trial)/no-show/
+  cancel, notes + pasted transcript, **"Summarise with AI"** → Claude key points
+  (summary/key points/action items/feature requests/sentiment) stored on the
+  session (`ai_summary`); 503 without ANTHROPIC_API_KEY.
+- **Founders day-5 = a call now**: check-in modal leads with a slot picker
+  (kind=checkin, founders-only) + the 3 written questions as optional prep;
+  booking the call or sending the form clears the nag; booked call shown in
+  Settings founders card + admin Founders/Onboarding tabs. days_in counts from
+  onboarded_at (trial start).
+- **Founders invite page badges**: perks are now structured {icon,title,text}
+  badge cards ("Founders only" chips) incl. new **Testimonial spotlight** (logo on
+  site + direct link to their business as advertising) + "How joining works"
+  4-step (call-first). Old string perks migrate at boot. (Logo-wall on the public
+  landing page not built yet — perk is promised, collect logos via avatar_url
+  later.)
+- **Stripe trial billing**: checkout during trial now passes
+  `subscription_data.trial_period_days` = remaining trial days → card taken at
+  subscribe, first charge lands when the trial ends (auto-renews after). Demo mode
+  unchanged. "No card needed" copy everywhere now says *for the trial*.
+- Verified end-to-end (API + Playwright): register→pending→402 w/ booking message,
+  book slot, 409 double-book, admin completes → trialing w/ +5d trial & workspace
+  200, founder day-5 modal books real check-in call, AI summarize 503s gracefully,
+  founders activation still £59/waived.
+
+## Previous session (2026-06-12, second session — Founders Membership)
 - Built the **Founders Membership**: a private, invite-only launch programme for the
   platform's first chefs. Developed on `claude/vibrant-newton-jah29i` — merge to
   `main` to deploy.

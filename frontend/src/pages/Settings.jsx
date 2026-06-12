@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
+import { perkIcon, perkTitle } from '../booking'
 import { cls, fmtMoney, label, SYMBOLS } from '../format'
 import { Badge, Button, Card, Field, Icon, Input, PageHeader, Select, toast, toastErr } from '../ui'
 
@@ -89,22 +90,32 @@ export default function Settings() {
                 </p>
                 <ul className="space-y-1.5">
                   {(founders.perks || []).map((p) => (
-                    <li key={p} className="flex items-start gap-2 leading-relaxed text-fg/70">
-                      <Icon name="star" size={13} className="mt-0.5 shrink-0 text-copper" />{p}
+                    <li key={perkTitle(p)} className="flex items-start gap-2 leading-relaxed text-fg/70">
+                      <Icon name={perkIcon(p)} size={13} className="mt-0.5 shrink-0 text-copper" />{perkTitle(p)}
                     </li>
                   ))}
                 </ul>
                 <div className="flex items-center justify-between border-t border-line/70 pt-3">
                   <span className="text-fg/60">Member since</span><span>{founders.founder_since || '—'}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-fg/60">Day-{founders.check_in_after_days} check-in</span>
-                  {founders.feedback_submitted
-                    ? <Badge tone="sage">submitted — thank you</Badge>
-                    : founders.check_in_due
-                      ? <Badge tone="copper">due — see the pop-up on your dashboard</Badge>
-                      : <Badge tone="gray">day {founders.days_in} of {founders.check_in_after_days}</Badge>}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-fg/60">Day-{founders.check_in_after_days} check-in call</span>
+                  {founders.checkin_call
+                    ? <Badge tone={founders.checkin_call.status === 'completed' ? 'sage' : 'copper'}>
+                        {founders.checkin_call.status === 'completed' ? 'done — thank you' : `booked · ${founders.checkin_call.date} ${founders.checkin_call.start_time}`}
+                      </Badge>
+                    : founders.feedback_submitted
+                      ? <Badge tone="sage">feedback sent — thank you</Badge>
+                      : founders.check_in_due
+                        ? <Badge tone="copper">due — see the pop-up on your dashboard</Badge>
+                        : <Badge tone="gray">day {founders.days_in} of {founders.check_in_after_days}</Badge>}
                 </div>
+                {founders.checkin_call?.status === 'booked' && (
+                  <a href={founders.checkin_call.meeting_url} target="_blank" rel="noreferrer"
+                    className="block text-right text-xs font-medium text-copper hover:underline">
+                    Join your check-in call →
+                  </a>
+                )}
               </div>
             </Card>
           )}

@@ -52,8 +52,28 @@ ADMIN_NAME = os.getenv("ADMIN_NAME", "Platform Admin")
 # your own domain's inbox later (e.g. support@thecreatiste.com) without code changes.
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "") or ADMIN_EMAIL
 
-# New chefs get this many free-trial days before paying onboarding + first month.
-DEFAULT_TRIAL_DAYS = int(os.getenv("DEFAULT_TRIAL_DAYS", "3"))
+# New chefs get this many free-trial days. The trial clock starts when their
+# onboarding session is marked complete (verification-first), not at signup.
+DEFAULT_TRIAL_DAYS = int(os.getenv("DEFAULT_TRIAL_DAYS", "5"))
+
+# Onboarding & check-in video calls -----------------------------------------------------------
+# Bookable slots offered to clients (times are local to the business day, kept naive
+# like every other date/time in the app).
+ONBOARDING_SLOT_MINUTES = int(os.getenv("ONBOARDING_SLOT_MINUTES", "45"))
+ONBOARDING_DAY_START = int(os.getenv("ONBOARDING_DAY_START", "9"))    # first slot 09:00
+ONBOARDING_DAY_END = int(os.getenv("ONBOARDING_DAY_END", "18"))       # last slot starts 17:00
+ONBOARDING_DAYS_AHEAD = int(os.getenv("ONBOARDING_DAYS_AHEAD", "14"))  # booking horizon
+ONBOARDING_WEEKDAYS = {0, 1, 2, 3, 4, 5}  # Mon–Sat (datetime.weekday numbers)
+
+# Zoom (preferred video platform) — set all three to auto-create real Zoom meetings
+# via the server-to-server OAuth app. Without them the platform generates a private
+# Jitsi Meet room per session (free, no account, works in any browser) so the whole
+# flow stays testable in demo mode. MEETING_URL overrides both (e.g. your personal
+# Zoom room link) — every session then uses that one link.
+ZOOM_ACCOUNT_ID = os.getenv("ZOOM_ACCOUNT_ID", "")
+ZOOM_CLIENT_ID = os.getenv("ZOOM_CLIENT_ID", "")
+ZOOM_CLIENT_SECRET = os.getenv("ZOOM_CLIENT_SECRET", "")
+MEETING_URL = os.getenv("MEETING_URL", "")
 
 # Email notifications (optional — silently disabled when unset)
 SMTP_HOST = os.getenv("SMTP_HOST", "")
@@ -78,12 +98,21 @@ DEFAULT_FOUNDERS = {
     "monthly": 59,      # lifetime rate — never rises while the membership stays active
     "onboarding": 0,    # 0 = onboarding fee waived for founders
     "spots": 10,        # maximum number of founding members
+    # Structured "badge" perks shown on the invite page (icon names from frontend ui.jsx).
+    # Frontend also accepts plain strings for backwards compatibility.
     "perks": [
-        "Full Elite Kitchen access at a lifetime founders rate — locked for as long as you stay",
-        "Onboarding fee waived, with a personal walkthrough to get you started",
-        "A direct line to the founder — your requests jump the queue",
-        "Real influence over the roadmap — founders shape what gets built next",
-        "Founding member badge & number — early-adopter recognition, forever",
+        {"icon": "coins", "title": "Lifetime discount",
+         "text": "Full Elite Kitchen access at the founders rate — locked for as long as you stay, no matter what prices do later."},
+        {"icon": "sparkle", "title": "Onboarding fee waived",
+         "text": "Your one-time setup fee is waived, and your onboarding session is a personal video call to get you started."},
+        {"icon": "phone", "title": "Direct access to the founder",
+         "text": "A direct line for anything you need — your requests jump the queue, founder to founder."},
+        {"icon": "bulb", "title": "Influence over future features",
+         "text": "A real say in the roadmap: your day-5 feedback call and ongoing input shape what gets built next."},
+        {"icon": "star", "title": "Early adopter recognition",
+         "text": "A numbered founding-member badge on your account — your place in the story, forever."},
+        {"icon": "external", "title": "Testimonial spotlight",
+         "text": "Your logo featured on our site with a direct link to your business — free advertising as a founding kitchen."},
     ],
 }
 
