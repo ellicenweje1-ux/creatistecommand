@@ -2,6 +2,9 @@
 
 Read this first in every new session. It replaces lost chat history.
 
+**Founder / platform owner:** Ellice Nweje — founder of The Creatiste Command
+(account owner, ellicenweje1@gmail.com).
+
 ## Latest session (2026-06-12, second session — Founders Membership)
 - Built the **Founders Membership**: a private, invite-only launch programme for the
   platform's first chefs. Developed on `claude/vibrant-newton-jah29i` — merge to
