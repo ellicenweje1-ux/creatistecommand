@@ -8,7 +8,40 @@ this platform; all decisions are hers. (Git-history heads-up: some early commits
 authored under a relative's Google login that was used to access Claude, so older
 commit authorship may show a different name/email — the project is entirely Ellice's.)
 
-## Latest session (2026-06-12, third wave — onboarding calls, 5-day trial, badges)
+## Latest session (2026-06-12, fourth wave — landing intro film + hook sections)
+- **Embedded intro film** on the public landing page (`frontend/src/introfilm.jsx`,
+  branch `claude/nice-tesla-az74mn`): a 6-scene, ~70s animated brand film that looks
+  and behaves like a video player (poster + play button, segmented click-to-seek
+  progress, pause/resume, restart, mute) but is pure React/CSS — no video file to
+  host, crisp at any size, always on-brand. **Warm female voiceover** via the
+  browser's SpeechSynthesis: `pickVoice()` prefers female en-GB voices (Sonia/Libby/
+  Kate/"Google UK English Female"…), rate .95/pitch 1.06; speech text spells the
+  brand phonetically ("Cree-ay-teest") so every engine pronounces it right, captions
+  show the real spelling and run always (graceful fallback where TTS is missing —
+  sound icon dims, scenes advance on timers). Scenes: hook questions ("Have you ever
+  been in a position where…"), exact welcome line Ellice specified ("…the
+  comprehensive management platform and one-stop shop designed for chefs, caterers
+  and all culinary professionals"), feature montage, chaos→"one command centre" gap
+  story, CTA end-card → /register. Scene timing waits for BOTH the per-scene timer
+  AND utterance end (8s safety cap); pause cancels speech and resume restarts the
+  current scene so voice/motion stay in sync; `.if-*` keyframes live in index.css.
+- **Landing page additions** (`pages/Landing.jsx`): hero now has "Watch the intro ·
+  1 min" → `#film` section (dark, framed); new `#why` section = 4 "Have you ever…?"
+  hook cards (each pain → how the platform answers it) + "The gap we fill" panel
+  ("You were trained for the pass — not the paperwork"); nav links The intro / Why
+  Creatiste / Pricing. New icons in ui.jsx: play/pause/replay/sound/soundOff.
+- **GOTCHA — never use Tailwind `text-base` in this repo**: the theme defines a
+  *colour* token named `base`, so Tailwind emits BOTH font-size and colour rules for
+  `text-base` and the colour (= page background!) wins → invisible text. Existing
+  uses survive only because an explicit text-colour class happens to sort later.
+  Use `text-[16px]` instead. (Bit the film twice via `sm:`/`md:` variants.)
+- Verified with Playwright (desktop + 390px mobile, dark + light themes): poster →
+  play → captions/scene visuals per scene, seek via segments, pause/resume, mute
+  toggle, end-card CTA → /register, hooks/gap/pricing sections render, no console
+  errors. NOTE: headless chromium has no TTS voices — voiceover needs a quick
+  listen on a real device after deploy (Chrome/Edge/Mac/iOS all ship female voices).
+
+## Previous session (2026-06-12, third wave — onboarding calls, 5-day trial, badges)
 - **Verification-first access**: every new account (founder or standard) must book a
   **video onboarding session** and have Ellice mark it complete before the workspace
   opens. Register → status stays `pending` → /onboarding shows a slot picker (Step 1

@@ -3,7 +3,22 @@ import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls, fmtMoney } from '../format'
+import IntroFilm from '../introfilm'
 import { Brand, Button, Icon } from '../ui'
+
+const HOOKS = [
+  { icon: 'doc', q: '…one event lived in your notes app, another in a spreadsheet — and the timings only in your head?', a: 'Here, every booking keeps its menu, guest count, dietaries, tasks and lists attached to it.' },
+  { icon: 'truck', q: '…you packed the van at 2 a.m., hoping nothing was left on the kitchen floor?', a: 'Packing checklists per event mean the chafers, signage and serving spoons all make the trip.' },
+  { icon: 'coins', q: '…you quoted a 120-guest menu from memory — and felt it on the night you underpriced?', a: 'Build quotes properly, send a link your client approves from their phone, then invoice from the same screen.' },
+  { icon: 'mail', q: '…a dream client enquired mid-service, and the message sat unread until they booked elsewhere?', a: 'A branded enquiry form feeds new leads straight into your bookings diary, so nothing slips.' },
+]
+
+const GAP_POINTS = [
+  'One subscription that replaces six scattered apps',
+  'Built around real prep days — shop runs, van packs, service timelines',
+  'From first enquiry to final invoice without switching tabs',
+  'With you on the move: at the market, in the van, at the pass',
+]
 
 const FEATURES = [
   { icon: 'calendar', title: 'Bookings & calendar', text: 'Every enquiry, quote and confirmed event in one diary — guest counts, venues, menus and dietary flags attached.' },
@@ -46,6 +61,8 @@ export default function Landing() {
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
         <Brand />
         <nav className="flex items-center gap-2">
+          <a href="#film" className="hidden px-3 text-sm font-medium text-fg/60 hover:text-fg md:block">The intro</a>
+          <a href="#why" className="hidden px-3 text-sm font-medium text-fg/60 hover:text-fg md:block">Why Creatiste</a>
           <a href="#pricing" className="hidden px-3 text-sm font-medium text-fg/60 hover:text-fg sm:block">Pricing</a>
           {user ? (
             <Link to="/app"><Button variant="dark">Open the app</Button></Link>
@@ -72,7 +89,7 @@ export default function Landing() {
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Link to={user ? '/app' : '/register'}><Button size="lg" icon="arrowRight">Start commanding your kitchen</Button></Link>
-          <a href="#features"><Button size="lg" variant="secondary">See what's inside</Button></a>
+          <a href="#film"><Button size="lg" variant="secondary" icon="play">Watch the intro · 1 min</Button></a>
         </div>
         <div className="mt-12 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-4">
           {[['10,000×', 'less chaos on prep day'], ['1 place', 'for stock, shops & schedules'], ['0 lost', 'on-the-spot ideas'], ['24/7', 'in your pocket']].map(([big, small]) => (
@@ -81,6 +98,65 @@ export default function Landing() {
               <p className="mt-1 text-sm text-fg/55">{small}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* The introduction film */}
+      <section id="film" className="bg-ink py-16 text-cream md:py-20">
+        <div className="mx-auto max-w-4xl px-5">
+          <div className="text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-copper">The introduction</p>
+            <h2 className="mt-3 font-display text-3xl font-semibold md:text-4xl">
+              One minute inside <em className="italic text-copper">your new command centre.</em>
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-cream/55">
+              Press play for a guided welcome — what The Creatiste Command is, who it&rsquo;s built for,
+              and the gap it closes between your kitchen and your admin. Sound on for the voiceover; captions run throughout.
+            </p>
+          </div>
+          <div className="mt-9">
+            <IntroFilm ctaTo={user ? '/app' : '/register'} ctaLabel={user ? 'Open the app' : 'Start your free trial'} />
+          </div>
+        </div>
+      </section>
+
+      {/* Why this exists — the hooks + the gap */}
+      <section id="why" className="mx-auto max-w-6xl px-5 py-16 md:py-20">
+        <p className="text-xs font-semibold uppercase tracking-[0.25em] text-copper">Why this exists</p>
+        <h2 className="mt-3 font-display text-3xl font-semibold md:text-4xl">Have you ever been in a position where…</h2>
+        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+          {HOOKS.map((h) => (
+            <div key={h.icon} className="rounded-xl border border-line bg-card p-5 shadow-card">
+              <div className="flex items-start gap-3.5">
+                <span className="rounded-lg bg-copper/10 p-2.5 text-copper"><Icon name={h.icon} size={19} /></span>
+                <div>
+                  <p className="font-display text-lg font-semibold leading-snug">{h.q}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-fg/55">{h.a}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-6 grid gap-8 rounded-2xl border border-copper/30 bg-ink p-6 text-cream md:grid-cols-2 md:p-9">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-copper">The gap we fill</p>
+            <h3 className="mt-2 font-display text-2xl font-semibold leading-snug md:text-3xl">
+              You were trained for the pass — <em className="italic text-copper">not the paperwork.</em>
+            </h3>
+            <p className="mt-3 text-sm leading-relaxed text-cream/60">
+              Restaurant software assumes a manager&rsquo;s office. Generic to-do apps don&rsquo;t know what a tasting,
+              a van pack or an allergen matrix is. So independent chefs and caterers end up being the brigade, the office
+              and the delivery driver — across six apps and a notebook. The Creatiste Command closes that gap:
+              one purpose-built command centre for the whole job.
+            </p>
+          </div>
+          <ul className="space-y-3 self-center">
+            {GAP_POINTS.map((p) => (
+              <li key={p} className="flex items-start gap-2.5 text-sm leading-relaxed text-cream/80">
+                <Icon name="check" size={16} className="mt-0.5 shrink-0 text-copper" />{p}
+              </li>
+            ))}
+          </ul>
         </div>
       </section>
 
