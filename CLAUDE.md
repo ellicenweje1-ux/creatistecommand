@@ -10,9 +10,13 @@ sessions; this file is the continuity bridge between sessions/accounts.
 
 ## Deployment (IMPORTANT)
 - Hosted on **Render** (web service, native Python runtime, free tier so far).
-- **Render deploys from branch `claude/vigilant-volta-da1cu9`** — until `main` becomes
-  the canonical branch, push follow-up work to that branch (or merge into it) or the
-  live site won't update.
+- **`main` is now the canonical branch** (created 2026-06-12 from
+  `claude/vigilant-volta-da1cu9`, identical at creation). Merge/push finished work
+  to `main` so the live site updates.
+- One-time owner flips (each ~30s, may still be pending): Render → Settings →
+  Build & Deploy → Branch → `main`; GitHub → repo Settings → General → Default
+  branch → `main`. If a push to `main` doesn't trigger a deploy, the Render flip
+  hasn't happened yet and Render is still watching `claude/vigilant-volta-da1cu9`.
 - Build command: `pip install -r backend/requirements.txt && cd frontend && npm install && npm run build`
 - Start command: `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 - Env vars on Render: `SECRET_KEY`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `APP_URL`,
@@ -84,5 +88,5 @@ it matches the calling shell and kills it).
 - Wire real Stripe keys + webhook; add `ANTHROPIC_API_KEY` for Mise; SMTP for email.
 - Custom domain + `SUPPORT_EMAIL` swap.
 - Plan switching from the chef dashboard (currently via admin/support).
-- Consider making `main` the deploy branch (merge `claude/vigilant-volta-da1cu9`
-  into `main`, flip Render's branch setting) so future sessions merge cleanly.
+- (done 2026-06-12) `main` created as the canonical branch — see Deployment for
+  the two one-time dropdown flips (Render deploy branch + GitHub default branch).
