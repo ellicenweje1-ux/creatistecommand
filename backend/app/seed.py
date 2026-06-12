@@ -38,7 +38,7 @@ def run():
 
         chef = User(
             email=DEMO_EMAIL, password_hash=hash_password(DEMO_PASSWORD),
-            name="Caroline Imoesiri", business_name="The Creatiste Kitchen",
+            name="Ellice Nweje", business_name="The Creatiste Kitchen",
             phone="+44 7700 900123", subscription_status="active", plan="elite", onboarding_paid=True,
         )
         db.add(chef)

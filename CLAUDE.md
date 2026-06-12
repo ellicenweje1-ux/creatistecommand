@@ -3,11 +3,10 @@
 Read this first in every new session. It replaces lost chat history.
 
 **Founder / platform owner:** Ellice Nweje — founder of The Creatiste Command
-(account owner, ellicenweje1@gmail.com). NOTE on "Caroline" in older notes: that's
-Ellice's aunt, who runs **The Creatiste Catering**. The project previously ran under
-Caroline's account, so earlier sessions credited her as owner — but the founder
-directing this project is **Ellice**. Caroline is a separate person; some
-operational lines below still say "Caroline" where they now mean Ellice.
+(account owner, ellicenweje1@gmail.com). Ellice runs The Creatiste Catering and built
+this platform; all decisions are hers. (Git-history heads-up: some early commits were
+authored under a relative's Google login that was used to access Claude, so older
+commit authorship may show a different name/email — the project is entirely Ellice's.)
 
 ## Latest session (2026-06-12, second session — Founders Membership)
 - Built the **Founders Membership**: a private, invite-only launch programme for the
@@ -16,7 +15,7 @@ operational lines below still say "Caroline" where they now mean Ellice.
 - How it works (all editable live in **Admin → Founders**):
   - Secret invite link `/founders/<code>` (code auto-generated at bootstrap, stored
     in `platform_settings.founders` JSON). Never linked from public pages; wrong
-    code and closed programme both 404 identically. Caroline shares it by hand.
+    code and closed programme both 404 identically. Ellice shares it by hand.
   - Limited **founding seats** (default 10). Full Elite access (`plan="founders"`,
     level 3) at a **lifetime rate** (default £59/mo vs £129 Elite) with the
     onboarding fee **waived** (default £0 vs £399). Normal 3-day trial still applies.
@@ -26,7 +25,7 @@ operational lines below still say "Caroline" where they now mean Ellice.
   - **Walkthrough onboarding**: 5-step welcome tour on first login (persisted via
     `users.tour_done`); last step sets up the day-5 catch-up expectation.
   - **Day-5 check-in** (`CHECK_IN_AFTER_DAYS=5` in routers/founders.py): modal asks
-    Caroline's 3 questions (thoughts / how it benefited / what to change) →
+    Ellice's 3 questions (thoughts / how it benefited / what to change) →
     `founder_feedback` table + email to SUPPORT_EMAIL; snoozable per session,
     reappears until sent.
   - **Direct line**: founders' support tickets get "[Founders direct line #N]" in
@@ -44,7 +43,7 @@ operational lines below still say "Caroline" where they now mean Ellice.
   backdated day-5 check-in → admin reads feedback → close programme kills link).
 - **Pick up here:** wire real Stripe keys + webhook (founders checkout already
   builds the right line items); then SMTP so founder check-ins/support actually
-  email Caroline.
+  email Ellice.
 
 ## Previous session (2026-06-12)
 - Moved the project onto the owner's own GitHub + Claude Code account (the only
@@ -58,10 +57,10 @@ operational lines below still say "Caroline" where they now mean Ellice.
 
 ## What this is
 **The Creatiste Command** — a subscription SaaS platform for private chefs & caterers,
-founded by Ellice Nweje. (The Creatiste Catering is the namesake catering business run
-by Ellice's aunt Caroline; earlier sessions ran under Caroline's account.) Chefs pay a
-one-time onboarding fee + monthly subscription; the founder is the platform admin. Built
-end-to-end in Claude Code sessions; this file is the continuity bridge between sessions.
+founded by Ellice Nweje (who also runs the namesake catering business, The Creatiste
+Catering). Chefs pay a one-time onboarding fee + monthly subscription; Ellice is the
+platform admin. Built end-to-end in Claude Code sessions; this file is the continuity
+bridge between sessions.
 
 ## Deployment (IMPORTANT)
 - Hosted on **Render** (web service, native Python runtime, free tier so far).
@@ -77,17 +76,17 @@ end-to-end in Claude Code sessions; this file is the continuity bridge between s
 - Env vars on Render: `SECRET_KEY`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `APP_URL`,
   `PYTHON_VERSION=3.11.9`. Not yet set: `ANTHROPIC_API_KEY` (enables Mise),
   `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` (real payments; demo mode without),
-  `SMTP_*` (email notifications), `SUPPORT_EMAIL` (support inbox — Caroline will
+  `SMTP_*` (email notifications), `SUPPORT_EMAIL` (support inbox — Ellice will
   point this at her own domain later), `DATA_DIR=/var/data` (only after adding a
   paid persistent disk — **free tier wipes the SQLite DB on every deploy/restart**).
 
-## Brand (exact spec from Caroline — do not drift)
+## Brand (exact spec from Ellice — do not drift)
 - Gold `#BFA987`, ivory `#FFFBF5`, true black background. Dark "signature" theme is
   default; light mode toggle in Settings (theme tokens are CSS vars in
   `frontend/src/index.css`; Tailwind maps them in `tailwind.config.js` — `copper`
   is the gold accent token name, kept for history).
 - Font: **The Seasons** (Canva premium, not web-licensed) → substituted with
-  **Playfair Display**. If Caroline buys the web licence, embed the real file.
+  **Playfair Display**. If Ellice buys the web licence, embed the real file.
 - Wordmark: "THE CREATISTE" gold caps + "command" lowercase italic ivory, letters
   justified to the same width (see `Brand` in `frontend/src/ui.jsx`).
 
@@ -144,7 +143,7 @@ it matches the calling shell and kills it).
 - Render free tier sleeps + wipes SQLite on each deploy; upsell the disk before
   real customers.
 
-## Likely next steps (Caroline's roadmap)
+## Likely next steps (Ellice's roadmap)
 - Wire real Stripe keys + webhook; add `ANTHROPIC_API_KEY` for Mise; SMTP for email.
 - Custom domain + `SUPPORT_EMAIL` swap.
 - Plan switching from the chef dashboard (currently via admin/support).

@@ -55,7 +55,7 @@ export default function AuthPage({ mode }) {
           <div className="mt-6 space-y-4">
             {!isLogin && (
               <>
-                <Field label="Your name"><Input value={form.name} onChange={set('name')} placeholder="Chef Caroline" required /></Field>
+                <Field label="Your name"><Input value={form.name} onChange={set('name')} placeholder="Chef Ellice" required /></Field>
                 <Field label="Business name"><Input value={form.business_name} onChange={set('business_name')} placeholder="The Creatiste Kitchen" /></Field>
               </>
             )}
