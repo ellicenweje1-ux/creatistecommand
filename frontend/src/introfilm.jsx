@@ -38,8 +38,8 @@ const SCENES = [
   {
     key: 'everything',
     dur: 13000,
-    caption: 'Bookings, tastings and clients. Recipes, inventory, shopping and packing. Quotes, invoices and finances. Your team, routes and suppliers — and Mise, your AI sous-chef.',
-    speech: 'Bookings, tastings and clients. Recipes, inventory, shopping and packing. Quotes, invoices and finances. Your team, your routes, your suppliers — and Mise, your A.I. sous-chef.',
+    caption: 'Bookings, tastings and clients. Recipes, inventory, shopping and packing. Quotes, invoices and finances. Your team, routes and suppliers — and Mise, your AI sous-chef (as in mise en place).',
+    speech: 'Bookings, tastings and clients. Recipes, inventory, shopping and packing. Quotes, invoices and finances. Your team, your routes, your suppliers — and Meez, your A.I. sous-chef — as in meez-on-plass.',
     View: SceneEverything,
   },
   {

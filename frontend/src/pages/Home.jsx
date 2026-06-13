@@ -298,7 +298,7 @@ const GROUPS = [
       },
       {
         key: 'mise', icon: 'sparkle', label: 'Mise AI', title: 'Mise — your AI sous-chef', to: '/app/recipes', min: 3, cta: 'Open Recipes — Mise lives there',
-        blurb: 'Drafts recipes, builds shopping lists from menus minus stock, and plans prep backwards from event day.',
+        blurb: 'Named for mise en place — everything in its place before service. Drafts recipes, builds shopping lists from menus minus stock, and plans prep backwards from event day.',
         benefits: [
           'First drafts in seconds — you stay on the chef part: judgement',
           'Shopping lists computed from the menu minus what’s already in stock',

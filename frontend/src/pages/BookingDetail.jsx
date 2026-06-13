@@ -263,7 +263,7 @@ export default function BookingDetail() {
             </Card>
 
             <Card title="Mise — your AI sous-chef">
-              <p className="mb-3 text-xs text-fg/50">Mise preps the boring parts — menus, lists, plans. Review before applying.</p>
+              <p className="mb-3 text-xs text-fg/50">True to its name — <em>mise en place</em> — Mise preps the boring parts: menus, lists, plans. Review before applying.</p>
               <div className="space-y-2">
                 <Input placeholder="Menu brief (e.g. 'summer garden party, 3 courses')" value={aiBrief} onChange={(e) => setAiBrief(e.target.value)} />
                 <Button className="w-full" variant="secondary" icon="sparkle"

@@ -8,7 +8,38 @@ this platform; all decisions are hers. (Git-history heads-up: some early commits
 authored under a relative's Google login that was used to access Claude, so older
 commit authorship may show a different name/email — the project is entirely Ellice's.)
 
-## Latest session (2026-06-12, sixth wave — offline mobile app (PWA) + Stripe hardening)
+## Latest session (2026-06-13, seventh wave — full platform review + "mise en place" copy)
+- Branch `claude/adoring-davinci-9pfah3` — merge to `main` to deploy.
+- **Mise now explains its own name at a glance** everywhere it's described (Ellice's
+  request): Landing feature card, Home module-guide bubble, Support FAQ ("What is
+  Mise?"), Settings card, BookingDetail AI card, intro-film montage caption (speech
+  track says it phonetically: "Meez … meez-on-plass"), ai.py SUPPORT_SYSTEM knowledge,
+  README. Standard wording: "Named for/after mise en place — everything in its place
+  before service." Plan-JSON feature bullets deliberately untouched (they live in the
+  DB; a code change wouldn't roll forward and could clobber live pricing edits).
+- **Full review delivered in-chat.** Top findings to action in future sessions:
+  1. **No password-reset flow at all** (not even admin-side set-password) — a locked-out
+     chef has no recovery path. Highest-priority gap.
+  2. **No Terms of Service / Privacy Policy pages or links** — needed before charging
+     real cards (UK GDPR + Stripe good practice). Footer/register should link them.
+  3. Onboarding call slots: admin has **no way to block out days/holidays**, and slot
+     times are naive-UTC (off by 1h vs UK during BST) — pin to Europe/London.
+  4. `admin.delete_chef` leaves orphans: staff Users, Quote, Supplier, SupplierPrice,
+     PackingList, Appointment, Shift, ActivityLog, OnboardingSession, FounderFeedback.
+  5. Intro-film verdict (the "slideshow + robotic voice" niggle): keep the React scene
+     engine, replace browser TTS with a **recorded ~70s voiceover MP3** (Ellice's own
+     voice, or a one-time ElevenLabs render) put in `frontend/public/`, drive scene
+     advance/seek from `audio.currentTime`, keep TTS only as no-file fallback; add
+     crossfades/Ken Burns drift + an animated app-UI vignette scene. Awaiting Ellice's
+     choice of voice source before building.
+  6. When Mise goes live, consider `AI_MODEL=claude-sonnet-4-6` (~5x cheaper than Opus,
+     fine for Mise's structured-JSON jobs) — it's just an env var.
+  7. Smaller suggestions: OG/social-preview meta tags (index.html has none — bio links
+     share with no card), ICS calendar feed of bookings/tastings, CSV export (clients/
+     finance), admin SQLite-backup download, rate-limit/honeypot the public enquiry
+     form, drop `.svg` from ALLOWED_UPLOAD_EXT (stored-XSS vector when opened directly).
+
+## Previous session (2026-06-12, sixth wave — offline mobile app (PWA) + Stripe hardening)
 - Branch `claude/magical-planck-l54gva` — merge to `main` to deploy.
 - **The platform is now an installable mobile app (PWA) that works fully offline.**
   No app store needed: chefs install from the browser (Android/desktop: "Install app";

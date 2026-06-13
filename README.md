@@ -31,7 +31,7 @@ Chefs pay a **one-time onboarding fee + monthly subscription** to join; you (the
 | **Public enquiry form** | Shareable branded link that feeds enquiries straight into Bookings (and emails the owner) |
 | **Team** | Staff logins scoped to the owner's workspace, rota/shifts, owner-set assignments, and a full **activity audit trail** of every change |
 | **Email notifications** | Enquiries, quote responses and staff assignments (SMTP-based, optional) |
-| **Mise — AI sous-chef** | Claude-powered: generate recipe sheets, **build shopping lists from a booking's menu minus current stock**, draft full prep plans working back from event day, suggest menus from client preferences, polish rough ideas |
+| **Mise — AI sous-chef** | Claude-powered, named after *mise en place* (everything in its place before service): generate recipe sheets, **build shopping lists from a booking's menu minus current stock**, draft full prep plans working back from event day, suggest menus from client preferences, polish rough ideas |
 | **Admin** | Platform owner only: chef accounts, subscription statuses, plan & pricing editor, trial settings, MRR / revenue / payment history |
 
 ## Tech stack

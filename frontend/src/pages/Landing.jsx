@@ -36,7 +36,7 @@ const FEATURES = [
   { icon: 'tag', title: 'Supplier price book', text: 'Keep every supplier\u2019s prices in one book and instantly see who sells an item cheapest.' },
   { icon: 'layout', title: 'Design studio', text: 'Floor plans with tables, stations and bars — plus pens, lines, shapes and colours to sketch freely.' },
   { icon: 'bulb', title: 'My Brain', text: 'Offload ideas, reminders and things to keep in mind the second they strike — captured before they\u2019re clouded by a million things.' },
-  { icon: 'sparkle', title: 'Mise — your AI sous-chef', text: 'Mise drafts recipes, builds shopping lists from menus minus stock, and plans prep timelines back from event day.' },
+  { icon: 'sparkle', title: 'Mise — your AI sous-chef', text: 'Named for mise en place — everything in its place before service. Mise drafts recipes, builds shopping lists from menus minus stock, and plans prep timelines back from event day.' },
   { icon: 'coins', title: 'Quotes, invoices & finances', text: 'Quote, invoice, log expenses and watch profit per month — without leaving your command centre.' },
   { icon: 'shield', title: 'Built for the move', text: 'Fully responsive: at the pass, in the van, at the market. Your whole operation in your pocket.' },
 ]

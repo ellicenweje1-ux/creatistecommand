@@ -14,7 +14,7 @@ const FAQS = [
   ['What is the onboarding session?',
    'A short video call with the platform founder before your workspace opens: we set up your kitchen together, answer questions and verify your account. You book it right after signing up, and you can rebook the time whenever you need.'],
   ['What is Mise?',
-   'Mise is your AI sous-chef (Elite plan). It drafts recipe sheets from a sentence, builds a shopping list from a booking’s menu minus what’s already in stock, plans prep timelines backwards from event day, suggests menus from client preferences and polishes rough notes in My Brain.'],
+   'Mise is your AI sous-chef (Elite plan), named after mise en place — the chef’s discipline of having everything prepped and in its place before service. It drafts recipe sheets from a sentence, builds a shopping list from a booking’s menu minus what’s already in stock, plans prep timelines backwards from event day, suggests menus from client preferences and polishes rough notes in My Brain.'],
   ['How do staff logins work?',
    'On the Elite plan, go to Team → Staff and create a login for each team member. They sign in with their own email, see the workspace, work their rota and assignments — and every change they make is recorded in Team → Activity for the owner to review. Staff never see Finance or Quotes.'],
   ['How do client quote approvals work?',

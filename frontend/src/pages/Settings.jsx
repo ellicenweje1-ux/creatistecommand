@@ -228,9 +228,9 @@ export default function Settings() {
 
           <Card title="Mise — your AI sous-chef">
             <p className="text-sm text-fg/65">
-              Mise handles your mise en place before you tie your apron: drafts recipe sheets, builds
-              shopping lists from a menu minus your stock, plans prep timelines back from event day and
-              polishes rough ideas.{' '}
+              Named after <em>mise en place</em> — everything in its place before service — Mise handles
+              yours before you tie your apron: drafts recipe sheets, builds shopping lists from a menu
+              minus your stock, plans prep timelines back from event day and polishes rough ideas.{' '}
               {aiStatus?.enabled
                 ? <>Mise is <span className="font-medium text-sage">enabled</span> (model: {aiStatus.model}).</>
                 : <>Mise is <span className="font-medium text-red-600">not configured</span> — the platform owner needs to set <code className="rounded bg-fg/5 px-1">ANTHROPIC_API_KEY</code> on the server.</>}
