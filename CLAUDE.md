@@ -75,6 +75,15 @@ commit authorship may show a different name/email — the project is entirely El
   when live); demo mode + Settings cards (desktop + 390px) + Mise 503s re-verified.
 - Offline limits (by design, v1): no file uploads / AI / payments offline; conflict
   policy is last-write-wins; first offline boot needs one prior online login.
+- Addendum (same session, after launch-night setup with Ellice): Home module guide
+  gained a 22nd bubble — **Mobile app** (Help & housekeeping, new `mobile` icon in
+  ui.jsx, every plan, staff included → counts now 22 owner / 20 staff) explaining
+  install + offline + sync, CTA → Settings. Ellice completed the live setup herself:
+  merged to main (PR #1), created a **dedicated Stripe account "Creatiste Command"**
+  under her Stripe Organisation (separate from the Studios/SimplyBook account — its
+  sk_live key + webhook + customer portal all configured per the in-chat walkthrough).
+  ANTHROPIC_API_KEY deliberately deferred until first paying chef (cost reasons) —
+  Mise stays gracefully disabled meanwhile.
 
 ## Previous session (2026-06-12, fifth wave — tier comparison table + portal Home guide)
 - Branch `claude/determined-carson-cogamv` — merge to `main` to deploy.

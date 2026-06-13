@@ -317,6 +317,23 @@ const GROUPS = [
     label: 'Help & housekeeping',
     modules: [
       {
+        key: 'mobileapp', icon: 'mobile', label: 'Mobile app', title: 'The mobile app — yours, even offline', to: '/app/settings',
+        cta: 'Open Settings — install from there',
+        blurb: 'Install the platform on your phone like a real app — and keep working with no signal: basement kitchens, marquees in a field, mid-flight.',
+        benefits: [
+          'Installs from the browser in two taps — no app store, nothing to update',
+          'Everything you’ve viewed works offline: bookings, recipes, lists, tasks',
+          'Offline changes save on the device and sync to the cloud the moment you’re back',
+        ],
+        how: [
+          'Open Settings → “Use it as an app” and follow the one-tap install for your phone',
+          'Open your key modules once while online — that’s what makes them available offline',
+          'Work normally with no signal; the amber chip counts the changes waiting to sync',
+          'Reconnect and watch the sync toast — your edits land in the cloud by themselves',
+        ],
+        tip: 'Open tomorrow’s booking, lists and recipes over breakfast Wi-Fi — then the venue’s dead spot can’t touch you.',
+      },
+      {
         key: 'support', icon: 'help', label: 'Support', title: 'Support — help & FAQs', to: '/app/support',
         blurb: 'FAQs and a direct line to the platform — your tickets land straight in the founder’s inbox.',
         benefits: [
