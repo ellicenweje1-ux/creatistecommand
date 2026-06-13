@@ -1,0 +1,47 @@
+{
+  "_comment": "Single source of truth for the intro-film narration. The film (src/introfilm.jsx) reads caption + dur from here for each scene; scripts/render_voiceover.py reads 'speech' to render frontend/public/vo.{mp3,json} via ElevenLabs. 'dur' (ms) is only used by the no-recording fallback engine. Keep scene 'key' values in sync with the View map in introfilm.jsx. Speech spells the brand phonetically (Cree-ay-teest, Meez) so any voice says it right; captions show the real spelling.",
+  "scenes": [
+    {
+      "key": "hook1",
+      "dur": 11500,
+      "caption": "Have you ever been in a position where the menu was flawless — but the business behind it ran on sticky notes, spreadsheets and midnight messages?",
+      "speech": "Have you ever been in a position where the menu was flawless — but the business behind it was running on sticky notes, spreadsheets, and midnight messages?"
+    },
+    {
+      "key": "hook2",
+      "dur": 11000,
+      "caption": "Where weddings were priced from memory, the van was packed at 2 a.m. — and a new client slipped away because their enquiry sat unread?",
+      "speech": "Where weddings were priced from memory, the van was packed at two in the morning — and a new client slipped away, because their enquiry sat unread?"
+    },
+    {
+      "key": "welcome",
+      "dur": 10500,
+      "caption": "Welcome to The Creatiste Command — the comprehensive management platform and one-stop shop designed for chefs, caterers and all culinary professionals.",
+      "speech": "Welcome to The Cree-ay-teest Command — the comprehensive management platform, and one-stop shop, designed for chefs, caterers, and all culinary professionals."
+    },
+    {
+      "key": "everything",
+      "dur": 13000,
+      "caption": "Bookings, tastings and clients. Recipes, inventory, shopping and packing. Quotes, invoices and finances. Your team, routes and suppliers — and Mise, your AI sous-chef (as in mise en place).",
+      "speech": "Bookings, tastings and clients. Recipes, inventory, shopping and packing. Quotes, invoices and finances. Your team, your routes, your suppliers — and Meez, your A.I. sous-chef — as in meez-on-plass."
+    },
+    {
+      "key": "gap",
+      "dur": 12000,
+      "caption": "It replaces the scattered apps, the spreadsheets and the guesswork with one calm, beautiful command centre — built by a caterer who has lived your prep days.",
+      "speech": "It replaces the scattered apps, the spreadsheets, and the guesswork, with one calm, beautiful command centre — built by a caterer who has lived your prep days."
+    },
+    {
+      "key": "app",
+      "dur": 11000,
+      "caption": "And here it is — your command centre. Today's bookings, your prep, the shopping list and the numbers, calm and all in one screen.",
+      "speech": "And here it is — your command centre. Today's bookings, your prep list, the shopping, and your numbers. All calm — all in one screen."
+    },
+    {
+      "key": "cta",
+      "dur": 12000,
+      "caption": "Create your account, book your welcome call, and your five-day free trial begins — no card needed. Take command of your craft, with The Creatiste Command.",
+      "speech": "Create your account, book your welcome call, and your five-day free trial begins — no card needed. Take command of your craft, with The Cree-ay-teest Command."
+    }
+  ]
+}

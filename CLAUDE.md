@@ -8,7 +8,59 @@ this platform; all decisions are hers. (Git-history heads-up: some early commits
 authored under a relative's Google login that was used to access Claude, so older
 commit authorship may show a different name/email — the project is entirely Ellice's.)
 
-## Latest session (2026-06-13, seventh wave — full platform review + "mise en place" copy)
+## Latest session (2026-06-13, eighth wave — intro film: recorded voiceover + film polish)
+- Branch `claude/gallant-ramanujan-vumagq` — merge to `main` to deploy.
+- **Acted on last session's review item 5 (the "slideshow + robotic voice" niggle).**
+  Ellice chose **option B — a one-time ElevenLabs render** (not her own voice) for
+  the ~70s voiceover. The film engine is rebuilt to be **audio-first** while keeping
+  browser TTS as a no-file fallback, plus the requested polish.
+- **`frontend/src/introfilm.jsx` rebuilt:**
+  - When a recording is present (`frontend/public/vo.mp3` + `vo.json` cue points),
+    **the audio is the master clock**: a rAF loop reads `audio.currentTime`, advances
+    scenes as it crosses each cue, drives the progress-bar fill from real time, and
+    ends the film on the audio's `ended`. Seeking sets `audio.currentTime`; pause/
+    resume just pause/resume the element (no per-scene restart). Mute toggles
+    `audio.muted`.
+  - With no recording it falls back to the **exact previous engine** (per-scene
+    timers + SpeechSynthesis, "wait for both timer and voice" gating). So the site
+    works with or without the render — nothing breaks until Ellice produces the file.
+  - **Crossfades + Ken Burns**: scene cuts cross-dissolve via two stacked layers
+    (`.if-cross-in`/`.if-cross-out`) and the incoming layer gets a slow `.if-ken`
+    drift (CSS in `index.css`, reduced-motion-aware). Applies in both modes.
+  - **New 7th scene — app-UI vignette** (`SceneApp`): a stylised mini dashboard
+    (brand header, sidebar, stat cards "3 events / 12 tasks / £4.2k", booking rows)
+    that animates in, so the line "one command centre" pays off with the real screen.
+    Order: hook1, hook2, welcome, everything, gap, **app**, cta (counts now "/ 7").
+- **Single source of truth for narration: `frontend/src/vo-script.json`** — every
+  scene's `caption` + `speech` + fallback `dur`, keyed. The film imports captions
+  from it; the render script reads `speech` from it. So **on-screen captions and the
+  recorded audio can never drift apart**. (Edit copy here, not in the component.)
+- **`scripts/render_voiceover.py`** — the one-time render (stdlib only, no pip deps):
+  reads `vo-script.json`, calls ElevenLabs **with-timestamps**, writes
+  `frontend/public/vo.mp3` + `vo.json` (per-scene cues computed from the character
+  timestamps). Ellice runs it **locally** (needs internet, not the sandbox):
+  `export ELEVENLABS_API_KEY=sk_…` then `python scripts/render_voiceover.py`.
+  Optional `ELEVENLABS_VOICE_ID` (default Alice, a warm en-GB female; override with
+  her own — `--list-voices` prints account voices + IDs) and `ELEVENLABS_MODEL`.
+  `--dry-run` previews the script with no API call. **Then commit both produced
+  files.** Delete them to revert to TTS.
+- **`frontend/sw.template.js`**: the service worker now **bypasses `.mp3`/range
+  requests** so the voiceover streams natively (caching 206 partials breaks media
+  seeking). The film is public-marketing, deliberately **not** precached — the
+  offline target is the installed `/app`, which never needs it.
+- **DO NOT commit a placeholder `vo.mp3`** — it would ship a wrong/silent voice.
+  (For verification I generated a synthetic clip into `dist/` only, which is
+  gitignored.) Awaiting Ellice running the render with her chosen ElevenLabs voice;
+  until then the film uses the TTS fallback exactly as before.
+- Verified 15/15 with Playwright (system chromium) against `vite preview` (the film
+  is a static landing feature — no backend needed), desktop + 390px: **audio mode**
+  (poster shows real 0:13, audio drives all 7 scenes + fill, app vignette renders,
+  ends on audio end, seek/pause/resume, Ken Burns layer present) and **fallback mode**
+  (recording removed → poster shows 1:21 estimate, `if-fill` timer engine drives
+  progress, seek + timer-driven end card), no console errors beyond the expected
+  vo.json 404 on the fallback probe (and the known harmless Google-Fonts cert error).
+
+## Previous session (2026-06-13, seventh wave — full platform review + "mise en place" copy)
 - Branch `claude/adoring-davinci-9pfah3` — merge to `main` to deploy.
 - **Mise now explains its own name at a glance** everywhere it's described (Ellice's
   request): Landing feature card, Home module-guide bubble, Support FAQ ("What is

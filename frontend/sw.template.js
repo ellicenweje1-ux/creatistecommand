@@ -34,6 +34,11 @@ self.addEventListener('fetch', (event) => {
   // API traffic belongs to the app layer (IndexedDB cache + outbox) — never intercept
   if (url.origin === location.origin && url.pathname.startsWith('/api/')) return
 
+  // Audio (the landing-film voiceover) + any range request: let the browser handle
+  // it natively. Caching partial 206 responses breaks media seeking, and the film
+  // is a public marketing asset the installed app never needs offline.
+  if (request.headers.has('range') || /\.(mp3|m4a|ogg|wav)$/i.test(url.pathname)) return
+
   // Page navigations: fresh from the network when online (so updates flow through),
   // the cached shell when not.
   if (request.mode === 'navigate') {

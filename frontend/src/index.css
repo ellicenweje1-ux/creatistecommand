@@ -64,8 +64,17 @@ body { @apply bg-base text-fg font-body antialiased; }
 @keyframes if-shimmer { from { background-position: 185% 0; } to { background-position: -85% 0; } }
 @keyframes if-fill { from { width: 0; } to { width: 100%; } }
 .if-paused, .if-paused * { animation-play-state: paused !important; }
+/* Scene crossfade (dissolve) + slow Ken Burns drift — used when the film runs
+   off the recorded voiceover so cuts feel like a film, not a slideshow. */
+.if-cross-in { animation: if-cross-in 0.7s ease forwards; }
+.if-cross-out { animation: if-cross-out 0.7s ease forwards; pointer-events: none; }
+.if-ken { height: 100%; transform-origin: 50% 42%; will-change: transform; animation: if-ken 17s ease-out forwards; }
+@keyframes if-cross-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes if-cross-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes if-ken { from { transform: scale(1.07) translate3d(0, 1.6%, 0); } to { transform: scale(1) translate3d(0, 0, 0); } }
 @media (prefers-reduced-motion: reduce) {
-  .if-orb { animation: none; }
+  .if-orb, .if-ken { animation: none; }
+  .if-cross-in, .if-cross-out { animation-duration: 0.01s; }
 }
 
 /* ── Portal home — module bubbles ────────────────────────────────────────────

@@ -87,6 +87,23 @@ Copy `.env.example` and fill in what you need. Everything degrades gracefully:
    `checkout.session.completed`, `invoice.payment_failed`, `customer.subscription.deleted`, and set `STRIPE_WEBHOOK_SECRET`.
 3. Pricing is **not** hardcoded — edit plans, onboarding fees, currency and trial days live in **Admin → Pricing**.
 
+### Intro-film voiceover (optional)
+
+The landing-page intro film plays a recorded ~70s voiceover when one is present, and
+falls back to the browser's speech synthesis when it isn't — so it works either way.
+To record/refresh the voice (one-time, run locally — it calls ElevenLabs):
+
+```bash
+export ELEVENLABS_API_KEY=sk_...          # required
+export ELEVENLABS_VOICE_ID=...            # optional; default is a warm en-GB female. --list-voices to choose
+python scripts/render_voiceover.py        # writes frontend/public/vo.mp3 + vo.json, then commit both
+python scripts/render_voiceover.py --dry-run   # preview the script, no API call
+```
+
+The narration script lives in `frontend/src/vo-script.json` (one source of truth for
+both the spoken audio and the on-screen captions). Delete the produced files to revert
+to the speech-synthesis fallback.
+
 ## The business model, wired in
 
 - New chefs register → land on the **onboarding paywall** (no workspace access until activated — enforced server-side with HTTP 402).

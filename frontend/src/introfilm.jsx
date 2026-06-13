@@ -1,65 +1,23 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { cls } from './format'
 import { Button, Flame, Icon } from './ui'
+import VO from './vo-script.json'
 
 /* ── The introduction film ────────────────────────────────────────────────────
-   An embedded, self-contained brand film for the landing page: six animated
-   scenes with synchronised captions and a warm female voiceover (browser
-   speech synthesis — no video file to host, crisp at every size, always
-   on-brand). Captions carry the full script wherever speech is unavailable. */
+   An embedded, self-contained brand film for the landing page: seven animated
+   scenes with synchronised captions.
+
+   Voice: when a recorded voiceover is present (frontend/public/vo.mp3 + vo.json
+   cue points, produced once via scripts/render_voiceover.py), that recording is
+   the master clock — scenes advance and the progress bar fill are driven off
+   audio.currentTime, with crossfades and a slow Ken Burns drift so cuts feel
+   like film, not a slideshow. With no recording, the film falls back to the
+   browser's speech synthesis on per-scene timers (captions carry the script
+   either way). The narration script lives in vo-script.json so the on-screen
+   captions and the rendered audio can never drift apart. */
 
 const dly = (s) => ({ animationDelay: `${s}s` })
-
-/* Speech text spells Creatiste phonetically (Kree-ay-teest) so every voice
-   pronounces the brand correctly; captions show the real spelling. */
-const SCENES = [
-  {
-    key: 'hook1',
-    dur: 11500,
-    caption: 'Have you ever been in a position where the menu was flawless — but the business behind it ran on sticky notes, spreadsheets and midnight messages?',
-    speech: 'Have you ever been in a position where the menu was flawless — but the business behind it was running on sticky notes, spreadsheets, and midnight messages?',
-    View: SceneHookOne,
-  },
-  {
-    key: 'hook2',
-    dur: 11000,
-    caption: 'Where weddings were priced from memory, the van was packed at 2 a.m. — and a new client slipped away because their enquiry sat unread?',
-    speech: 'Where weddings were priced from memory, the van was packed at two in the morning — and a new client slipped away, because their enquiry sat unread?',
-    View: SceneHookTwo,
-  },
-  {
-    key: 'welcome',
-    dur: 10500,
-    caption: 'Welcome to The Creatiste Command — the comprehensive management platform and one-stop shop designed for chefs, caterers and all culinary professionals.',
-    speech: 'Welcome to The Cree-ay-teest Command — the comprehensive management platform, and one-stop shop, designed for chefs, caterers, and all culinary professionals.',
-    View: SceneWelcome,
-  },
-  {
-    key: 'everything',
-    dur: 13000,
-    caption: 'Bookings, tastings and clients. Recipes, inventory, shopping and packing. Quotes, invoices and finances. Your team, routes and suppliers — and Mise, your AI sous-chef (as in mise en place).',
-    speech: 'Bookings, tastings and clients. Recipes, inventory, shopping and packing. Quotes, invoices and finances. Your team, your routes, your suppliers — and Meez, your A.I. sous-chef — as in meez-on-plass.',
-    View: SceneEverything,
-  },
-  {
-    key: 'gap',
-    dur: 12000,
-    caption: 'It replaces the scattered apps, the spreadsheets and the guesswork with one calm, beautiful command centre — built by a caterer who has lived your prep days.',
-    speech: 'It replaces the scattered apps, the spreadsheets, and the guesswork, with one calm, beautiful command centre — built by a caterer who has lived your prep days.',
-    View: SceneGap,
-  },
-  {
-    key: 'cta',
-    dur: 12000,
-    caption: 'Create your account, book your welcome call, and your five-day free trial begins — no card needed. Take command of your craft, with The Creatiste Command.',
-    speech: 'Create your account, book your welcome call, and your five-day free trial begins — no card needed. Take command of your craft, with The Cree-ay-teest Command.',
-    View: SceneCta,
-  },
-]
-
-const TOTAL_MS = SCENES.reduce((sum, s) => sum + s.dur, 0)
-const TOTAL_LABEL = `${Math.floor(TOTAL_MS / 60000)}:${String(Math.round((TOTAL_MS % 60000) / 1000)).padStart(2, '0')}`
 
 /* ---------------------------------- scenes ---------------------------------- */
 function SceneHookOne() {
@@ -158,6 +116,62 @@ function SceneGap() {
   )
 }
 
+/* The product itself — a stylised mini dashboard that animates in, so the line
+   "one command centre" pays off with a glimpse of the real screen. */
+function SceneApp() {
+  const nav = ['home', 'calendar', 'book', 'cart', 'coins']
+  const stats = [['Today', '3 events'], ['Prep', '12 tasks'], ['Taken', '£4.2k']]
+  const rows = [
+    ['calendar', 'Harlow wedding · 120 covers'],
+    ['cup', 'Tasting · the Adeyemis'],
+    ['truck', 'Wholesaler delivery · 9 a.m.'],
+  ]
+  return (
+    <div className="flex h-full items-center justify-center px-3 sm:px-8">
+      <div className="if-pop w-full max-w-md overflow-hidden rounded-xl border border-copper/25 bg-[#161109] shadow-pop" style={dly(0.15)}>
+        <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2">
+          <Flame size={13} />
+          <span className="font-display text-[9px] font-semibold uppercase tracking-[0.18em] text-copper sm:text-[10px]">The Creatiste Command</span>
+          <span className="ml-auto flex gap-1" aria-hidden>
+            <i className="block h-1.5 w-1.5 rounded-full bg-white/15" />
+            <i className="block h-1.5 w-1.5 rounded-full bg-white/15" />
+            <i className="block h-1.5 w-1.5 rounded-full bg-copper/60" />
+          </span>
+        </div>
+        <div className="flex">
+          <div className="hidden w-24 shrink-0 flex-col gap-1 border-r border-white/10 p-2 sm:flex" aria-hidden>
+            {nav.map((ic, i) => (
+              <div key={ic} className="if-up flex items-center gap-1.5 rounded-md px-1.5 py-1" style={dly(0.45 + i * 0.12)}>
+                <Icon name={ic} size={11} className={i === 0 ? 'text-copper' : 'text-cream/45'} />
+                <span className={cls('h-1.5 flex-1 rounded', i === 0 ? 'bg-copper/40' : 'bg-white/12')} />
+              </div>
+            ))}
+          </div>
+          <div className="flex-1 space-y-2 p-3">
+            <div className="grid grid-cols-3 gap-1.5">
+              {stats.map(([label, val], i) => (
+                <div key={label} className="if-up rounded-lg border border-white/8 bg-white/[0.04] px-2 py-1.5" style={dly(0.5 + i * 0.14)}>
+                  <p className="text-[7px] font-semibold uppercase tracking-wider text-cream/45 sm:text-[8px]">{label}</p>
+                  <p className="font-display text-xs font-semibold text-cream sm:text-sm">{val}</p>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-1.5">
+              {rows.map(([ic, text], i) => (
+                <div key={text} className="if-up flex items-center gap-2 rounded-md border border-white/8 bg-white/[0.04] px-2 py-1.5" style={dly(0.95 + i * 0.18)}>
+                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded bg-copper/15 text-copper"><Icon name={ic} size={11} /></span>
+                  <span className="truncate text-[10px] text-cream/85 sm:text-xs">{text}</span>
+                  <span className="ml-auto hidden h-1.5 w-8 rounded-full bg-copper/40 sm:block" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function SceneCta() {
   return (
     <div className="flex h-full flex-col items-center justify-center px-6 text-center sm:px-12">
@@ -178,6 +192,33 @@ function SceneCta() {
       </div>
     </div>
   )
+}
+
+/* Narration script + scene order come from vo-script.json; View is mapped by key. */
+const VIEWS = {
+  hook1: SceneHookOne,
+  hook2: SceneHookTwo,
+  welcome: SceneWelcome,
+  everything: SceneEverything,
+  gap: SceneGap,
+  app: SceneApp,
+  cta: SceneCta,
+}
+const SCENES = VO.scenes.map((s) => ({ ...s, View: VIEWS[s.key] }))
+const FALLBACK_TOTAL_MS = SCENES.reduce((sum, s) => sum + s.dur, 0)
+
+const fmtClock = (ms) => `${Math.floor(ms / 60000)}:${String(Math.round((ms % 60000) / 1000)).padStart(2, '0')}`
+
+/* Per-scene [start, end] seconds from the recorded cue points (vo.json). */
+const computeBounds = (meta) => {
+  const byKey = {}
+  meta.cues.forEach((c) => { byKey[c.key] = c })
+  const starts = SCENES.map((s) => (byKey[s.key] ? byKey[s.key].start : 0))
+  return SCENES.map((s, i) => {
+    const start = starts[i]
+    const end = i + 1 < starts.length ? starts[i + 1] : meta.dur || start + s.dur / 1000
+    return [start, end]
+  })
 }
 
 /* ------------------------------ voice selection ------------------------------ */
@@ -202,19 +243,30 @@ function pickVoice(voices) {
 export default function IntroFilm({ ctaTo = '/register', ctaLabel = 'Start your free trial' }) {
   const [phase, setPhase] = useState('poster') // poster | playing | paused | ended
   const [scene, setScene] = useState(0)
+  const [prev, setPrev] = useState(null) // outgoing scene index, for the crossfade
   const [tick, setTick] = useState(0) // bumps on every scene (re)start so animations replay
   const [sound, setSound] = useState(true)
-  const [voiceReady, setVoiceReady] = useState(false)
+  const [voiceReady, setVoiceReady] = useState(false) // browser-TTS fallback only
+  const [mode, setMode] = useState('tts') // flips to 'audio' once the recording loads
+  const [meta, setMeta] = useState(null) // vo.json (cue points + duration)
+  const [fill, setFill] = useState(0) // audio mode: 0..1 progress within the current scene
 
   const voiceRef = useRef(null)
   const soundRef = useRef(true)
-  const runRef = useRef(0) // invalidates timers/utterances from earlier scenes
+  const runRef = useRef(0) // invalidates timers/utterances from earlier scenes (TTS)
   const timersRef = useRef([])
   const gateRef = useRef({ timer: true, voice: true })
+  const audioRef = useRef(null) // the recorded voiceover element
+  const boundsRef = useRef([]) // per-scene [start, end] seconds
+  const rafRef = useRef(0)
+  const sceneRef = useRef(-1) // current scene the engine has shown (-1 so the first cut animates)
+  const prevTimerRef = useRef(0)
   soundRef.current = sound
 
   const speechOk = typeof window !== 'undefined' && 'speechSynthesis' in window
+  const isAudio = mode === 'audio'
 
+  /* Browser voices for the fallback path. */
   useEffect(() => {
     if (!speechOk) return
     const refresh = () => {
@@ -226,10 +278,120 @@ export default function IntroFilm({ ctaTo = '/register', ctaLabel = 'Start your 
     return () => {
       window.speechSynthesis.removeEventListener?.('voiceschanged', refresh)
       window.speechSynthesis.cancel()
-      timersRef.current.forEach(clearTimeout)
     }
   }, [speechOk])
 
+  /* Probe for a recorded voiceover. Needs both the cue points and a playable
+     file, and every scene must have a cue — otherwise we stay on TTS. */
+  useEffect(() => {
+    let alive = true
+    fetch('/vo.json', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((m) => {
+        if (!alive || !m || !Array.isArray(m.cues) || !m.cues.length) return
+        const have = new Set(m.cues.map((c) => c.key))
+        if (!SCENES.every((s) => have.has(s.key))) return
+        const a = new Audio('/vo.mp3')
+        a.preload = 'auto'
+        a.addEventListener('loadedmetadata', () => {
+          if (!alive) return
+          audioRef.current = a
+          boundsRef.current = computeBounds(m)
+          setMeta(m)
+          setMode('audio')
+        }, { once: true })
+        a.addEventListener('error', () => {}, { once: true })
+        a.load()
+      })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [])
+
+  /* The recording ends the film. */
+  useEffect(() => {
+    const a = audioRef.current
+    if (!isAudio || !a) return
+    const onEnd = () => { cancelAnimationFrame(rafRef.current); setPhase('ended') }
+    a.addEventListener('ended', onEnd)
+    return () => a.removeEventListener('ended', onEnd)
+  }, [isAudio])
+
+  /* Tear everything down on unmount. */
+  useEffect(() => {
+    return () => {
+      cancelAnimationFrame(rafRef.current)
+      clearTimeout(prevTimerRef.current)
+      timersRef.current.forEach(clearTimeout)
+      if (audioRef.current) audioRef.current.pause()
+      if (speechOk) window.speechSynthesis.cancel()
+    }
+  }, [speechOk])
+
+  /* Cut to scene i with a crossfade (the outgoing scene fades out alongside). */
+  const changeScene = useCallback((i, force) => {
+    if (i === sceneRef.current && !force) return
+    setPrev(sceneRef.current >= 0 && sceneRef.current !== i ? sceneRef.current : null)
+    sceneRef.current = i
+    setScene(i)
+    setTick((t) => t + 1)
+    clearTimeout(prevTimerRef.current)
+    prevTimerRef.current = setTimeout(() => setPrev(null), 720)
+  }, [])
+
+  /* ---- audio path: the recording is the master clock ---- */
+  const loop = useCallback(() => {
+    const a = audioRef.current
+    if (!a) return
+    const b = boundsRef.current
+    const t = a.currentTime
+    let i = b.length - 1
+    for (let k = 0; k < b.length; k++) {
+      if (t < b[k][1]) { i = k; break }
+    }
+    changeScene(i)
+    const seg = b[i] || [0, 1]
+    setFill(Math.min(1, Math.max(0, (t - seg[0]) / Math.max(0.1, seg[1] - seg[0]))))
+    rafRef.current = requestAnimationFrame(loop)
+  }, [changeScene])
+
+  const startLoop = useCallback(() => {
+    cancelAnimationFrame(rafRef.current)
+    rafRef.current = requestAnimationFrame(loop)
+  }, [loop])
+
+  const audioPlay = (from) => {
+    const a = audioRef.current
+    if (!a) return
+    a.muted = !soundRef.current
+    try { a.currentTime = from || 0 } catch (e) { /* not seekable yet */ }
+    changeScene(0, true)
+    a.play().catch(() => {})
+    startLoop()
+  }
+  const audioPause = () => {
+    if (audioRef.current) audioRef.current.pause()
+    cancelAnimationFrame(rafRef.current)
+    setPhase('paused')
+  }
+  const audioResume = () => {
+    const a = audioRef.current
+    if (!a) return
+    setPhase('playing')
+    a.play().catch(() => {})
+    startLoop()
+  }
+  const audioSeek = (i) => {
+    const a = audioRef.current
+    if (!a) return
+    const start = (boundsRef.current[i] || [0])[0]
+    try { a.currentTime = start + 0.02 } catch (e) { /* ignore */ }
+    changeScene(i, true)
+    setPhase('playing')
+    a.play().catch(() => {})
+    startLoop()
+  }
+
+  /* ---- fallback path: per-scene timers + browser speech synthesis ---- */
   const clearTimers = () => { timersRef.current.forEach(clearTimeout); timersRef.current = [] }
   const arm = (ms, fn) => timersRef.current.push(setTimeout(fn, ms))
   const hush = () => { if (speechOk) window.speechSynthesis.cancel() }
@@ -258,21 +420,29 @@ export default function IntroFilm({ ctaTo = '/register', ctaLabel = 'Start your 
     const run = ++runRef.current
     clearTimers()
     hush()
-    setScene(i)
-    setTick((t) => t + 1)
+    changeScene(i, true)
     gateRef.current = { timer: false, voice: true }
     arm(SCENES[i].dur, () => { if (runRef.current === run) { gateRef.current.timer = true; maybeAdvance(run, i) } })
     if (soundRef.current && voiceRef.current) speakScene(run, i)
   }
 
-  const play = () => { setPhase('playing'); startScene(0) }
-  const pause = () => { runRef.current += 1; clearTimers(); hush(); setPhase('paused') }
-  const resume = () => { setPhase('playing'); startScene(scene) } // scenes restart so voice & motion stay in sync
-  const seek = (i) => { setPhase('playing'); startScene(i) }
+  const ttsPause = () => { runRef.current += 1; clearTimers(); hush(); setPhase('paused') }
+  const ttsResume = () => { setPhase('playing'); startScene(scene) } // scenes restart so voice & motion stay in sync
+  const ttsSeek = (i) => { setPhase('playing'); startScene(i) }
+
+  /* ---- mode-agnostic controls ---- */
+  const play = () => { setPhase('playing'); if (isAudio) audioPlay(0); else startScene(0) }
+  const pause = () => { if (isAudio) audioPause(); else ttsPause() }
+  const resume = () => { if (isAudio) audioResume(); else ttsResume() }
+  const seek = (i) => { if (isAudio) audioSeek(i); else ttsSeek(i) }
 
   const toggleSound = () => {
     const next = !sound
     setSound(next)
+    if (isAudio) {
+      if (audioRef.current) audioRef.current.muted = !next
+      return
+    }
     if (phase !== 'playing' || !speechOk) return
     if (!next) {
       hush()
@@ -293,7 +463,14 @@ export default function IntroFilm({ ctaTo = '/register', ctaLabel = 'Start your 
     if (phase === 'playing' || phase === 'paused') { e.preventDefault(); stageClick() }
   }
 
-  const ActiveScene = SCENES[scene].View
+  const renderScene = (i) => {
+    const View = SCENES[i].View
+    return <View />
+  }
+
+  const hasVoice = isAudio || voiceReady
+  const showSound = isAudio || speechOk
+  const totalLabel = fmtClock(meta?.dur ? meta.dur * 1000 : FALLBACK_TOTAL_MS)
 
   return (
     <div
@@ -309,10 +486,16 @@ export default function IntroFilm({ ctaTo = '/register', ctaLabel = 'Start your 
         <div className="if-orb bottom-[6%] right-[5%] h-48 w-48 bg-copper/15 sm:h-64 sm:w-64" style={{ animationDelay: '-7s', animationDuration: '18s' }} />
         <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 95% at 50% 8%, transparent 38%, rgba(0,0,0,0.55) 100%)' }} />
 
-        {/* Scene stage — bounded above the caption/controls zone so nothing collides */}
+        {/* Scene stage — two layers so a scene change cross-dissolves; the incoming
+            layer also gets a slow Ken Burns drift. Bounded above the caption zone. */}
         {phase !== 'poster' && (
-          <div key={`${scene}-${tick}`} className="absolute inset-x-0 bottom-36 top-8 sm:bottom-28 sm:top-10">
-            <ActiveScene />
+          <div className="absolute inset-x-0 bottom-36 top-8 sm:bottom-28 sm:top-10">
+            {prev !== null && prev !== scene && (
+              <div key={`p-${prev}-${tick}`} className="absolute inset-0 if-cross-out">{renderScene(prev)}</div>
+            )}
+            <div key={`s-${scene}-${tick}`} className="absolute inset-0 if-cross-in">
+              <div className="if-ken">{renderScene(scene)}</div>
+            </div>
           </div>
         )}
       </div>
@@ -344,7 +527,8 @@ export default function IntroFilm({ ctaTo = '/register', ctaLabel = 'Start your 
                     <button key={s.key} onClick={(e) => { e.stopPropagation(); seek(i) }} aria-label={`Go to part ${i + 1}`} className="flex-1 py-1.5">
                       <span className="block h-1 overflow-hidden rounded-full bg-white/20">
                         {done && <span className="block h-full w-full rounded-full bg-copper" />}
-                        {active && phase === 'playing' && (
+                        {active && isAudio && <span className="block h-full rounded-full bg-copper" style={{ width: `${fill * 100}%` }} />}
+                        {active && !isAudio && phase === 'playing' && (
                           <span key={tick} className="block h-full rounded-full bg-copper" style={{ animation: `if-fill ${s.dur}ms linear forwards` }} />
                         )}
                       </span>
@@ -352,12 +536,12 @@ export default function IntroFilm({ ctaTo = '/register', ctaLabel = 'Start your 
                   )
                 })}
               </div>
-              {speechOk && (
+              {showSound && (
                 <button onClick={(e) => { e.stopPropagation(); toggleSound() }}
                   aria-label={sound ? 'Mute voiceover' : 'Unmute voiceover'}
-                  title={voiceReady ? (sound ? 'Mute voiceover' : 'Unmute voiceover') : 'Voiceover unavailable on this device — captions are on'}
-                  className={cls('rounded-full bg-white/10 p-2 transition-colors hover:bg-white/20', sound && voiceReady ? 'text-cream' : 'text-cream/40')}>
-                  <Icon name={sound && voiceReady ? 'sound' : 'soundOff'} size={15} />
+                  title={hasVoice ? (sound ? 'Mute voiceover' : 'Unmute voiceover') : 'Voiceover unavailable on this device — captions are on'}
+                  className={cls('rounded-full bg-white/10 p-2 transition-colors hover:bg-white/20', sound && hasVoice ? 'text-cream' : 'text-cream/40')}>
+                  <Icon name={sound && hasVoice ? 'sound' : 'soundOff'} size={15} />
                 </button>
               )}
               <button onClick={(e) => { e.stopPropagation(); seek(0) }} aria-label="Restart film"
@@ -380,7 +564,7 @@ export default function IntroFilm({ ctaTo = '/register', ctaLabel = 'Start your 
       {/* Poster frame */}
       {phase === 'poster' && (
         <button onClick={play} className="group absolute inset-0 z-10 flex w-full flex-col items-center justify-center gap-4 px-6 text-center">
-          <span className="text-[9px] font-semibold uppercase tracking-[0.3em] text-copper/80 sm:text-[10px]">The introduction · {TOTAL_LABEL}</span>
+          <span className="text-[9px] font-semibold uppercase tracking-[0.3em] text-copper/80 sm:text-[10px]">The introduction · {totalLabel}</span>
           <span className="flex flex-col items-center">
             <Flame size={40} />
             <span className="mt-2 font-display text-xl font-semibold uppercase tracking-[0.22em] text-copper sm:text-3xl">The Creatiste</span>
@@ -404,7 +588,7 @@ export default function IntroFilm({ ctaTo = '/register', ctaLabel = 'Start your 
           </p>
           <div className="mt-1 flex flex-wrap items-center justify-center gap-3">
             <Link to={ctaTo}><Button size="lg" icon="arrowRight">{ctaLabel}</Button></Link>
-            <button onClick={() => { setPhase('playing'); startScene(0) }}
+            <button onClick={play}
               className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-cream/70 transition-colors hover:bg-white/10 hover:text-cream">
               <Icon name="replay" size={15} /> Watch again
             </button>
