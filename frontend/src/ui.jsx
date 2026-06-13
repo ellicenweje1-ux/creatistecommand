@@ -61,6 +61,7 @@ const PATHS = {
   replay: 'M3 3v5h5M3.5 8A9 9 0 1 1 3 12.5',
   sound: 'M4 9v6h4l5 4V5L8 9H4Zm13 .5a3.5 3.5 0 0 1 0 5M19.5 7a7 7 0 0 1 0 10',
   soundOff: 'M4 9v6h4l5 4V5L8 9H4Zm12 2 5 5m0-5-5 5',
+  mobile: 'M8 2.5h8A1.5 1.5 0 0 1 17.5 4v16a1.5 1.5 0 0 1-1.5 1.5H8A1.5 1.5 0 0 1 6.5 20V4A1.5 1.5 0 0 1 8 2.5Zm2.5 15.5h3',
 }
 
 export function Icon({ name, size = 18, className = '', strokeWidth = 1.8 }) {
