@@ -8,7 +8,29 @@ this platform; all decisions are hers. (Git-history heads-up: some early commits
 authored under a relative's Google login that was used to access Claude, so older
 commit authorship may show a different name/email — the project is entirely Ellice's.)
 
-## Latest session (2026-06-13, eighth wave — intro film: recorded voiceover + film polish)
+## Latest session (2026-06-14, ninth wave — intro-film voiceover rendered & shipped)
+- Branch `claude/youthful-brahmagupta-9wsed8` → **already merged to `main`** (main at
+  `ca01215`); the recorded voiceover goes live with the next Render build from `main`.
+- **The eighth wave's awaited step is done — the ElevenLabs render shipped.** Ellice ran
+  `scripts/render_voiceover.py` with her key; the produced files are committed in
+  `frontend/public/`: **`vo.mp3`** (~1.22 MB, 128 kbps) + **`vo.json`** (7 contiguous cues
+  hook1→hook2→welcome→everything→gap→app→cta, `dur` 78.16s). The intro film now runs
+  **audio-first** (the Alice voiceover is the master clock); browser TTS stays as the no-file fallback.
+  - Voice = **Alice**, ElevenLabs `voiceId Xb7hH8MSUJpSbSDYk0k2`, model `eleven_multilingual_v2`
+    (en-GB female — matches the seventh-wave "option B, not her own voice" call). To change the
+    voice later: `--list-voices` → set `ELEVENLABS_VOICE_ID`, re-render, re-upload both files.
+- **GOTCHA for any future render — the sandbox CANNOT reach `api.elevenlabs.io`**: the
+  environment's network egress allowlist blocks it (`403 Host not in allowlist`), exactly as the
+  script header warns. So the render must run somewhere with internet. The path used this session:
+  Ellice (Mac, no Python) installed python.org Python + ran its "Install Certificates.command",
+  downloaded the repo ZIP, ran `python3 scripts/render_voiceover.py`, then **uploaded the two
+  files via the GitHub web UI** onto the dev branch — I fast-forwarded `main` to it (clean ff, no
+  conflicts). Alternative (not used): add `api.elevenlabs.io` to the env's egress allowlist + start
+  a fresh session, then it renders in-sandbox with no local steps.
+- **Security:** the ElevenLabs API key was pasted in chat — Ellice advised to rotate it in the
+  ElevenLabs dashboard now that the render is done.
+
+## Previous session (2026-06-13, eighth wave — intro film: recorded voiceover + film polish)
 - Branch `claude/gallant-ramanujan-vumagq` — merge to `main` to deploy.
 - **Acted on last session's review item 5 (the "slideshow + robotic voice" niggle).**
   Ellice chose **option B — a one-time ElevenLabs render** (not her own voice) for
