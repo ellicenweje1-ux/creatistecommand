@@ -28,20 +28,20 @@
     {
       "key": "gap",
       "dur": 12000,
-      "caption": "It replaces the scattered apps, the spreadsheets and the guesswork with one calm, beautiful command centre — built by a caterer who has lived your prep days.",
-      "speech": "It replaces the scattered apps, the spreadsheets, and the guesswork, with one calm, beautiful command centre — built by a caterer who has lived your prep days."
+      "caption": "It replaces the scattered apps, the spreadsheets and the guesswork with one clear, beautiful command centre — built by a caterer who has lived your days of chaos.",
+      "speech": "It replaces the scattered apps, the spreadsheets, and the guesswork, with one clear, beautiful command centre — built by a caterer who has lived your days of chaos."
     },
     {
       "key": "app",
       "dur": 11000,
-      "caption": "And here it is — your command centre. Today's bookings, your prep, the shopping list and the numbers, calm and all in one screen.",
-      "speech": "And here it is — your command centre. Today's bookings, your prep list, the shopping, and your numbers. All calm — all in one screen."
+      "caption": "And here it is — your command centre. Today's bookings, your prep, the shopping list and the numbers, clear and all in one screen.",
+      "speech": "And here it is — your command centre. Today's bookings, your prep list, the shopping, and your numbers. All clear — all in one screen."
     },
     {
       "key": "cta",
       "dur": 12000,
-      "caption": "Create your account, book your welcome call, and your five-day free trial begins — no card needed. Take command of your craft, with The Creatiste Command.",
-      "speech": "Create your account, book your welcome call, and your five-day free trial begins — no card needed. Take command of your craft, with The Cree-ay-teest Command."
+      "caption": "Create your account, book your welcome call, and your five-day free trial begins — no card needed. Take command of your kitchen, with The Creatiste Command.",
+      "speech": "Create your account, book your welcome call, and your five-day free trial begins — no card needed. Take command of your kitchen, with The Cree-ay-teest Command."
     }
   ]
 }

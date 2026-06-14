@@ -55,7 +55,7 @@ export default function Dashboard() {
           </Card>
 
           <Card title="Next tasks" action={<Link to="/app/tasks" className="text-xs font-medium text-copper">All tasks</Link>} pad={false}>
-            {data.tasks.next.length === 0 ? <p className="p-5 text-sm text-fg/45">Nothing pending. Enjoy the calm.</p> : (
+            {data.tasks.next.length === 0 ? <p className="p-5 text-sm text-fg/45">Nothing pending. You&rsquo;re all clear.</p> : (
               <ul className="divide-y divide-line/70">
                 {data.tasks.next.map((t) => (
                   <li key={t.id} className="flex items-center gap-3 px-4 py-2.5">

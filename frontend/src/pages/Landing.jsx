@@ -122,8 +122,8 @@ export default function Landing() {
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
         <Brand />
         <nav className="flex items-center gap-2">
-          <a href="#film" className="hidden px-3 text-sm font-medium text-fg/60 hover:text-fg md:block">The intro</a>
-          <a href="#why" className="hidden px-3 text-sm font-medium text-fg/60 hover:text-fg md:block">Why Creatiste</a>
+          <a href="#film" className="hidden px-3 text-sm font-medium text-fg/60 hover:text-fg md:block">Intro</a>
+          <a href="#why" className="hidden px-3 text-sm font-medium text-fg/60 hover:text-fg md:block">Why Us?</a>
           <a href="#pricing" className="hidden px-3 text-sm font-medium text-fg/60 hover:text-fg sm:block">Pricing</a>
           {user ? (
             <Link to="/app"><Button variant="dark">Open the app</Button></Link>

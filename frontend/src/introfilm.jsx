@@ -110,7 +110,7 @@ function SceneGap() {
         <span className="font-display text-[16px] font-semibold sm:text-xl">One command centre</span>
       </div>
       <p className="if-up mt-1 max-w-sm font-display text-sm italic text-cream/70 sm:text-lg" style={dly(5.6)}>
-        Built by a caterer who&rsquo;s lived your prep days.
+        Built by a caterer who has lived your days of chaos.
       </p>
     </div>
   )
@@ -177,7 +177,7 @@ function SceneCta() {
     <div className="flex h-full flex-col items-center justify-center px-6 text-center sm:px-12">
       <p className="if-up text-[10px] font-semibold uppercase tracking-[0.3em] text-copper sm:text-xs" style={dly(0.2)}>Your move, chef</p>
       <p className="if-up mt-4 font-display text-2xl font-semibold leading-tight text-cream sm:text-4xl md:text-5xl" style={dly(0.9)}>
-        Take command <em className="italic text-copper">of your craft.</em>
+        Take command <em className="italic text-copper">of your kitchen.</em>
       </p>
       <div className="if-pop mt-5 rounded-full border border-copper/40 bg-copper/10 px-4 py-1.5 text-[11px] font-semibold text-copper sm:text-sm" style={dly(2.4)}>
         5-day free trial · no card needed for the trial
