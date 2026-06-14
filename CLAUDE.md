@@ -8,7 +8,36 @@ this platform; all decisions are hers. (Git-history heads-up: some early commits
 authored under a relative's Google login that was used to access Claude, so older
 commit authorship may show a different name/email — the project is entirely Ellice's.)
 
-## Latest session (2026-06-14, ninth wave — intro-film voiceover rendered & shipped)
+## Latest session (2026-06-14, tenth wave — copy reword across film + public site, voiceover re-rendered)
+- Branch `claude/inspiring-hopper-tc8hhw` → **merged to `main`** (clean fast-forward; main
+  now at `92c2016`). Live on the next Render build from `main`.
+- **Wording changes Ellice asked for** (two she chose from options I offered):
+  - Intro film **gap scene**: "your prep days" → **"your days of chaos"** (her pick);
+    "calm" → **"clear"** ("one clear, beautiful command centre").
+  - Intro film **CTA**: "command of your craft" → **"command of your kitchen"**.
+  - "calm" → "clear" everywhere else it described the product: intro **app scene**
+    ("All clear — all in one screen") + **Dashboard** empty-state ("Nothing pending.
+    You're all clear.").
+  - **Mise line** (everything scene) expanded: "…your AI sous-chef (as in mise en place,
+    **so everything is set up and put into place for you**)" — caption + speech.
+  - **Public nav headers** (`pages/Landing.jsx`): "The intro" → **"Intro"**;
+    "Why Creatiste" → **"Why Us?"**.
+  - Deliberately **left** `Landing.jsx` "Built around real prep days — shop runs, van
+    packs…" untouched (different line; "prep day" is used positively across the brand).
+- **Single source of truth honoured**: every change edited BOTH `caption` and `speech` in
+  `frontend/src/vo-script.json` so captions and audio can't drift; the duplicated visible
+  lines in `introfilm.jsx` (SceneGap "Built by a caterer…", SceneCta "Take command of your
+  kitchen") were updated to match.
+- **Voiceover RE-RENDERED & shipped** (what kept audio == captions): Ellice ran
+  `scripts/render_voiceover.py` locally again (Mac; sandbox still can't reach
+  `api.elevenlabs.io`), kept the **default Alice** voice (`Xb7hH8MSUJpSbSDYk0k2`,
+  `eleven_multilingual_v2`), then uploaded the regenerated **`vo.mp3`** (~1.27 MB, up from
+  1.25 MB — narration is longer now) + **`vo.json`** via the GitHub web UI onto the branch;
+  I fast-forwarded `main`. **Takeaway: any future caption edit needs a matching re-render**
+  (edit `vo-script.json` → run the script on a machine with internet → upload both files).
+  This session the key was typed only in Ellice's own Terminal (not pasted in chat).
+
+## Previous session (2026-06-14, ninth wave — intro-film voiceover rendered & shipped)
 - Branch `claude/youthful-brahmagupta-9wsed8` → **already merged to `main`** (main at
   `ca01215`); the recorded voiceover goes live with the next Render build from `main`.
 - **The eighth wave's awaited step is done — the ElevenLabs render shipped.** Ellice ran
