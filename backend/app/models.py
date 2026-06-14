@@ -42,6 +42,9 @@ class User(Base):
     founder_since: Mapped[str] = mapped_column(String(10), default="")  # YYYY-MM-DD
     tour_done: Mapped[bool] = mapped_column(Boolean, default=False)  # welcome walkthrough finished
     admin_notes: Mapped[str] = mapped_column(Text, default="")
+    # Password reset: a short-lived token emailed to the user (see routers/auth_router.py)
+    reset_token: Mapped[str] = mapped_column(String(64), default="")
+    reset_token_expires: Mapped[str] = mapped_column(String(40), default="")  # ISO-8601 UTC
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     last_login_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 

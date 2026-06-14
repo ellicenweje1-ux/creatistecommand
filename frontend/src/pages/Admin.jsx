@@ -6,6 +6,49 @@ import { Badge, Button, Card, Field, Icon, Input, Modal, PageHeader, SearchInput
 const STATUS_TONE = { active: 'sage', trialing: 'copper', pending: 'amber', suspended: 'red', canceled: 'ink' }
 const STATUSES = ['pending', 'trialing', 'active', 'suspended', 'canceled']
 
+/* Manual password recovery for a locked-out chef: set one or generate a temporary one,
+   then share it securely. The chef changes it in Settings after logging back in. */
+function PasswordReset({ chef }) {
+  const [pw, setPw] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState(null)
+  const run = (generate) => {
+    setBusy(true)
+    api.post(`/admin/chefs/${chef.id}/set-password`, generate ? {} : { password: pw })
+      .then((res) => { setResult(res); setPw(''); toast('Password reset', 'sage') })
+      .catch(toastErr).finally(() => setBusy(false))
+  }
+  return (
+    <div className="rounded-lg border border-line p-3">
+      <p className="text-sm font-medium">Reset password</p>
+      <p className="mt-0.5 text-xs text-fg/50">
+        For a chef who’s locked out. Set a password or generate a temporary one, then share it
+        securely — they can change it in Settings once they’re back in.
+      </p>
+      {result ? (
+        <div className="mt-3 rounded-lg bg-parchment/60 p-3">
+          <p className="text-xs text-fg/55">
+            New {result.generated ? 'temporary ' : ''}password — copy it now, it won’t be shown again:
+          </p>
+          <div className="mt-1.5 flex items-center gap-2">
+            <code className="flex-1 select-all break-all rounded bg-ink/90 px-2.5 py-1.5 font-mono text-sm text-cream">{result.password}</code>
+            <Button size="sm" variant="secondary" icon="copy"
+              onClick={() => { navigator.clipboard?.writeText(result.password); toast('Copied', 'sage') }}>Copy</Button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <div className="min-w-[150px] flex-1">
+            <Input type="text" value={pw} onChange={(e) => setPw(e.target.value)} placeholder="New password (min 8 chars)" />
+          </div>
+          <Button size="sm" variant="secondary" disabled={busy || pw.length < 8} onClick={() => run(false)}>Set password</Button>
+          <Button size="sm" variant="ghost" disabled={busy} onClick={() => run(true)}>Generate</Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ChefModal({ chef, onClose, onSaved, plans }) {
   const [form, setForm] = useState({})
   useEffect(() => { if (chef) setForm({ subscription_status: chef.subscription_status, plan: chef.plan, admin_notes: chef.admin_notes || '', is_founder: !!chef.is_founder }) }, [chef])
@@ -45,6 +88,7 @@ function ChefModal({ chef, onClose, onSaved, plans }) {
           </span>
         </label>
         <Field label="Admin notes"><Textarea rows={3} value={form.admin_notes} onChange={(e) => setForm({ ...form, admin_notes: e.target.value })} /></Field>
+        <PasswordReset key={chef.id} chef={chef} />
         <div className="flex justify-between">
           <Button variant="danger" icon="trash" onClick={remove}>Delete chef</Button>
           <div className="flex gap-2">

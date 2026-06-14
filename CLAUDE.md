@@ -8,7 +8,55 @@ this platform; all decisions are hers. (Git-history heads-up: some early commits
 authored under a relative's Google login that was used to access Claude, so older
 commit authorship may show a different name/email — the project is entirely Ellice's.)
 
-## Latest session (2026-06-14, tenth wave — copy reword across film + public site, voiceover re-rendered)
+## Latest session (2026-06-14, eleventh wave — password reset + Terms/Privacy pages)
+- Branch `claude/pensive-clarke-eirbkc` — **merge to `main` to deploy**. Knocks out the two
+  highest-priority gaps from the seventh-wave review: **item 1 (no password reset)** and
+  **item 2 (no Terms/Privacy)**.
+- **Password reset — two paths (admin-now, email-when-SMTP-on):**
+  - **Admin reset (works today, no SMTP needed):** Admin → Chefs → click a chef → new
+    **"Reset password"** block in the modal. Type a password *or* hit **Generate** for a
+    temporary one; the new password is shown **once** in a copyable box for Ellice to relay,
+    then the chef changes it in Settings. Endpoint `POST /admin/chefs/{id}/set-password`
+    (admin-only) → `{password, generated}`. This is the locked-out-chef recovery path.
+  - **Self-service email flow (lights up once SMTP is set):** login page now has a
+    **"Forgot password?"** link → `/forgot-password` → `POST /auth/forgot-password`
+    (deliberately generic response — **no account enumeration**; mints a 2-hour token and
+    emails `{APP_URL}/reset-password?token=…`). `/reset-password` page → `POST
+    /auth/reset-password` (validates token + expiry, **single-use**, clears it).
+  - **No-SMTP fallback UX:** with email off, the forgot-password page tells the user to email
+    **support** instead of promising a link. Both that page and the legal pages read
+    `GET /auth/config` → `{email_enabled, support_email}`.
+  - **Data:** new `users.reset_token` / `reset_token_expires` columns (additive
+    `ensure_columns` migration, same pattern as prior waves). These are **stripped from every
+    User serialization** — `auth_router.USER_EXCLUDE`, `admin.USER_EXCLUDE`,
+    `team.STAFF_EXCLUDE` — so tokens never leak in `/auth/me`, `/admin/chefs`, or staff lists.
+- **Legal pages:** `/terms` + `/privacy` (new `frontend/src/pages/Legal.jsx`, exports `Terms`
+  + `Privacy` off one shared layout). Plain-English, **UK-oriented** (England & Wales law, UK
+  GDPR + ICO, Stripe billing, and a **food-safety / allergen / Natasha's-Law disclaimer** that
+  the chef stays responsible — important for a catering tool). Contact email is pulled live
+  from `/auth/config`. **Linked from the landing footer and the register form** ("By creating
+  an account you agree to…"). Copy edits → bump `UPDATED` ("Last updated 14 June 2026") in
+  Legal.jsx.
+- **⚠️ ACTION for Ellice:**
+  1. The ToS/Privacy are solid **templates, not legal advice** — have a solicitor review them
+     and add registered business details / a postal address before charging real cards in anger.
+  2. The email reset link won't actually send until **SMTP_\* env vars** are set on Render;
+     until then use the admin-side reset. Also set **`SUPPORT_EMAIL`** to a monitored inbox
+     (it still defaults to `ADMIN_EMAIL`) so the "contact support" fallback reaches someone.
+- New routes are public (outside `/app`); SPA catch-all + SW network-first navigations already
+  serve them. `/auth/` and `/admin/` are in the offline `NO_QUEUE`, so these flows fail fast
+  offline (correct — they need a connection).
+- **Verified:** backend via FastAPI TestClient — 24 checks (config, register hides secrets,
+  forgot-password generic + no-enumeration, token persisted/single-use/expired-reject, admin
+  generate/set/short-pw/non-admin-403/404, `/auth/me` + chef list hide reset fields) + the
+  additive migration adds both columns idempotently. Playwright (system chromium, desktop):
+  login "Forgot password?" link, forgot→contact-support fallback + support email, reset
+  with/without token, register legal links, Terms (allergen/Natasha + support email) +
+  Privacy (ICO/UK GDPR/processor) render, footer links, admin Generate + Set reveal a copyable
+  password. Only console noise = the known harmless Google-Fonts cert error. `npm run build`
+  clean (78 modules).
+
+## Previous session (2026-06-14, tenth wave — copy reword across film + public site, voiceover re-rendered)
 - Branch `claude/inspiring-hopper-tc8hhw` → **merged to `main`** (clean fast-forward; main
   now at `92c2016`). Live on the next Render build from `main`.
 - **Wording changes Ellice asked for** (two she chose from options I offered):

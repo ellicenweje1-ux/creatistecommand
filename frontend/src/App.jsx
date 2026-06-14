@@ -14,11 +14,14 @@ import Designs from './pages/Designs'
 import Finance from './pages/Finance'
 import FoundersInvite from './pages/Founders'
 import FounderExperience, { FounderBadge } from './founders'
+import ForgotPassword from './pages/ForgotPassword'
 import Home from './pages/Home'
 import Ideas from './pages/Ideas'
 import Inventory from './pages/Inventory'
 import Landing from './pages/Landing'
+import { Privacy, Terms } from './pages/Legal'
 import Onboarding from './pages/Onboarding'
+import ResetPassword from './pages/ResetPassword'
 import Orders from './pages/Orders'
 import Packing from './pages/Packing'
 import PublicEnquiry from './pages/PublicEnquiry'
@@ -267,6 +270,10 @@ export default function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<AuthPage mode="login" />} />
       <Route path="/register" element={<AuthPage mode="register" />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/terms" element={<Terms />} />
+      <Route path="/privacy" element={<Privacy />} />
       <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
       <Route path="/q/:token" element={<PublicQuote />} />
       <Route path="/enquire/:token" element={<PublicEnquiry />} />

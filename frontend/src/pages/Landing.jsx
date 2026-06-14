@@ -358,7 +358,14 @@ export default function Landing() {
         <Link to={user ? '/app' : '/register'} className="mt-8 inline-block"><Button size="lg" icon="arrowRight">Get started today</Button></Link>
       </section>
       <footer className="border-t border-line py-8 text-center text-sm text-fg/40">
-        © {new Date().getFullYear()} The Creatiste Command — the command centre for chefs & caterers. · <Link to="/app/support" className="font-medium text-copper">Support & FAQs</Link>
+        <p>© {new Date().getFullYear()} The Creatiste Command — the command centre for chefs &amp; caterers.</p>
+        <p className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
+          <Link to="/app/support" className="font-medium text-copper hover:underline">Support &amp; FAQs</Link>
+          <span className="text-fg/20" aria-hidden>·</span>
+          <Link to="/terms" className="font-medium text-copper hover:underline">Terms of Service</Link>
+          <span className="text-fg/20" aria-hidden>·</span>
+          <Link to="/privacy" className="font-medium text-copper hover:underline">Privacy Policy</Link>
+        </p>
       </footer>
     </div>
   )

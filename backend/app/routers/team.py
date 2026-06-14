@@ -20,7 +20,7 @@ shifts = crud_router(
 
 router = APIRouter(prefix="/team", tags=["team"], dependencies=[Depends(require_plan(TEAM_PLAN))])
 
-STAFF_EXCLUDE = ("password_hash", "stripe_customer_id", "stripe_subscription_id", "admin_notes")
+STAFF_EXCLUDE = ("password_hash", "reset_token", "reset_token_expires", "stripe_customer_id", "stripe_subscription_id", "admin_notes")
 
 
 @router.get("/staff")

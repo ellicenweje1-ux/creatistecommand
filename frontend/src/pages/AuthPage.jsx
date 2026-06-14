@@ -65,10 +65,22 @@ export default function AuthPage({ mode }) {
             <Field label="Password" hint={isLogin ? undefined : 'At least 8 characters'}>
               <Input type="password" value={form.password} onChange={set('password')} required minLength={8} />
             </Field>
+            {isLogin && (
+              <div className="text-right">
+                <Link to="/forgot-password" className="text-sm font-medium text-copper hover:underline">Forgot password?</Link>
+              </div>
+            )}
           </div>
           <Button className="mt-6 w-full" size="lg" disabled={busy}>
             {busy ? 'One moment…' : isLogin ? 'Log in' : foundersCode ? 'Claim my founding seat' : 'Start free trial'}
           </Button>
+          {!isLogin && (
+            <p className="mt-3 text-center text-xs leading-relaxed text-fg/45">
+              By creating an account you agree to our{' '}
+              <Link to="/terms" className="font-medium text-copper hover:underline">Terms of Service</Link>{' '}and{' '}
+              <Link to="/privacy" className="font-medium text-copper hover:underline">Privacy Policy</Link>.
+            </p>
+          )}
           <p className="mt-4 text-center text-sm text-fg/55">
             {isLogin ? (
               <>New here? <Link to="/register" className="font-medium text-copper">Create an account</Link></>

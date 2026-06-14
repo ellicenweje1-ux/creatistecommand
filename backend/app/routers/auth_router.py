@@ -1,8 +1,10 @@
-from datetime import datetime, timezone
+import secrets
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from .. import config, mailer
 from ..auth import create_token, get_current_user, hash_password, plan_level, verify_password, workspace_owner
 from ..database import get_db
 from ..models import PlatformSettings, User
@@ -10,7 +12,10 @@ from ..utils import EMAIL_RE, to_dict
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-USER_EXCLUDE = ("password_hash",)
+# Never leak the secrets a user payload happens to carry.
+USER_EXCLUDE = ("password_hash", "reset_token", "reset_token_expires")
+
+RESET_TOKEN_TTL_HOURS = 2
 
 
 def user_payload(user: User):
@@ -116,5 +121,63 @@ def change_password(payload: dict = Body(...), db: Session = Depends(get_db), us
     if len(new) < 8:
         raise HTTPException(422, "New password must be at least 8 characters")
     user.password_hash = hash_password(new)
+    db.commit()
+    return {"ok": True}
+
+
+@router.get("/config")
+def public_config():
+    """Tiny public bootstrap so the forgot-password and legal pages know how to reach
+    support and whether reset emails can be sent yet."""
+    return {"email_enabled": mailer.email_enabled(), "support_email": config.SUPPORT_EMAIL}
+
+
+@router.post("/forgot-password")
+def forgot_password(payload: dict = Body(...), db: Session = Depends(get_db)):
+    """Start a password reset. Responds identically whether or not the email is on file
+    (so the form can't be used to discover who has an account). When SMTP is configured
+    the user gets a reset link; otherwise they're told to contact support."""
+    email = (payload.get("email") or "").strip().lower()
+    user = db.query(User).filter(User.email == email).first() if EMAIL_RE.match(email) else None
+    if user:
+        token = secrets.token_urlsafe(32)
+        user.reset_token = token
+        user.reset_token_expires = (
+            datetime.now(timezone.utc) + timedelta(hours=RESET_TOKEN_TTL_HOURS)
+        ).replace(microsecond=0).isoformat()
+        db.commit()
+        link = f"{config.APP_URL.rstrip('/')}/reset-password?token={token}"
+        mailer.send_email(
+            user.email, "Reset your Creatiste Command password",
+            f"Hi {user.name or 'chef'},\n\nSomeone asked to reset the password for your "
+            f"Creatiste Command account. If that was you, set a new one here (the link lasts "
+            f"{RESET_TOKEN_TTL_HOURS} hours):\n\n{link}\n\nIf it wasn't you, just ignore this "
+            f"email — your password won't change.\n\n— The Creatiste Command",
+        )
+    return {"ok": True, "email_enabled": mailer.email_enabled(), "support_email": config.SUPPORT_EMAIL}
+
+
+@router.post("/reset-password")
+def reset_password(payload: dict = Body(...), db: Session = Depends(get_db)):
+    """Finish a password reset using the emailed token."""
+    token = (payload.get("token") or "").strip()
+    new = payload.get("password") or ""
+    if len(new) < 8:
+        raise HTTPException(422, "Password must be at least 8 characters")
+    user = db.query(User).filter(User.reset_token == token).first() if token else None
+    if not user or not user.reset_token_expires:
+        raise HTTPException(400, "This reset link is invalid. Request a new one.")
+    try:
+        expires = datetime.fromisoformat(user.reset_token_expires)
+    except ValueError:
+        expires = None
+    if not expires or expires < datetime.now(timezone.utc):
+        user.reset_token = ""
+        user.reset_token_expires = ""
+        db.commit()
+        raise HTTPException(400, "This reset link has expired. Request a new one.")
+    user.password_hash = hash_password(new)
+    user.reset_token = ""
+    user.reset_token_expires = ""
     db.commit()
     return {"ok": True}

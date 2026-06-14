@@ -1,4 +1,5 @@
 """Platform-owner dashboard: manage chef accounts, subscriptions, pricing and payments."""
+import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -7,7 +8,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from .. import config, mailer
-from ..auth import require_admin
+from ..auth import hash_password, require_admin
 from ..database import get_db
 from ..models import (
     Booking, Client, ClientReview, Design, Expense, FounderFeedback, Idea, InventoryItem,
@@ -24,6 +25,9 @@ OWNED_MODELS = (
     Booking, Client, ClientReview, Design, Expense, Idea, InventoryItem,
     Invoice, OnlineOrder, Payment, Recipe, RoutePlan, ShoppingList, Task,
 )
+
+# Fields stripped from any chef record sent to the admin UI.
+USER_EXCLUDE = ("password_hash", "reset_token", "reset_token_expires")
 
 
 @router.get("/overview")
@@ -72,7 +76,7 @@ def chefs(q: str | None = None, db: Session = Depends(get_db)):
         db.query(Booking.user_id, func.count(Booking.id)).group_by(Booking.user_id).all()
     )
     return [
-        {**to_dict(u, exclude=("password_hash",)), "bookings_count": booking_counts.get(u.id, 0)}
+        {**to_dict(u, exclude=USER_EXCLUDE), "bookings_count": booking_counts.get(u.id, 0)}
         for u in users
     ]
 
@@ -100,7 +104,29 @@ def update_chef(user_id: int, payload: dict = Body(...), db: Session = Depends(g
             user.plan = "elite"  # keep their access level until a plan is chosen
     db.commit()
     db.refresh(user)
-    return to_dict(user, exclude=("password_hash",))
+    return to_dict(user, exclude=USER_EXCLUDE)
+
+
+@router.post("/chefs/{user_id}/set-password")
+def set_chef_password(user_id: int, payload: dict = Body(...), db: Session = Depends(get_db)):
+    """Manually set (or generate) a chef's password — the recovery path for a locked-out
+    chef until email resets are switched on. Returns the new password once so the admin can
+    pass it on securely; the chef should change it in Settings after they log in."""
+    user = db.get(User, user_id)
+    if not user or user.role != "chef":
+        raise HTTPException(404, "Chef not found")
+    supplied = (payload.get("password") or "").strip()
+    if supplied:
+        if len(supplied) < 8:
+            raise HTTPException(422, "Password must be at least 8 characters")
+        new_password, generated = supplied, False
+    else:
+        new_password, generated = secrets.token_urlsafe(9), True  # ~12 chars
+    user.password_hash = hash_password(new_password)
+    user.reset_token = ""
+    user.reset_token_expires = ""
+    db.commit()
+    return {"ok": True, "password": new_password, "generated": generated}
 
 
 @router.delete("/chefs/{user_id}", status_code=204)

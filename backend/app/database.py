@@ -34,6 +34,7 @@ def ensure_columns():
             "is_founder": "BOOLEAN DEFAULT 0", "founder_number": "INTEGER",
             "founder_since": "VARCHAR(10) DEFAULT ''", "tour_done": "BOOLEAN DEFAULT 0",
             "onboarded_at": "VARCHAR(10) DEFAULT ''",
+            "reset_token": "VARCHAR(64) DEFAULT ''", "reset_token_expires": "VARCHAR(40) DEFAULT ''",
         },
         "platform_settings": {"founders": "JSON"},
         "tasks": {"assignee_id": "INTEGER"},
