@@ -1,43 +1,43 @@
 {
-  "dur": 78.159,
+  "dur": 79.46,
   "voiceId": "Xb7hH8MSUJpSbSDYk0k2",
   "model": "eleven_multilingual_v2",
-  "generatedAt": "2026-06-14T10:15:24+00:00",
+  "generatedAt": "2026-06-14T11:42:08+00:00",
   "cues": [
     {
       "key": "hook1",
       "start": 0.0,
-      "end": 9.938
+      "end": 9.683
     },
     {
       "key": "hook2",
-      "start": 9.938,
-      "end": 19.296
+      "start": 9.683,
+      "end": 18.599
     },
     {
       "key": "welcome",
-      "start": 19.296,
-      "end": 30.012
+      "start": 18.599,
+      "end": 28.956
     },
     {
       "key": "everything",
-      "start": 30.012,
-      "end": 46.882
+      "start": 28.956,
+      "end": 48.263
     },
     {
       "key": "gap",
-      "start": 46.882,
-      "end": 57.586
+      "start": 48.263,
+      "end": 59.362
     },
     {
       "key": "app",
-      "start": 57.586,
-      "end": 67.281
+      "start": 59.362,
+      "end": 68.732
     },
     {
       "key": "cta",
-      "start": 67.281,
-      "end": 78.159
+      "start": 68.732,
+      "end": 79.46
     }
   ]
 }
