@@ -1,0 +1,43 @@
+{
+  "dur": 78.159,
+  "voiceId": "Xb7hH8MSUJpSbSDYk0k2",
+  "model": "eleven_multilingual_v2",
+  "generatedAt": "2026-06-14T10:15:24+00:00",
+  "cues": [
+    {
+      "key": "hook1",
+      "start": 0.0,
+      "end": 9.938
+    },
+    {
+      "key": "hook2",
+      "start": 9.938,
+      "end": 19.296
+    },
+    {
+      "key": "welcome",
+      "start": 19.296,
+      "end": 30.012
+    },
+    {
+      "key": "everything",
+      "start": 30.012,
+      "end": 46.882
+    },
+    {
+      "key": "gap",
+      "start": 46.882,
+      "end": 57.586
+    },
+    {
+      "key": "app",
+      "start": 57.586,
+      "end": 67.281
+    },
+    {
+      "key": "cta",
+      "start": 67.281,
+      "end": 78.159
+    }
+  ]
+}
