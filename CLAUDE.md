@@ -48,6 +48,10 @@ commit authorship may show a different name/email — the project is entirely El
      outbound SMTP** (timed out), so `mailer.py` was switched to Resend's **HTTP API** (set
      `RESEND_API_KEY`). Domain verified in Cloudflare. See **"Email & Domain Infrastructure"** for
      the full constraints (Cloudflare account, single-SPF rule, why SMTP can't be used).
+     **✅ Verified live 15 Jun** — first password-reset email delivered (landed in junk at first;
+     new-domain reputation, will warm up). Added a **DMARC** `v=DMARC1; p=none` TXT at Cloudflare.
+     **Rotated** the Stripe live key, Stripe webhook signing secret, `ADMIN_PASSWORD`, and the
+     first Resend key (all were briefly visible on-screen during setup).
 - New routes are public (outside `/app`); SPA catch-all + SW network-first navigations already
   serve them. `/auth/` and `/admin/` are in the offline `NO_QUEUE`, so these flows fail fast
   offline (correct — they need a connection).
