@@ -177,16 +177,17 @@ commit authorship may show a different name/email — the project is entirely El
   README. Standard wording: "Named for/after mise en place — everything in its place
   before service." Plan-JSON feature bullets deliberately untouched (they live in the
   DB; a code change wouldn't roll forward and could clobber live pricing edits).
-- **Full review delivered in-chat.** Top findings to action in future sessions:
-  1. **No password-reset flow at all** (not even admin-side set-password) — a locked-out
-     chef has no recovery path. Highest-priority gap.
-  2. **No Terms of Service / Privacy Policy pages or links** — needed before charging
-     real cards (UK GDPR + Stripe good practice). Footer/register should link them.
+- **Full review delivered in-chat.** Top findings (status as of 15 Jun: 1, 2 ✅ done this
+  session; 5 ✅ done waves 8–10 — **next unactioned: 3, then 4, 6, 7**):
+  1. ✅ **DONE (11th wave)** — password reset built: admin set/generate in the chef modal +
+     self-service email flow (now sending live via Resend).
+  2. ✅ **DONE (11th wave)** — Terms + Privacy live at `/terms` `/privacy`, linked from the
+     footer + register form. (Templates — still want a solicitor's review before relying on them.)
   3. Onboarding call slots: admin has **no way to block out days/holidays**, and slot
      times are naive-UTC (off by 1h vs UK during BST) — pin to Europe/London.
   4. `admin.delete_chef` leaves orphans: staff Users, Quote, Supplier, SupplierPrice,
      PackingList, Appointment, Shift, ActivityLog, OnboardingSession, FounderFeedback.
-  5. Intro-film verdict (the "slideshow + robotic voice" niggle): keep the React scene
+  5. ✅ **DONE (waves 8–10)** — recorded ElevenLabs voiceover shipped, audio-first engine. Orig: keep the React scene
      engine, replace browser TTS with a **recorded ~70s voiceover MP3** (Ellice's own
      voice, or a one-time ElevenLabs render) put in `frontend/public/`, drive scene
      advance/seek from `audio.currentTime`, keep TTS only as no-file fallback; add
@@ -572,8 +573,16 @@ it matches the calling shell and kills it).
   real customers.
 
 ## Likely next steps (Ellice's roadmap)
-- Wire real Stripe keys + webhook; add `ANTHROPIC_API_KEY` for Mise; SMTP for email.
-- Custom domain + `SUPPORT_EMAIL` swap.
+- ✅ Done: Stripe live keys + webhook (6th wave), **email** (Resend HTTP API, 11th wave),
+  `SUPPORT_EMAIL` → `command@thecreatistecatering.com`, `main` as the canonical branch.
+- **NEXT ON THE LIST** (7th-wave review, above): **3** — onboarding slots: give admin a way to
+  block out days/holidays + pin slot times to **Europe/London** (naive-UTC is 1h off in BST).
+  Then **4** (`delete_chef` leaves orphaned staff/quotes/suppliers/etc.), **6** (cheaper
+  `AI_MODEL=claude-sonnet-4-6` when Mise goes live), **7** (OG/social meta tags, ICS calendar
+  feed, CSV export, admin SQLite-backup download, rate-limit/honeypot the enquiry form, drop
+  `.svg` from `ALLOWED_UPLOAD_EXT`).
+- **Still pending `ANTHROPIC_API_KEY`** to switch on Mise (deferred until the first paying chef).
+- **Add a persistent disk** (`DATA_DIR=/var/data`) before real chefs — the free tier wipes the
+  SQLite DB on every deploy/restart.
+- Custom app domain (currently on `creatistecommand.onrender.com`).
 - Plan switching from the chef dashboard (currently via admin/support).
-- (done 2026-06-12) `main` created as the canonical branch — see Deployment for
-  the two one-time dropdown flips (Render deploy branch + GitHub default branch).
