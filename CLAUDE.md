@@ -43,6 +43,10 @@ commit authorship may show a different name/email — the project is entirely El
   2. The email reset link won't actually send until **SMTP_\* env vars** are set on Render;
      until then use the admin-side reset. Also set **`SUPPORT_EMAIL`** to a monitored inbox
      (it still defaults to `ADMIN_EMAIL`) so the "contact support" fallback reaches someone.
+     **(In progress, 2026-06-15:)** SMTP setup is underway — M365 turned out to be a dead end
+     (shared mailbox + GoDaddy federation), so we're wiring **Resend** over SMTP from
+     `command@thecreatistecatering.com`. See the new **"Email & Domain Infrastructure"**
+     section for the full constraints (Cloudflare DNS account, single-SPF rule, etc.).
 - New routes are public (outside `/app`); SPA catch-all + SW network-first navigations already
   serve them. `/auth/` and `/admin/` are in the offline `NO_QUEUE`, so these flows fail fast
   offline (correct — they need a connection).
@@ -449,6 +453,51 @@ bridge between sessions.
   `SMTP_*` (email notifications), `SUPPORT_EMAIL` (support inbox — Ellice will
   point this at her own domain later), `DATA_DIR=/var/data` (only after adding a
   paid persistent disk — **free tier wipes the SQLite DB on every deploy/restart**).
+
+## Email & Domain Infrastructure (IMPORTANT — read before any email work)
+> Hard-won constraints for `thecreatistecatering.com` (Ellice supplied these after a
+> long investigation). Respect them so future work doesn't redo dead ends.
+
+**Sending app email — do NOT use Microsoft 365 / Exchange SMTP. It cannot work on this
+tenant. Use a dedicated transactional email service.**
+- **Why M365 SMTP is off-limits here:**
+  1. `command@thecreatistecatering.com` is a **shared mailbox** (unlicensed, sign-in
+     disabled, shows under `command@NETORGFT20702755.onmicrosoft.com`) → no password,
+     so no SMTP credentials.
+  2. The tenant is **federated to GoDaddy** (legacy provisioning; tenant id
+     `NETORGFT20702755.onmicrosoft.com`) → there is **no Microsoft-side password** to do
+     SMTP AUTH with, even for the licensed `enquiries@` account.
+  3. Microsoft is **retiring Basic-Auth SMTP** anyway (disabled by default end of 2026,
+     OAuth-only after) — password SMTP is a dead end going forward.
+  ➡️ A dedicated sending service is the **correct architecture**, not a workaround.
+- **Recommended service: Resend** (Brevo / SendGrid / Postmark are fine alternatives).
+  - **No app code change needed:** `mailer.py` already does STARTTLS SMTP, so point it at
+    Resend's SMTP — `SMTP_HOST=smtp.resend.com`, `SMTP_PORT=587`, `SMTP_USER=resend`,
+    `SMTP_PASSWORD=<the Resend API key, re_…>`. (Or switch to their HTTP API later via
+    `RESEND_API_KEY` — a small code change; only if SMTP is ever a problem.)
+  - **From address:** `command@thecreatistecatering.com`. Set `SMTP_FROM=The Creatiste
+    Command <command@thecreatistecatering.com>` and `SUPPORT_EMAIL=command@thecreatistecatering.com`.
+  - Store the key as a Render **secret env var** — never hardcode, never a mailbox password.
+- **DNS lives at Cloudflare (NOT GoDaddy, NOT Microsoft). Registrar is 123-Reg.**
+  - ⚠️ Use the Cloudflare account on nameservers **`jill.ns.cloudflare.com` +
+    `quinton.ns.cloudflare.com`**. A *dormant duplicate* Cloudflare account exists on
+    `craig.ns.cloudflare.com` + `uma.ns.cloudflare.com` — editing it does NOTHING (cost
+    hours). Make ALL changes in the jill+quinton account.
+  - ⚠️ **SPF must be a SINGLE `v=spf1` TXT record** — never two. Combine includes. Target
+    once a sender is added: `v=spf1 include:spf.protection.outlook.com include:<service-include> -all`.
+    Also add the service's **DKIM** records (CNAMEs/TXT they generate). (Resend usually puts
+    its SPF/return-path on a `send.` subdomain, so the root SPF may not need editing — follow
+    Resend's exact records.)
+  - ⚠️ Mail records must be **DNS only (grey cloud)** in Cloudflare, never proxied (orange).
+- **Receiving email works today — leave as-is.** `command@` receives via M365 (MX →
+  `thecreatistecatering-com.mail.protection.outlook.com`); read/reply by granting the
+  licensed `enquiries@` account access to the shared mailbox. The sending service handles
+  **outbound app mail only**; inbound still lands in the M365 shared mailbox.
+- **Accounts:** `enquiries@…` = licensed user (Exchange Online Essentials), primary admin
+  mailbox. `command@…` = shared mailbox (unlicensed), outbound via service / inbound here.
+- **Out of scope (separate future project, NOT app work):** "defederating" from GoDaddy to
+  take full control of the tenant (forces user password resets + a licensing move). Not
+  required for the app to send or receive email.
 
 ## Brand (exact spec from Ellice — do not drift)
 - Gold `#BFA987`, ivory `#FFFBF5`, true black background. Dark "signature" theme is
