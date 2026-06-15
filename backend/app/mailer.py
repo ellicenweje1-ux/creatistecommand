@@ -7,6 +7,7 @@ import json
 import logging
 import smtplib
 import threading
+import urllib.error
 import urllib.request
 from email.mime.text import MIMEText
 
@@ -36,8 +37,13 @@ def _deliver_resend(to: str, subject: str, body: str):
             "Content-Type": "application/json",
         },
     )
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        resp.read()
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            resp.read()
+    except urllib.error.HTTPError as exc:
+        # Surface Resend's actual explanation (the response body), not just the status.
+        detail = exc.read().decode("utf-8", "replace")[:600] if exc.fp else ""
+        raise RuntimeError(f"Resend API {exc.code}: {detail}") from None
 
 
 def _deliver_smtp(to: str, subject: str, body: str):
