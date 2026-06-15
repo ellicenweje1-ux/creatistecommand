@@ -476,6 +476,9 @@ tenant. Use a dedicated transactional email service.**
     `smtp.resend.com:587` just times out (log: `email to … failed: timed out`). `mailer.py`
     now posts to `https://api.resend.com/emails` over HTTPS (443) when **`RESEND_API_KEY`**
     (the `re_…` key) is set, and falls back to STARTTLS SMTP only when it isn't.
+  - ⚠️ **Send a real `User-Agent` header.** Resend's API is behind Cloudflare, which 403s the
+    default `Python-urllib/x` UA as a bot (`error code: 1010`). `mailer.py` sets a
+    `Mozilla/5.0 (compatible; …)` UA — keep it when touching the mailer.
   - **Required env vars on Render:** `RESEND_API_KEY=re_…`, `SMTP_FROM=The Creatiste Command
     <command@thecreatistecatering.com>` (reused as the API sender), `SUPPORT_EMAIL=command@thecreatistecatering.com`.
     The `SMTP_HOST/USER/PASSWORD/PORT` vars are now redundant (ignored when the API key is set).

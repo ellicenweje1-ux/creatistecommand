@@ -35,6 +35,9 @@ def _deliver_resend(to: str, subject: str, body: str):
         headers={
             "Authorization": f"Bearer {config.RESEND_API_KEY}",
             "Content-Type": "application/json",
+            # Resend's API is behind Cloudflare, which 403s (error 1010) the default
+            # "Python-urllib/x" User-Agent as a suspected bot. Identify ourselves properly.
+            "User-Agent": "Mozilla/5.0 (compatible; TheCreatisteCommand/1.0; +https://creatistecommand.onrender.com)",
         },
     )
     try:
