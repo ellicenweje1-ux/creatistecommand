@@ -8,7 +8,30 @@ this platform; all decisions are hers. (Git-history heads-up: some early commits
 authored under a relative's Google login that was used to access Claude, so older
 commit authorship may show a different name/email — the project is entirely Ellice's.)
 
-## Latest session (2026-06-14, tenth wave — copy reword across film + public site, voiceover re-rendered)
+## Latest session (2026-06-15 — email & domain infrastructure notes captured)
+- **No app code changed.** Added the **"Email & Domain Infrastructure"** reference
+  section (below, right after Deployment) so future sessions don't re-walk the email
+  dead ends. Developed on branch `claude/lucid-volta-dd2kbs`.
+- **The rule for sending app email:** use a **dedicated transactional service**
+  (Resend recommended for this stack; Brevo/SendGrid/Postmark fine), from
+  `command@thecreatistecatering.com`, with the credential in an env var — **never**
+  Microsoft 365 / Exchange SMTP. M365 can't work here: the tenant is GoDaddy-federated
+  (no Microsoft-side password for SMTP AUTH) and `command@` is a passwordless shared
+  mailbox; Basic-Auth SMTP is being retired by end-2026 regardless. **Receiving** to
+  `command@` already works via M365 — leave it as-is.
+- **Good news — no code change needed to send:** `backend/app/mailer.py` is already a
+  generic STARTTLS SMTP client driven by `SMTP_HOST/PORT/USER/PASSWORD/FROM`. Point it
+  at Resend's SMTP and it just works: `SMTP_HOST=smtp.resend.com`, `SMTP_USER=resend`,
+  `SMTP_PASSWORD=<the Resend API key>`, `SMTP_FROM=The Creatiste Command
+  <command@thecreatistecatering.com>` (or swap `mailer.py` to Resend's HTTP API later
+  if preferred). Verify the domain in Resend first so DKIM/SPF pass.
+- **DNS is at Cloudflare**, not GoDaddy/Microsoft (registrar 123-Reg → nameservers
+  `jill`/`quinton.ns.cloudflare.com`). A **dormant duplicate** Cloudflare account on
+  `craig`/`uma` is a trap — editing it does nothing. SPF must stay a **single** TXT
+  record; keep mail records DNS-only (grey cloud). Full detail, the accounts table, and
+  the out-of-scope GoDaddy-defederation note live in the new section.
+
+## Previous session (2026-06-14, tenth wave — copy reword across film + public site, voiceover re-rendered)
 - Branch `claude/inspiring-hopper-tc8hhw` → **merged to `main`** (clean fast-forward; main
   now at `92c2016`). Live on the next Render build from `main`.
 - **Wording changes Ellice asked for** (two she chose from options I offered):
@@ -398,9 +421,80 @@ bridge between sessions.
 - Env vars on Render: `SECRET_KEY`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `APP_URL`,
   `PYTHON_VERSION=3.11.9`. Not yet set: `ANTHROPIC_API_KEY` (enables Mise),
   `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` (real payments; demo mode without),
-  `SMTP_*` (email notifications), `SUPPORT_EMAIL` (support inbox — Ellice will
-  point this at her own domain later), `DATA_DIR=/var/data` (only after adding a
+  `SMTP_*` (email notifications — point at a transactional service like Resend, **NOT**
+  Microsoft 365 SMTP; see "Email & Domain Infrastructure" below), `SUPPORT_EMAIL`
+  (support inbox — Ellice will point this at her own domain later),
+  `DATA_DIR=/var/data` (only after adding a
   paid persistent disk — **free tier wipes the SQLite DB on every deploy/restart**).
+
+## Email & Domain Infrastructure
+Context for `thecreatistecatering.com` email. Hard-won — please respect the
+constraints below so future work doesn't go down the same dead ends.
+
+### TL;DR — sending email from the app
+- **Do NOT send application email through Microsoft 365 / Exchange SMTP.** It
+  cannot work on this tenant (see "Why M365 SMTP is off-limits" below).
+- **Use a dedicated transactional email service.** Resend is the recommended
+  default for this React/TS stack; Brevo, SendGrid, and Postmark are fine
+  alternatives.
+- **From address:** `command@thecreatistecatering.com`
+- Store the service's API key / SMTP credentials as **environment variables /
+  secrets** (e.g. `RESEND_API_KEY`). Never hardcode them. Never use a mailbox
+  password.
+- App wiring: `backend/app/mailer.py` is a generic STARTTLS SMTP client, so the
+  chosen service can be used **with no code change** via the existing `SMTP_*`
+  env vars (e.g. Resend → `SMTP_HOST=smtp.resend.com`, `SMTP_USER=resend`,
+  `SMTP_PASSWORD=<RESEND_API_KEY>`, `SMTP_FROM=…<command@thecreatistecatering.com>`).
+
+### Why M365 SMTP is off-limits here
+1. `command@thecreatistecatering.com` is a **shared mailbox** — it has no
+   password and sign-in is disabled, so there are no SMTP credentials to use.
+2. The Microsoft 365 tenant is **federated to GoDaddy** (legacy from how the
+   tenant was first provisioned; tenant id `NETORGFT20702755.onmicrosoft.com`).
+   Federated sign-in means there is **no Microsoft-side password** to
+   authenticate SMTP AUTH with — this applies even to the licensed `enquiries@`
+   account.
+3. Microsoft is **retiring Basic Auth for SMTP AUTH** (disabled by default for
+   existing tenants at the end of 2026; OAuth-only thereafter). Password-based
+   SMTP is a dead end going forward regardless.
+➡️ A dedicated sending service is the **correct architecture**, not a workaround.
+
+### DNS — managed at Cloudflare (NOT GoDaddy, NOT Microsoft)
+- Registrar: **123-Reg**. Authoritative nameservers:
+  **`jill.ns.cloudflare.com` + `quinton.ns.cloudflare.com`**.
+  Make ALL DNS changes in the Cloudflare account that uses THESE nameservers.
+- ⚠️ **Duplicate-account gotcha:** a second, *dormant* Cloudflare account exists
+  for the same domain on `craig.ns.cloudflare.com` + `uma.ns.cloudflare.com`.
+  Editing that one does nothing (the registrar points to jill+quinton). Don't
+  confuse the two — this cost hours.
+- ⚠️ **SPF must be a SINGLE TXT record.** Never create two `v=spf1` records;
+  combine all includes into one. Target end state once a sender is added:
+  ```
+  v=spf1 include:spf.protection.outlook.com include:<sending-service-include> -all
+  ```
+  Replace `<sending-service-include>` with the include the chosen service gives
+  you, and also add their **DKIM** records (usually CNAMEs they generate).
+- Mail-related records must be **DNS only** in Cloudflare (grey cloud), never
+  proxied (orange cloud).
+
+### Receiving email (works today, leave as-is)
+- `command@` **receives** normally via Microsoft 365.
+  MX → `thecreatistecatering-com.mail.protection.outlook.com`.
+- Read/reply in Outlook by granting the licensed `enquiries@` account permission
+  to the shared mailbox. The sending service only handles **outbound** app mail;
+  inbound still lands in the M365 shared mailbox.
+
+### Accounts (reference)
+| Address | Type | Notes |
+|---|---|---|
+| `enquiries@thecreatistecatering.com` | Licensed user (Exchange Online Essentials) | Primary admin mailbox |
+| `command@thecreatistecatering.com` | Shared mailbox (unlicensed) | Outbound via sending service; inbound lands here |
+
+### Out of scope (separate future project — do NOT attempt as part of app work)
+- "Defederating" from GoDaddy to take full control of the M365 tenant (would
+  allow creating staff logins on the domain, setting it as default, etc.). This
+  is a deliberate migration that forces user password resets and a licensing
+  move. It is **not required** for the app to send or receive email.
 
 ## Brand (exact spec from Ellice — do not drift)
 - Gold `#BFA987`, ivory `#FFFBF5`, true black background. Dark "signature" theme is
