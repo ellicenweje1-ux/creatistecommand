@@ -43,10 +43,11 @@ commit authorship may show a different name/email — the project is entirely El
   2. The email reset link won't actually send until **SMTP_\* env vars** are set on Render;
      until then use the admin-side reset. Also set **`SUPPORT_EMAIL`** to a monitored inbox
      (it still defaults to `ADMIN_EMAIL`) so the "contact support" fallback reaches someone.
-     **(In progress, 2026-06-15:)** SMTP setup is underway — M365 turned out to be a dead end
-     (shared mailbox + GoDaddy federation), so we're wiring **Resend** over SMTP from
-     `command@thecreatistecatering.com`. See the new **"Email & Domain Infrastructure"**
-     section for the full constraints (Cloudflare DNS account, single-SPF rule, etc.).
+     **(2026-06-15:)** Email is now wired through **Resend** from `command@thecreatistecatering.com`.
+     M365 was a dead end (shared mailbox + GoDaddy federation); then Render turned out to **block
+     outbound SMTP** (timed out), so `mailer.py` was switched to Resend's **HTTP API** (set
+     `RESEND_API_KEY`). Domain verified in Cloudflare. See **"Email & Domain Infrastructure"** for
+     the full constraints (Cloudflare account, single-SPF rule, why SMTP can't be used).
 - New routes are public (outside `/app`); SPA catch-all + SW network-first navigations already
   serve them. `/auth/` and `/admin/` are in the offline `NO_QUEUE`, so these flows fail fast
   offline (correct — they need a connection).
@@ -471,12 +472,13 @@ tenant. Use a dedicated transactional email service.**
      OAuth-only after) — password SMTP is a dead end going forward.
   ➡️ A dedicated sending service is the **correct architecture**, not a workaround.
 - **Recommended service: Resend** (Brevo / SendGrid / Postmark are fine alternatives).
-  - **No app code change needed:** `mailer.py` already does STARTTLS SMTP, so point it at
-    Resend's SMTP — `SMTP_HOST=smtp.resend.com`, `SMTP_PORT=587`, `SMTP_USER=resend`,
-    `SMTP_PASSWORD=<the Resend API key, re_…>`. (Or switch to their HTTP API later via
-    `RESEND_API_KEY` — a small code change; only if SMTP is ever a problem.)
-  - **From address:** `command@thecreatistecatering.com`. Set `SMTP_FROM=The Creatiste
-    Command <command@thecreatistecatering.com>` and `SUPPORT_EMAIL=command@thecreatistecatering.com`.
+  - **Send over Resend's HTTP API, NOT SMTP.** Render **blocks outbound SMTP ports** —
+    `smtp.resend.com:587` just times out (log: `email to … failed: timed out`). `mailer.py`
+    now posts to `https://api.resend.com/emails` over HTTPS (443) when **`RESEND_API_KEY`**
+    (the `re_…` key) is set, and falls back to STARTTLS SMTP only when it isn't.
+  - **Required env vars on Render:** `RESEND_API_KEY=re_…`, `SMTP_FROM=The Creatiste Command
+    <command@thecreatistecatering.com>` (reused as the API sender), `SUPPORT_EMAIL=command@thecreatistecatering.com`.
+    The `SMTP_HOST/USER/PASSWORD/PORT` vars are now redundant (ignored when the API key is set).
   - Store the key as a Render **secret env var** — never hardcode, never a mailbox password.
 - **DNS lives at Cloudflare (NOT GoDaddy, NOT Microsoft). Registrar is 123-Reg.**
   - ⚠️ Use the Cloudflare account on nameservers **`jill.ns.cloudflare.com` +

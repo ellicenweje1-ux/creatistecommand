@@ -81,6 +81,10 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM = os.getenv("SMTP_FROM", "The Creatiste Command <no-reply@creatistecommand.com>")
+# Resend HTTP API. Preferred on hosts that block outbound SMTP ports (e.g. Render): when
+# set, app email goes out over HTTPS (port 443) via Resend instead of SMTP. Uses SMTP_FROM
+# as the sender. Falls back to SMTP when unset.
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
 ALLOWED_UPLOAD_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".pdf"}
