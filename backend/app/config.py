@@ -57,12 +57,15 @@ SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "") or ADMIN_EMAIL
 DEFAULT_TRIAL_DAYS = int(os.getenv("DEFAULT_TRIAL_DAYS", "5"))
 
 # Onboarding & check-in video calls -----------------------------------------------------------
-# Bookable slots offered to clients (times are local to the business day, kept naive
-# like every other date/time in the app).
+# Bookable slots offered to clients. Slot times are local to ONBOARDING_TZ (the business's
+# timezone) — pinned to Europe/London so the labels and the booking lead-time stay correct
+# through the BST/GMT switch instead of silently drifting an hour in summer.
+ONBOARDING_TZ = os.getenv("ONBOARDING_TZ", "Europe/London")
 ONBOARDING_SLOT_MINUTES = int(os.getenv("ONBOARDING_SLOT_MINUTES", "45"))
 ONBOARDING_DAY_START = int(os.getenv("ONBOARDING_DAY_START", "9"))    # first slot 09:00
 ONBOARDING_DAY_END = int(os.getenv("ONBOARDING_DAY_END", "18"))       # last slot starts 17:00
-ONBOARDING_DAYS_AHEAD = int(os.getenv("ONBOARDING_DAYS_AHEAD", "14"))  # booking horizon
+ONBOARDING_DAYS_AHEAD = int(os.getenv("ONBOARDING_DAYS_AHEAD", "14"))  # client booking horizon
+ONBOARDING_ADMIN_DAYS_AHEAD = int(os.getenv("ONBOARDING_ADMIN_DAYS_AHEAD", "21"))  # admin block-out grid
 ONBOARDING_WEEKDAYS = {0, 1, 2, 3, 4, 5}  # Mon–Sat (datetime.weekday numbers)
 
 # Zoom (preferred video platform) — set all three to auto-create real Zoom meetings

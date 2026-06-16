@@ -8,7 +8,51 @@ this platform; all decisions are hers. (Git-history heads-up: some early commits
 authored under a relative's Google login that was used to access Claude, so older
 commit authorship may show a different name/email — the project is entirely Ellice's.)
 
-## Latest session (2026-06-14, eleventh wave — password reset + Terms/Privacy pages)
+## Latest session (2026-06-16, twelfth wave — onboarding timezone + block-out, delete-chef cascade)
+- Branch `claude/zen-johnson-y5jrrv` — **merge to `main` to deploy**. Knocks out the seventh-wave
+  review's next two items: **3 (call slots: no block-out + BST drift)** and **4 (delete_chef
+  orphans)**.
+- **Onboarding slots pinned to Europe/London (BST bug fixed):** slot times were treated as naive
+  UTC, so a "09:00" label was compared to the 3-hour booking lead as if it were 09:00 UTC — 1h
+  off during British Summer Time. Now `routers/onboarding.py` builds each slot as a
+  `ZoneInfo(config.ONBOARDING_TZ)`-aware instant (`_slot_instant`) and iterates **local** dates
+  (`_today_local`), so labels + lead-time stay correct through the BST/GMT switch. New
+  `config.ONBOARDING_TZ` (default `Europe/London`); **`tzdata` added to requirements** so the zone
+  is always present regardless of host base image. Zoom meetings now also send `timezone` so the
+  created call matches the local slot.
+- **Admin block-out controls (holidays / days off / single slots):** new **`BlockedSlot`** model
+  (a row with empty `start_time` = whole day off; a `HH:MM` = one slot). New admin endpoints
+  (`admin.py`, admin-gated): `GET /admin/availability` (a grid of every business day in the
+  horizon with each slot's state open/booked/blocked/past + the future "time off" list),
+  `POST /admin/availability/block` `{date, start_time?}`, `DELETE /admin/availability/block/{id}`.
+  `available_slots` (the client booking source) now subtracts blocked days/slots, so blocking
+  instantly removes them from the booking page; `book_session` re-validates against it (can't book
+  a blocked slot). Admin horizon `ONBOARDING_ADMIN_DAYS_AHEAD` (21d) is longer than the client's
+  14d so Ellice can plan ahead; a date-picker blocks holidays further out still.
+- **Frontend:** new **`AvailabilityPanel`** at the top of **Admin → Onboarding** (`pages/Admin.jsx`):
+  a per-day grid of slot chips (click open↔blocked), a "take the whole day off" day toggle, a
+  holiday date-picker, and a "Scheduled time off" chip list with remove buttons. On-brand
+  (gold/red states, dark theme), mobile-friendly (scrolls). **GOTCHA re-confirmed: the API helper's
+  delete method is `api.del(...)`, NOT `api.delete` (undefined)** — bit me once; all four delete
+  calls use `api.del`.
+- **delete_chef now cascades (no orphans):** `OWNED_MODELS` (14 tables) → **`PURGE_MODELS` (24
+  tables)** — adds Appointment, Shift, PackingList, Supplier, SupplierPrice, Quote, ActivityLog,
+  OnboardingSession, FounderFeedback, SupportTicket. It now also gathers the chef's **staff
+  logins** (`User.owner_id == chef.id`), purges every user-keyed row for the owner *and* their
+  staff ids (`user_id.in_(ids)`), then deletes the staff users, then the owner. (`BlockedSlot` is
+  platform-level, not per-chef — untouched.)
+- **Verified:** backend via FastAPI TestClient — **23 checks** (tz helpers BST/GMT, lead-time
+  filters the right slots in summer, availability grid states, block/unblock single slot + whole
+  day, blocked slots hidden from client booking, past-date/non-slot-time 422s, delete cascade
+  empties all 24 tables + staff + staff-owned tickets while a bystander chef's data survives).
+  Playwright (system chromium, desktop) — **12 checks** (panel renders + Europe/London badge, 171
+  open slots, block a slot → blocked + time-off chip, reopen → cleared, whole-day off + restore,
+  holiday via date-picker persists across reload, remove). `npm run build` clean (75 modules). Only
+  console noise = the known harmless Google-Fonts cert errors.
+- **No new env/setup for Ellice** — works out of the box. `ONBOARDING_TZ` is overridable but
+  defaults to Europe/London; `ONBOARDING_ADMIN_DAYS_AHEAD` tunes the admin grid length.
+
+## Previous session (2026-06-14, eleventh wave — password reset + Terms/Privacy pages)
 - Branch `claude/pensive-clarke-eirbkc` — **merge to `main` to deploy**. Knocks out the two
   highest-priority gaps from the seventh-wave review: **item 1 (no password reset)** and
   **item 2 (no Terms/Privacy)**.
@@ -177,16 +221,16 @@ commit authorship may show a different name/email — the project is entirely El
   README. Standard wording: "Named for/after mise en place — everything in its place
   before service." Plan-JSON feature bullets deliberately untouched (they live in the
   DB; a code change wouldn't roll forward and could clobber live pricing edits).
-- **Full review delivered in-chat.** Top findings (status as of 15 Jun: 1, 2 ✅ done this
-  session; 5 ✅ done waves 8–10 — **next unactioned: 3, then 4, 6, 7**):
+- **Full review delivered in-chat.** Top findings (status as of 16 Jun: 1, 2 ✅ 11th wave;
+  3, 4 ✅ 12th wave; 5 ✅ waves 8–10 — **next unactioned: 6, then 7**):
   1. ✅ **DONE (11th wave)** — password reset built: admin set/generate in the chef modal +
      self-service email flow (now sending live via Resend).
   2. ✅ **DONE (11th wave)** — Terms + Privacy live at `/terms` `/privacy`, linked from the
      footer + register form. (Templates — still want a solicitor's review before relying on them.)
-  3. Onboarding call slots: admin has **no way to block out days/holidays**, and slot
-     times are naive-UTC (off by 1h vs UK during BST) — pin to Europe/London.
-  4. `admin.delete_chef` leaves orphans: staff Users, Quote, Supplier, SupplierPrice,
-     PackingList, Appointment, Shift, ActivityLog, OnboardingSession, FounderFeedback.
+  3. ✅ **DONE (12th wave)** — onboarding slots pinned to **Europe/London** (BST drift fixed) +
+     admin block-out controls (days off / holidays / single slots) in Admin → Onboarding.
+  4. ✅ **DONE (12th wave)** — `delete_chef` now cascades: clears all 24 user-keyed tables +
+     the chef's staff logins, no orphans left.
   5. ✅ **DONE (waves 8–10)** — recorded ElevenLabs voiceover shipped, audio-first engine. Orig: keep the React scene
      engine, replace browser TTS with a **recorded ~70s voiceover MP3** (Ellice's own
      voice, or a one-time ElevenLabs render) put in `frontend/public/`, drive scene
@@ -574,13 +618,13 @@ it matches the calling shell and kills it).
 
 ## Likely next steps (Ellice's roadmap)
 - ✅ Done: Stripe live keys + webhook (6th wave), **email** (Resend HTTP API, 11th wave),
-  `SUPPORT_EMAIL` → `command@thecreatistecatering.com`, `main` as the canonical branch.
-- **NEXT ON THE LIST** (7th-wave review, above): **3** — onboarding slots: give admin a way to
-  block out days/holidays + pin slot times to **Europe/London** (naive-UTC is 1h off in BST).
-  Then **4** (`delete_chef` leaves orphaned staff/quotes/suppliers/etc.), **6** (cheaper
-  `AI_MODEL=claude-sonnet-4-6` when Mise goes live), **7** (OG/social meta tags, ICS calendar
-  feed, CSV export, admin SQLite-backup download, rate-limit/honeypot the enquiry form, drop
-  `.svg` from `ALLOWED_UPLOAD_EXT`).
+  `SUPPORT_EMAIL` → `command@thecreatistecatering.com`, `main` as the canonical branch,
+  onboarding **Europe/London + block-out** and **delete_chef cascade** (12th wave).
+- **NEXT ON THE LIST** (7th-wave review, above): **6** — when Mise goes live, set
+  `AI_MODEL=claude-sonnet-4-6` (~5x cheaper than Opus, fine for Mise's structured-JSON jobs;
+  just an env var). Then **7** (OG/social meta tags, ICS calendar feed, CSV export, admin
+  SQLite-backup download, rate-limit/honeypot the enquiry form, drop `.svg` from
+  `ALLOWED_UPLOAD_EXT`).
 - **Still pending `ANTHROPIC_API_KEY`** to switch on Mise (deferred until the first paying chef).
 - **Add a persistent disk** (`DATA_DIR=/var/data`) before real chefs — the free tier wipes the
   SQLite DB on every deploy/restart.

@@ -11,19 +11,25 @@ from .. import config, mailer
 from ..auth import hash_password, require_admin
 from ..database import get_db
 from ..models import (
-    Booking, Client, ClientReview, Design, Expense, FounderFeedback, Idea, InventoryItem,
-    Invoice, OnboardingSession, OnlineOrder, Payment, RoutePlan, Recipe, ShoppingList,
+    ActivityLog, Appointment, BlockedSlot, Booking, Client, ClientReview, Design, Expense,
+    FounderFeedback, Idea, InventoryItem, Invoice, OnboardingSession, OnlineOrder, PackingList,
+    Payment, Quote, RoutePlan, Recipe, Shift, ShoppingList, Supplier, SupplierPrice,
     SupportTicket, Task, User,
 )
 from ..utils import to_dict
 from .billing import get_settings
 from .founders import founders_config, founders_days_in, founders_taken
+from .onboarding import _today_local, availability_grid, slot_times
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
-OWNED_MODELS = (
-    Booking, Client, ClientReview, Design, Expense, Idea, InventoryItem,
-    Invoice, OnlineOrder, Payment, Recipe, RoutePlan, ShoppingList, Task,
+# Every table keyed to a user id. When a chef is deleted these are swept for the owner's
+# id *and* their staff's ids, so nothing (quotes, suppliers, sessions, logs, tickets…)
+# is left orphaned in the database.
+PURGE_MODELS = (
+    ActivityLog, Appointment, Booking, Client, ClientReview, Design, Expense, FounderFeedback,
+    Idea, InventoryItem, Invoice, OnboardingSession, OnlineOrder, PackingList, Payment, Quote,
+    RoutePlan, Recipe, Shift, ShoppingList, Supplier, SupplierPrice, SupportTicket, Task,
 )
 
 # Fields stripped from any chef record sent to the admin UI.
@@ -131,11 +137,18 @@ def set_chef_password(user_id: int, payload: dict = Body(...), db: Session = Dep
 
 @router.delete("/chefs/{user_id}", status_code=204)
 def delete_chef(user_id: int, db: Session = Depends(get_db)):
+    """Delete a chef and everything in their workspace — including their staff logins —
+    leaving no orphaned rows behind."""
     user = db.get(User, user_id)
     if not user or user.role != "chef":
         raise HTTPException(404, "Chef not found")
-    for model in OWNED_MODELS:
-        db.query(model).filter(model.user_id == user_id).delete()
+    # Staff accounts belong to this owner; clear their rows too (a staff member could
+    # hold e.g. a support ticket under their own id).
+    staff_ids = [r[0] for r in db.query(User.id).filter(User.owner_id == user_id).all()]
+    ids = [user_id, *staff_ids]
+    for model in PURGE_MODELS:
+        db.query(model).filter(model.user_id.in_(ids)).delete(synchronize_session=False)
+    db.query(User).filter(User.owner_id == user_id).delete(synchronize_session=False)
     db.delete(user)
     db.commit()
 
@@ -280,6 +293,55 @@ def onboarding_sessions(db: Session = Depends(get_db)):
     )
     past = [s for s in out if s not in upcoming]
     return {"upcoming": upcoming, "past": past, "today": today}
+
+
+# --- Availability / time off -------------------------------------------------------------
+# Ellice's bookable grid: block out holidays and days off so those slots vanish from the
+# client booking page. Slot times are Europe/London-local (see routers/onboarding.py).
+
+@router.get("/availability")
+def availability(days: int | None = None, db: Session = Depends(get_db)):
+    return availability_grid(db, days)
+
+
+@router.post("/availability/block", status_code=201)
+def block_time(payload: dict = Body(...), db: Session = Depends(get_db)):
+    """Block a whole day off (omit start_time) or a single slot (HH:MM). Returns the
+    refreshed availability so the admin grid updates in one round-trip."""
+    date = (payload.get("date") or "").strip()
+    start_time = (payload.get("start_time") or "").strip()
+    note = (payload.get("note") or "").strip()[:200]
+    if len(date) != 10 or date[4] != "-" or date[7] != "-":
+        raise HTTPException(422, "A valid date (YYYY-MM-DD) is required.")
+    if date < _today_local().isoformat():
+        raise HTTPException(422, "That day has already passed.")
+    if start_time and start_time not in slot_times():
+        raise HTTPException(422, "That isn't a bookable slot time.")
+    if not start_time:
+        # A whole day off supersedes any single-slot blocks already set for that day.
+        db.query(BlockedSlot).filter(
+            BlockedSlot.date == date, BlockedSlot.start_time != ""
+        ).delete(synchronize_session=False)
+    already = (
+        db.query(BlockedSlot)
+        .filter(BlockedSlot.date == date, BlockedSlot.start_time == start_time)
+        .first()
+    )
+    if not already:
+        db.add(BlockedSlot(date=date, start_time=start_time, note=note))
+    db.commit()
+    return availability_grid(db)
+
+
+@router.delete("/availability/block/{block_id}")
+def unblock_time(block_id: int, db: Session = Depends(get_db)):
+    """Lift a block (a day off or a single slot). Idempotent — a missing id just returns
+    the current state."""
+    block = db.get(BlockedSlot, block_id)
+    if block:
+        db.delete(block)
+        db.commit()
+    return availability_grid(db)
 
 
 @router.patch("/onboarding/{session_id}")

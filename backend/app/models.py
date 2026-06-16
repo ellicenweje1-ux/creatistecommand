@@ -365,6 +365,19 @@ class OnboardingSession(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
 
+class BlockedSlot(Base):
+    """Admin time-off: a day or single slot the platform owner has blocked out, removed
+    from the bookable availability shown to clients. A whole day off is a row with an
+    empty start_time; a single blocked slot carries the HH:MM. Times are local to
+    config.ONBOARDING_TZ (Europe/London), matching the slots clients see."""
+    __tablename__ = "blocked_slots"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    date: Mapped[str] = mapped_column(String(10), index=True)   # YYYY-MM-DD
+    start_time: Mapped[str] = mapped_column(String(5), default="")  # "" = the whole day
+    note: Mapped[str] = mapped_column(String(200), default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
 class FounderFeedback(Base):
     """Day-5 founders check-in: thoughts on the programme, how it benefited them,
     and what they'd change — one (updatable) entry per founding member."""

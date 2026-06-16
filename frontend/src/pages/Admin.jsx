@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { fmtMoney, label } from '../format'
+import { cls, fmtDate, fmtMoney, label } from '../format'
 import { Badge, Button, Card, Field, Icon, Input, Modal, PageHeader, SearchInput, Select, Spinner, StatCard, Tabs, Textarea, toast, toastErr } from '../ui'
 
 const STATUS_TONE = { active: 'sage', trialing: 'copper', pending: 'amber', suspended: 'red', canceled: 'ink' }
@@ -227,6 +227,99 @@ function SessionModal({ session, onClose, onSaved }) {
   )
 }
 
+const SLOT_STATE = {
+  open: 'border-line text-fg/55 hover:border-copper/60 hover:bg-copper/5 hover:text-copper',
+  blocked: 'border-red-200 bg-red-50 text-red-700 line-through dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300',
+  booked: 'cursor-default border-copper/40 bg-copper/10 text-copper',
+  past: 'cursor-default border-line/40 text-fg/25',
+}
+const SLOT_TITLE = {
+  open: 'Open — click to block', blocked: 'Blocked — click to reopen',
+  booked: 'Already booked', past: 'In the past',
+}
+
+/* Block out holidays and days off: blocked days/slots vanish from the client booking page.
+   Slot times are Europe/London-local, so they stay correct through the BST/GMT switch. */
+function AvailabilityPanel() {
+  const [data, setData] = useState(null)
+  const [holiday, setHoliday] = useState('')
+  const [busy, setBusy] = useState(false)
+  useEffect(() => { api.get('/admin/availability').then(setData).catch(toastErr) }, [])
+
+  const run = (p) => { setBusy(true); p.then(setData).catch(toastErr).finally(() => setBusy(false)) }
+  const onSlot = (date, s) => {
+    if (busy) return
+    if (s.state === 'open') run(api.post('/admin/availability/block', { date, start_time: s.time }))
+    else if (s.state === 'blocked' && s.block_id) run(api.del(`/admin/availability/block/${s.block_id}`))
+  }
+  const toggleDay = (d) => {
+    if (busy) return
+    run(d.day_blocked ? api.del(`/admin/availability/block/${d.day_block_id}`)
+                      : api.post('/admin/availability/block', { date: d.date }))
+  }
+  const addHoliday = () => { if (holiday) { run(api.post('/admin/availability/block', { date: holiday })); setHoliday('') } }
+
+  if (!data) return <Card title="Your availability"><Spinner className="py-6" /></Card>
+
+  return (
+    <Card title="Your availability" action={<span className="text-xs text-fg/40">{data.tz.replace('_', ' ')}</span>}>
+      <p className="-mt-1 mb-4 text-sm text-fg/55">
+        Block out holidays and days off — blocked times disappear from the booking page. Click a slot to
+        block it, hit a day to take the whole day off, or pick a future date below for a holiday.
+      </p>
+      <div className="mb-5 flex flex-wrap items-end gap-3 rounded-xl border border-line bg-parchment/40 p-3">
+        <div>
+          <p className="label">Take a day off (holiday)</p>
+          <Input type="date" min={data.today} value={holiday} onChange={(e) => setHoliday(e.target.value)} className="w-48" />
+        </div>
+        <Button size="sm" icon="calendar" variant="secondary" disabled={!holiday || busy} onClick={addHoliday}>Block this day</Button>
+      </div>
+
+      <div className="scrollbar-thin max-h-[26rem] space-y-2 overflow-y-auto pr-1">
+        {data.grid.map((d) => (
+          <div key={d.date} className="flex flex-wrap items-center gap-2 border-b border-line/40 pb-2 last:border-0">
+            <button type="button" onClick={() => toggleDay(d)} disabled={busy}
+              title={d.day_blocked ? 'Whole day off — click to restore' : 'Click to take the whole day off'}
+              className={cls('flex w-32 shrink-0 items-center justify-between gap-1 rounded-lg border px-2.5 py-1.5 text-left text-xs font-semibold transition-colors',
+                d.day_blocked ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300'
+                  : 'border-line text-fg/70 hover:border-copper/50 hover:text-copper')}>
+              <span>{fmtDate(d.date)}</span>
+              <Icon name={d.day_blocked ? 'lock' : 'calendar'} size={12} className="opacity-60" />
+            </button>
+            <div className="flex flex-wrap gap-1">
+              {d.slots.map((s) => (
+                <button key={s.time} type="button" onClick={() => onSlot(d.date, s)}
+                  disabled={busy || s.state === 'booked' || s.state === 'past'} title={SLOT_TITLE[s.state]}
+                  className={cls('rounded-md border px-2 py-1 text-xs font-medium transition-colors', SLOT_STATE[s.state])}>
+                  {s.time}
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {data.blocks.length > 0 && (
+        <div className="mt-5 border-t border-line/60 pt-4">
+          <p className="label">Scheduled time off</p>
+          <div className="flex flex-wrap gap-2">
+            {data.blocks.map((b) => (
+              <span key={b.id} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-parchment/50 px-2.5 py-1 text-xs text-fg/70">
+                <Icon name="calendar" size={12} className="text-fg/40" />
+                {fmtDate(b.date)}{b.start_time ? ` · ${b.start_time}` : ' · all day'}
+                <button type="button" onClick={() => run(api.del(`/admin/availability/block/${b.id}`))} disabled={busy}
+                  className="ml-0.5 text-fg/40 hover:text-red-600" title="Remove">
+                  <Icon name="x" size={12} />
+                </button>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </Card>
+  )
+}
+
 function OnboardingPanel({ data, onSaved }) {
   const [selected, setSelected] = useState(null)
   if (!data) return <Spinner />
@@ -250,6 +343,7 @@ function OnboardingPanel({ data, onSaved }) {
 
   return (
     <div className="space-y-5">
+      <AvailabilityPanel />
       <Card title={`Upcoming calls (${upcoming.length})`} pad={false}>
         {upcoming.length === 0 ? (
           <p className="p-5 text-sm text-fg/45">Nothing booked — new sign-ups book their onboarding call themselves, and it lands here.</p>

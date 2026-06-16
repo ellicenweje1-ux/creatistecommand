@@ -10,7 +10,8 @@ automatically through Zoom's server-to-server OAuth API); otherwise a private Ji
 Meet room per session (free, no account needed) so the flow works out of the box.
 MEETING_URL overrides both with one fixed link (e.g. a personal Zoom room)."""
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import date as date_cls, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -18,7 +19,7 @@ from sqlalchemy.orm import Session
 from .. import config, mailer
 from ..auth import get_current_user
 from ..database import get_db
-from ..models import OnboardingSession, User
+from ..models import BlockedSlot, OnboardingSession, User
 from ..utils import to_dict
 
 router = APIRouter(prefix="/onboarding", tags=["onboarding"])
@@ -26,10 +27,25 @@ router = APIRouter(prefix="/onboarding", tags=["onboarding"])
 KINDS = {"onboarding", "checkin"}
 KIND_LABELS = {"onboarding": "Onboarding session", "checkin": "Founders day-5 check-in"}
 MIN_LEAD_HOURS = 3  # earliest bookable slot is a few hours out
+TZ = ZoneInfo(config.ONBOARDING_TZ)  # slot times are local to the business timezone
 
 
 def _now():
     return datetime.now(timezone.utc)
+
+
+def _today_local() -> date_cls:
+    """Today's date in the business timezone (not UTC) — the day a slot belongs to."""
+    return datetime.now(TZ).date()
+
+
+def _slot_instant(date_str: str, time_str: str) -> datetime:
+    """The real (timezone-aware) moment a local YYYY-MM-DD / HH:MM slot occurs.
+    Pinning to ONBOARDING_TZ is what keeps the booking lead-time honest across the
+    BST/GMT switch — a 09:00 London slot is 08:00 UTC in summer, 09:00 UTC in winter."""
+    y, mo, d = (int(x) for x in date_str.split("-"))
+    h, m = (int(x) for x in time_str.split(":"))
+    return datetime(y, mo, d, h, m, tzinfo=TZ)
 
 
 def slot_times() -> list[str]:
@@ -45,24 +61,88 @@ def _booked_set(db: Session) -> set[tuple[str, str]]:
     return {(r[0], r[1]) for r in rows}
 
 
+def _blocks(db: Session) -> tuple[set[str], set[tuple[str, str]]]:
+    """Admin time-off: (days fully blocked, individual (date, time) slots blocked)."""
+    rows = db.query(BlockedSlot.date, BlockedSlot.start_time).all()
+    full_days = {r[0] for r in rows if not r[1]}
+    slots = {(r[0], r[1]) for r in rows if r[1]}
+    return full_days, slots
+
+
 def available_slots(db: Session) -> list[dict]:
-    """Open slots over the booking horizon: Mon–Sat business hours minus taken slots."""
+    """Open slots over the booking horizon: Mon–Sat business hours, minus slots already
+    taken, minus the owner's blocked days/slots, minus anything inside the lead time."""
     taken = _booked_set(db)
+    blocked_days, blocked_slots = _blocks(db)
     cutoff = _now() + timedelta(hours=MIN_LEAD_HOURS)
+    today = _today_local()
     days = []
     for offset in range(config.ONBOARDING_DAYS_AHEAD + 1):
-        day = (_now() + timedelta(days=offset)).date()
+        day = today + timedelta(days=offset)
         if day.weekday() not in config.ONBOARDING_WEEKDAYS:
             continue
         date_str = day.isoformat()
+        if date_str in blocked_days:
+            continue
         times = [
             t for t in slot_times()
             if (date_str, t) not in taken
-            and datetime.fromisoformat(f"{date_str}T{t}:00+00:00") >= cutoff
+            and (date_str, t) not in blocked_slots
+            and _slot_instant(date_str, t) >= cutoff
         ]
         if times:
             days.append({"date": date_str, "times": times})
     return days
+
+
+def availability_grid(db: Session, days_ahead: int | None = None) -> dict:
+    """Admin block-out view: every business day in the horizon with each slot's state
+    (open / booked / blocked / past), so the owner can toggle days and slots off."""
+    horizon = config.ONBOARDING_ADMIN_DAYS_AHEAD if days_ahead is None else max(0, days_ahead)
+    taken = _booked_set(db)
+    rows = db.query(BlockedSlot).all()
+    day_block = {b.date: b for b in rows if not b.start_time}
+    slot_block = {(b.date, b.start_time): b for b in rows if b.start_time}
+    cutoff = _now() + timedelta(hours=MIN_LEAD_HOURS)
+    today = _today_local()
+    grid = []
+    for offset in range(horizon + 1):
+        day = today + timedelta(days=offset)
+        if day.weekday() not in config.ONBOARDING_WEEKDAYS:
+            continue
+        date_str = day.isoformat()
+        whole = day_block.get(date_str)
+        slots = []
+        for t in slot_times():
+            if (date_str, t) in taken:
+                state, block_id = "booked", None
+            elif whole:
+                state, block_id = "blocked", None  # covered by the whole-day block
+            elif (date_str, t) in slot_block:
+                state, block_id = "blocked", slot_block[(date_str, t)].id
+            elif _slot_instant(date_str, t) < cutoff:
+                state, block_id = "past", None
+            else:
+                state, block_id = "open", None
+            slots.append({"time": t, "state": state, "block_id": block_id})
+        grid.append({
+            "date": date_str, "weekday": day.weekday(),
+            "day_blocked": bool(whole), "day_block_id": whole.id if whole else None,
+            "slots": slots,
+        })
+    # Every future block (incl. holidays past the grid horizon) for the "time off" list.
+    blocks = sorted(
+        (to_dict(b) for b in rows if b.date >= today.isoformat()),
+        key=lambda b: (b["date"], b["start_time"]),
+    )
+    return {
+        "tz": config.ONBOARDING_TZ,
+        "today": today.isoformat(),
+        "horizon_days": horizon,
+        "slot_times": slot_times(),
+        "grid": grid,
+        "blocks": blocks,
+    }
 
 
 def create_meeting(user: User, kind: str, date: str, start_time: str) -> tuple[str, str]:
@@ -84,6 +164,7 @@ def create_meeting(user: User, kind: str, date: str, start_time: str) -> tuple[s
                     "topic": f"The Creatiste Command — {KIND_LABELS[kind]} with {user.name or user.email}",
                     "type": 2,  # scheduled
                     "start_time": f"{date}T{start_time}:00",
+                    "timezone": config.ONBOARDING_TZ,  # interpret start_time as business-local, not GMT
                     "duration": config.ONBOARDING_SLOT_MINUTES,
                     "settings": {"waiting_room": True, "join_before_host": False},
                 },
