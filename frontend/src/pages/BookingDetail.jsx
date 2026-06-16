@@ -5,6 +5,7 @@ import { useAuth } from '../auth'
 import { BOOKING_STATUSES, BOOKING_TONES, fmtDateLong, fmtMoney, invoiceTotal, label, relDays, todayISO, uid } from '../format'
 import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, Select, Spinner, Tabs, Textarea, toast, toastErr } from '../ui'
 import { BookingForm } from './Bookings'
+import { ContactClient } from '../contact'
 import { DesignCard, DesignEditorModal } from './Designs'
 import { ExpenseFormModal, InvoiceEditorModal } from './Finance'
 import { OrderFormModal, OrderRow } from './Orders'
@@ -258,6 +259,11 @@ export default function BookingDetail() {
                     <div className="mt-2 flex flex-wrap gap-1">{ws.client.dietary.map((d, i) => <Badge key={i} tone="sage">{d}</Badge>)}</div>
                   )}
                   {ws.client.allergies && <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">⚠ {ws.client.allergies}</p>}
+                  {(ws.client.phone || ws.client.email) && (
+                    <div className="mt-3 border-t border-line/60 pt-3">
+                      <ContactClient client={ws.client} booking={b} label="Contact client" />
+                    </div>
+                  )}
                 </div>
               ) : <p className="text-sm text-fg/45">No client linked. Edit the booking to attach one.</p>}
             </Card>

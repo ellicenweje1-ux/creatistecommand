@@ -37,6 +37,7 @@ def ensure_columns():
             "reset_token": "VARCHAR(64) DEFAULT ''", "reset_token_expires": "VARCHAR(40) DEFAULT ''",
             "business_description": "TEXT DEFAULT ''", "business_email": "VARCHAR(255) DEFAULT ''",
             "services": "JSON", "socials": "JSON", "gallery": "JSON",
+            "contact_channel": "VARCHAR(10) DEFAULT 'both'", "contact_template": "TEXT DEFAULT ''",
         },
         "platform_settings": {"founders": "JSON"},
         "tasks": {"assignee_id": "INTEGER"},

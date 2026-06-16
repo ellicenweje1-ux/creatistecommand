@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { perkIcon, perkTitle } from '../booking'
+import { DEFAULT_CONTACT_TEMPLATE } from '../contact'
 import { cls, fmtMoney, label, SYMBOLS } from '../format'
 import { getInstallPrompt, isStandalone } from '../offline'
 import { Badge, Button, Card, Field, Icon, Input, PageHeader, Select, Textarea, toast, toastErr } from '../ui'
@@ -95,7 +96,7 @@ const SOCIAL_FIELDS = [
 
 export function SettingsBusiness() {
   const { user, setUser } = useAuth()
-  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {} })
+  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '' })
   const [gallery, setGallery] = useState([])
   const [logo, setLogo] = useState('')
   const [svc, setSvc] = useState('')
@@ -111,6 +112,8 @@ export function SettingsBusiness() {
       business_email: user.business_email || '',
       services: user.services || [],
       socials: user.socials || {},
+      contact_channel: user.contact_channel || 'both',
+      contact_template: user.contact_template || '',
     })
     setGallery(user.gallery || [])
     setLogo(user.avatar_url || '')
@@ -199,6 +202,26 @@ export function SettingsBusiness() {
               </Field>
             ))}
           </div>
+        </div>
+      </Card>
+
+      <Card title="Contacting clients">
+        <p className="mb-3 text-sm text-fg/60">
+          Defaults for the <span className="font-medium text-fg">Contact client</span> button on bookings and clients — it opens
+          WhatsApp or email with your message ready to send (you can still edit it each time).
+        </p>
+        <div className="space-y-3">
+          <Field label="Preferred channel">
+            <Select value={form.contact_channel} onChange={(e) => setForm({ ...form, contact_channel: e.target.value })}>
+              <option value="both">WhatsApp &amp; email</option>
+              <option value="whatsapp">WhatsApp only</option>
+              <option value="email">Email only</option>
+            </Select>
+          </Field>
+          <Field label="Message template" hint="Placeholders {client}, {business}, {event} and {date} are filled in automatically.">
+            <Textarea rows={4} value={form.contact_template} onChange={(e) => setForm({ ...form, contact_template: e.target.value })}
+              placeholder={DEFAULT_CONTACT_TEMPLATE} />
+          </Field>
         </div>
       </Card>
 

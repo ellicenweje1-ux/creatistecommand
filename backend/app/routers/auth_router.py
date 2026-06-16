@@ -33,6 +33,8 @@ def enriched_user(db: Session, user: User) -> dict:
     data["business_name"] = owner.business_name or data.get("business_name")
     data["is_staff"] = user.role == "staff"
     data["services"] = owner.services or []  # owner's service types power the New-Booking dropdown
+    data["contact_template"] = owner.contact_template or ""   # business-level contact defaults
+    data["contact_channel"] = owner.contact_channel or "both"
     return data
 
 
@@ -113,7 +115,7 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
 @router.put("/me")
 def update_me(payload: dict = Body(...), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     for field in ("name", "business_name", "phone", "currency", "avatar_url",
-                  "business_description", "business_email"):
+                  "business_description", "business_email", "contact_channel", "contact_template"):
         if field in payload:
             setattr(user, field, payload[field] or "")
     # Structured business-profile fields. Assign fresh objects (don't mutate in place)

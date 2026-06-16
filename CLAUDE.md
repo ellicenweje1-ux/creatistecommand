@@ -48,10 +48,13 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
    menu's title feeds a **"Menu" dropdown on New Booking** (new `bookings.menu_type` column, shown on
    the booking detail). Sharing the PDF to **enquired** clients rides on #8 (WhatsApp/email contact).
    Details in the sixteenth-wave notes below.
-8. 🔲 **WhatsApp / email "Contact client" button.** On a booking (and client), a one-tap **Contact
-   client** that opens **WhatsApp** (`wa.me/<client phone>`) or **email** (`mailto:`). The chef sets
-   their preferred channel(s) / a message template in **Settings**. Open scope Q: exactly what the
-   chef configures (channel toggle? message template? their own WhatsApp number?).
+8. ✅ **WhatsApp / email "Contact client" — DONE (17th wave).** A **Contact client** button on a
+   booking (Client card) and on each client opens a modal: the chef's **template message** pre-filled
+   (placeholders {client}/{business}/{event}/{date}) with **Open in WhatsApp** (`wa.me/<digits>`) and
+   **Open in email** (`mailto:`), plus an **Attach a menu PDF** picker that drops the menu's public
+   `/uploads/…pdf` link into the message — the way set menus get shared to enquired clients. The chef
+   sets the **preferred channel + template** in **Settings → Business → Contacting clients**. Details
+   in the seventeenth-wave notes below.
 9. ✅ **Business profile page — DONE (15th wave). Internal** (Ellice's call: chefs keep their own
    public sites/booking, so no public page). New **Settings → Business**: logo (reuses `avatar_url`),
    description, **services list** (editable chips), business contact email, social links, and a
@@ -65,11 +68,34 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
     shared `Modal` (`ui.jsx`) no longer closes on a backdrop click — close only via the X or Escape.
     Fixes the data loss across every form modal in the app.
 
-**Sequencing:** 5, 6, 7, 9, 10, 11 done; 4 confirmed working (Mise AI chat deferred); 3 is a standing
-rule; 1 & 2 await the persistent disk (Ellice: "later"). Last of the current batch: **8 (WhatsApp/
-email "Contact client" + share a menu PDF to enquired clients)** — Ellice's steer: menus shared as
-PDFs via the contact feature, only to clients who have **enquired** (platform is internal; chefs
-have their own public sites).
+**Sequencing:** the whole current batch is done — 5, 6, 7, 8, 9, 10, 11 (plus 4 confirmed working,
+Mise AI chat deferred). 3 is a standing rule. Only **1 & 2 remain, and both wait on the persistent
+disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk before any real chef signs up.
+
+## Latest session (2026-06-16, seventeenth wave — WhatsApp/email "Contact client" + menu sharing)
+- Same branch `claude/determined-brahmagupta-oxnjxp` — **merge to `main` to deploy.** Builds owner
+  feedback item **8** (contact client) and completes the current batch. **Backend: 2 additive `users`
+  columns** (`contact_channel`, `contact_template`) via `ensure_columns`. No new env/setup. `npm run
+  build` clean (77 modules).
+- **`frontend/src/contact.jsx` — `<ContactClient client booking? />`**: a "Contact" button → modal
+  with the chef's **template message pre-filled** (`fillTemplate` replaces `{client}/{business}/
+  {event}/{date}`), **Open in WhatsApp** (`https://wa.me/<digits>?text=…`, phone stripped to digits)
+  and **Open in email** (`mailto:?subject&body`). Channels shown respect the chef's preferred-channel
+  setting and what the client actually has (phone/email). Returns null if the client has neither.
+- **Menu sharing rides here:** the modal has an **"Attach a menu PDF"** picker (menus that have a
+  `pdf_url`); choosing one appends `Here's our <title>: <origin>/uploads/…pdf` to the message. `/uploads`
+  is a public StaticFiles mount, so the link opens for the client. This is how set menus reach
+  **enquired** clients (Ellice's steer — no public pages).
+- **Wired in:** Clients page (each client's detail card) and **BookingDetail** (Client card, passes the
+  booking for `{event}`/`{date}` context). **Settings → Business** gains a **"Contacting clients"** card:
+  preferred channel (both/WhatsApp/email) + the editable message template (placeholder hint). Saved with
+  the business profile; `contact_channel`/`contact_template` are overlaid from the **owner** in
+  `enriched_user` so staff use the business defaults.
+- **Verified:** API — contact prefs persist on `PUT /auth/me`. Playwright (desktop) **10/10**: the
+  Settings contact card + saved template, the Contact button on a client, the modal prefilled from the
+  template, **menu PDF link appended**, the Email button, and the **WhatsApp deep link**
+  `https://wa.me/447911123456?text=…` (captured via a `window.open` shim — "+44 7911 123456" → digits),
+  plus the **Contact client** button on the booking detail. No console errors.
 
 ## Latest session (2026-06-16, sixteenth wave — Menu master page + booking menu dropdown)
 - Same branch `claude/determined-brahmagupta-oxnjxp` — **merge to `main` to deploy.** Builds owner

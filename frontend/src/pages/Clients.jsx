@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { BOOKING_TONES, cls, fmtDate, label, todayISO } from '../format'
+import { ContactClient } from '../contact'
 import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, SearchInput, Spinner, Stars, Textarea, toastErr } from '../ui'
 
 function ClientModal({ open, onClose, onSaved, initial = null }) {
@@ -92,6 +93,7 @@ function ClientDetail({ client, onEdit, onChanged }) {
               <IconButton icon="edit" label="Edit" onClick={onEdit} />
               <IconButton icon="trash" label="Delete" onClick={removeClient} />
             </div>
+            <ContactClient client={client} />
             {avg && <div className="flex items-center gap-1.5 text-sm"><Stars value={Math.round(avg)} /><span className="font-medium">{avg}</span></div>}
             {bookings.length > 1 && <Badge tone="copper">repeat ×{bookings.length}</Badge>}
           </div>
