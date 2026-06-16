@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { BOOKING_STATUSES, BOOKING_TONES, cls, fmtDate, fmtMoney, label, relDays, todayISO } from '../format'
-import { Badge, Button, EmptyState, Field, Input, Modal, PageHeader, Select, Spinner, Textarea, toastErr } from '../ui'
+import { Badge, Button, EmptyState, Field, Icon, Input, Modal, PageHeader, Select, Spinner, Textarea, toast, toastErr } from '../ui'
 
 export function BookingForm({ initial = {}, onSaved, onClose }) {
   const [form, setForm] = useState({
@@ -116,6 +116,89 @@ function CalendarView({ bookings }) {
   )
 }
 
+/* ----------------------- enquiry / lead pipeline board ------------------------- */
+// The active life of a lead, in order. Completed/cancelled graduate off the board.
+const PIPELINE_STAGES = ['enquiry', 'quoted', 'confirmed', 'in_prep']
+const NEXT_STATUS = { enquiry: 'quoted', quoted: 'confirmed', confirmed: 'in_prep', in_prep: 'completed' }
+const STAGE_HINT = {
+  enquiry: 'New leads — the rough details the client sent.',
+  quoted: 'Price sent — waiting on their yes.',
+  confirmed: 'Booked in and locked for the diary.',
+  in_prep: 'Prep underway for the event.',
+}
+
+function PipelineCard({ booking, currency, onEdit, onAdvance }) {
+  const b = booking
+  const next = NEXT_STATUS[b.status]
+  return (
+    <div className="rounded-xl border border-line bg-card p-3 shadow-card transition-all hover:border-copper/40">
+      <div className="flex items-start justify-between gap-2">
+        <Link to={`/app/bookings/${b.id}`} className="min-w-0 flex-1 truncate text-sm font-medium hover:text-copper">{b.title}</Link>
+        {b.quoted_price > 0 && <span className="shrink-0 text-xs font-semibold">{fmtMoney(b.quoted_price, currency)}</span>}
+      </div>
+      <p className="mt-1 text-xs text-fg/55">
+        {b.date ? fmtDate(b.date) : 'date TBC'}{b.date ? ` · ${relDays(b.date)}` : ''}
+        {b.guest_count ? ` · ${b.guest_count} guests` : ''}{b.event_type ? ` · ${b.event_type}` : ''}
+      </p>
+      {b.venue_address && (
+        <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-fg/45">
+          <Icon name="pin" size={11} className="shrink-0" />{b.venue_address}
+        </p>
+      )}
+      {b.notes && (
+        <p className="mt-2 line-clamp-4 whitespace-pre-line rounded-lg bg-parchment/40 px-2.5 py-1.5 text-[11px] leading-relaxed text-fg/55">{b.notes}</p>
+      )}
+      <div className="mt-2.5 space-y-1.5">
+        {next && (
+          <Button size="sm" icon="arrowRight" className="w-full whitespace-nowrap" onClick={() => onAdvance(b, next)}>
+            {next === 'completed' ? 'Mark complete' : `Move to ${label(next)}`}
+          </Button>
+        )}
+        <button onClick={() => onEdit(b)} className="inline-flex w-full items-center justify-center gap-1 py-0.5 text-xs font-medium text-fg/50 hover:text-copper">
+          <Icon name="edit" size={13} /> Edit details
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function PipelineView({ bookings, currency, onEdit, onAdvance, onNew }) {
+  const open = bookings.filter((b) => PIPELINE_STAGES.includes(b.status))
+  const byStage = (s) => open
+    .filter((b) => b.status === s)
+    .sort((a, b) => (a.date || '9999-99-99').localeCompare(b.date || '9999-99-99'))
+
+  if (open.length === 0) {
+    return (
+      <EmptyState icon="pulse" title="No open enquiries or active events"
+        hint="When a client sends an enquiry it lands here as a new lead — then move it down the line: quote it, confirm it, prep it. Share your enquiry link from Settings → App & integrations."
+        action={<Button icon="plus" onClick={onNew}>New booking</Button>} />
+    )
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      {PIPELINE_STAGES.map((stage) => {
+        const cards = byStage(stage)
+        return (
+          <div key={stage} className="rounded-2xl border border-line bg-base/40 p-2.5">
+            <div className="mb-1 flex items-center justify-between px-1">
+              <Badge tone={BOOKING_TONES[stage]}>{label(stage)}</Badge>
+              <span className="text-xs font-medium text-fg/40">{cards.length}</span>
+            </div>
+            <p className="mb-2 px-1 text-[11px] leading-snug text-fg/40">{STAGE_HINT[stage]}</p>
+            <div className="space-y-2">
+              {cards.length === 0
+                ? <p className="rounded-lg border border-dashed border-line px-3 py-4 text-center text-[11px] text-fg/35">Nothing here yet</p>
+                : cards.map((b) => <PipelineCard key={b.id} booking={b} currency={currency} onEdit={onEdit} onAdvance={onAdvance} />)}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function Bookings() {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -123,10 +206,17 @@ export default function Bookings() {
   const [view, setView] = useState('list')
   const [filter, setFilter] = useState('upcoming')
   const [creating, setCreating] = useState(false)
+  const [editing, setEditing] = useState(null)
 
   const load = () => api.get('/bookings').then(setBookings).catch(toastErr)
   useEffect(() => { load() }, [])
   if (!bookings) return <Spinner />
+
+  const replace = (saved) => setBookings((prev) => prev.map((x) => (x.id === saved.id ? saved : x)))
+  const advance = (b, next) => api.patch(`/bookings/${b.id}`, { status: next })
+    .then((saved) => { replace(saved); toast(`Moved to ${label(next)}`, 'sage') })
+    .catch(toastErr)
+  const enquiryCount = bookings.filter((b) => b.status === 'enquiry').length
 
   const today = todayISO()
   const filtered = bookings.filter((b) => {
@@ -142,9 +232,14 @@ export default function Bookings() {
         actions={
           <>
             <div className="flex rounded-lg border border-line bg-card p-0.5">
-              {['list', 'calendar'].map((v) => (
+              {['list', 'pipeline', 'calendar'].map((v) => (
                 <button key={v} onClick={() => setView(v)}
-                  className={cls('rounded-md px-3 py-1.5 text-xs font-medium capitalize', view === v ? 'bg-ink text-cream' : 'text-fg/50')}>{v}</button>
+                  className={cls('flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium capitalize', view === v ? 'bg-ink text-cream' : 'text-fg/50')}>
+                  {v}
+                  {v === 'pipeline' && enquiryCount > 0 && (
+                    <span className={cls('rounded-full px-1.5 text-[10px] font-semibold leading-tight', view === v ? 'bg-cream/20 text-cream' : 'bg-copper text-ink')}>{enquiryCount}</span>
+                  )}
+                </button>
               ))}
             </div>
             <Button icon="plus" onClick={() => setCreating(true)}>New booking</Button>
@@ -152,7 +247,14 @@ export default function Bookings() {
         }
       />
 
-      {view === 'calendar' ? <CalendarView bookings={bookings} /> : (
+      {view === 'calendar' && <CalendarView bookings={bookings} />}
+
+      {view === 'pipeline' && (
+        <PipelineView bookings={bookings} currency={user?.currency}
+          onEdit={setEditing} onAdvance={advance} onNew={() => setCreating(true)} />
+      )}
+
+      {view === 'list' && (
         <>
           <div className="mb-4 flex gap-1.5">
             {['upcoming', 'past', 'all'].map((f) => (
@@ -191,6 +293,9 @@ export default function Bookings() {
 
       <Modal open={creating} onClose={() => setCreating(false)} title="New booking">
         <BookingForm onClose={() => setCreating(false)} onSaved={(b) => { setCreating(false); navigate(`/app/bookings/${b.id}`) }} />
+      </Modal>
+      <Modal open={!!editing} onClose={() => setEditing(null)} title="Edit enquiry">
+        {editing && <BookingForm initial={editing} onClose={() => setEditing(null)} onSaved={(b) => { setEditing(null); replace(b) }} />}
       </Modal>
     </div>
   )

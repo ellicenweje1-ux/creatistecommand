@@ -30,26 +30,59 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
 3. 🔲 **Keep the FAQs page continuously up to date (standing instruction).** FAQ copy lives in the
    `FAQS` array in `frontend/src/pages/Support.jsx` (plus a few Q&As on Landing/Home). Whenever a
    feature ships or changes, update the FAQs to match — treat it as part of "done" from now on.
-4. 🔲 **Support feature — NOT live yet (correction).** Today the Support page (`/app/support`) posts
-   `/support/request` → creates a SupportTicket (Admin → Support) + emails `SUPPORT_EMAIL`
-   (`command@thecreatistecatering.com` via Resend); "Ask Mise" chat needs `ANTHROPIC_API_KEY`
-   (currently unset → 503 → falls back to the form). Ellice says treat support as not yet live —
-   confirm what she wants (finish/verify the email-ticket flow? hide it until ready? is it the Mise
-   chat that's off?) before relying on it. Don't describe support as live anywhere until confirmed.
-5. 🔲 **Split Settings into individual pages.** Today `frontend/src/pages/Settings.jsx` is one long
-   page (~8 cards: Profile, Appearance, Founders, Membership/billing, Mobile app, Mise, Email,
-   Public enquiry link, Change password). Plan: nested routes under `/app/settings` with a settings
-   sub-nav (e.g. Profile · Security · Appearance · Membership · App & integrations) so each lives on
-   its own page instead of one wall.
-6. 🔲 **Bookings → pending / open-enquiries pipeline.** Today enquiries arrive as `Booking` rows
-   with `status="enquiry"` (`routers/public.py`) and just sit in the normal "upcoming" list. Ellice
-   wants a dedicated pending/open-enquiries view: see the rough details a client sent, edit/fill them
-   in, and progress the lead easily through the pipeline (enquiry→quoted→confirmed→in_prep) as it's
-   discussed with the client. Plan: an "Enquiries" tab/board at the top of Bookings with quick inline
-   edit + one-tap status advance.
+4. ✅ **Support feature — confirmed working (Ellice, 2026-06-16).** The Support page (`/app/support`)
+   posts `/support/request` → creates a SupportTicket (Admin → Support) + emails `SUPPORT_EMAIL`
+   (`command@thecreatistecatering.com` via Resend), and Ellice confirms this works. Only the **"Ask
+   Mise" AI chat** is still off (needs `ANTHROPIC_API_KEY` → 503 → falls back to the form); she'll
+   set the AI key up later. So: support = live; Mise chat = deferred with the rest of the AI rollout.
+5. ✅ **Split Settings into individual pages — DONE (14th wave).** `/app/settings` is now a layout
+   with a sub-nav (Profile · Security · Appearance · Membership · App & integrations); each section
+   is its own route/page. Details in the fourteenth-wave notes below.
+6. ✅ **Bookings pending/open-enquiries pipeline — DONE (14th wave).** New "Pipeline" view on
+   Bookings: a 4-stage lead board (enquiry→quoted→confirmed→in_prep) showing the client's rough
+   details on each card, with quick edit + one-tap advance. Details in the fourteenth-wave notes.
 
-**Sequencing:** 1/5/6 are builds (await Ellice's priority — she's still adding pointers); 3 is a
-standing rule; 4 needs a one-line clarification; 2 is answered and points at the persistent-disk fix.
+**Sequencing:** 5 & 6 built (14th wave); 4 confirmed working (only the Mise AI chat is deferred);
+3 is a standing rule; 1 awaits the persistent-disk infra step (#2); 2 is answered.
+
+## Latest session (2026-06-16, fourteenth wave — split Settings pages + Bookings enquiry pipeline)
+- Branch `claude/determined-brahmagupta-oxnjxp` — **merge to `main` to deploy.** Builds owner
+  feedback items **5** (split Settings) and **6** (bookings enquiry pipeline). **Frontend only —
+  no backend changes, no new env/setup for Ellice.** `npm run build` clean (75 modules).
+- **Settings split into individual pages** (`frontend/src/pages/Settings.jsx` + nested routes in
+  `App.jsx`): `/app/settings` is now a layout (PageHeader + a sub-nav rail) with **nested routes**,
+  one page each — **Profile** (index, `/app/settings`) · **Security** (`/security`, change password)
+  · **Appearance** (`/appearance`, theme) · **Membership** (`/membership`, billing + founders card)
+  · **App & integrations** (`/integrations`, install/PWA + Mise status + email status + public
+  enquiry link). Sub-nav = horizontal scrollable pills on mobile, a left vertical rail on `lg`
+  (NavLink active state). Each sub-page fetches only what it needs (billing/ai/founders) and keeps
+  the old conditionals (founders card founders-only; enquiry link non-staff Pro+ with a token;
+  cancel/portal hidden for admin). Settings.jsx exports the layout (default) + `SettingsProfile /
+  Security / Appearance / Membership / Integrations`; App.jsx imports them for the child routes.
+  Sidebar / bottom-nav / "More" links to `/app/settings` still land on Profile (index); deep-links
+  and reloads to a sub-page work via the SPA catch-all + SW network-first navigations.
+- **Bookings "Pipeline" view** (`frontend/src/pages/Bookings.jsx`): a third view toggle **List ·
+  Pipeline · Calendar**. Pipeline = a **4-column lead board** (`enquiry → quoted → confirmed →
+  in_prep`; completed/cancelled graduate off it) — 4 cols on `xl`, 2 on `md`, stacked on mobile.
+  Each card shows the **rough details the client sent** (title, date + relDays, guests, event type,
+  venue, quoted price, and the enquiry `notes` block with contact / budget / message), a full-width
+  **"Move to <next>"** one-tap advance button (`Mark complete` at in_prep), and **"Edit details"** →
+  the existing `BookingForm` in a modal (fill in / refine as she talks to the client). Advance does
+  `PATCH /bookings/{id}` `{status: next}` and updates the list in place with a toast. The **Pipeline
+  toggle carries a copper count badge** of new `enquiry`-status leads needing attention. No new
+  endpoints — reuses `/bookings` GET + PATCH and the existing `enquiry`-status rows from the public
+  form. List view (upcoming / past / all) + Calendar unchanged. NB the public enquiry form already
+  feeds these rows in; the board is just a better lens on them.
+- **FAQ kept current (standing rule #3):** updated the "public enquiry form" FAQ in `Support.jsx`
+  to point at **Settings → App & integrations** (the link moved there in the split) and to mention
+  the new Pipeline view. No other feature capability changed, so other FAQ copy still holds.
+- **Verified:** Playwright (system chromium, desktop 1280 + mobile 390), demo Elite chef, after a
+  DB reseed + a fresh public enquiry → **42/42 checks**: Settings sub-nav (all 5) + each sub-page
+  renders (Profile fields, Security password, Appearance theme, Membership status row once billing
+  loads, Integrations app+Mise+enquiry cards) + deep-link/reload to a sub-page; Bookings Pipeline
+  shows all 4 stage columns + the enquiry lead card with its rough details, the quick-edit modal
+  opens, and one-tap advance moves a lead (toast + the enquiry badge clears). No console errors
+  beyond the known harmless Google-Fonts cert noise. (Temp verify script removed after.)
 
 ## Latest session (2026-06-16, thirteenth wave — security hardening: SVG uploads, enquiry honeypot + rate-limits, login throttle)
 - Branch `claude/wizardly-keller-06hky9` — **merge to `main` to deploy**. Knocks out the

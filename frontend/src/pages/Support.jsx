@@ -20,7 +20,7 @@ const FAQS = [
   ['How do client quote approvals work?',
    'Draft a quote under Finance → Quotes and hit Send. You get a private link to share — your client opens it on their phone, sees the quote beautifully laid out, and taps Approve or Decline. You’re notified instantly, and approved quotes convert to invoices in one click.'],
   ['What is the public enquiry form?',
-   'A branded page you can link from your website or Instagram bio. Enquiries land straight in your Bookings as new leads with the client attached. Find your personal link in Settings → Public enquiry form.'],
+   'A branded page you can link from your website or Instagram bio. Enquiries land straight in your Bookings as new leads with the client attached — open the Pipeline view there to fill in the rough details and progress the lead. Find your personal link in Settings → App & integrations.'],
   ['How does the allergen matrix work?',
    'It reads the allergen tags on your recipe sheets and builds a dish-by-allergen grid (the UK’s 14 regulated allergens) for any booking’s menu — ready to print for the buffet table. Always double-check against actual labels; cross-contamination isn’t represented.'],
   ['Can I use it on my phone?',

@@ -28,7 +28,7 @@ import PublicEnquiry from './pages/PublicEnquiry'
 import PublicQuote from './pages/PublicQuote'
 import Recipes from './pages/Recipes'
 import RoutesPage from './pages/RoutesPage'
-import Settings from './pages/Settings'
+import Settings, { SettingsAppearance, SettingsIntegrations, SettingsMembership, SettingsProfile, SettingsSecurity } from './pages/Settings'
 import Support from './pages/Support'
 import Shopping from './pages/Shopping'
 import Suppliers from './pages/Suppliers'
@@ -299,7 +299,13 @@ export default function App() {
         <Route path="ideas" element={<Ideas />} />
         <Route path="finance" element={<Finance />} />
         <Route path="support" element={<Support />} />
-        <Route path="settings" element={<Settings />} />
+        <Route path="settings" element={<Settings />}>
+          <Route index element={<SettingsProfile />} />
+          <Route path="security" element={<SettingsSecurity />} />
+          <Route path="appearance" element={<SettingsAppearance />} />
+          <Route path="membership" element={<SettingsMembership />} />
+          <Route path="integrations" element={<SettingsIntegrations />} />
+        </Route>
         <Route path="admin" element={<RequireAdmin><Admin /></RequireAdmin>} />
       </Route>
       <Route path="*" element={<Landing />} />
