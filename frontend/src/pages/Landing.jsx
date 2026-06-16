@@ -106,7 +106,7 @@ const STEPS = [
   ['Create your account', 'Sign up in under a minute with your business details.'],
   ['Book your onboarding call', 'A personal video session to set up and verify your kitchen — your free trial unlocks the moment it’s done.'],
   ['Load your world', 'Add recipes, stock and clients — or start from your next booking.'],
-  ['Run the pass', 'Plan, shop, prep and serve — and pick the plan that fits when your trial ends.'],
+  ['Run the operation', 'Plan, shop, prep and serve — and pick the plan that fits when your trial ends.'],
 ]
 
 export default function Landing() {
