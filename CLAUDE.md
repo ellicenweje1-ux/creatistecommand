@@ -61,9 +61,9 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
    **gallery** (multi-photo upload). The **services list now powers the New-Booking "Event type"
    dropdown** (free text still works). Owner-only. Stored as additive `users` columns. Menu-type
    dropdown follows with #7. Details in the fifteenth-wave notes below.
-10. ✅ **Tastings icon → spoon — DONE (14th wave, follow-on).** New `spoon` glyph in `ui.jsx`;
-    repointed every Tastings usage (sidebar, Home guide, Landing, Tastings empty state, intro film)
-    from `cup`→`spoon`; the now-unused `cup` glyph removed.
+10. ✅ **Tastings icon — DONE.** Was `cup`→`spoon` (14th wave); Ellice then changed it to a **`fork`**
+    glyph in `ui.jsx`. Every Tastings usage (sidebar, Home guide, Landing, Tastings empty state, intro
+    film) points at `fork`; the old `cup` and `spoon` glyphs are removed. (Live on `main`.)
 11. ✅ **Modal: stop discarding entries on accidental click-off — DONE (14th wave, follow-on).** The
     shared `Modal` (`ui.jsx`) no longer closes on a backdrop click — close only via the X or Escape.
     Fixes the data loss across every form modal in the app.
