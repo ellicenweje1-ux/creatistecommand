@@ -8,7 +8,49 @@ this platform; all decisions are hers. (Git-history heads-up: some early commits
 authored under a relative's Google login that was used to access Claude, so older
 commit authorship may show a different name/email — the project is entirely Ellice's.)
 
-## Latest session (2026-06-16, twelfth wave — onboarding timezone + block-out, delete-chef cascade)
+## Latest session (2026-06-16, thirteenth wave — security hardening: SVG uploads, enquiry honeypot + rate-limits, login throttle)
+- Branch `claude/wizardly-keller-06hky9` — **merge to `main` to deploy**. Knocks out the
+  seventh-wave review's **item 7 security sub-items**: drop `.svg` from uploads, honeypot +
+  rate-limit the public enquiry form, and a brute-force throttle on login (plus forgot-password,
+  same email-spam class). **No new env vars or setup for Ellice** — works out of the box; all six
+  limits are env-tunable if ever needed.
+- **`.svg` dropped from `ALLOWED_UPLOAD_EXT`** (`config.py`): SVGs can carry `<script>` and uploads
+  are served same-origin from `/uploads`, so a booby-trapped one opened directly = stored XSS. Chefs
+  only upload photos (png/jpg/jpeg/webp/gif) + PDF receipts — SVG was never needed. Anyone trying to
+  upload `.svg` now gets a friendly 422; raster/PDF unaffected. (NB the Designs studio draws inline
+  SVG client-side and saves it as JSON path data — **not** an upload — so it's untouched.)
+- **New tiny in-process rate limiter** (`backend/app/ratelimit.py`, stdlib only): a per-key sliding
+  window in memory — `client_ip()`, `count(key, window)`, `record(key, window)`, `reset()`. The app
+  runs as a single uvicorn worker so this is enough; **if we ever run multiple workers, move the
+  store behind Redis** (shared window). `client_ip` reads the first `X-Forwarded-For` entry (Render's
+  real client IP) and falls back to the socket peer for local/dev. The read-then-write pair lets each
+  caller choose what counts (enquiry counts every accepted submission; login counts only failures).
+- **Public enquiry form hardened** (`routers/public.py` + `pages/PublicEnquiry.jsx`): it creates a
+  booking *and* emails the chef with **no login**, so it's a spam magnet once the link is in a bio.
+  Two layers — (1) a **honeypot**: a hidden off-screen `company` field real users never see; any
+  submission that fills it gets a **silent 201** (don't tip the bot off) and **creates nothing**;
+  (2) a **per-IP rate limit** (`ENQUIRY_RATE_MAX=5` per `ENQUIRY_RATE_WINDOW=600`s → 429 after).
+  Both sit *after* the invalid-token 404, so the costly booking+email path is what's protected.
+- **Login brute-force throttle** (`routers/auth_router.py`): **only failed** sign-ins from an IP
+  count (`LOGIN_RATE_MAX=10` per `LOGIN_RATE_WINDOW=300`s); once over the cap even a correct password
+  is refused with 429 until the window slides — a guesser can't grind past the wall, but a normal
+  user (or a shared office IP) who signs in correctly is never penalised.
+- **Forgot-password throttle** (same wave, related — same unauthenticated-email-spam class):
+  capped per IP (`FORGOT_RATE_MAX=5` per `FORGOT_RATE_WINDOW=900`s, 429 after); the deliberate
+  no-account-enumeration generic 200 is preserved for unknown emails.
+- **Verified:** backend via FastAPI TestClient — **22 checks** (`.svg` 422 / `.png` 201; honeypot
+  silent-201 + no booking, real enquiry creates one; enquiry 5-then-429 + other IP unaffected; login
+  10-fails-then-429, correct-pw-on-blocked-IP 429, fresh IP 200, 9-fails-then-correct-pw 200 i.e.
+  successes don't count; forgot 5-then-429 + unknown-email generic 200; the ratelimit primitive).
+  Playwright (system chromium, demo chef's enquiry link) — **7 checks** (form renders, honeypot input
+  + label both parked off-screen, real submit → Thank-you + exactly one new booking, no real console
+  errors). `npm run build` clean (75 modules). Only console noise = the known harmless Google-Fonts
+  cert error. (Temp verification scripts were removed after — nothing left in the tree.)
+- **Review item 7 now partly done** — remaining smaller suggestions: OG/social-preview meta tags,
+  ICS calendar feed, CSV export (clients/finance), admin SQLite-backup download. (Item 6 — set
+  `AI_MODEL=claude-sonnet-4-6` when Mise goes live — is still the cheap env-only next step.)
+
+## Previous session (2026-06-16, twelfth wave — onboarding timezone + block-out, delete-chef cascade)
 - Branch `claude/zen-johnson-y5jrrv` — **merge to `main` to deploy**. Knocks out the seventh-wave
   review's next two items: **3 (call slots: no block-out + BST drift)** and **4 (delete_chef
   orphans)**.
@@ -229,7 +271,8 @@ commit authorship may show a different name/email — the project is entirely El
   before service." Plan-JSON feature bullets deliberately untouched (they live in the
   DB; a code change wouldn't roll forward and could clobber live pricing edits).
 - **Full review delivered in-chat.** Top findings (status as of 16 Jun: 1, 2 ✅ 11th wave;
-  3, 4 ✅ 12th wave; 5 ✅ waves 8–10 — **next unactioned: 6, then 7**):
+  3, 4 ✅ 12th wave; 5 ✅ waves 8–10; 7's **security** sub-items ✅ 13th wave — **next unactioned:
+  6, then the rest of 7**):
   1. ✅ **DONE (11th wave)** — password reset built: admin set/generate in the chef modal +
      self-service email flow (now sending live via Resend).
   2. ✅ **DONE (11th wave)** — Terms + Privacy live at `/terms` `/privacy`, linked from the
@@ -248,8 +291,9 @@ commit authorship may show a different name/email — the project is entirely El
      fine for Mise's structured-JSON jobs) — it's just an env var.
   7. Smaller suggestions: OG/social-preview meta tags (index.html has none — bio links
      share with no card), ICS calendar feed of bookings/tastings, CSV export (clients/
-     finance), admin SQLite-backup download, rate-limit/honeypot the public enquiry
-     form, drop `.svg` from ALLOWED_UPLOAD_EXT (stored-XSS vector when opened directly).
+     finance), admin SQLite-backup download, ~~rate-limit/honeypot the public enquiry
+     form~~ ✅ 13th wave, ~~drop `.svg` from ALLOWED_UPLOAD_EXT~~ ✅ 13th wave (also added a
+     login + forgot-password brute-force/spam throttle).
 
 ## Previous session (2026-06-12, sixth wave — offline mobile app (PWA) + Stripe hardening)
 - Branch `claude/magical-planck-l54gva` — merge to `main` to deploy.
@@ -626,12 +670,13 @@ it matches the calling shell and kills it).
 ## Likely next steps (Ellice's roadmap)
 - ✅ Done: Stripe live keys + webhook (6th wave), **email** (Resend HTTP API, 11th wave),
   `SUPPORT_EMAIL` → `command@thecreatistecatering.com`, `main` as the canonical branch,
-  onboarding **Europe/London + block-out** and **delete_chef cascade** (12th wave).
+  onboarding **Europe/London + block-out** and **delete_chef cascade** (12th wave),
+  **security hardening** — `.svg` upload drop, enquiry honeypot + rate-limit, login &
+  forgot-password throttles (13th wave).
 - **NEXT ON THE LIST** (7th-wave review, above): **6** — when Mise goes live, set
   `AI_MODEL=claude-sonnet-4-6` (~5x cheaper than Opus, fine for Mise's structured-JSON jobs;
-  just an env var). Then **7** (OG/social meta tags, ICS calendar feed, CSV export, admin
-  SQLite-backup download, rate-limit/honeypot the enquiry form, drop `.svg` from
-  `ALLOWED_UPLOAD_EXT`).
+  just an env var). Then the **rest of 7** (OG/social meta tags, ICS calendar feed, CSV export,
+  admin SQLite-backup download — the enquiry honeypot/rate-limit + `.svg` drop are now done).
 - **Still pending `ANTHROPIC_API_KEY`** to switch on Mise (deferred until the first paying chef).
 - **Add a persistent disk** (`DATA_DIR=/var/data`) before real chefs — the free tier wipes the
   SQLite DB on every deploy/restart.

@@ -90,7 +90,20 @@ SMTP_FROM = os.getenv("SMTP_FROM", "The Creatiste Command <no-reply@creatistecom
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "10"))
-ALLOWED_UPLOAD_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg", ".pdf"}
+# .svg is deliberately excluded: SVGs can carry <script>, and uploads are served from
+# the same origin under /uploads, so a malicious one opened directly would run as
+# stored XSS. Chefs only ever upload photos and PDF receipts — no SVG needed.
+ALLOWED_UPLOAD_EXT = {".png", ".jpg", ".jpeg", ".webp", ".gif", ".pdf"}
+
+# Abuse controls for the unauthenticated, anyone-can-reach endpoints (public enquiry
+# form, login, forgot-password). Simple in-memory per-IP limits — see ratelimit.py.
+# All tunable from the environment without a code change.
+ENQUIRY_RATE_MAX = int(os.getenv("ENQUIRY_RATE_MAX", "5"))          # enquiries per IP …
+ENQUIRY_RATE_WINDOW = int(os.getenv("ENQUIRY_RATE_WINDOW", "600"))  # … per 10 minutes
+LOGIN_RATE_MAX = int(os.getenv("LOGIN_RATE_MAX", "10"))             # failed sign-ins per IP …
+LOGIN_RATE_WINDOW = int(os.getenv("LOGIN_RATE_WINDOW", "300"))      # … per 5 minutes
+FORGOT_RATE_MAX = int(os.getenv("FORGOT_RATE_MAX", "5"))            # reset emails per IP …
+FORGOT_RATE_WINDOW = int(os.getenv("FORGOT_RATE_WINDOW", "900"))    # … per 15 minutes
 
 DEFAULT_CURRENCY = os.getenv("DEFAULT_CURRENCY", "GBP")
 

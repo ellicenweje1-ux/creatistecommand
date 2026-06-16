@@ -2,10 +2,10 @@
 public enquiry form that feeds straight into the chef's bookings."""
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from .. import mailer
+from .. import config, mailer, ratelimit
 from ..database import get_db
 from ..models import ActivityLog, Booking, Client, Quote, User
 from ..utils import EMAIL_RE, to_dict
@@ -72,10 +72,23 @@ def enquiry_info(token: str, db: Session = Depends(get_db)):
 
 
 @router.post("/enquiry/{token}", status_code=201)
-def submit_enquiry(token: str, payload: dict = Body(...), db: Session = Depends(get_db)):
+def submit_enquiry(request: Request, token: str, payload: dict = Body(...), db: Session = Depends(get_db)):
     owner = db.query(User).filter(User.enquiry_token == token, User.role.in_(["chef", "admin"])).first() if token else None
     if not owner:
         raise HTTPException(404, "This enquiry form is not available.")
+
+    # This endpoint creates a booking and emails the chef with no login — a spam target
+    # once the link is in a bio. Cap submissions per IP …
+    ip = ratelimit.client_ip(request)
+    if ratelimit.count(f"enquiry:{ip}", config.ENQUIRY_RATE_WINDOW) >= config.ENQUIRY_RATE_MAX:
+        raise HTTPException(429, "You've sent a few enquiries already — please wait a little while before sending another.")
+    ratelimit.record(f"enquiry:{ip}", config.ENQUIRY_RATE_WINDOW)
+
+    # … and a honeypot: real users never see the "company" field, so anything that fills
+    # it is a bot. Pretend it worked (don't tip the bot off) but create nothing.
+    if (payload.get("company") or "").strip():
+        return {"ok": True, "message": "Thank you — your enquiry has been sent."}
+
     name = (payload.get("name") or "").strip()
     email = (payload.get("email") or "").strip().lower()
     if not name:

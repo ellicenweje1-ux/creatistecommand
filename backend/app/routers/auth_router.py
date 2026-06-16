@@ -1,10 +1,10 @@
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from .. import config, mailer
+from .. import config, mailer, ratelimit
 from ..auth import create_token, get_current_user, hash_password, plan_level, verify_password, workspace_owner
 from ..database import get_db
 from ..models import PlatformSettings, User
@@ -74,10 +74,17 @@ def register(payload: dict = Body(...), db: Session = Depends(get_db)):
 
 
 @router.post("/login")
-def login(payload: dict = Body(...), db: Session = Depends(get_db)):
+def login(request: Request, payload: dict = Body(...), db: Session = Depends(get_db)):
+    # Throttle brute-force guessing: too many failed sign-ins from one IP and we stop
+    # checking for a few minutes. Only failures count, so normal repeat logins (or a
+    # shared office IP) aren't penalised for getting it right.
+    ip = ratelimit.client_ip(request)
+    if ratelimit.count(f"login:{ip}", config.LOGIN_RATE_WINDOW) >= config.LOGIN_RATE_MAX:
+        raise HTTPException(429, "Too many sign-in attempts. Please wait a few minutes and try again.")
     email = (payload.get("email") or "").strip().lower()
     user = db.query(User).filter(User.email == email).first()
     if not user or not verify_password(payload.get("password") or "", user.password_hash):
+        ratelimit.record(f"login:{ip}", config.LOGIN_RATE_WINDOW)
         raise HTTPException(401, "Incorrect email or password")
     user.last_login_at = datetime.now(timezone.utc)
     db.commit()
@@ -133,10 +140,16 @@ def public_config():
 
 
 @router.post("/forgot-password")
-def forgot_password(payload: dict = Body(...), db: Session = Depends(get_db)):
+def forgot_password(request: Request, payload: dict = Body(...), db: Session = Depends(get_db)):
     """Start a password reset. Responds identically whether or not the email is on file
     (so the form can't be used to discover who has an account). When SMTP is configured
     the user gets a reset link; otherwise they're told to contact support."""
+    # Unauthenticated and it fires off an email — cap per IP so it can't be used to
+    # bomb an inbox or burn through our send quota. (IP-only, so it leaks nothing.)
+    ip = ratelimit.client_ip(request)
+    if ratelimit.count(f"forgot:{ip}", config.FORGOT_RATE_WINDOW) >= config.FORGOT_RATE_MAX:
+        raise HTTPException(429, "Too many reset requests. Please wait a little while and try again.")
+    ratelimit.record(f"forgot:{ip}", config.FORGOT_RATE_WINDOW)
     email = (payload.get("email") or "").strip().lower()
     user = db.query(User).filter(User.email == email).first() if EMAIL_RE.match(email) else None
     if user:

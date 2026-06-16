@@ -17,6 +17,7 @@ export default function PublicEnquiry() {
   const [busy, setBusy] = useState(false)
   const [form, setForm] = useState({
     name: '', email: '', phone: '', event_type: 'Private dinner', date: '', guest_count: '', location: '', budget: '', message: '',
+    company: '', // honeypot — stays empty for real users; bots that fill it are dropped
   })
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
 
@@ -51,6 +52,11 @@ export default function PublicEnquiry() {
         ) : (
           <form onSubmit={submit} className="space-y-4 rounded-2xl border border-line bg-card p-6 shadow-card">
             <h1 className="font-display text-xl font-semibold">Tell us about your event</h1>
+            {/* Honeypot: positioned off-screen and hidden from assistive tech + tab order.
+                Real people never fill it; bots that auto-complete every field get dropped. */}
+            <div aria-hidden="true" className="absolute -left-[9999px] top-0 h-0 w-0 overflow-hidden" style={{ pointerEvents: 'none' }}>
+              <label>Company<input type="text" tabIndex={-1} autoComplete="off" value={form.company} onChange={set('company')} /></label>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Your name"><Input value={form.name} onChange={set('name')} required /></Field>
               <Field label="Phone"><Input value={form.phone} onChange={set('phone')} /></Field>
