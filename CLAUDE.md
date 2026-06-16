@@ -51,6 +51,13 @@ commit authorship may show a different name/email — the project is entirely El
   console noise = the known harmless Google-Fonts cert errors.
 - **No new env/setup for Ellice** — works out of the box. `ONBOARDING_TZ` is overridable but
   defaults to Europe/London; `ONBOARDING_ADMIN_DAYS_AHEAD` tunes the admin grid length.
+- **Follow-up tweaks (same session, after Ellice tried it — already merged to `main`):** at her
+  request the bookable window was **widened to 08:00–20:00 (8am–8pm)** — 13 slots/day, first 08:00,
+  last 20:00 — and the calendar **opened to Mon–Sun** (Sunday added). Both are config defaults in
+  `config.py`: `ONBOARDING_DAY_START=8` / `ONBOARDING_DAY_END=21` (range end is exclusive; 21 ⇒
+  last slot 20:00) and `ONBOARDING_WEEKDAYS={0..6}`. NB the verification numbers above (171 open
+  slots; "Mon–Sat 09:00–17:00" in older notes) predate these — the live grid is now Mon–Sun
+  8am–8pm. Commits `a697252` (hours) + `4704ac6` (Sunday) on top of the wave commit `b70cb1f`.
 
 ## Previous session (2026-06-14, eleventh wave — password reset + Terms/Privacy pages)
 - Branch `claude/pensive-clarke-eirbkc` — **merge to `main` to deploy**. Knocks out the two
@@ -401,7 +408,7 @@ commit authorship may show a different name/email — the project is entirely El
   `auth._owner_active` + client-side in RequireActive; pre-existing active/trialing
   users are grandfathered at boot (onboarded_at = created_at).
 - **Booking system** (`routers/onboarding.py`, `frontend/src/booking.jsx`):
-  Mon–Sat 09:00–17:00 slots, 45 min, 14-day horizon, 3h lead, global calendar
+  Mon–Sat 09:00–17:00 slots (**now Mon–Sun 08:00–20:00 — see 12th wave**), 45 min, 14-day horizon, 3h lead, global calendar
   (everyone books Ellice), double-book → 409, rebook replaces, cancel endpoint,
   emails to client + SUPPORT_EMAIL. Video link per session: **Zoom** auto-created
   when ZOOM_ACCOUNT_ID/CLIENT_ID/CLIENT_SECRET set (server-to-server OAuth);
