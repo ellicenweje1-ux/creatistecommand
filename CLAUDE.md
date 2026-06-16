@@ -8,6 +8,49 @@ this platform; all decisions are hers. (Git-history heads-up: some early commits
 authored under a relative's Google login that was used to access Claude, so older
 commit authorship may show a different name/email — the project is entirely Ellice's.)
 
+## Owner feedback backlog — live list, collected from 2026-06-16 (Ellice, from real use)
+Ellice is sending pointers "in bits" from using the live platform. Capture each here as it lands
+so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in progress · ✅ done · ❓ answered.
+
+1. 🔲 **"Keep me logged in" / stay signed in.** Today: JWT in `localStorage` (`cc_token`),
+   `TOKEN_TTL_DAYS=7` — sessions already persist ~7 days, then 401 → `/login`. The likely real
+   cause of surprise logouts is the **free-tier SQLite wipe on every deploy** (user row vanishes →
+   `get_current_user` 401 "User no longer exists" → `api.js` clears the token). Plan: add the
+   persistent disk (infra — see #2) AND optionally lengthen the TTL + add sliding refresh and/or a
+   "Remember me" choice on login.
+2. ❓ **"How do my updates affect live users in real time?"** — answered in chat. Merge→`main`→
+   Render redeploys (~1–3 min build; brief blip on the free tier's single instance); existing
+   logins survive a deploy (token is client-side, `SECRET_KEY` is a stable env var); a user with the
+   app already open keeps the old frontend until they reload/navigate (SW is network-first, so a
+   reload picks up the new build); `ensure_columns` migrations are additive and auto-run at boot.
+   **URGENT caveat: on the free tier every deploy/restart WIPES the SQLite DB** — all chef data gone,
+   only the admin recreated. So right now a deploy = total data loss for any live chef. **Add
+   `DATA_DIR=/var/data` + a paid persistent disk on Render before any real chef signs up.** (Also
+   the true fix for #1's logouts.)
+3. 🔲 **Keep the FAQs page continuously up to date (standing instruction).** FAQ copy lives in the
+   `FAQS` array in `frontend/src/pages/Support.jsx` (plus a few Q&As on Landing/Home). Whenever a
+   feature ships or changes, update the FAQs to match — treat it as part of "done" from now on.
+4. 🔲 **Support feature — NOT live yet (correction).** Today the Support page (`/app/support`) posts
+   `/support/request` → creates a SupportTicket (Admin → Support) + emails `SUPPORT_EMAIL`
+   (`command@thecreatistecatering.com` via Resend); "Ask Mise" chat needs `ANTHROPIC_API_KEY`
+   (currently unset → 503 → falls back to the form). Ellice says treat support as not yet live —
+   confirm what she wants (finish/verify the email-ticket flow? hide it until ready? is it the Mise
+   chat that's off?) before relying on it. Don't describe support as live anywhere until confirmed.
+5. 🔲 **Split Settings into individual pages.** Today `frontend/src/pages/Settings.jsx` is one long
+   page (~8 cards: Profile, Appearance, Founders, Membership/billing, Mobile app, Mise, Email,
+   Public enquiry link, Change password). Plan: nested routes under `/app/settings` with a settings
+   sub-nav (e.g. Profile · Security · Appearance · Membership · App & integrations) so each lives on
+   its own page instead of one wall.
+6. 🔲 **Bookings → pending / open-enquiries pipeline.** Today enquiries arrive as `Booking` rows
+   with `status="enquiry"` (`routers/public.py`) and just sit in the normal "upcoming" list. Ellice
+   wants a dedicated pending/open-enquiries view: see the rough details a client sent, edit/fill them
+   in, and progress the lead easily through the pipeline (enquiry→quoted→confirmed→in_prep) as it's
+   discussed with the client. Plan: an "Enquiries" tab/board at the top of Bookings with quick inline
+   edit + one-tap status advance.
+
+**Sequencing:** 1/5/6 are builds (await Ellice's priority — she's still adding pointers); 3 is a
+standing rule; 4 needs a one-line clarification; 2 is answered and points at the persistent-disk fix.
+
 ## Latest session (2026-06-16, thirteenth wave — security hardening: SVG uploads, enquiry honeypot + rate-limits, login throttle)
 - Branch `claude/wizardly-keller-06hky9` — **merge to `main` to deploy**. Knocks out the
   seventh-wave review's **item 7 security sub-items**: drop `.svg` from uploads, honeypot +
