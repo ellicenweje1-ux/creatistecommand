@@ -62,8 +62,8 @@ DEFAULT_TRIAL_DAYS = int(os.getenv("DEFAULT_TRIAL_DAYS", "5"))
 # through the BST/GMT switch instead of silently drifting an hour in summer.
 ONBOARDING_TZ = os.getenv("ONBOARDING_TZ", "Europe/London")
 ONBOARDING_SLOT_MINUTES = int(os.getenv("ONBOARDING_SLOT_MINUTES", "45"))
-ONBOARDING_DAY_START = int(os.getenv("ONBOARDING_DAY_START", "9"))    # first slot 09:00
-ONBOARDING_DAY_END = int(os.getenv("ONBOARDING_DAY_END", "18"))       # last slot starts 17:00
+ONBOARDING_DAY_START = int(os.getenv("ONBOARDING_DAY_START", "8"))    # first slot 08:00
+ONBOARDING_DAY_END = int(os.getenv("ONBOARDING_DAY_END", "21"))       # last slot starts 20:00 (8pm)
 ONBOARDING_DAYS_AHEAD = int(os.getenv("ONBOARDING_DAYS_AHEAD", "14"))  # client booking horizon
 ONBOARDING_ADMIN_DAYS_AHEAD = int(os.getenv("ONBOARDING_ADMIN_DAYS_AHEAD", "21"))  # admin block-out grid
 ONBOARDING_WEEKDAYS = {0, 1, 2, 3, 4, 5}  # Mon–Sat (datetime.weekday numbers)
