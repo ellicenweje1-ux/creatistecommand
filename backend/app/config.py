@@ -66,7 +66,7 @@ ONBOARDING_DAY_START = int(os.getenv("ONBOARDING_DAY_START", "8"))    # first sl
 ONBOARDING_DAY_END = int(os.getenv("ONBOARDING_DAY_END", "21"))       # last slot starts 20:00 (8pm)
 ONBOARDING_DAYS_AHEAD = int(os.getenv("ONBOARDING_DAYS_AHEAD", "14"))  # client booking horizon
 ONBOARDING_ADMIN_DAYS_AHEAD = int(os.getenv("ONBOARDING_ADMIN_DAYS_AHEAD", "21"))  # admin block-out grid
-ONBOARDING_WEEKDAYS = {0, 1, 2, 3, 4, 5}  # Mon–Sat (datetime.weekday numbers)
+ONBOARDING_WEEKDAYS = {0, 1, 2, 3, 4, 5, 6}  # Mon–Sun (datetime.weekday numbers)
 
 # Zoom (preferred video platform) — set all three to auto-create real Zoom meetings
 # via the server-to-server OAuth app. Without them the platform generates a private

@@ -70,7 +70,7 @@ def _blocks(db: Session) -> tuple[set[str], set[tuple[str, str]]]:
 
 
 def available_slots(db: Session) -> list[dict]:
-    """Open slots over the booking horizon: Mon–Sat business hours, minus slots already
+    """Open slots over the booking horizon: Mon–Sun business hours, minus slots already
     taken, minus the owner's blocked days/slots, minus anything inside the lead time."""
     taken = _booked_set(db)
     blocked_days, blocked_slots = _blocks(db)
