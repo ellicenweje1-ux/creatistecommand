@@ -22,7 +22,7 @@ const GAP_POINTS = [
 
 const FEATURES = [
   { icon: 'calendar', title: 'Bookings & calendar', text: 'Every enquiry, quote and confirmed event in one diary — guest counts, venues, menus and dietary flags attached.' },
-  { icon: 'cup', title: 'Tastings & consultations', text: 'A dedicated diary for tastings, consultations, site visits and calls — linked to clients and bookings.' },
+  { icon: 'spoon', title: 'Tastings & consultations', text: 'A dedicated diary for tastings, consultations, site visits and calls — linked to clients and bookings.' },
   { icon: 'box', title: 'Inventory with shelf life', text: 'Know what is in stock, what expires this week and what is running low before you write a single list.' },
   { icon: 'cart', title: 'Multi-shop shopping lists', text: 'One list per booking, grouped by butcher, fishmonger, market and wholesaler. Check off as you go.' },
   { icon: 'clipboard', title: 'Packing checklists', text: 'Van-load lists for equipment, crockery and signage — nothing left on the kitchen floor.' },

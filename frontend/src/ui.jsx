@@ -51,7 +51,7 @@ const PATHS = {
   clipboard: 'M9 4h6v3H9V4ZM8 5H6v16h12V5h-2m-7 7h6m-6 4h4',
   grid2: 'M4 4h7v7H4V4Zm9 0h7v7h-7V4ZM4 13h7v7H4v-7Zm9 0h7v7h-7v-7Z',
   tag: 'M3 12V4h8l9 9-8 8-9-9Zm5.5-4.5h.01',
-  cup: 'M5 4h12v6a6 6 0 0 1-12 0V4Zm12 2h2a3 3 0 0 1-3 5M7 21h8m-4-5v5',
+  spoon: 'M12 2.5c-2.8 0-4 2.4-4 4.8 0 2.4 1.6 4.3 4 4.3s4-1.9 4-4.3c0-2.4-1.2-4.8-4-4.8ZM12 11.6V21',
   doc: 'M7 3h7l5 5v13H7V3Zm7 0v5h5M10 13h6m-6 4h6',
   help: 'M12 17h.01M9.3 9.3a2.7 2.7 0 1 1 3.8 2.5c-.8.3-1.6.9-1.6 1.7v.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
   moon: 'M20 14.5A8.5 8.5 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z',
@@ -214,8 +214,10 @@ export function Modal({ open, onClose, title, children, wide = false, footer }) 
     }
   }, [open, onClose])
   if (!open) return null
+  // Deliberately NOT closing on backdrop click: an accidental click-off used to
+  // discard whatever was being typed in a form. Close only via the X or Escape.
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-[2px] sm:items-center sm:p-6" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-[2px] sm:items-center sm:p-6">
       <div className={cls('max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-base shadow-pop sm:rounded-2xl', wide ? 'sm:max-w-3xl' : 'sm:max-w-lg')}>
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-base/95 px-5 py-3.5 backdrop-blur">
           <h2 className="font-display text-lg font-semibold">{title}</h2>

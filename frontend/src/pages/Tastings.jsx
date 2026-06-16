@@ -112,7 +112,7 @@ export default function Tastings() {
       <PageHeader title="Tastings & consultations" sub="The pre-booking diary: tastings, consultations, site visits and calls."
         actions={<Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>New appointment</Button>} />
       {appts.length === 0 ? (
-        <EmptyState icon="cup" title="No appointments in the diary" hint="Log tastings and consultations here — link them to clients and bookings so nothing slips."
+        <EmptyState icon="spoon" title="No appointments in the diary" hint="Log tastings and consultations here — link them to clients and bookings so nothing slips."
           action={<Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>New appointment</Button>} />
       ) : (
         <div className="space-y-5">

@@ -42,8 +42,30 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
    Bookings: a 4-stage lead board (enquiry→quoted→confirmed→in_prep) showing the client's rough
    details on each card, with quick edit + one-tap advance. Details in the fourteenth-wave notes.
 
-**Sequencing:** 5 & 6 built (14th wave); 4 confirmed working (only the Mise AI chat is deferred);
-3 is a standing rule; 1 awaits the persistent-disk infra step (#2); 2 is answered.
+7. 🔲 **Menu master page (set-menu docs).** A "Menus" section to keep live set menus current: build
+   a menu from finished recipe items, **attach chef-uploaded PDF docs** to each menu, and **share to
+   clients** easily. Menu "types" should feed a dropdown on the New Booking form (ties to #9). Open
+   scope Qs: nav placement + plan tier; "share" = public link vs attach-to-booking vs generated PDF;
+   auto-build-from-recipes and/or PDF-only.
+8. 🔲 **WhatsApp / email "Contact client" button.** On a booking (and client), a one-tap **Contact
+   client** that opens **WhatsApp** (`wa.me/<client phone>`) or **email** (`mailto:`). The chef sets
+   their preferred channel(s) / a message template in **Settings**. Open scope Q: exactly what the
+   chef configures (channel toggle? message template? their own WhatsApp number?).
+9. 🔲 **Business profile page.** Let chefs set up a business profile in one place — **logo,
+   description, services list, contact info, social links, gallery photos**. The **services list +
+   menu types appear as dropdowns on New Booking**. Ties to #7 (menu types) and could brand the
+   public enquiry page. Open scope Q: internal profile only, or a **public shareable business page**?
+   (Biggest of the batch.)
+10. ✅ **Tastings icon → spoon — DONE (14th wave, follow-on).** New `spoon` glyph in `ui.jsx`;
+    repointed every Tastings usage (sidebar, Home guide, Landing, Tastings empty state, intro film)
+    from `cup`→`spoon`; the now-unused `cup` glyph removed.
+11. ✅ **Modal: stop discarding entries on accidental click-off — DONE (14th wave, follow-on).** The
+    shared `Modal` (`ui.jsx`) no longer closes on a backdrop click — close only via the X or Escape.
+    Fixes the data loss across every form modal in the app.
+
+**Sequencing:** 5, 6, 10, 11 done (14th wave); 4 confirmed working (Mise AI chat deferred); 3 is a
+standing rule; 1 & 2 await the persistent disk (Ellice: "later"). Still to scope & build: **7 (menus),
+8 (contact button), 9 (business profile)** — awaiting Ellice's priority + the scope answers above.
 
 ## Latest session (2026-06-16, fourteenth wave — split Settings pages + Bookings enquiry pipeline)
 - Branch `claude/determined-brahmagupta-oxnjxp` — **merge to `main` to deploy.** Builds owner
@@ -83,6 +105,14 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
   shows all 4 stage columns + the enquiry lead card with its rough details, the quick-edit modal
   opens, and one-tap advance moves a lead (toast + the enquiry badge clears). No console errors
   beyond the known harmless Google-Fonts cert noise. (Temp verify script removed after.)
+- **Follow-on fixes (same branch — owner pointers 10 & 11):** (a) **Tastings icon is now a spoon** —
+  added a `spoon` glyph to `ui.jsx` and repointed every Tastings reference (sidebar, Home module
+  guide, Landing feature card, Tastings empty state, intro-film montage + app vignette) off `cup`,
+  then removed the unused `cup` glyph. (b) **Modals no longer discard input on an accidental
+  click-off** — the shared `Modal` dropped its backdrop-click close; it now closes only via the X or
+  Escape, so clicking outside a half-filled form can't wipe it. Verified 6/6 with Playwright (spoon
+  glyph wired on the Tastings nav; a backdrop click keeps the New-booking modal open *and* the typed
+  value; Escape and the X still close). `npm run build` clean (75 modules).
 
 ## Latest session (2026-06-16, thirteenth wave — security hardening: SVG uploads, enquiry honeypot + rate-limits, login throttle)
 - Branch `claude/wizardly-keller-06hky9` — **merge to `main` to deploy**. Knocks out the
