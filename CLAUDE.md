@@ -127,6 +127,22 @@ disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk befor
   plan-switch path with a real test subscription once Stripe is live** — it couldn't be exercised in-sandbox. (4) On a
   custom domain, update the OG URLs in `frontend/index.html` (re-run `make_og.py` only if branding changes).
 
+## Readiness sweep (2026-06-16, pre-soft-rollout) — Mise plan-gating fix
+- After the 18th wave, did a full pre-rollout review (live new-chef walk of all 32 pages with every paid service OFF
+  → all rendered, **zero app-origin errors / zero uncaught exceptions**, only the known Google-Fonts sandbox noise;
+  empty states all friendly; onboarding gate + public enquiry form + Mise-chat-fallback all good). One real issue found
+  and fixed:
+- **Mise (AI) tools were not plan-gated.** The 5 sous-chef endpoints (`/ai/recipe`, `/ai/shopping-list`, `/ai/prep-plan`,
+  `/ai/menu-suggest`, `/ai/idea-polish`) used `require_active`, not `require_plan(3)` — a Solo/Pro chef could call an
+  Elite-only feature (revenue leak once the key is on), and **every chef saw "Draft with Mise" buttons that errored**
+  with "AI not configured" while the key is off (founders are Elite-level, so the actual soft-rollout users would hit
+  dead buttons). Fix: (1) `require_plan(3)` on those 5 endpoints (→ clean 403 upgrade message for non-Elite; `support-chat`
+  stays open to all); (2) `enriched_user` now returns `ai_enabled` (= `bool(ANTHROPIC_API_KEY)`); (3) new `miseReady(user)`
+  helper (`format.js`) = `ai_enabled && plan_level>=3` gates the Mise UI in **Recipes**, **BookingDetail**, **Ideas**.
+  Net: Mise UI is **hidden for everyone while the AI key is off**, and **appears automatically for Elite the moment Ellice
+  sets `ANTHROPIC_API_KEY`** (no code change needed). Verified: Solo→403, Elite→503-when-off; UI hidden (AI off, 3/3),
+  shown for Elite + hidden for Solo (AI on, 2/2). `npm run build` clean (77 modules).
+
 ## Latest session (2026-06-16, seventeenth wave — WhatsApp/email "Contact client" + menu sharing)
 - Same branch `claude/determined-brahmagupta-oxnjxp` — **merge to `main` to deploy.** Builds owner
   feedback item **8** (contact client) and completes the current batch. **Backend: 2 additive `users`

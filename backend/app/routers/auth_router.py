@@ -35,6 +35,7 @@ def enriched_user(db: Session, user: User) -> dict:
     data["services"] = owner.services or []  # owner's service types power the New-Booking dropdown
     data["contact_template"] = owner.contact_template or ""   # business-level contact defaults
     data["contact_channel"] = owner.contact_channel or "both"
+    data["ai_enabled"] = bool(config.ANTHROPIC_API_KEY)  # so the UI hides Mise when it's off
     return data
 
 

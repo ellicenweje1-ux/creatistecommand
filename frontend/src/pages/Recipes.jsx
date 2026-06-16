@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { cls, fmtMoney, uid } from '../format'
+import { cls, fmtMoney, miseReady, uid } from '../format'
 import { Badge, Button, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, SearchInput, Select, Spinner, Textarea, toast, toastErr } from '../ui'
 
 const CATEGORIES = ['Canapé', 'Starter', 'Main', 'Side', 'Dessert', 'Sauce', 'Bread', 'Drink', 'Other']
 
 function RecipeEditor({ open, onClose, onSaved, initial = null }) {
+  const { user } = useAuth()
   const blank = {
     title: '', category: '', cuisine: '', servings: 4, prep_minutes: 0, cook_minutes: 0,
     description: '', ingredients: [], steps: [], tags: [], allergens: [], image_url: '',
@@ -73,7 +74,7 @@ function RecipeEditor({ open, onClose, onSaved, initial = null }) {
   return (
     <Modal open={open} onClose={onClose} title={initial?.id ? 'Edit recipe sheet' : 'New recipe sheet'} wide>
       <form onSubmit={save} className="space-y-4">
-        {!initial?.id && (
+        {!initial?.id && miseReady(user) && (
           <div className="rounded-xl border border-copper/30 bg-copper/5 p-3">
             <p className="mb-2 text-xs font-medium text-copper"><Icon name="sparkle" size={13} className="mr-1 inline" />Draft with Mise — your AI sous-chef</p>
             <div className="flex gap-2">

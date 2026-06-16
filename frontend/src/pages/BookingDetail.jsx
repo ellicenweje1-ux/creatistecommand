@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { BOOKING_STATUSES, BOOKING_TONES, fmtDateLong, fmtMoney, invoiceTotal, label, relDays, todayISO, uid } from '../format'
+import { BOOKING_STATUSES, BOOKING_TONES, fmtDateLong, fmtMoney, invoiceTotal, label, miseReady, relDays, todayISO, uid } from '../format'
 import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, Select, Spinner, Tabs, Textarea, toast, toastErr } from '../ui'
 import { BookingForm } from './Bookings'
 import { ContactClient } from '../contact'
@@ -268,6 +268,7 @@ export default function BookingDetail() {
               ) : <p className="text-sm text-fg/45">No client linked. Edit the booking to attach one.</p>}
             </Card>
 
+            {miseReady(user) && (
             <Card title="Mise — your AI sous-chef">
               <p className="mb-3 text-xs text-fg/50">True to its name — <em>mise en place</em> — Mise preps the boring parts: menus, lists, plans. Review before applying.</p>
               <div className="space-y-2">
@@ -286,6 +287,7 @@ export default function BookingDetail() {
                 </Button>
               </div>
             </Card>
+            )}
           </div>
         </div>
       )}

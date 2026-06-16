@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
-import { cls } from '../format'
+import { useAuth } from '../auth'
+import { cls, miseReady } from '../format'
 import { Badge, Button, EmptyState, Icon, IconButton, Input, PageHeader, SearchInput, Spinner, Textarea, toast, toastErr } from '../ui'
 
 function IdeaCard({ idea, onChanged }) {
+  const { user } = useAuth()
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState(idea)
   const [polishing, setPolishing] = useState(false)
@@ -50,7 +52,7 @@ function IdeaCard({ idea, onChanged }) {
           <div className="mt-3 flex items-center justify-between border-t border-line/60 pt-2.5">
             <span className="text-[11px] text-fg/35">{new Date(idea.created_at).toLocaleDateString()}</span>
             <div className="flex gap-1">
-              <IconButton icon="sparkle" label="Polish with AI" onClick={polish} className={polishing ? 'animate-pulse text-copper' : ''} />
+              {miseReady(user) && <IconButton icon="sparkle" label="Polish with AI" onClick={polish} className={polishing ? 'animate-pulse text-copper' : ''} />}
               <IconButton icon="edit" label="Edit" onClick={() => setEditing(true)} />
               <IconButton icon="trash" label="Delete" onClick={remove} />
             </div>

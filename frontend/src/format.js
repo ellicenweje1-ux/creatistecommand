@@ -58,6 +58,10 @@ export const INVOICE_TONES = { draft: 'gray', sent: 'amber', paid: 'sage', overd
 
 export const label = (s) => (s || '').replaceAll('_', ' ')
 
+// Mise (AI sous-chef) tools show only when the chef is Elite AND the platform owner has
+// switched the AI key on — otherwise the buttons are hidden (no dead/confusing clicks).
+export const miseReady = (user) => !!user?.ai_enabled && (user?.plan_level ?? 1) >= 3
+
 export function invoiceTotal(inv) {
   const sub = (inv.items || []).reduce((acc, i) => acc + (Number(i.qty) || 0) * (Number(i.unit_price) || 0), 0)
   return Math.max((sub - (Number(inv.discount) || 0)) * (1 + (Number(inv.tax_rate) || 0) / 100), 0)

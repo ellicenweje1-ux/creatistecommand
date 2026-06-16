@@ -7,7 +7,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from .. import config
-from ..auth import get_current_user, require_active
+from ..auth import get_current_user, require_plan
 from ..database import get_db
 from ..models import Booking, Client, Idea, InventoryItem, Recipe
 from ..utils import extract_json, get_owned, ws_id
@@ -63,7 +63,7 @@ def ask_json(user_prompt: str, max_tokens: int = 8000):
 
 
 @router.post("/recipe")
-def generate_recipe(payload: dict = Body(...), user=Depends(require_active)):
+def generate_recipe(payload: dict = Body(...), user=Depends(require_plan(3))):
     prompt = (payload.get("prompt") or "").strip()
     if not prompt:
         raise HTTPException(422, "Describe the recipe you want")
@@ -81,7 +81,7 @@ def generate_recipe(payload: dict = Body(...), user=Depends(require_active)):
 
 
 @router.post("/shopping-list")
-def generate_shopping_list(payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_active)):
+def generate_shopping_list(payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_plan(3))):
     booking = get_owned(db, Booking, int(payload.get("booking_id") or 0), ws_id(user))
     recipe_ids = [m.get("recipe_id") for m in (booking.menu or []) if m.get("recipe_id")]
     recipes = db.query(Recipe).filter(Recipe.user_id == ws_id(user), Recipe.id.in_(recipe_ids)).all() if recipe_ids else []
@@ -116,7 +116,7 @@ def generate_shopping_list(payload: dict = Body(...), db: Session = Depends(get_
 
 
 @router.post("/prep-plan")
-def generate_prep_plan(payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_active)):
+def generate_prep_plan(payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_plan(3))):
     booking = get_owned(db, Booking, int(payload.get("booking_id") or 0), ws_id(user))
     menu_lines = "\n".join(f"- {m.get('course', '')}: {m.get('name', '')}" for m in (booking.menu or [])) or "(menu TBC)"
     result = ask_json(
@@ -135,7 +135,7 @@ def generate_prep_plan(payload: dict = Body(...), db: Session = Depends(get_db),
 
 
 @router.post("/menu-suggest")
-def suggest_menu(payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_active)):
+def suggest_menu(payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_plan(3))):
     brief = (payload.get("brief") or "").strip()
     client_block = ""
     if payload.get("client_id"):
@@ -155,7 +155,7 @@ def suggest_menu(payload: dict = Body(...), db: Session = Depends(get_db), user=
 
 
 @router.post("/idea-polish")
-def polish_idea(payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_active)):
+def polish_idea(payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_plan(3))):
     text = (payload.get("text") or "").strip()
     if payload.get("idea_id"):
         idea = get_owned(db, Idea, int(payload["idea_id"]), ws_id(user))
