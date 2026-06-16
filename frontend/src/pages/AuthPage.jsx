@@ -42,7 +42,7 @@ export default function AuthPage({ mode }) {
           </h1>
           <p className="mt-1 text-sm text-fg/55">
             {isLogin
-              ? 'Log in to your kitchen.'
+              ? 'Log in to your kitchen Command Centre.'
               : 'Create your account, then book your personal onboarding call — your 5-day free trial starts the moment it’s done. No card needed for the trial.'}
           </p>
           {foundersCode && (
