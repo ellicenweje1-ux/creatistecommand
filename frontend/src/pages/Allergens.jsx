@@ -47,10 +47,32 @@ export default function Allergens() {
 
   const activeColumns = ALLERGENS.filter(([col, terms]) => rows.some((row) => row.known && matches(row.allergens, terms, col)))
 
+  const downloadCsv = () => {
+    const esc = (v) => (/[",\n]/.test(String(v)) ? `"${String(v).replaceAll('"', '""')}"` : String(v))
+    const header = ['Dish', ...ALLERGENS.map(([c]) => c)]
+    const body = rows.map((row) => [
+      row.name,
+      ...ALLERGENS.map(([col, terms]) => (!row.known ? '?' : matches(row.allergens, terms, col) ? 'Yes' : '')),
+    ])
+    const csv = '﻿' + [header, ...body].map((r) => r.map(esc).join(',')).join('\r\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `allergen-matrix-${booking ? booking.title.replace(/\W+/g, '-').toLowerCase() : 'all-recipes'}.csv`
+    document.body.appendChild(a); a.click(); a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
   return (
     <div>
       <PageHeader title="Allergen matrix" sub="Dish-by-allergen grid built from your recipe sheets — print it for the buffet table."
-        actions={<Button variant="secondary" icon="doc" onClick={() => window.print()}>Print</Button>} />
+        actions={
+          <>
+            {rows.length > 0 && <Button variant="secondary" icon="down" onClick={downloadCsv}>CSV</Button>}
+            <Button variant="secondary" icon="doc" onClick={() => window.print()}>Print</Button>
+          </>
+        } />
       <div className="mb-4 max-w-sm print:hidden">
         <Field label="Menu source">
           <Select value={bookingId} onChange={(e) => setBookingId(e.target.value)}>

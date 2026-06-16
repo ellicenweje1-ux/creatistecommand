@@ -506,6 +506,15 @@ export default function Admin() {
     api.get('/admin/onboarding').then(setSessions).catch(() => {})
   }
   useEffect(load, [])
+  const [backingUp, setBackingUp] = useState(false)
+  const downloadBackup = () => {
+    setBackingUp(true)
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+    api.download('/admin/backup', `creatiste-backup-${stamp}.db`)
+      .then(() => toast('Backup downloaded — keep it somewhere safe', 'sage'))
+      .catch(toastErr)
+      .finally(() => setBackingUp(false))
+  }
   if (!overview) return <Spinner />
   const cur = overview.currency
 
@@ -557,6 +566,19 @@ export default function Admin() {
               )}
             </Card>
           </div>
+
+          <Card title="Database backup">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="max-w-xl text-sm text-fg/65">
+                Download a complete snapshot of the platform database (a single SQLite file).
+                <span className="font-medium text-amber-600"> The free hosting tier wipes the database on every deploy</span> —
+                until the persistent disk is added, take a backup before each deploy and keep it safe.
+              </p>
+              <Button icon="down" disabled={backingUp} onClick={downloadBackup} className="shrink-0">
+                {backingUp ? 'Preparing…' : 'Download backup'}
+              </Button>
+            </div>
+          </Card>
         </div>
       )}
 

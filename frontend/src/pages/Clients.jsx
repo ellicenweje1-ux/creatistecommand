@@ -171,7 +171,12 @@ export default function Clients() {
   return (
     <div>
       <PageHeader title="Clients" sub="Preferences, allergies, reviews and repeat history."
-        actions={<Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>New client</Button>} />
+        actions={
+          <>
+            {clients.length > 0 && <Button variant="secondary" icon="down" onClick={() => api.download('/exports/clients.csv', 'creatiste-clients.csv').catch(toastErr)}>Export</Button>}
+            <Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>New client</Button>
+          </>
+        } />
       {clients.length === 0 ? (
         <EmptyState icon="users" title="No clients yet" hint="Add clients to track their tastes, allergies and reviews across bookings."
           action={<Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>New client</Button>} />

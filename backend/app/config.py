@@ -107,6 +107,17 @@ FORGOT_RATE_WINDOW = int(os.getenv("FORGOT_RATE_WINDOW", "900"))    # … per 15
 
 DEFAULT_CURRENCY = os.getenv("DEFAULT_CURRENCY", "GBP")
 
+# Trial-ending reminder email + the tiny in-process scheduler that sends it.
+# A trialing chef is emailed this many days before their trial ends (day-4 of a 5-day
+# trial = 1 day before). Needs email configured (Resend/SMTP) — does nothing without it.
+TRIAL_REMINDER_DAYS_BEFORE = int(os.getenv("TRIAL_REMINDER_DAYS_BEFORE", "1"))
+ENABLE_SCHEDULER = os.getenv("ENABLE_SCHEDULER", "1") not in ("0", "false", "False", "")
+SCHEDULER_INTERVAL_HOURS = float(os.getenv("SCHEDULER_INTERVAL_HOURS", "6"))
+# Optional shared secret for the external cron endpoint (POST /api/cron/trial-reminders).
+# On Render's free tier the instance sleeps, so the in-process scheduler is best-effort;
+# point an uptime/cron service at that endpoint with this secret for reliable daily sends.
+CRON_SECRET = os.getenv("CRON_SECRET", "")
+
 # Founders Membership — the private launch programme for the platform's first chefs.
 # Joined only through the secret invite link (Admin → Founders); never shown on public
 # pages. All values editable live from the admin. Once the programme is closed (or every

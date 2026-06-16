@@ -302,16 +302,66 @@ export function SettingsAppearance() {
   )
 }
 
+/* Self-serve plan switch — upgrade/downgrade between the standard tiers. */
+function ChangePlanCard({ billing, plans, onChanged }) {
+  const [switching, setSwitching] = useState(null)
+  const symbol = plans.symbol || ''
+  const switchPlan = (key) => {
+    const p = plans.plans[key]
+    if (!window.confirm(
+      `Switch to ${p.name} (${symbol}${p.monthly}/mo)?` +
+      (plans.stripe_enabled ? ' Your next invoice is adjusted (prorated) for the change.' : ''),
+    )) return
+    setSwitching(key)
+    api.post('/billing/change-plan', { plan: key })
+      .then(async () => { toast(`You're now on ${p.name}`, 'sage'); await onChanged() })
+      .catch(toastErr)
+      .finally(() => setSwitching(null))
+  }
+  return (
+    <Card title="Change plan">
+      <p className="mb-3 text-sm text-fg/65">
+        Move up or down a tier whenever you like.
+        {plans.stripe_enabled ? ' The difference is prorated on your next invoice.' : ''}
+      </p>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {Object.entries(plans.plans).map(([key, p]) => {
+          const current = key === billing.plan
+          return (
+            <div key={key} className={cls('flex flex-col rounded-xl border p-3.5', current ? 'border-copper ring-1 ring-copper/30' : 'border-line')}>
+              <p className="font-display text-sm font-semibold">{p.name}</p>
+              <p className="mt-1 font-display text-xl font-semibold">{symbol}{p.monthly}<span className="text-xs font-normal text-fg/45">/mo</span></p>
+              <p className="mt-0.5 text-[11px] text-fg/45">{p.tagline}</p>
+              <div className="mt-3 flex-1" />
+              {current
+                ? <Badge tone="copper" className="justify-center">Current plan</Badge>
+                : <Button size="sm" variant="secondary" disabled={!!switching} onClick={() => switchPlan(key)}>
+                    {switching === key ? 'Switching…' : `Switch to ${p.name.split(' ')[0]}`}
+                  </Button>}
+            </div>
+          )
+        })}
+      </div>
+    </Card>
+  )
+}
+
 /* -------------------------------- Membership ------------------------------- */
 export function SettingsMembership() {
-  const { user } = useAuth()
+  const { user, refresh } = useAuth()
   const [billing, setBilling] = useState(null)
   const [founders, setFounders] = useState(null)
+  const [plans, setPlans] = useState(null)
 
+  const loadBilling = () => api.get('/billing/status').then(setBilling).catch(() => {})
   useEffect(() => {
-    api.get('/billing/status').then(setBilling).catch(() => {})
+    loadBilling()
+    api.get('/billing/plans').then(setPlans).catch(() => {})
     if (user?.is_founder && !user?.is_staff) api.get('/founders/status').then(setFounders).catch(() => {})
   }, [user])
+
+  const canSwitchPlan = user && user.role !== 'admin' && !user.is_staff && !user.is_founder
+    && plans && billing && ['active', 'trialing'].includes(billing.subscription_status)
 
   const statusTone = { active: 'sage', trialing: 'copper', pending: 'amber', suspended: 'red', canceled: 'ink' }
 
@@ -407,6 +457,10 @@ export function SettingsMembership() {
           </div>
         ) : <p className="text-sm text-fg/45">Loading…</p>}
       </Card>
+
+      {canSwitchPlan && (
+        <ChangePlanCard billing={billing} plans={plans} onChanged={async () => { await refresh(); await loadBilling() }} />
+      )}
     </div>
   )
 }
@@ -467,6 +521,58 @@ function MobileAppCard() {
   )
 }
 
+/* Calendar feed: a private ICS link to subscribe to in any phone/desktop calendar. */
+function CalendarFeedCard({ token }) {
+  const httpsUrl = `${window.location.origin}/api/calendar/${token}.ics`
+  const webcalUrl = `webcal://${window.location.host}/api/calendar/${token}.ics`
+  return (
+    <Card title="Calendar subscription">
+      <p className="mb-3 text-sm text-fg/65">
+        Subscribe to your bookings &amp; tastings from your phone or desktop calendar — they
+        appear alongside your life and <span className="font-medium text-fg">update automatically</span> as
+        you add or change events here. It's read-only and the link is private to you.
+      </p>
+      <div className="flex gap-2">
+        <Input readOnly value={httpsUrl} onFocus={(e) => e.target.select()} />
+        <Button variant="secondary" onClick={() => { navigator.clipboard.writeText(httpsUrl); toast('Calendar link copied', 'sage') }}>Copy</Button>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <a href={webcalUrl} className="text-xs font-medium text-copper hover:underline">Subscribe on this device →</a>
+        <span className="text-xs text-fg/40">or paste the link into Google Calendar → “From URL”, or Apple Calendar → “New Calendar Subscription”.</span>
+      </div>
+    </Card>
+  )
+}
+
+/* "Your data is yours": one-tap CSV downloads for the accountant / a spreadsheet. */
+function DataExportCard({ user }) {
+  const isOwner = !user?.is_staff
+  const pro = (user?.plan_level ?? 1) >= 2 || user?.role === 'admin'
+  const dl = (path, filename) => api.download(path, filename).catch(toastErr)
+  const rows = [
+    { show: true, label: 'Bookings', hint: 'Every event with dates, guests, venue & status.', path: '/exports/bookings.csv', file: 'creatiste-bookings.csv' },
+    { show: pro, label: 'Clients', hint: 'Contacts, dietary, allergies, tags & notes.', path: '/exports/clients.csv', file: 'creatiste-clients.csv' },
+    { show: isOwner && pro, label: 'Invoices', hint: 'For your bookkeeping & accountant.', path: '/finance/export/invoices.csv', file: 'creatiste-invoices.csv' },
+    { show: isOwner && pro, label: 'Expenses', hint: 'Categorised spend, ready to reconcile.', path: '/finance/export/expenses.csv', file: 'creatiste-expenses.csv' },
+  ].filter((r) => r.show)
+  return (
+    <Card title="Export your data">
+      <p className="mb-3 text-sm text-fg/65">Download your records as CSV — your data is always yours, ready for a spreadsheet or your accountant.</p>
+      <div className="divide-y divide-line/70">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-center justify-between gap-3 py-2.5">
+            <div className="min-w-0">
+              <p className="text-sm font-medium">{r.label}</p>
+              <p className="text-xs text-fg/45">{r.hint}</p>
+            </div>
+            <Button size="sm" variant="secondary" icon="down" onClick={() => dl(r.path, r.file)}>CSV</Button>
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
+}
+
 /* ---------------------------- App & integrations --------------------------- */
 export function SettingsIntegrations() {
   const { user } = useAuth()
@@ -476,6 +582,10 @@ export function SettingsIntegrations() {
   return (
     <div className="space-y-5">
       <MobileAppCard />
+
+      {!user?.is_staff && user?.calendar_token && <CalendarFeedCard token={user.calendar_token} />}
+
+      <DataExportCard user={user} />
 
       <Card title="Mise — your AI sous-chef">
         <p className="text-sm text-fg/65">

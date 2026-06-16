@@ -276,6 +276,10 @@ export default function Finance() {
 
       {tab === 'invoices' && (
         invoices.length === 0 ? <EmptyState icon="coins" title="No invoices yet" action={<Button icon="plus" onClick={() => setInvoiceModal({ open: true, initial: null })}>New invoice</Button>} /> : (
+          <div className="space-y-3">
+          <div className="flex justify-end">
+            <Button size="sm" variant="secondary" icon="down" onClick={() => api.download('/finance/export/invoices.csv', 'creatiste-invoices.csv').catch(toastErr)}>Export CSV</Button>
+          </div>
           <div className="overflow-hidden rounded-xl border border-line bg-card shadow-card">
             <table className="w-full text-sm">
               <thead><tr className="border-b border-line bg-parchment/50 text-left text-[11px] uppercase tracking-wider text-fg/45">
@@ -294,11 +298,16 @@ export default function Finance() {
               </tbody>
             </table>
           </div>
+          </div>
         )
       )}
 
       {tab === 'expenses' && (
         expenses.length === 0 ? <EmptyState icon="cart" title="No expenses logged" action={<Button icon="plus" onClick={() => setExpenseModal({ open: true, initial: null })}>Log expense</Button>} /> : (
+          <div className="space-y-3">
+          <div className="flex justify-end">
+            <Button size="sm" variant="secondary" icon="down" onClick={() => api.download('/finance/export/expenses.csv', 'creatiste-expenses.csv').catch(toastErr)}>Export CSV</Button>
+          </div>
           <div className="overflow-hidden rounded-xl border border-line bg-card shadow-card">
             <table className="w-full text-sm">
               <thead><tr className="border-b border-line bg-parchment/50 text-left text-[11px] uppercase tracking-wider text-fg/45">
@@ -315,6 +324,7 @@ export default function Finance() {
                 ))}
               </tbody>
             </table>
+          </div>
           </div>
         )
       )}

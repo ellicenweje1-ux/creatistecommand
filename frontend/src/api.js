@@ -105,4 +105,23 @@ export const api = {
     fd.append('file', file)
     return request('/uploads', { method: 'POST', formData: fd })
   },
+  // Authenticated file download (CSV exports, DB backup): raw fetch with the bearer
+  // token, streamed into a blob and saved — bypasses the GET cache/queue layer.
+  download: async (path, filename) => {
+    const token = getToken()
+    const res = await fetch(`/api${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error(typeof data.detail === 'string' ? data.detail : 'Download failed')
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  },
 }

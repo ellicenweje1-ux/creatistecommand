@@ -71,6 +71,10 @@ def register(payload: dict = Body(...), db: Session = Depends(get_db)):
         business_name=(payload.get("business_name") or "").strip(),
         phone=(payload.get("phone") or "").strip(),
         currency=settings.currency if settings else "GBP",
+        # Mint the per-account links now so they work immediately (not only after the
+        # next startup): the public enquiry form and the private calendar feed.
+        enquiry_token=secrets.token_hex(16),
+        calendar_token=secrets.token_hex(16),
     )
     if founder_cfg:
         from .founders import founders_taken

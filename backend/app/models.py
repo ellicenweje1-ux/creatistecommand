@@ -34,12 +34,14 @@ class User(Base):
     owner_id: Mapped[int] = mapped_column(Integer, nullable=True)  # staff accounts belong to an owner
     job_title: Mapped[str] = mapped_column(String(120), default="")
     enquiry_token: Mapped[str] = mapped_column(String(64), default="")  # public enquiry-form link
+    calendar_token: Mapped[str] = mapped_column(String(64), default="")  # private ICS calendar-feed link
     currency: Mapped[str] = mapped_column(String(8), default="GBP")
     # pending | trialing | active | suspended | canceled
     subscription_status: Mapped[str] = mapped_column(String(20), default="pending")
     plan: Mapped[str] = mapped_column(String(20), default="")
     onboarding_paid: Mapped[bool] = mapped_column(Boolean, default=False)
     trial_ends_at: Mapped[str] = mapped_column(String(10), default="")  # YYYY-MM-DD
+    trial_reminder_sent: Mapped[bool] = mapped_column(Boolean, default=False)  # day-before trial-ending email sent
     # Verification gate: set when the admin marks the onboarding call complete.
     # Empty = not yet onboarded → no workspace access; the trial clock starts here.
     onboarded_at: Mapped[str] = mapped_column(String(10), default="")  # YYYY-MM-DD

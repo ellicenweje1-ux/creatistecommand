@@ -10,7 +10,7 @@ from .models import PlatformSettings, User
 from fastapi import Depends
 
 from .auth import require_owner, require_plan
-from .routers import admin, ai, auth_router, billing, bookings, core, dashboard, finance, founders, onboarding, public, quotes, support, team, uploads
+from .routers import admin, ai, auth_router, billing, bookings, calendar_feed, core, cron, dashboard, exports, finance, founders, onboarding, public, quotes, support, team, uploads
 
 app = FastAPI(title="The Creatiste Command", version="1.0.0")
 
@@ -51,6 +51,9 @@ app.include_router(public.router, prefix=API)
 app.include_router(founders.router, prefix=API)
 app.include_router(onboarding.router, prefix=API)
 app.include_router(support.router, prefix=API)
+app.include_router(calendar_feed.router, prefix=API)
+app.include_router(exports.router, prefix=API)
+app.include_router(cron.router, prefix=API)
 # Money is owner-only (staff never see finance) and part of the Pro tier upward
 _money = [Depends(require_owner), Depends(require_plan(2))]
 app.include_router(finance.invoices, prefix=f"{API}/invoices", tags=["finance"], dependencies=_money)
@@ -91,6 +94,8 @@ def bootstrap():
         for owner in db.query(User).filter(User.role.in_(["chef", "admin"])).all():
             if not owner.enquiry_token:
                 owner.enquiry_token = uuid.uuid4().hex
+            if not owner.calendar_token:
+                owner.calendar_token = uuid.uuid4().hex
             # Verification gate arrived after these accounts: anyone already trialing
             # or active was onboarded the old way — don't lock them out.
             if not owner.onboarded_at and owner.subscription_status in ("trialing", "active"):
@@ -106,6 +111,9 @@ def bootstrap():
         db.commit()
     finally:
         db.close()
+
+    from .scheduler import start_scheduler
+    start_scheduler()
 
 
 # --- Serve the built frontend (single-process deploys) -------------------------------------

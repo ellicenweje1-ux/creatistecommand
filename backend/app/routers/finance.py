@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from ..auth import require_active
 from ..database import get_db
-from ..models import Expense, Invoice
+from ..models import Client, Expense, Invoice
 from ..utils import crud_router, to_dict, ws_id
 
 invoices = crud_router(
@@ -88,3 +88,43 @@ def next_invoice_number(db: Session = Depends(get_db), user=Depends(require_acti
     year = date.today().year
     count = db.query(Invoice).filter(Invoice.user_id == ws_id(user)).count()
     return {"number": f"INV-{year}-{count + 1:03d}"}
+
+
+def _invoice_subtotal(inv: Invoice) -> float:
+    return round(sum((i.get("qty") or 0) * (i.get("unit_price") or 0) for i in (inv.items or [])), 2)
+
+
+@router.get("/export/invoices.csv")
+def export_invoices(db: Session = Depends(get_db), user=Depends(require_active)):
+    """Invoices as CSV for the accountant. Owner-only + Pro (gated on the router mount)."""
+    from .exports import csv_response
+
+    invs = db.query(Invoice).filter(Invoice.user_id == ws_id(user)).order_by(Invoice.issue_date.asc()).all()
+    names = {c.id: c.name for c in db.query(Client).filter(Client.user_id == ws_id(user)).all()}
+    rows = [
+        [
+            inv.number, inv.status, inv.issue_date, inv.due_date, inv.paid_date,
+            names.get(inv.client_id, ""), _invoice_subtotal(inv), inv.discount,
+            inv.tax_rate, invoice_total(inv), inv.notes,
+        ]
+        for inv in invs
+    ]
+    return csv_response(
+        "creatiste-invoices.csv",
+        ["Number", "Status", "Issued", "Due", "Paid on", "Client", "Subtotal",
+         "Discount", "Tax %", "Total", "Notes"],
+        rows,
+    )
+
+
+@router.get("/export/expenses.csv")
+def export_expenses(db: Session = Depends(get_db), user=Depends(require_active)):
+    from .exports import csv_response
+
+    exps = db.query(Expense).filter(Expense.user_id == ws_id(user)).order_by(Expense.date.asc()).all()
+    rows = [[e.date, e.category, e.description, e.supplier, e.amount] for e in exps]
+    return csv_response(
+        "creatiste-expenses.csv",
+        ["Date", "Category", "Description", "Supplier", "Amount"],
+        rows,
+    )

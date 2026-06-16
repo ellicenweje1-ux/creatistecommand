@@ -31,6 +31,8 @@ def ensure_columns():
         "users": {
             "owner_id": "INTEGER", "job_title": "VARCHAR(120) DEFAULT ''",
             "enquiry_token": "VARCHAR(64) DEFAULT ''",
+            "calendar_token": "VARCHAR(64) DEFAULT ''",
+            "trial_reminder_sent": "BOOLEAN DEFAULT 0",
             "is_founder": "BOOLEAN DEFAULT 0", "founder_number": "INTEGER",
             "founder_since": "VARCHAR(10) DEFAULT ''", "tour_done": "BOOLEAN DEFAULT 0",
             "onboarded_at": "VARCHAR(10) DEFAULT ''",

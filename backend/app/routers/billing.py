@@ -237,6 +237,58 @@ def cancel(db: Session = Depends(get_db), user: User = Depends(get_current_user)
     return {"ok": True}
 
 
+@router.post("/change-plan")
+def change_plan(payload: dict = Body(...), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Self-serve plan switch (Settings → Membership). Demo mode flips the plan instantly;
+    a live Stripe subscriber's recurring price is updated on Stripe with proration, so the
+    next invoice reflects the new tier. Founders keep their lifetime rate — they switch via
+    support so it's never lost by accident."""
+    if user.role == "admin":
+        raise HTTPException(400, "Admin accounts don't have a subscription plan.")
+    if user.role == "staff":
+        raise HTTPException(403, "Only the business owner can change the plan.")
+    if user.is_founder:
+        raise HTTPException(400, "You're on the Founders Membership — contact support to change your plan so your lifetime rate is preserved.")
+    settings = get_settings(db)
+    new_key = (payload.get("plan") or "").strip()
+    if new_key not in settings.plans:
+        raise HTTPException(422, "Unknown plan")
+    if user.subscription_status not in ("active", "trialing"):
+        raise HTTPException(400, "Activate your account before changing plan.")
+    if new_key == user.plan:
+        return {"ok": True, "plan": user.plan, "unchanged": True}
+
+    plan = settings.plans[new_key]
+    if stripe_enabled() and user.stripe_subscription_id:
+        # Swap the subscription's recurring item to the new tier's price; Stripe prorates
+        # the difference. The one-time onboarding fee isn't a subscription item, so it's
+        # untouched. Any Stripe error degrades to a clear "use the portal / contact support".
+        try:
+            stripe = _stripe()
+            sub = stripe.Subscription.retrieve(user.stripe_subscription_id)
+            item_id = sub["items"]["data"][0]["id"]
+            stripe.Subscription.modify(
+                user.stripe_subscription_id,
+                items=[{
+                    "id": item_id,
+                    "price_data": {
+                        "currency": settings.currency.lower(),
+                        "product_data": {"name": f"The Creatiste Command — {plan['name']} (monthly)"},
+                        "unit_amount": int(round(plan["monthly"] * 100)),
+                        "recurring": {"interval": "month"},
+                    },
+                }],
+                proration_behavior="create_prorations",
+                metadata={"user_id": str(user.id), "plan": new_key},
+            )
+        except Exception as exc:
+            raise HTTPException(502, f"We couldn't switch your plan automatically ({exc}). Manage it from the billing portal, or contact support and we'll sort it.")
+
+    user.plan = new_key
+    db.commit()
+    return {"ok": True, "plan": new_key}
+
+
 @router.post("/webhook")
 async def webhook(request: Request, db: Session = Depends(get_db)):
     body = await request.body()

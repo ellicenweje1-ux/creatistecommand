@@ -72,6 +72,61 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
 Mise AI chat deferred). 3 is a standing rule. Only **1 & 2 remain, and both wait on the persistent
 disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk before any real chef signs up.
 
+## Latest session (2026-06-16, eighteenth wave — social preview, ICS calendar feed, DB backup, CSV export, trial-reminder email, self-serve plan switching)
+- Branch `claude/gracious-newton-tfm2dk` — **merge to `main` to deploy.** Clears the **rest of the 7th-wave review
+  item 7** (OG/social tags, ICS feed, CSV export, admin DB-backup download — all now done) **plus two from Ellice's
+  list** (trial-ending reminder email, self-serve plan switching). **Backend: 2 additive `users` columns**
+  (`calendar_token`, `trial_reminder_sent`) via `ensure_columns`; 5 new files (`app/ics.py`, `app/scheduler.py`,
+  routers `calendar_feed.py` / `exports.py` / `cron.py`). **No new runtime deps** (stdlib csv/sqlite3/threading; ICS
+  hand-rolled; OG image is a build-time Playwright screenshot, checked in). `npm run build` clean (77 modules).
+- **Social preview (OG/Twitter):** `frontend/index.html` now has full Open Graph + Twitter `summary_large_image`
+  tags + a 1200×630 brand card at `frontend/public/og-image.png` (regenerate via `scripts/make_og.py`). Absolute URLs
+  point at `https://creatistecommand.onrender.com` — **update them if a custom domain is added.** Link-in-bio shares
+  now render a card on WhatsApp/Instagram/etc.
+- **ICS calendar feed:** private per-chef token (`calendar_token`, minted at register + bootstrap like `enquiry_token`)
+  → public `GET /api/calendar/<token>.ics` (`routers/calendar_feed.py` + `app/ics.py`) of bookings + tastings
+  (cancelled excluded; timed events use floating local time, dateless ones are all-day). Subscribe link + `webcal://` +
+  "From URL" instructions in **Settings → App & integrations → "Calendar subscription"**. Read-only; no rotate-token UI
+  yet (resetting the column would invalidate the link).
+- **Admin DB backup:** `GET /api/admin/backup` streams a consistent SQLite snapshot (SQLite online-backup API, safe
+  while live) → BackgroundTask cleans the temp file. Button + free-tier-wipe warning in **Admin → Overview → "Database
+  backup"**. The **interim safety net until the persistent disk is added** (see action items).
+- **CSV export:** `routers/exports.py` — `/exports/clients.csv` (Pro+), `/exports/bookings.csv` (all) — plus finance
+  `/finance/export/invoices.csv` + `/finance/export/expenses.csv` (owner+Pro, gated on the finance mount). Central hub
+  in **Settings → App & integrations → "Export your data"**, quick buttons on **Clients** + **Finance** (invoices/
+  expenses tabs), and a **client-side Allergen-matrix CSV** on the Allergens page. New `api.download(path, filename)`
+  (raw fetch + bearer, bypasses the offline cache/queue) drives all authenticated downloads; CSVs carry a UTF-8 BOM so
+  Excel opens them cleanly.
+- **Trial-ending reminder email (day-4):** `app/scheduler.py` — an in-process daemon thread (single worker, same
+  pattern as `ratelimit.py`) sweeps every `SCHEDULER_INTERVAL_HOURS` (6) **and once on startup**, emailing trialing
+  chefs `TRIAL_REMINDER_DAYS_BEFORE` (1 = day-4 of the 5-day trial) before the trial ends. Idempotent via
+  `trial_reminder_sent`; **no-op until email is configured** (a reminder is never "spent" silently before email works);
+  skips chefs who already added a card (`stripe_subscription_id`). Free-tier instances sleep, so for guaranteed daily
+  sends point an external uptime/cron at `POST /api/cron/trial-reminders` with header `X-Cron-Key: <CRON_SECRET>`
+  (`routers/cron.py`).
+- **Self-serve plan switching:** `POST /api/billing/change-plan` — demo mode flips the plan instantly; a live Stripe
+  subscriber's recurring price is updated via `Subscription.modify(items=[{id, price_data}], proration_behavior=
+  "create_prorations")` (the one-time onboarding fee isn't a sub item, so untouched), wrapped so **any Stripe error
+  degrades to "manage in the billing portal / contact support"**. Founders are blocked (contact support so the lifetime
+  rate is preserved). UI = a **"Change plan"** card in **Settings → Membership** (3 tiers, current marked, switch
+  buttons; confirm dialog; refreshes user + billing after). FAQ updated — it's real now, no longer "coming".
+- **Bonus latent-bug fix:** new chefs get **both** `enquiry_token` and `calendar_token` **at registration** now
+  (previously `enquiry_token` only appeared after the next startup bootstrap).
+- **New optional env (all safe defaults — nothing required of Ellice):** `CRON_SECRET` (enables the cron endpoint;
+  empty = endpoint 403s), `TRIAL_REMINDER_DAYS_BEFORE` (1), `SCHEDULER_INTERVAL_HOURS` (6), `ENABLE_SCHEDULER` (1).
+- **Verified:** backend FastAPI TestClient **29/29** (admin backup = real SQLite + admin-gated; ICS timed/all-day/
+  cancelled-excluded/bad-token-404; clients/bookings/invoices/expenses CSV content; change-plan demo + unknown-422 +
+  same-plan no-op; cron reminds exactly 1 then 0 (idempotent) + wrong-key 403). Playwright (system chromium, desktop
+  1280 + mobile 390) **21/21**: OG tags + og-image 200; calendar + export cards render; **a CSV and the DB backup
+  actually download**; **plan switch Elite↔Pro round-trips in the UI**; export buttons on Clients/Finance/Allergens.
+  No console errors beyond the known harmless Google-Fonts cert noise. Temp verify scripts removed.
+- **⚠️ ACTION for Ellice:** (1) **Persistent disk is still the #1 operational risk** — add `DATA_DIR=/var/data` + a
+  paid Render disk before real chefs sign up; the new backup download is only a manual stopgap (and it's also the true
+  fix for feedback #1's surprise logouts). (2) For reliable day-4 reminders on the free tier, set `CRON_SECRET` and
+  point a free uptime/cron service at `…/api/cron/trial-reminders` (header `X-Cron-Key`). (3) **Confirm the live-Stripe
+  plan-switch path with a real test subscription once Stripe is live** — it couldn't be exercised in-sandbox. (4) On a
+  custom domain, update the OG URLs in `frontend/index.html` (re-run `make_og.py` only if branding changes).
+
 ## Latest session (2026-06-16, seventeenth wave — WhatsApp/email "Contact client" + menu sharing)
 - Same branch `claude/determined-brahmagupta-oxnjxp` — **merge to `main` to deploy.** Builds owner
   feedback item **8** (contact client) and completes the current batch. **Backend: 2 additive `users`
@@ -482,11 +537,12 @@ disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk befor
      choice of voice source before building.
   6. When Mise goes live, consider `AI_MODEL=claude-sonnet-4-6` (~5x cheaper than Opus,
      fine for Mise's structured-JSON jobs) — it's just an env var.
-  7. Smaller suggestions: OG/social-preview meta tags (index.html has none — bio links
-     share with no card), ICS calendar feed of bookings/tastings, CSV export (clients/
-     finance), admin SQLite-backup download, ~~rate-limit/honeypot the public enquiry
+  7. ✅ **DONE (18th wave)** — smaller suggestions all cleared: ~~OG/social-preview meta
+     tags~~, ~~ICS calendar feed of bookings/tastings~~, ~~CSV export (clients/finance)~~,
+     ~~admin SQLite-backup download~~ (18th wave), ~~rate-limit/honeypot the public enquiry
      form~~ ✅ 13th wave, ~~drop `.svg` from ALLOWED_UPLOAD_EXT~~ ✅ 13th wave (also added a
-     login + forgot-password brute-force/spam throttle).
+     login + forgot-password brute-force/spam throttle). The 18th wave also added a
+     trial-ending reminder email + self-serve plan switching (off Ellice's list).
 
 ## Previous session (2026-06-12, sixth wave — offline mobile app (PWA) + Stripe hardening)
 - Branch `claude/magical-planck-l54gva` — merge to `main` to deploy.
@@ -747,6 +803,9 @@ bridge between sessions.
   `SMTP_*` (email notifications), `SUPPORT_EMAIL` (support inbox — Ellice will
   point this at her own domain later), `DATA_DIR=/var/data` (only after adding a
   paid persistent disk — **free tier wipes the SQLite DB on every deploy/restart**).
+  Optional since the 18th wave (all have safe defaults): `CRON_SECRET` (enables the
+  external cron hook for reliable day-4 trial reminders), `TRIAL_REMINDER_DAYS_BEFORE`
+  (default 1), `SCHEDULER_INTERVAL_HOURS` (6), `ENABLE_SCHEDULER` (1).
 
 ## Email & Domain Infrastructure (IMPORTANT — read before any email work)
 > Hard-won constraints for `thecreatistecatering.com` (Ellice supplied these after a
@@ -865,13 +924,16 @@ it matches the calling shell and kills it).
   `SUPPORT_EMAIL` → `command@thecreatistecatering.com`, `main` as the canonical branch,
   onboarding **Europe/London + block-out** and **delete_chef cascade** (12th wave),
   **security hardening** — `.svg` upload drop, enquiry honeypot + rate-limit, login &
-  forgot-password throttles (13th wave).
+  forgot-password throttles (13th wave), **OG/social tags, ICS calendar feed, CSV export,
+  admin DB-backup download, trial-ending reminder email, self-serve plan switching** (18th wave).
 - **NEXT ON THE LIST** (7th-wave review, above): **6** — when Mise goes live, set
   `AI_MODEL=claude-sonnet-4-6` (~5x cheaper than Opus, fine for Mise's structured-JSON jobs;
-  just an env var). Then the **rest of 7** (OG/social meta tags, ICS calendar feed, CSV export,
-  admin SQLite-backup download — the enquiry honeypot/rate-limit + `.svg` drop are now done).
+  just an env var). The rest of item 7 is now done (18th wave).
+- **The big one down the road (Ellice's list):** deposits / client payments via **Stripe
+  Connect** — the platform's natural next revenue layer (let chefs take deposits, take a cut).
 - **Still pending `ANTHROPIC_API_KEY`** to switch on Mise (deferred until the first paying chef).
 - **Add a persistent disk** (`DATA_DIR=/var/data`) before real chefs — the free tier wipes the
-  SQLite DB on every deploy/restart.
-- Custom app domain (currently on `creatistecommand.onrender.com`).
-- Plan switching from the chef dashboard (currently via admin/support).
+  SQLite DB on every deploy/restart. (18th-wave admin **Download backup** is the interim stopgap.)
+- Custom app domain (currently on `creatistecommand.onrender.com`) — update the OG URLs in
+  `frontend/index.html` when it changes.
+- ✅ Plan switching from the chef dashboard — **DONE (18th wave)**, Settings → Membership.
