@@ -294,7 +294,7 @@ const GROUPS = [
           'Pin anything that absolutely must not be forgotten',
           'Review weekly: promote the good ones to tasks, let the rest go',
         ],
-        tip: 'Genius arrives mid-service and rarely survives the night — type it the second the pass allows.',
+        tip: 'Genius arrives mid-service and rarely survives the night — type it the second the event allows.',
       },
       {
         key: 'mise', icon: 'sparkle', label: 'Mise AI', title: 'Mise — your AI sous-chef', to: '/app/recipes', min: 3, cta: 'Open Recipes — Mise lives there',

@@ -29,7 +29,7 @@ import PublicEnquiry from './pages/PublicEnquiry'
 import PublicQuote from './pages/PublicQuote'
 import Recipes from './pages/Recipes'
 import RoutesPage from './pages/RoutesPage'
-import Settings, { SettingsAppearance, SettingsBusiness, SettingsIntegrations, SettingsMembership, SettingsProfile, SettingsSecurity } from './pages/Settings'
+import Settings, { SettingsAbout, SettingsAppearance, SettingsBusiness, SettingsIntegrations, SettingsMembership, SettingsProfile, SettingsSecurity } from './pages/Settings'
 import Support from './pages/Support'
 import Shopping from './pages/Shopping'
 import Suppliers from './pages/Suppliers'
@@ -37,6 +37,7 @@ import Tastings from './pages/Tastings'
 import Tasks from './pages/Tasks'
 import Team from './pages/Team'
 import { Brand, Icon, toast } from './ui'
+import { VersionStamp } from './version'
 
 const NAV_GROUPS = [
   {
@@ -211,6 +212,9 @@ function AppShell() {
 
       <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-5 sm:px-6 lg:pb-10 lg:pt-8">
         <Outlet key={syncEpoch} />
+        <footer className="mt-10 flex justify-center border-t border-line/60 pt-5">
+          <VersionStamp to="/app/settings/about" />
+        </footer>
       </main>
 
       <OfflineChip />
@@ -309,6 +313,7 @@ export default function App() {
           <Route path="appearance" element={<SettingsAppearance />} />
           <Route path="membership" element={<SettingsMembership />} />
           <Route path="integrations" element={<SettingsIntegrations />} />
+          <Route path="about" element={<SettingsAbout />} />
         </Route>
         <Route path="admin" element={<RequireAdmin><Admin /></RequireAdmin>} />
       </Route>

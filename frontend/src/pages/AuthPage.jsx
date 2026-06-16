@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { isActive, useAuth } from '../auth'
 import { Brand, Button, Field, Icon, Input, toastErr } from '../ui'
+import { VersionStamp } from '../version'
 
 export default function AuthPage({ mode }) {
   const isLogin = mode === 'login'
@@ -90,6 +91,7 @@ export default function AuthPage({ mode }) {
           </p>
         </form>
       </main>
+      <footer className="px-5 pb-6 text-center"><VersionStamp /></footer>
     </div>
   )
 }

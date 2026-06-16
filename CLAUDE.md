@@ -72,6 +72,46 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
 Mise AI chat deferred). 3 is a standing rule. Only **1 & 2 remain, and both wait on the persistent
 disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk before any real chef signs up.
 
+## Latest session (2026-06-16, nineteenth wave — version + scripture stamp, "Pass"→"event" copy)
+- Branch `claude/exciting-bardeen-vcmynn` — **merge to `main` to deploy.** Two of Ellice's asks: (a) a **version
+  number with a Christian dedication** at the base of the platform + a Settings section for it, and (b) reword every
+  written **"Pass"** (the kitchen pass) to **"event"**. **Frontend only — no backend, no env, no new deps.** `npm run
+  build` clean (**78 modules**, +1 for the new file).
+- **The dedication (smart-and-clever bit Ellice left to me):** every release carries a **line of scripture** as its
+  identity, marked by a **✝ cross glyph** (her symbol of her Lord, Jesus) — a quiet devotional changelog. **v1 =
+  Matthew 25:23** ("Well done, good and faithful servant… I will put you in charge of many things") — fitting for a
+  founding release that entrusts a chef to grow. Versions run **chronologically from v1**; **each future release gets a
+  new scripture**.
+- **Single source of truth: `frontend/src/version.jsx`** — `VERSIONS` (ordered list of `{n, ref, text, note}`),
+  `CURRENT` (= last/highest entry, shown live), `versionLabel`, `<VersionStamp>` (the footer line — links to the
+  Settings page in-app / plain span + verse tooltip on public pages), `<VersionScripture>` (framed verse block). **To
+  ship a new version: append one entry here with the next number + a fresh scripture — the whole app updates.** (Note:
+  this brand "vN" is intentionally separate from the semver `1.0.0` in `package.json`/`main.py` — left untouched.)
+- **Cross glyph:** new `cross` icon in `ui.jsx` PATHS (`M12 3v18M7 8.5h10`, a Latin cross; copper).
+- **Where the stamp lives** ("base of the platform and required pages"): the **app shell footer** in `App.jsx` (a
+  centred `<footer>` at the base of `<main>`, on every one of the 30+ app pages, linking to Settings → Version) **plus**
+  the **Landing**, **Terms/Privacy** (`Legal.jsx` shared layout), and **Login/Register** (`AuthPage.jsx`) footers.
+- **Settings → Version** (new sub-page): route `path="about"` → `SettingsAbout` (exported from `Settings.jsx`,
+  imported in `App.jsx`), with a new **"Version"** pill in the settings sub-nav (the `cross` icon). Shows the live
+  version + dedication + framed verse (`VersionScripture`), and a **version history** list (each version's badge, ✝,
+  reference, full verse, note). URL `/app/settings/about`.
+- **"Pass" → "event" (5 user-facing copy spots, all the kitchen "the pass"):** `Landing.jsx` ×3 (GAP_POINTS "at the
+  event"; "Built for the move" feature "at the event…"; the gap heading **"You were trained for the event — not the
+  paperwork"**), `Home.jsx` ×1 (My-Brain chef's tip "…the second the event allows"), `Support.jsx` ×1 (phone FAQ
+  "capture ideas at the event"). **Deliberately NOT touched:** "password" everywhere; Python `pass` statements;
+  `passes`/`passed`; and backend `admin.py` "That day has already **passed**" (correct English, not the pass).
+- **No voiceover re-render needed:** `vo-script.json` + `introfilm.jsx` contain **no "pass"** (checked) — captions/audio
+  can't drift, unlike past copy waves.
+- **FAQ kept current (standing rule #3):** added a Support FAQ — "What does the version number and scripture at the
+  foot of the page mean?" — explaining the ✝/version, the v1 start, the dedication, and the Settings → Version page.
+- **Verified:** `npm run build` clean (78 modules). Playwright (system chromium, desktop 1280), demo chef + a reseed —
+  **23/23**: stamp on landing/terms/login + the ✝ path renders + verse tooltip; "the pass" gone & "at the event"/
+  "trained for the event" present (landing); app base footer stamp + it's a link to settings/about + clicking it opens
+  the Version page; Settings → Version shows "you're on v1", the "Version" nav pill, the full verse, the Matthew 25:23
+  history row, the Jesus-Christ dedication; Support version FAQ present + phone FAQ now reads "at the event" (accordion
+  expanded). Only console noise = the known harmless Google-Fonts failures (0 app-origin request failures). Temp verify
+  scripts removed.
+
 ## Latest session (2026-06-16, eighteenth wave — social preview, ICS calendar feed, DB backup, CSV export, trial-reminder email, self-serve plan switching)
 - Branch `claude/gracious-newton-tfm2dk` — **merge to `main` to deploy.** Clears the **rest of the 7th-wave review
   item 7** (OG/social tags, ICS feed, CSV export, admin DB-backup download — all now done) **plus two from Ellice's

@@ -24,13 +24,15 @@ const FAQS = [
   ['How does the allergen matrix work?',
    'It reads the allergen tags on your recipe sheets and builds a dish-by-allergen grid (the UK’s 14 regulated allergens) for any booking’s menu — ready to print for the buffet table. Always double-check against actual labels; cross-contamination isn’t represented.'],
   ['Can I use it on my phone?',
-   'Yes — the whole platform is built mobile-first: check off shopping at the market, tick packing in the van, follow your route in Google Maps, capture ideas at the pass. You can also install it as an app and keep working offline — see Settings → App & integrations.'],
+   'Yes — the whole platform is built mobile-first: check off shopping at the market, tick packing in the van, follow your route in Google Maps, capture ideas at the event. You can also install it as an app and keep working offline — see Settings → App & integrations.'],
   ['Can I add my bookings to my phone calendar?',
    'Yes. Settings → App & integrations has a private “Calendar subscription” link — add it to Apple, Google or Outlook calendar (subscribe by URL) and your bookings and tastings appear alongside everything else, updating automatically whenever you change them here. It’s read-only and the link is private to you.'],
   ['Can I export my data?',
    'Always — your data is yours. Settings → App & integrations → “Export your data” downloads CSV files of your bookings, clients, invoices and expenses (open them in any spreadsheet or hand them to your accountant). There are quick export buttons on the Clients, Finance and Allergen-matrix pages too.'],
   ['How do I cancel or change my plan?',
    'Settings → Membership shows your plan and payment history, and lets you switch tier (upgrade or downgrade) yourself and cancel any time. With card billing a tier change is prorated on your next invoice; on the Founders Membership, contact support so your lifetime rate is preserved.'],
+  ['What does the version number and scripture at the foot of the page mean?',
+   'The ✝ and version mark which release of The Creatiste Command you’re running (we started at v1). Every version we push live is dedicated to Ellice’s Lord, Jesus Christ, and carries a line of scripture — a quiet thread of faith through the work. Tap it, or open Settings → Version, to read the verse and the full history.'],
 ]
 
 function Faq({ q, a }) {

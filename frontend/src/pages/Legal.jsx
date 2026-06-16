@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { Brand, Button } from '../ui'
+import { VersionStamp } from '../version'
 
 /* The Terms of Service and Privacy Policy share one layout. These are plain-English,
    UK-oriented templates written for The Creatiste Command — Ellice should have them
@@ -32,6 +33,7 @@ function LegalLayout({ title, lead, children }) {
           <Link to="/privacy" className="font-medium text-copper hover:underline">Privacy Policy</Link>
           <Link to="/" className="font-medium text-copper hover:underline">Home</Link>
         </div>
+        <div className="mt-6"><VersionStamp /></div>
       </main>
     </div>
   )

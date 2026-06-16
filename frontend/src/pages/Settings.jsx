@@ -7,6 +7,7 @@ import { DEFAULT_CONTACT_TEMPLATE } from '../contact'
 import { cls, fmtMoney, label, SYMBOLS } from '../format'
 import { getInstallPrompt, isStandalone } from '../offline'
 import { Badge, Button, Card, Field, Icon, Input, PageHeader, Select, Textarea, toast, toastErr } from '../ui'
+import { CURRENT, VERSIONS, VersionScripture, versionLabel } from '../version'
 
 /* Settings is split into individual pages (own URL each) under /app/settings, so the
    whole lot no longer sits on one long wall. This file holds the shared layout + one
@@ -18,6 +19,7 @@ const SETTINGS_NAV = [
   { to: '/app/settings/appearance', icon: 'moon', label: 'Appearance' },
   { to: '/app/settings/membership', icon: 'coins', label: 'Membership' },
   { to: '/app/settings/integrations', icon: 'mobile', label: 'App & integrations' },
+  { to: '/app/settings/about', icon: 'cross', label: 'Version' },
 ]
 
 function SettingsNav() {
@@ -618,6 +620,51 @@ export function SettingsIntegrations() {
           </div>
         </Card>
       )}
+    </div>
+  )
+}
+
+/* ----------------------------- Version & scripture ------------------------- */
+// Every release we push live carries a line of scripture, dedicated to Ellice's Lord,
+// Jesus Christ. This page is the home of that thread: the live version, its verse, and
+// the full history. The version data is the single source of truth in ../version.jsx.
+export function SettingsAbout() {
+  return (
+    <div className="space-y-5">
+      <Card title={`You're on version ${versionLabel()}`}>
+        <p className="mb-4 text-sm leading-relaxed text-fg/65">
+          Every version of The Creatiste Command we send out into the world is dedicated to{' '}
+          <span className="font-medium text-fg">Jesus Christ</span> and carries a verse of scripture — a quiet thread
+          of faith running through the work. The{' '}
+          <Icon name="cross" size={12} className="inline -translate-y-px text-copper" /> you'll see at the foot of
+          every page marks it. The current release, {versionLabel()}, carries:
+        </p>
+        <VersionScripture />
+      </Card>
+
+      <Card title="Version history">
+        <p className="mb-4 text-sm text-fg/60">
+          Each version pushed live to chefs has its own scripture — read back through them here.
+        </p>
+        <ol className="space-y-4">
+          {[...VERSIONS].reverse().map((v) => (
+            <li key={v.n} className="flex gap-3">
+              <span className={cls(
+                'mt-0.5 flex h-7 shrink-0 items-center rounded-full border px-2.5 font-display text-xs font-semibold',
+                v.n === CURRENT.n ? 'border-copper/40 bg-copper/10 text-copper' : 'border-line text-fg/55')}>
+                {versionLabel(v)}
+              </span>
+              <div className="min-w-0">
+                <p className="flex items-center gap-1.5 font-medium text-copper">
+                  <Icon name="cross" size={12} className="shrink-0" />{v.ref}
+                </p>
+                <p className="mt-0.5 text-sm italic leading-relaxed text-fg/70">{v.text}</p>
+                {v.note && <p className="mt-1 text-xs leading-relaxed text-fg/45">{v.note}</p>}
+              </div>
+            </li>
+          ))}
+        </ol>
+      </Card>
     </div>
   )
 }

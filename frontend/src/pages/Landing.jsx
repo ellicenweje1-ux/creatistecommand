@@ -5,6 +5,7 @@ import { useAuth } from '../auth'
 import { cls, fmtMoney } from '../format'
 import IntroFilm from '../introfilm'
 import { Brand, Button, Icon } from '../ui'
+import { VersionStamp } from '../version'
 
 const HOOKS = [
   { icon: 'doc', q: '…one event lived in your notes app, another in a spreadsheet — and the timings only in your head?', a: 'Here, every booking keeps its menu, guest count, dietaries, tasks and lists attached to it.' },
@@ -17,7 +18,7 @@ const GAP_POINTS = [
   'One subscription that replaces six scattered apps',
   'Built around real prep days — shop runs, van packs, service timelines',
   'From first enquiry to final invoice without switching tabs',
-  'With you on the move: at the market, in the van, at the pass',
+  'With you on the move: at the market, in the van, at the event',
 ]
 
 const FEATURES = [
@@ -38,7 +39,7 @@ const FEATURES = [
   { icon: 'bulb', title: 'My Brain', text: 'Offload ideas, reminders and things to keep in mind the second they strike — captured before they\u2019re clouded by a million things.' },
   { icon: 'sparkle', title: 'Mise — your AI sous-chef', text: 'Named for mise en place — everything in its place before service. Mise drafts recipes, builds shopping lists from menus minus stock, and plans prep timelines back from event day.' },
   { icon: 'coins', title: 'Quotes, invoices & finances', text: 'Quote, invoice, log expenses and watch profit per month — without leaving your command centre.' },
-  { icon: 'shield', title: 'Built for the move', text: 'Fully responsive: at the pass, in the van, at the market. Your whole operation in your pocket.' },
+  { icon: 'shield', title: 'Built for the move', text: 'Fully responsive: at the event, in the van, at the market. Your whole operation in your pocket.' },
 ]
 
 /* Tier comparison matrix — each row is [benefit, minimum plan level that includes it].
@@ -202,7 +203,7 @@ export default function Landing() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-copper">The gap we fill</p>
             <h3 className="mt-2 font-display text-2xl font-semibold leading-snug md:text-3xl">
-              You were trained for the pass — <em className="italic text-copper">not the paperwork.</em>
+              You were trained for the event — <em className="italic text-copper">not the paperwork.</em>
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-cream/60">
               Restaurant software assumes a manager&rsquo;s office. Generic to-do apps don&rsquo;t know what a tasting,
@@ -366,6 +367,7 @@ export default function Landing() {
           <span className="text-fg/20" aria-hidden>·</span>
           <Link to="/privacy" className="font-medium text-copper hover:underline">Privacy Policy</Link>
         </p>
+        <p className="mt-4 flex justify-center"><VersionStamp /></p>
       </footer>
     </div>
   )
