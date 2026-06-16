@@ -20,7 +20,13 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(120), default="")
     business_name: Mapped[str] = mapped_column(String(160), default="")
     phone: Mapped[str] = mapped_column(String(40), default="")
-    avatar_url: Mapped[str] = mapped_column(String(500), default="")
+    avatar_url: Mapped[str] = mapped_column(String(500), default="")  # doubles as the business logo
+    # Business profile — internal "all in one place"; services feed the New Booking dropdown.
+    business_description: Mapped[str] = mapped_column(Text, default="")
+    business_email: Mapped[str] = mapped_column(String(255), default="")
+    services: Mapped[list] = mapped_column(JSON, default=list)   # service / event types offered
+    socials: Mapped[dict] = mapped_column(JSON, default=dict)    # {instagram, facebook, tiktok, website, ...}
+    gallery: Mapped[list] = mapped_column(JSON, default=list)    # [url] portfolio / gallery photos
     role: Mapped[str] = mapped_column(String(20), default="chef")  # chef | admin | staff
     owner_id: Mapped[int] = mapped_column(Integer, nullable=True)  # staff accounts belong to an owner
     job_title: Mapped[str] = mapped_column(String(120), default="")

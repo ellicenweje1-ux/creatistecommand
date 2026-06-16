@@ -1,17 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { perkIcon, perkTitle } from '../booking'
 import { cls, fmtMoney, label, SYMBOLS } from '../format'
 import { getInstallPrompt, isStandalone } from '../offline'
-import { Badge, Button, Card, Field, Icon, Input, PageHeader, Select, toast, toastErr } from '../ui'
+import { Badge, Button, Card, Field, Icon, Input, PageHeader, Select, Textarea, toast, toastErr } from '../ui'
 
 /* Settings is split into individual pages (own URL each) under /app/settings, so the
    whole lot no longer sits on one long wall. This file holds the shared layout + one
    component per section; the routes are wired in App.jsx. */
 const SETTINGS_NAV = [
   { to: '/app/settings', end: true, icon: 'users', label: 'Profile' },
+  { to: '/app/settings/business', icon: 'flame', label: 'Business', ownerOnly: true },
   { to: '/app/settings/security', icon: 'lock', label: 'Security' },
   { to: '/app/settings/appearance', icon: 'moon', label: 'Appearance' },
   { to: '/app/settings/membership', icon: 'coins', label: 'Membership' },
@@ -19,9 +20,11 @@ const SETTINGS_NAV = [
 ]
 
 function SettingsNav() {
+  const { user } = useAuth()
+  const items = SETTINGS_NAV.filter((item) => !(item.ownerOnly && user?.is_staff))
   return (
     <nav className="scrollbar-thin -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 lg:mx-0 lg:w-56 lg:shrink-0 lg:flex-col lg:overflow-visible lg:px-0 lg:pb-0">
-      {SETTINGS_NAV.map((item) => (
+      {items.map((item) => (
         <NavLink key={item.to} to={item.to} end={item.end}
           className={({ isActive }) => cls(
             'flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium transition-colors lg:shrink',
@@ -78,6 +81,148 @@ export function SettingsProfile() {
         <div className="flex justify-end"><Button>Save profile</Button></div>
       </form>
     </Card>
+  )
+}
+
+/* ----------------------------- Business profile ---------------------------- */
+// Internal "all in one place": logo, description, the services you offer (these
+// become the New-Booking dropdown), contact + socials, and a gallery. Logo and
+// gallery photos save on upload; the text fields save with the button.
+const SOCIAL_FIELDS = [
+  ['instagram', 'Instagram'], ['facebook', 'Facebook'], ['tiktok', 'TikTok'],
+  ['website', 'Website'], ['x', 'X / Twitter'], ['youtube', 'YouTube'],
+]
+
+export function SettingsBusiness() {
+  const { user, setUser } = useAuth()
+  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {} })
+  const [gallery, setGallery] = useState([])
+  const [logo, setLogo] = useState('')
+  const [svc, setSvc] = useState('')
+  const [busy, setBusy] = useState(false)
+  // Initialise from the user once — later saves call setUser, and we must NOT let
+  // that wipe in-progress edits in this form.
+  const inited = useRef(false)
+  useEffect(() => {
+    if (!user || inited.current) return
+    inited.current = true
+    setForm({
+      business_description: user.business_description || '',
+      business_email: user.business_email || '',
+      services: user.services || [],
+      socials: user.socials || {},
+    })
+    setGallery(user.gallery || [])
+    setLogo(user.avatar_url || '')
+  }, [user])
+
+  if (user?.is_staff) {
+    return <Card title="Business profile"><p className="text-sm text-fg/55">Your business owner sets up the business profile.</p></Card>
+  }
+
+  const patch = (fields) => api.put('/auth/me', fields).then((u) => { setUser(u); return u })
+
+  const save = () => {
+    setBusy(true)
+    patch(form).then(() => toast('Business profile saved', 'sage')).catch(toastErr).finally(() => setBusy(false))
+  }
+  const onLogo = async (e) => {
+    const file = e.target.files?.[0]; if (!file) return
+    try { const r = await api.upload(file); setLogo(r.url); await patch({ avatar_url: r.url }); toast('Logo updated', 'sage') } catch (err) { toastErr(err) }
+  }
+  const addGallery = async (e) => {
+    const files = Array.from(e.target.files || [])
+    let next = gallery
+    for (const f of files) {
+      try { const r = await api.upload(f); next = [...next, r.url]; setGallery(next) } catch (err) { toastErr(err) }
+    }
+    if (next !== gallery) patch({ gallery: next }).catch(toastErr)
+  }
+  const removeGallery = (url) => { const next = gallery.filter((g) => g !== url); setGallery(next); patch({ gallery: next }).catch(toastErr) }
+
+  const addService = () => {
+    const s = svc.trim()
+    if (s && !form.services.includes(s)) setForm({ ...form, services: [...form.services, s] })
+    setSvc('')
+  }
+  const removeService = (s) => setForm({ ...form, services: form.services.filter((x) => x !== s) })
+  const setSocial = (k, v) => setForm({ ...form, socials: { ...form.socials, [k]: v } })
+
+  return (
+    <div className="space-y-5">
+      <Card title="Logo & description">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+          <div className="shrink-0">
+            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-xl border border-line bg-parchment/40">
+              {logo ? <img src={logo} alt="Business logo" className="h-full w-full object-cover" /> : <Icon name="flame" size={28} className="text-fg/25" />}
+            </div>
+            <label className="mt-2 block cursor-pointer text-center text-xs font-medium text-copper hover:underline">
+              {logo ? 'Change logo' : 'Upload logo'}
+              <input type="file" accept="image/*" className="hidden" onChange={onLogo} />
+            </label>
+          </div>
+          <Field label="Business description" className="flex-1">
+            <Textarea rows={4} value={form.business_description} onChange={(e) => setForm({ ...form, business_description: e.target.value })}
+              placeholder="A few lines about your kitchen — your style, your specialities, the experience you create." />
+          </Field>
+        </div>
+      </Card>
+
+      <Card title="Services you offer">
+        <p className="mb-3 text-sm text-fg/60">These appear as a dropdown when you create a booking, so your event types stay consistent.</p>
+        <div className="flex gap-2">
+          <Input value={svc} onChange={(e) => setSvc(e.target.value)} placeholder="e.g. Private dining, Wedding catering, Canapé reception"
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addService() } }} />
+          <Button type="button" variant="secondary" icon="plus" onClick={addService}>Add</Button>
+        </div>
+        {form.services.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {form.services.map((s) => (
+              <span key={s} className="inline-flex items-center gap-1.5 rounded-full border border-line bg-card px-3 py-1 text-sm">
+                {s}
+                <button type="button" onClick={() => removeService(s)} className="text-fg/40 hover:text-red-500" aria-label={`Remove ${s}`}><Icon name="x" size={13} /></button>
+              </span>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <Card title="Contact & social media">
+        <div className="space-y-3">
+          <Field label="Business contact email">
+            <Input type="email" value={form.business_email} onChange={(e) => setForm({ ...form, business_email: e.target.value })} placeholder="hello@yourkitchen.com" />
+          </Field>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {SOCIAL_FIELDS.map(([k, lbl]) => (
+              <Field key={k} label={lbl}>
+                <Input value={form.socials[k] || ''} onChange={(e) => setSocial(k, e.target.value)} placeholder={k === 'website' ? 'https://…' : '@yourhandle or link'} />
+              </Field>
+            ))}
+          </div>
+        </div>
+      </Card>
+
+      <Card title="Gallery">
+        <p className="mb-3 text-sm text-fg/60">Showcase your work — dishes, setups, events. Saved to your profile for use on shared documents.</p>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+          {gallery.map((url) => (
+            <div key={url} className="group relative aspect-square overflow-hidden rounded-lg border border-line">
+              <img src={url} alt="" className="h-full w-full object-cover" />
+              <button type="button" onClick={() => removeGallery(url)} aria-label="Remove photo"
+                className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"><Icon name="trash" size={13} /></button>
+            </div>
+          ))}
+          <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line text-fg/45 hover:border-copper/50 hover:text-copper">
+            <Icon name="plus" size={20} /><span className="text-[11px] font-medium">Add photos</span>
+            <input type="file" accept="image/*" multiple className="hidden" onChange={addGallery} />
+          </label>
+        </div>
+      </Card>
+
+      <div className="flex justify-end">
+        <Button onClick={save} disabled={busy}>{busy ? 'Saving…' : 'Save business profile'}</Button>
+      </div>
+    </div>
   )
 }
 

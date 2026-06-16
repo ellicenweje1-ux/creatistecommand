@@ -22,6 +22,20 @@ def user_payload(user: User):
     return to_dict(user, exclude=USER_EXCLUDE)
 
 
+def enriched_user(db: Session, user: User) -> dict:
+    """The full client-facing user object: base fields + the workspace overlays the
+    frontend relies on (plan_level, is_staff, the owner's business_name + services)."""
+    data = user_payload(user)
+    owner = workspace_owner(db, user)
+    data["plan"] = owner.plan
+    data["plan_level"] = plan_level(owner)
+    data["subscription_status"] = owner.subscription_status if user.role == "staff" else user.subscription_status
+    data["business_name"] = owner.business_name or data.get("business_name")
+    data["is_staff"] = user.role == "staff"
+    data["services"] = owner.services or []  # owner's service types power the New-Booking dropdown
+    return data
+
+
 @router.post("/register", status_code=201)
 def register(payload: dict = Body(...), db: Session = Depends(get_db)):
     email = (payload.get("email") or "").strip().lower()
@@ -88,36 +102,31 @@ def login(request: Request, payload: dict = Body(...), db: Session = Depends(get
         raise HTTPException(401, "Incorrect email or password")
     user.last_login_at = datetime.now(timezone.utc)
     db.commit()
-    data = user_payload(user)
-    owner = workspace_owner(db, user)
-    data["plan"] = owner.plan
-    data["plan_level"] = plan_level(owner)
-    data["subscription_status"] = owner.subscription_status if user.role == "staff" else user.subscription_status
-    data["business_name"] = owner.business_name or data.get("business_name")
-    data["is_staff"] = user.role == "staff"
-    return {"token": create_token(user), "user": data}
+    return {"token": create_token(user), "user": enriched_user(db, user)}
 
 
 @router.get("/me")
 def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    data = user_payload(user)
-    owner = workspace_owner(db, user)
-    data["plan"] = owner.plan
-    data["plan_level"] = plan_level(owner)
-    data["subscription_status"] = owner.subscription_status if user.role == "staff" else user.subscription_status
-    data["business_name"] = owner.business_name or data.get("business_name")
-    data["is_staff"] = user.role == "staff"
-    return data
+    return enriched_user(db, user)
 
 
 @router.put("/me")
 def update_me(payload: dict = Body(...), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    for field in ("name", "business_name", "phone", "currency", "avatar_url"):
+    for field in ("name", "business_name", "phone", "currency", "avatar_url",
+                  "business_description", "business_email"):
         if field in payload:
             setattr(user, field, payload[field] or "")
+    # Structured business-profile fields. Assign fresh objects (don't mutate in place)
+    # so SQLAlchemy detects the JSON change and actually persists it.
+    if isinstance(payload.get("services"), list):
+        user.services = [str(s).strip() for s in payload["services"] if str(s).strip()][:40]
+    if isinstance(payload.get("gallery"), list):
+        user.gallery = [str(u) for u in payload["gallery"] if str(u).strip()][:30]
+    if isinstance(payload.get("socials"), dict):
+        user.socials = {k: str(v).strip() for k, v in payload["socials"].items() if str(v).strip()}
     db.commit()
     db.refresh(user)
-    return user_payload(user)
+    return enriched_user(db, user)
 
 
 @router.put("/password")

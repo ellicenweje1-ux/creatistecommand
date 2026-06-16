@@ -51,11 +51,12 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
    client** that opens **WhatsApp** (`wa.me/<client phone>`) or **email** (`mailto:`). The chef sets
    their preferred channel(s) / a message template in **Settings**. Open scope Q: exactly what the
    chef configures (channel toggle? message template? their own WhatsApp number?).
-9. 🔲 **Business profile page.** Let chefs set up a business profile in one place — **logo,
-   description, services list, contact info, social links, gallery photos**. The **services list +
-   menu types appear as dropdowns on New Booking**. Ties to #7 (menu types) and could brand the
-   public enquiry page. Open scope Q: internal profile only, or a **public shareable business page**?
-   (Biggest of the batch.)
+9. ✅ **Business profile page — DONE (15th wave). Internal** (Ellice's call: chefs keep their own
+   public sites/booking, so no public page). New **Settings → Business**: logo (reuses `avatar_url`),
+   description, **services list** (editable chips), business contact email, social links, and a
+   **gallery** (multi-photo upload). The **services list now powers the New-Booking "Event type"
+   dropdown** (free text still works). Owner-only. Stored as additive `users` columns. Menu-type
+   dropdown follows with #7. Details in the fifteenth-wave notes below.
 10. ✅ **Tastings icon → spoon — DONE (14th wave, follow-on).** New `spoon` glyph in `ui.jsx`;
     repointed every Tastings usage (sidebar, Home guide, Landing, Tastings empty state, intro film)
     from `cup`→`spoon`; the now-unused `cup` glyph removed.
@@ -63,9 +64,39 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
     shared `Modal` (`ui.jsx`) no longer closes on a backdrop click — close only via the X or Escape.
     Fixes the data loss across every form modal in the app.
 
-**Sequencing:** 5, 6, 10, 11 done (14th wave); 4 confirmed working (Mise AI chat deferred); 3 is a
-standing rule; 1 & 2 await the persistent disk (Ellice: "later"). Still to scope & build: **7 (menus),
-8 (contact button), 9 (business profile)** — awaiting Ellice's priority + the scope answers above.
+**Sequencing:** 5, 6, 9, 10, 11 done; 4 confirmed working (Mise AI chat deferred); 3 is a standing
+rule; 1 & 2 await the persistent disk (Ellice: "later"). Still to build: **7 (menu master page)**
+then **8 (WhatsApp/email contact)** — Ellice's steer: menus are shared as **PDFs via the WhatsApp/
+email contact feature**, only to clients who have **enquired** (platform is internal; chefs have
+their own public sites). So build 7's PDF-per-menu first, then 8 wires the share/contact action.
+
+## Latest session (2026-06-16, fifteenth wave — Business profile (internal) + booking service dropdown)
+- Same branch `claude/determined-brahmagupta-oxnjxp` — **merge to `main` to deploy.** Builds owner
+  feedback item **9** (business profile). Ellice's steer: **internal only** (chefs keep their own
+  public sites/booking — no public page). **Backend: 5 additive `users` columns** (no data loss;
+  `ensure_columns` adds them at boot). No new env/setup. `npm run build` clean (75 modules).
+- **Settings → Business** (`pages/Settings.jsx` `SettingsBusiness`; route in `App.jsx`; new "Business"
+  pill in the settings sub-nav; **owner-only** — staff see a short notice): **logo** (reuses the
+  existing `avatar_url` column; saves on upload), **business description**, **services you offer**
+  (editable chips), **business contact email**, **social links** (instagram/facebook/tiktok/website/
+  x/youtube in a `socials` JSON dict), and a **gallery** (multi-upload → `gallery` JSON list). Logo +
+  gallery save immediately on upload; the text/list fields save on the button. An **init-once `useRef`
+  guard** stops an upload's `setUser` from wiping in-progress text edits.
+- **New-Booking "Event type" is now a dropdown** of the chef's services (`<input list>` + `<datalist>`
+  in `BookingForm`), still accepting free text so existing event types keep working. The form reads
+  `user.services`, which `/auth/me` + login now overlay from the **owner** (so staff get the
+  business's services too). Menu-type dropdown will join it when #7 lands.
+- **Backend tidy (fixes a latent bug):** new `auth_router.enriched_user(db, user)` — `/me`, login and
+  **`PUT /auth/me`** all return through it, so saving the profile no longer hands back a bare user
+  object missing `plan_level`/`is_staff`/`business_name`/`services` (the old Profile save had this gap
+  too). JSON fields are assigned as fresh objects on update so SQLAlchemy actually persists them.
+- **Data model:** `User` gains `business_description` (Text), `business_email` (str), `services`
+  (JSON list), `socials` (JSON dict), `gallery` (JSON list); `avatar_url` reused as the logo.
+- **Verified:** API — `PUT`/`GET /auth/me` persists services/socials/description/email and keeps the
+  overlays (`plan_level` 3, `is_staff` false). Playwright (desktop + mobile) **17/18** (the miss was a
+  non-waiting toast assertion; the save was confirmed via the API — "Buffet service" + logo persisted):
+  Business pill in the sub-nav, all four cards render, saved chips show, add-service + save, **logo
+  upload renders**, and the **New-Booking event-type dropdown lists the services**. No console errors.
 
 ## Latest session (2026-06-16, fourteenth wave — split Settings pages + Bookings enquiry pipeline)
 - Branch `claude/determined-brahmagupta-oxnjxp` — **merge to `main` to deploy.** Builds owner

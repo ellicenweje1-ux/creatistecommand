@@ -13,6 +13,8 @@ export function BookingForm({ initial = {}, onSaved, onClose }) {
   })
   const [clients, setClients] = useState([])
   const [busy, setBusy] = useState(false)
+  const { user } = useAuth()
+  const services = user?.services || []  // set up in Settings → Business; powers the dropdown below
   useEffect(() => { api.get('/clients').then(setClients).catch(() => {}) }, [])
   const set = (k, cast = (v) => v) => (e) => setForm({ ...form, [k]: cast(e.target.value) })
 
@@ -30,7 +32,10 @@ export function BookingForm({ initial = {}, onSaved, onClose }) {
     <form onSubmit={save} className="space-y-4">
       <Field label="Event title"><Input value={form.title} onChange={set('title')} placeholder="Okafor 40th — Garden Party" required /></Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Event type"><Input value={form.event_type} onChange={set('event_type')} placeholder="Private dinner" /></Field>
+        <Field label="Event type">
+          <Input list="cc-service-types" value={form.event_type} onChange={set('event_type')} placeholder={services[0] || 'Private dinner'} />
+          {services.length > 0 && <datalist id="cc-service-types">{services.map((s) => <option key={s} value={s} />)}</datalist>}
+        </Field>
         <Field label="Status">
           <Select value={form.status} onChange={set('status')}>
             {BOOKING_STATUSES.map((s) => <option key={s} value={s}>{label(s)}</option>)}
