@@ -46,7 +46,7 @@ const GROUPS = [
         tip: 'Treat the booking as the folder for the whole event — if something isn’t attached to it, it will get lost.',
       },
       {
-        key: 'tastings', icon: 'spoon', label: 'Tastings', title: 'Tastings & consultations diary', to: '/app/tastings', min: 2,
+        key: 'tastings', icon: 'fork', label: 'Tastings', title: 'Tastings & consultations diary', to: '/app/tastings', min: 2,
         blurb: 'A dedicated diary for tastings, consultations, site visits and calls — linked to clients and bookings.',
         benefits: [
           'Tastings stop colliding with event prep in your head',

@@ -70,7 +70,7 @@ function SceneWelcome() {
 
 function SceneEverything() {
   const items = [
-    ['calendar', 'Bookings'], ['spoon', 'Tastings'], ['users', 'Clients'],
+    ['calendar', 'Bookings'], ['fork', 'Tastings'], ['users', 'Clients'],
     ['book', 'Recipes'], ['box', 'Inventory'], ['cart', 'Shopping'],
     ['clipboard', 'Packing'], ['doc', 'Quotes'], ['coins', 'Finances'],
     ['map', 'Routes'], ['tag', 'Suppliers'], ['sparkle', 'Mise AI'],
@@ -123,7 +123,7 @@ function SceneApp() {
   const stats = [['Today', '3 events'], ['Prep', '12 tasks'], ['Taken', '£4.2k']]
   const rows = [
     ['calendar', 'Harlow wedding · 120 covers'],
-    ['spoon', 'Tasting · the Adeyemis'],
+    ['fork', 'Tasting · the Adeyemis'],
     ['truck', 'Wholesaler delivery · 9 a.m.'],
   ]
   return (

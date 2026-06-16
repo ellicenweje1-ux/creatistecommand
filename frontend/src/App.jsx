@@ -45,7 +45,7 @@ const NAV_GROUPS = [
       { to: '/app', icon: 'home', label: 'Home', end: true },
       { to: '/app/dashboard', icon: 'pulse', label: 'Dashboard' },
       { to: '/app/bookings', icon: 'calendar', label: 'Bookings' },
-      { to: '/app/tastings', icon: 'spoon', label: 'Tastings', min: 2 },
+      { to: '/app/tastings', icon: 'fork', label: 'Tastings', min: 2 },
       { to: '/app/tasks', icon: 'checks', label: 'Tasks' },
       { to: '/app/routes', icon: 'map', label: 'Routes', min: 2 },
       { to: '/app/team', icon: 'users', label: 'Team', min: 3 },
