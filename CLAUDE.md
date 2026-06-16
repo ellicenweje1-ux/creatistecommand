@@ -42,11 +42,12 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
    Bookings: a 4-stage lead board (enquiry→quoted→confirmed→in_prep) showing the client's rough
    details on each card, with quick edit + one-tap advance. Details in the fourteenth-wave notes.
 
-7. 🔲 **Menu master page (set-menu docs).** A "Menus" section to keep live set menus current: build
-   a menu from finished recipe items, **attach chef-uploaded PDF docs** to each menu, and **share to
-   clients** easily. Menu "types" should feed a dropdown on the New Booking form (ties to #9). Open
-   scope Qs: nav placement + plan tier; "share" = public link vs attach-to-booking vs generated PDF;
-   auto-build-from-recipes and/or PDF-only.
+7. ✅ **Menu master page — DONE (16th wave).** New **Menus** section (Kitchen nav, all plans): set
+   menus built from recipe items (each course can link a recipe sheet), **a PDF attached per menu**
+   to share, plus menu type, price/head and live/archive. New `menus` table via `crud_router`. The
+   menu's title feeds a **"Menu" dropdown on New Booking** (new `bookings.menu_type` column, shown on
+   the booking detail). Sharing the PDF to **enquired** clients rides on #8 (WhatsApp/email contact).
+   Details in the sixteenth-wave notes below.
 8. 🔲 **WhatsApp / email "Contact client" button.** On a booking (and client), a one-tap **Contact
    client** that opens **WhatsApp** (`wa.me/<client phone>`) or **email** (`mailto:`). The chef sets
    their preferred channel(s) / a message template in **Settings**. Open scope Q: exactly what the
@@ -64,11 +65,40 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
     shared `Modal` (`ui.jsx`) no longer closes on a backdrop click — close only via the X or Escape.
     Fixes the data loss across every form modal in the app.
 
-**Sequencing:** 5, 6, 9, 10, 11 done; 4 confirmed working (Mise AI chat deferred); 3 is a standing
-rule; 1 & 2 await the persistent disk (Ellice: "later"). Still to build: **7 (menu master page)**
-then **8 (WhatsApp/email contact)** — Ellice's steer: menus are shared as **PDFs via the WhatsApp/
-email contact feature**, only to clients who have **enquired** (platform is internal; chefs have
-their own public sites). So build 7's PDF-per-menu first, then 8 wires the share/contact action.
+**Sequencing:** 5, 6, 7, 9, 10, 11 done; 4 confirmed working (Mise AI chat deferred); 3 is a standing
+rule; 1 & 2 await the persistent disk (Ellice: "later"). Last of the current batch: **8 (WhatsApp/
+email "Contact client" + share a menu PDF to enquired clients)** — Ellice's steer: menus shared as
+PDFs via the contact feature, only to clients who have **enquired** (platform is internal; chefs
+have their own public sites).
+
+## Latest session (2026-06-16, sixteenth wave — Menu master page + booking menu dropdown)
+- Same branch `claude/determined-brahmagupta-oxnjxp` — **merge to `main` to deploy.** Builds owner
+  feedback item **7** (menu master page). **Backend: new `menus` table** (`create_all` makes it) + one
+  additive `bookings.menu_type` column (`ensure_columns`). No new env/setup. `npm run build` clean (76
+  modules). All plans (not gated) — menus are recipe-adjacent.
+- **Menus page** (`pages/Menus.jsx`; route `/app/menus`; new **"Menus"** item in the Kitchen nav after
+  Recipes — `doc` icon): card grid + search + New/Edit modal. Each menu = **title, menu type**
+  (datalist of common types), **price/head**, **description**, **courses** (the same `{course,name,
+  recipe_id,notes}` rows the booking menu uses — each dish can link a recipe sheet), an **attached
+  PDF** (`api.upload`, `.pdf`) shown as an open/download chip, and a **live/archive** toggle. Cards
+  show type badge, price, first dishes, the PDF link + dish count.
+- **Backend:** `Menu` model (OwnedMixin) + `core.menus = crud_router(Menu, …)` registered at
+  `/api/menus`; `Menu` added to admin `PURGE_MODELS` (delete-chef cascade) so no orphans.
+- **New-Booking "Menu" dropdown:** `BookingForm` now also fetches `/menus` and offers a **datalist of
+  menu titles** on a new "Menu" field, stored on the booking's new **`menu_type`** column (also shown
+  in the BookingDetail "Event details" grid). **GOTCHA hit & fixed:** a new model column must be added
+  to the **model class**, not only to `ensure_columns` — the generic `crud_router`/`to_dict` whitelist
+  is built from `model.__table__.columns`, so a DB-only column silently won't save/serialize. Verified
+  by API (`menu_type` came back `None` until the model got the field).
+- **Sharing** (the PDF → client) is deferred to **#8**: the WhatsApp/email "Contact client" action
+  will be where a menu PDF is sent to clients who've enquired.
+- **Verified:** API — menu create (with courses) + list; booking `menu_type` round-trips after the
+  model fix. Playwright (desktop + mobile) **11/11**: Menus nav + page, an API-made menu card + type
+  badge, **UI create with a PDF attached** (card shows the PDF link), the **New-Booking Menu dropdown
+  lists the menus**, and the **mobile bottom nav still shows Shopping** (the inserted nav item shifted
+  the Kitchen indices — `mobileMain` updated from `[1].items[2]`→`[1].items[3]`). No console errors.
+  (Several Playwright flakes were harness-only — native `<datalist>` popup intercepting clicks, the
+  sticky modal header, and `is_visible()` not waiting — each ruled out against direct DOM evidence.)
 
 ## Latest session (2026-06-16, fifteenth wave — Business profile (internal) + booking service dropdown)
 - Same branch `claude/determined-brahmagupta-oxnjxp` — **merge to `main` to deploy.** Builds owner

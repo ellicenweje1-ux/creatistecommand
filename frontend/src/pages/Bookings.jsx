@@ -8,14 +8,18 @@ import { Badge, Button, EmptyState, Field, Icon, Input, Modal, PageHeader, Selec
 export function BookingForm({ initial = {}, onSaved, onClose }) {
   const [form, setForm] = useState({
     title: '', event_type: '', status: 'enquiry', date: todayISO(), start_time: '', end_time: '',
-    venue_name: '', venue_address: '', guest_count: 0, quoted_price: 0, client_id: '',
+    venue_name: '', venue_address: '', guest_count: 0, quoted_price: 0, client_id: '', menu_type: '',
     dietary_notes: '', setup_notes: '', notes: '', ...initial,
   })
   const [clients, setClients] = useState([])
+  const [menus, setMenus] = useState([])
   const [busy, setBusy] = useState(false)
   const { user } = useAuth()
   const services = user?.services || []  // set up in Settings → Business; powers the dropdown below
-  useEffect(() => { api.get('/clients').then(setClients).catch(() => {}) }, [])
+  useEffect(() => {
+    api.get('/clients').then(setClients).catch(() => {})
+    api.get('/menus').then(setMenus).catch(() => {})
+  }, [])
   const set = (k, cast = (v) => v) => (e) => setForm({ ...form, [k]: cast(e.target.value) })
 
   const save = async (e) => {
@@ -51,6 +55,10 @@ export function BookingForm({ initial = {}, onSaved, onClose }) {
         <Field label="Guests"><Input type="number" min="0" value={form.guest_count} onChange={set('guest_count')} /></Field>
         <Field label="Quoted price"><Input type="number" min="0" step="0.01" value={form.quoted_price} onChange={set('quoted_price')} /></Field>
       </div>
+      <Field label="Menu">
+        <Input list="cc-booking-menus" value={form.menu_type} onChange={set('menu_type')} placeholder="Link one of your set menus" />
+        {menus.length > 0 && <datalist id="cc-booking-menus">{menus.map((m) => <option key={m.id} value={m.title} />)}</datalist>}
+      </Field>
       <Field label="Client">
         <Select value={form.client_id || ''} onChange={set('client_id')}>
           <option value="">— No client linked —</option>

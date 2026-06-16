@@ -40,6 +40,7 @@ def ensure_columns():
         },
         "platform_settings": {"founders": "JSON"},
         "tasks": {"assignee_id": "INTEGER"},
+        "bookings": {"menu_type": "VARCHAR(80) DEFAULT ''"},
     }
     inspector = sa.inspect(engine)
     with engine.begin() as conn:

@@ -128,6 +128,21 @@ class Recipe(OwnedMixin, Base):
     is_favorite: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
+class Menu(OwnedMixin, Base):
+    """A set menu doc the chef keeps live and shares with clients (as a PDF). Courses can
+    be built from finished recipes; an uploaded PDF is the shareable version."""
+    __tablename__ = "menus"
+    title: Mapped[str] = mapped_column(String(200))
+    menu_type: Mapped[str] = mapped_column(String(80), default="")   # Tasting / Set / Canapé / Buffet…
+    description: Mapped[str] = mapped_column(Text, default="")
+    price_per_head: Mapped[float] = mapped_column(Float, default=0)
+    courses: Mapped[list] = mapped_column(JSON, default=list)        # [{id,course,name,recipe_id,notes}]
+    pdf_url: Mapped[str] = mapped_column(String(500), default="")    # attached, shareable PDF
+    pdf_name: Mapped[str] = mapped_column(String(255), default="")
+    active: Mapped[bool] = mapped_column(Boolean, default=True)      # live / archived
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
 class InventoryItem(OwnedMixin, Base):
     __tablename__ = "inventory_items"
     name: Mapped[str] = mapped_column(String(200))
@@ -148,6 +163,7 @@ class Booking(OwnedMixin, Base):
     client_id: Mapped[int] = mapped_column(Integer, nullable=True)
     title: Mapped[str] = mapped_column(String(200))
     event_type: Mapped[str] = mapped_column(String(80), default="")  # Wedding / Private dinner...
+    menu_type: Mapped[str] = mapped_column(String(80), default="")    # set menu chosen for this event (from Menus)
     status: Mapped[str] = mapped_column(String(20), default="enquiry")  # enquiry|quoted|confirmed|in_prep|completed|cancelled
     date: Mapped[str] = mapped_column(String(10), default="")
     start_time: Mapped[str] = mapped_column(String(5), default="")

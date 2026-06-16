@@ -20,6 +20,7 @@ import Ideas from './pages/Ideas'
 import Inventory from './pages/Inventory'
 import Landing from './pages/Landing'
 import { Privacy, Terms } from './pages/Legal'
+import Menus from './pages/Menus'
 import Onboarding from './pages/Onboarding'
 import ResetPassword from './pages/ResetPassword'
 import Orders from './pages/Orders'
@@ -54,6 +55,7 @@ const NAV_GROUPS = [
     label: 'Kitchen',
     items: [
       { to: '/app/recipes', icon: 'book', label: 'Recipes' },
+      { to: '/app/menus', icon: 'doc', label: 'Menus' },
       { to: '/app/inventory', icon: 'box', label: 'Inventory' },
       { to: '/app/shopping', icon: 'cart', label: 'Shopping' },
       { to: '/app/packing', icon: 'clipboard', label: 'Packing' },
@@ -160,7 +162,7 @@ function AppShell() {
   }, [])
   // Daily-use shortcuts; Home (the module guide at /app) stays reachable via the
   // brand logo tap and the "More" sheet.
-  const mobileMain = [NAV_GROUPS[0].items[1], NAV_GROUPS[0].items[2], NAV_GROUPS[0].items[4], NAV_GROUPS[1].items[2]]
+  const mobileMain = [NAV_GROUPS[0].items[1], NAV_GROUPS[0].items[2], NAV_GROUPS[0].items[4], NAV_GROUPS[1].items[3]]
   const allItems = NAV_GROUPS.flatMap((g) => visibleItems(g.items, user))
 
   return (
@@ -286,6 +288,7 @@ export default function App() {
         <Route path="tastings" element={<Tastings />} />
         <Route path="clients" element={<Clients />} />
         <Route path="recipes" element={<Recipes />} />
+        <Route path="menus" element={<Menus />} />
         <Route path="inventory" element={<Inventory />} />
         <Route path="shopping" element={<Shopping />} />
         <Route path="packing" element={<Packing />} />

@@ -226,7 +226,7 @@ export default function BookingDetail() {
           <div className="space-y-5 lg:col-span-2">
             <Card title="Event details">
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm md:grid-cols-3">
-                {[['Type', b.event_type || '—'], ['Status', label(b.status)], ['Guests', b.guest_count],
+                {[['Type', b.event_type || '—'], ['Menu', b.menu_type || '—'], ['Status', label(b.status)], ['Guests', b.guest_count],
                   ['Quoted', b.quoted_price ? fmtMoney(b.quoted_price, cur) : '—'],
                   ['Deposit', b.deposit_paid ? 'Paid ✓' : 'Not paid'],
                   ['Venue', b.venue_name || '—']].map(([k, v]) => (

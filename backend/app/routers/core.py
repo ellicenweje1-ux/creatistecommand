@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from ..auth import require_active
 from ..database import get_db
 from ..models import (
-    Appointment, Client, ClientReview, Design, Idea, InventoryItem, OnlineOrder,
+    Appointment, Client, ClientReview, Design, Idea, InventoryItem, Menu, OnlineOrder,
     PackingList, Recipe, RoutePlan, ShoppingList, Supplier, SupplierPrice, Task,
 )
 from sqlalchemy.orm.attributes import flag_modified
@@ -13,6 +13,8 @@ from sqlalchemy.orm.attributes import flag_modified
 from ..utils import crud_router, get_owned, log_activity, to_dict, ws_id
 
 recipes = crud_router(Recipe, required=("title",), search_fields=("title", "category", "cuisine"))
+menus = crud_router(Menu, required=("title",), search_fields=("title", "menu_type", "description"),
+                    default_order=lambda m: [m.active.desc(), m.created_at.desc()])
 inventory = crud_router(
     InventoryItem, required=("name",), search_fields=("name", "category", "supplier"),
     default_order=lambda m: [m.name.asc()],
