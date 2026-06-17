@@ -27,6 +27,9 @@ class User(Base):
     services: Mapped[list] = mapped_column(JSON, default=list)   # service / event types offered
     socials: Mapped[dict] = mapped_column(JSON, default=dict)    # {instagram, facebook, tiktok, website, ...}
     gallery: Mapped[list] = mapped_column(JSON, default=list)    # [url] portfolio / gallery photos
+    # Public marketing — opt in to be featured (logo + link) on the Creatiste Command site
+    feature_publicly: Mapped[bool] = mapped_column(Boolean, default=False)
+    testimonial: Mapped[str] = mapped_column(Text, default="")   # optional quote shown in the spotlight
     # Quick-contact (WhatsApp / email) defaults used by the "Contact client" action
     contact_channel: Mapped[str] = mapped_column(String(10), default="both")   # both | whatsapp | email
     contact_template: Mapped[str] = mapped_column(Text, default="")

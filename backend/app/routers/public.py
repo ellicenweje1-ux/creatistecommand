@@ -131,3 +131,51 @@ def submit_enquiry(request: Request, token: str, payload: dict = Body(...), db: 
         f"It's waiting in your Bookings as an enquiry.\n\n— The Creatiste Command",
     )
     return {"ok": True, "message": "Thank you — your enquiry has been sent."}
+
+
+def _public_link(socials: dict) -> str:
+    """Best public URL for a featured business, from their saved socials. Returns a safe
+    absolute https URL or '' — so we never render a broken or non-http link on the site."""
+    bases = {
+        "instagram": "https://instagram.com/", "facebook": "https://facebook.com/",
+        "tiktok": "https://tiktok.com/@", "youtube": "https://youtube.com/@", "x": "https://x.com/",
+    }
+    for key in ("website", "instagram", "facebook", "tiktok", "youtube", "x"):
+        v = (socials.get(key) or "").strip()
+        if not v:
+            continue
+        if v.startswith(("http://", "https://")):
+            return v
+        if key == "website":
+            return "https://" + v.lstrip("/") if ("." in v and " " not in v) else ""
+        handle = v.lstrip("@").strip()
+        if handle and " " not in handle:
+            return bases[key] + handle
+    return ""
+
+
+@router.get("/featured")
+def featured_businesses(db: Session = Depends(get_db)):
+    """Opted-in businesses for the public landing 'featured kitchens' wall. Consent-based:
+    a chef turns this on in Settings → Business; only their business name, logo, link and
+    (optional) testimonial are exposed here — never anything private."""
+    rows = (
+        db.query(User)
+        .filter(User.feature_publicly.is_(True), User.role.in_(["chef", "admin"]))
+        .all()
+    )
+    # Founders first (by their numbered seat), then everyone else.
+    rows.sort(key=lambda u: (u.founder_number is None, u.founder_number or 0, u.id))
+    out = []
+    for u in rows:
+        name = (u.business_name or u.name or "").strip()
+        if not name:
+            continue
+        out.append({
+            "business_name": name,
+            "logo": u.avatar_url or "",
+            "link": _public_link(u.socials or {}),
+            "testimonial": (u.testimonial or "").strip(),
+            "is_founder": bool(u.is_founder),
+        })
+    return {"featured": out[:24]}

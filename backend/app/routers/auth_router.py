@@ -120,9 +120,12 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
 @router.put("/me")
 def update_me(payload: dict = Body(...), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     for field in ("name", "business_name", "phone", "currency", "avatar_url",
-                  "business_description", "business_email", "contact_channel", "contact_template"):
+                  "business_description", "business_email", "contact_channel",
+                  "contact_template", "testimonial"):
         if field in payload:
             setattr(user, field, payload[field] or "")
+    if "feature_publicly" in payload:
+        user.feature_publicly = bool(payload["feature_publicly"])
     # Structured business-profile fields. Assign fresh objects (don't mutate in place)
     # so SQLAlchemy detects the JSON change and actually persists it.
     if isinstance(payload.get("services"), list):

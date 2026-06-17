@@ -6,7 +6,7 @@ import { perkIcon, perkTitle } from '../booking'
 import { DEFAULT_CONTACT_TEMPLATE } from '../contact'
 import { cls, fmtMoney, label, SYMBOLS } from '../format'
 import { getInstallPrompt, isStandalone } from '../offline'
-import { Badge, Button, Card, Field, Icon, Input, PageHeader, Select, Textarea, toast, toastErr } from '../ui'
+import { Badge, Button, Card, Field, Icon, Input, PageHeader, Select, Textarea, Toggle, toast, toastErr } from '../ui'
 import { CURRENT, VERSIONS, VersionNotes, versionRef } from '../version'
 
 /* Settings is split into individual pages (own URL each) under /app/settings, so the
@@ -98,7 +98,7 @@ const SOCIAL_FIELDS = [
 
 export function SettingsBusiness() {
   const { user, setUser } = useAuth()
-  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '' })
+  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '', feature_publicly: false, testimonial: '' })
   const [gallery, setGallery] = useState([])
   const [logo, setLogo] = useState('')
   const [svc, setSvc] = useState('')
@@ -116,6 +116,8 @@ export function SettingsBusiness() {
       socials: user.socials || {},
       contact_channel: user.contact_channel || 'both',
       contact_template: user.contact_template || '',
+      feature_publicly: !!user.feature_publicly,
+      testimonial: user.testimonial || '',
     })
     setGallery(user.gallery || [])
     setLogo(user.avatar_url || '')
@@ -242,6 +244,23 @@ export function SettingsBusiness() {
             <input type="file" accept="image/*" multiple className="hidden" onChange={addGallery} />
           </label>
         </div>
+      </Card>
+
+      <Card title="Feature on the Creatiste Command site">
+        <p className="mb-3 text-sm text-fg/60">
+          Switch this on and we’ll showcase your business on our public site — your logo and a link
+          to your website or socials — as a little extra advertising for you. Add a line about your
+          experience to be quoted too. It’s opt-in, and you can turn it off any time.
+        </p>
+        <Toggle checked={form.feature_publicly} onChange={(v) => setForm({ ...form, feature_publicly: v })}
+          label={form.feature_publicly ? 'Showing on our site' : 'Not shown publicly'} />
+        <Field label="Your words (optional)" className="mt-4" hint="A sentence or two on how the platform helps your kitchen — shown as a testimonial.">
+          <Textarea rows={3} value={form.testimonial} onChange={(e) => setForm({ ...form, testimonial: e.target.value })}
+            placeholder="The Creatiste Command keeps my whole operation in one place — I walk into every event prepped and calm." />
+        </Field>
+        <p className="mt-3 text-xs text-fg/45">
+          The link uses your website (or first social link) from <span className="font-medium text-fg">Contact &amp; social media</span> above — add one so new clients can find you.
+        </p>
       </Card>
 
       <div className="flex justify-end">

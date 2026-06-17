@@ -21,6 +21,8 @@ const FAQS = [
    'Draft a quote under Finance → Quotes and hit Send. You get a private link to share — your client opens it on their phone, sees the quote beautifully laid out, and taps Approve or Decline. You’re notified instantly, and approved quotes convert to invoices in one click.'],
   ['What is the public enquiry form?',
    'A branded page you can link from your website or Instagram bio. Enquiries land straight in your Bookings as new leads with the client attached — open the Pipeline view there to fill in the rough details and progress the lead. Find your personal link in Settings → App & integrations.'],
+  ['Can my business be featured on your site?',
+   'Yes. In Settings → Business, turn on “Feature on the Creatiste Command site” and we’ll showcase your logo and a link to your website or socials on our public landing page — a little extra advertising for you. Add a short testimonial to be quoted too. It’s opt-in and you can switch it off any time; founding members also get a “Founding member” badge alongside their listing.'],
   ['How does the allergen matrix work?',
    'It reads the allergen tags on your recipe sheets and builds a dish-by-allergen grid (the UK’s 14 regulated allergens) for any booking’s menu — ready to print for the buffet table. Always double-check against actual labels; cross-contamination isn’t represented.'],
   ['Can I use it on my phone?',

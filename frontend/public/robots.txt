@@ -1,0 +1,11 @@
+# The Creatiste Command — the command centre for chefs & caterers
+User-agent: *
+Allow: /
+Disallow: /app
+Disallow: /api
+Disallow: /q/
+Disallow: /enquire/
+Disallow: /reset-password
+Disallow: /forgot-password
+
+Sitemap: https://creatistecommand.onrender.com/sitemap.xml

@@ -40,6 +40,7 @@ def ensure_columns():
             "business_description": "TEXT DEFAULT ''", "business_email": "VARCHAR(255) DEFAULT ''",
             "services": "JSON", "socials": "JSON", "gallery": "JSON",
             "contact_channel": "VARCHAR(10) DEFAULT 'both'", "contact_template": "TEXT DEFAULT ''",
+            "feature_publicly": "BOOLEAN DEFAULT 0", "testimonial": "TEXT DEFAULT ''",
         },
         "platform_settings": {"founders": "JSON"},
         "tasks": {"assignee_id": "INTEGER"},

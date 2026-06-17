@@ -72,7 +72,38 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
 Mise AI chat deferred). 3 is a standing rule. Only **1 & 2 remain, and both wait on the persistent
 disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk before any real chef signs up.
 
-## Latest session (2026-06-16, nineteenth wave — version stamp + release notes, "Pass"→"event" copy)
+## Latest session (2026-06-17, twentieth wave — marketing polish: founders logo wall + testimonials, SEO pack)
+- Branch `claude/cool-shannon-yyt4kh` — **merge to `main` to deploy.** Ellice's pick while the persistent disk /
+  payments wait: "marketing polish." Builds the **promised founders perk** (logo on site + link as advertising) +
+  testimonials, plus an SEO pack. **Backend: 2 additive `users` columns** (`feature_publicly`, `testimonial`) via
+  `ensure_columns`; one new public endpoint. No new env/deps. `npm run build` clean (78 modules).
+- **Featured-businesses / testimonials wall** (`pages/Landing.jsx`, new `#loved` section between Features and How-it-
+  works): a **consent-based** logo wall (logo + business name, **linking out to their site as advertising**) + testimonial
+  cards. **Hidden entirely until ≥1 business opts in** (so the pre-launch page stays clean). Founders get a **"Founding
+  member"** badge. Fed by **`GET /api/public/featured`** (`routers/public.py`) — returns only opted-in chefs' public
+  bits (name, logo, normalised https link, optional testimonial, is_founder); leaks nothing private. `_public_link()`
+  turns `@handle`/bare domains into safe absolute URLs (or "").
+- **Opt-in lives in Settings → Business** (`SettingsBusiness`): a **"Feature on the Creatiste Command site"** card —
+  a `Toggle` (`feature_publicly`) + a testimonial textarea, saved with the business profile (`PUT /auth/me` now
+  whitelists `testimonial` + the bool `feature_publicly`). The outbound link reuses the website/first social already on
+  the page. **DECISION (flag for Ellice): the opt-in is open to ALL owners**, not founders-only — broader social proof,
+  everyone happy can advertise; founders are still distinguished by the badge. Easy to gate to `is_founder` if she wants
+  it exclusive.
+- **SEO pack:** `frontend/public/robots.txt` (allow site, disallow `/app` `/api` + token pages, points at the sitemap)
+  + `frontend/public/sitemap.xml` (home/register/login/terms/privacy) — both served at root by the SPA catch-all (Vite
+  copies `public/` → `dist/`). `index.html` gains a **canonical** link + **JSON-LD** (`Organization` +
+  `SoftwareApplication` with an `AggregateOffer`; `lowPrice "39"` mirrors the entry tier — update if it changes). All
+  absolute URLs use `creatistecommand.onrender.com` — **update on a custom domain** (same as the OG tags).
+- **FAQ kept current (rule #3):** new Support FAQ "Can my business be featured on your site?" → Settings → Business.
+- **Verified:** API (urllib, live server + seed) **14/14** — featured empty→opt-in→1 business→opt-out→empty; website
+  normalised to `https://…`; testimonial exposed; **no private fields leaked**; robots/sitemap 200 + content; index.html
+  carries JSON-LD + canonical. Playwright (system chromium, desktop) **13/13** — landing `#loved` renders the business +
+  testimonial + outbound `target=_blank` link + JSON-LD in DOM; Settings card shows the toggle (ON) + saved testimonial;
+  **zero app-origin console errors** (only the known Google-Fonts noise). Temp checks were heredocs — nothing left behind.
+- **Still the only real blocker: the persistent disk** (`DATA_DIR=/var/data` + paid Render disk) before real chefs —
+  unchanged by this wave.
+
+## Previous session (2026-06-16, nineteenth wave — version stamp + release notes, "Pass"→"event" copy)
 - Branch `claude/exciting-bardeen-vcmynn` — **merge to `main` to deploy.** Two of Ellice's asks: (a) a **version
   number** at the base of the platform + a Settings section for it, and (b) reword every written **"Pass"** (the kitchen
   pass) to **"event"**. **Frontend only — no backend, no env, no new deps.** `npm run build` clean (**78 modules**).
@@ -783,8 +814,8 @@ disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk befor
   badge cards ("Founders only" chips) incl. new **Testimonial spotlight** (logo on
   site + direct link to their business as advertising) + "How joining works"
   4-step (call-first). Old string perks migrate at boot. (Logo-wall on the public
-  landing page not built yet — perk is promised, collect logos via avatar_url
-  later.)
+  landing page **built in the 20th wave** — opt-in in Settings → Business, served by
+  `GET /api/public/featured`; logos reuse `avatar_url`.)
 - **Stripe trial billing**: checkout during trial now passes
   `subscription_data.trial_period_days` = remaining trial days → card taken at
   subscribe, first charge lands when the trial ends (auto-renews after). Demo mode
