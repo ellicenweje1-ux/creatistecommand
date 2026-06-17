@@ -68,10 +68,26 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
 11. ✅ **Modal: stop discarding entries on accidental click-off — DONE (14th wave, follow-on).** The
     shared `Modal` (`ui.jsx`) no longer closes on a backdrop click — close only via the X or Escape.
     Fixes the data loss across every form modal in the app.
+12. 🔲 **US-market readiness — DEFERRED by Ellice (2026-06-17):** "do US-focused at a later time once I know
+    the platform works here first" (prove UK product-market fit before internationalising). Research was done
+    this session so a future wave needn't redo it. **Already US-ready (no work):** per-chef *business* currency —
+    Settings → Profile currency picker incl. **USD** (`User.currency`, whitelisted in `PUT /auth/me`); renders all
+    chef-facing money (recipes/quotes/invoices/finance/suppliers) in their symbol; dates are locale-safe
+    (spelled-out month, no MM/DD↔DD/MM hazard); Stripe takes US cards. **Needs work when US is picked up:**
+    (a) the **subscription** billing currency is a single GLOBAL setting (`PlatformSettings.currency`, GBP,
+    Admin → Pricing) → US chefs charged in £ with FX unless flipped, and flipping it also hits UK chefs — true
+    per-region multi-currency subs = real work; (b) **tax** — the invoice `tax_rate` is one manual % (fine), but
+    HER OWN US SaaS sales-tax / economic-nexus is an accountant question (Stripe Tax can automate); (c) **onboarding
+    call slots** pinned Europe/London 8am–8pm (`ONBOARDING_TZ`) = thin US overlap → label "UK time" + optional
+    US-evening slots; (d) **allergens** hardcoded to the UK-14 / Natasha's-Law set (`pages/Allergens.jsx`); US = 9
+    (FALCPA + sesame) → make region-aware; (e) **legal** pages are UK-only (England & Wales, UK GDPR/ICO;
+    `pages/Legal.jsx`) → add a US/CCPA privacy section + lawyer review; (f) **WhatsApp** `wa.me` strips non-digits
+    with no country code (`contact.jsx`) → want `+1`/`+44` handling (already fragile for local-format numbers).
 
 **Sequencing:** the whole current batch is done — 5, 6, 7, 8, 9, 10, 11 (plus 4 confirmed working,
-Mise AI chat deferred). 3 is a standing rule. Only **1 & 2 remain, and both wait on the persistent
-disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk before any real chef signs up.
+Mise AI chat deferred). 3 is a standing rule. **1, 2 & 12 remain:** 1 & 2 wait on the persistent
+disk (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk before any real chef signs up;
+**12 (US-market) is deferred** until the platform is proven in the UK.
 
 ## Latest session (2026-06-17, twentieth wave — marketing polish: founders logo wall + testimonials, SEO pack)
 - Branch `claude/cool-shannon-yyt4kh` — **merge to `main` to deploy.** Ellice's pick while the persistent disk /
