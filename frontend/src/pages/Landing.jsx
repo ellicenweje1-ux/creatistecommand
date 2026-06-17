@@ -225,7 +225,7 @@ export default function Landing() {
       {/* Features */}
       <section id="features" className="bg-ink py-16 text-cream">
         <div className="mx-auto max-w-6xl px-5">
-          <h2 className="font-display text-3xl font-semibold md:text-4xl">Everything between the enquiry <em className="italic text-copper">and the applause.</em></h2>
+          <h2 className="font-display text-3xl font-semibold md:text-4xl">Everything between the enquiry <em className="italic text-copper">and the final presentation.</em></h2>
           <p className="mt-3 max-w-2xl text-cream/55">Built around the real workflow of catering: what you have, what you need, where to get it, when to prep it, and who it's for.</p>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((f) => (

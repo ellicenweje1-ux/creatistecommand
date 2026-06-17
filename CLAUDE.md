@@ -105,6 +105,9 @@ disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk befor
   "capture ideas at the event"). **Deliberately NOT touched:** "password"; Python `pass`; `passes`/`passed`; and backend
   `admin.py` "That day has already **passed**" (correct English, not the pass).
 - **No voiceover re-render needed:** `vo-script.json` + `introfilm.jsx` contain **no "pass"** (checked).
+- **Follow-on copy tweak (same branch):** "the applause" → "the final presentation" — `Landing.jsx` features heading
+  ("Everything between the enquiry and the final presentation") + `Bookings.jsx` page subtitle ("Every event from
+  enquiry to final presentation"). Only 2 instances; no "applause" elsewhere (incl. voiceover).
 - **FAQ kept current (standing rule #3):** Support FAQ "How do I see what's new when the platform updates?" — neutral,
   points at Settings → Version release notes; **no mention of the scripture/dedication**.
 - **Verified:** `npm run build` clean (78 modules). Playwright (system chromium, desktop 1280), demo chef — version

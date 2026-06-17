@@ -241,7 +241,7 @@ export default function Bookings() {
 
   return (
     <div>
-      <PageHeader title="Bookings" sub="Every event from enquiry to applause."
+      <PageHeader title="Bookings" sub="Every event from enquiry to final presentation."
         actions={
           <>
             <div className="flex rounded-lg border border-line bg-card p-0.5">
