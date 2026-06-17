@@ -155,6 +155,12 @@ export function SettingsBusiness() {
   const removeService = (s) => setForm({ ...form, services: form.services.filter((x) => x !== s) })
   const setSocial = (k, v) => setForm({ ...form, socials: { ...form.socials, [k]: v } })
 
+  // When they opt in, nudge for whatever's still missing for a strong public listing.
+  const hasPublicLink = Object.values(form.socials || {}).some((v) => (v || '').trim())
+  const featureMissing = form.feature_publicly
+    ? [!logo && 'a logo', !hasPublicLink && 'a website or social link'].filter(Boolean)
+    : []
+
   return (
     <div className="space-y-5">
       <Card title="Logo & description">
@@ -254,6 +260,16 @@ export function SettingsBusiness() {
         </p>
         <Toggle checked={form.feature_publicly} onChange={(v) => setForm({ ...form, feature_publicly: v })}
           label={form.feature_publicly ? 'Showing on our site' : 'Not shown publicly'} />
+        {featureMissing.length > 0 && (
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-copper/30 bg-copper/5 p-3 text-sm text-fg/70">
+            <Icon name="bulb" size={15} className="mt-0.5 shrink-0 text-copper" />
+            <span>
+              For the best listing, add {featureMissing.join(' and ')} — your logo shows in the scrolling bar on our site,
+              and the link sends visitors to your business. Set these under <span className="font-medium text-fg">Logo &amp; description</span>
+              {' '}and <span className="font-medium text-fg">Contact &amp; social media</span> above.
+            </span>
+          </div>
+        )}
         <Field label="Your words (optional)" className="mt-4" hint="A sentence or two on how the platform helps your kitchen — shown as a testimonial.">
           <Textarea rows={3} value={form.testimonial} onChange={(e) => setForm({ ...form, testimonial: e.target.value })}
             placeholder="The Creatiste Command keeps my whole operation in one place — I walk into every event prepped and calm." />

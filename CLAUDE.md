@@ -88,7 +88,7 @@ disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk befor
 - **Opt-in lives in Settings → Business** (`SettingsBusiness`): a **"Feature on the Creatiste Command site"** card —
   a `Toggle` (`feature_publicly`) + a testimonial textarea, saved with the business profile (`PUT /auth/me` now
   whitelists `testimonial` + the bool `feature_publicly`). The outbound link reuses the website/first social already on
-  the page. **DECISION (flag for Ellice): the opt-in is open to ALL owners**, not founders-only — broader social proof,
+  the page; turning the toggle on with no logo and/or no link shows an inline nudge to add them. **DECISION (flag for Ellice): the opt-in is open to ALL owners**, not founders-only — broader social proof,
   everyone happy can advertise; founders are still distinguished by the badge. Easy to gate to `is_founder` if she wants
   it exclusive.
 - **SEO pack:** `frontend/public/robots.txt` (allow site, disallow `/app` `/api` + token pages, points at the sitemap)
