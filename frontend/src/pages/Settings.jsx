@@ -6,7 +6,7 @@ import { perkIcon, perkTitle } from '../booking'
 import { DEFAULT_CONTACT_TEMPLATE } from '../contact'
 import { cls, fmtMoney, label, SYMBOLS } from '../format'
 import { getInstallPrompt, isStandalone } from '../offline'
-import { Badge, Button, Card, Field, Icon, Input, PageHeader, Select, Textarea, toast, toastErr } from '../ui'
+import { Badge, Button, Card, Field, Icon, Input, PageHeader, Select, Stars, Textarea, toast, toastErr } from '../ui'
 import { CURRENT, VERSIONS, VersionNotes, versionRef } from '../version'
 
 /* Settings is split into individual pages (own URL each) under /app/settings, so the
@@ -105,7 +105,7 @@ const FEATURE_STATUS = {
 
 export function SettingsBusiness() {
   const { user, setUser } = useAuth()
-  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '', feature_publicly: false, testimonial: '' })
+  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '', feature_publicly: false, testimonial: '', testimonial_rating: 0 })
   const [gallery, setGallery] = useState([])
   const [logo, setLogo] = useState('')
   const [svc, setSvc] = useState('')
@@ -125,6 +125,7 @@ export function SettingsBusiness() {
       contact_template: user.contact_template || '',
       feature_publicly: !!user.feature_publicly,
       testimonial: user.testimonial || '',
+      testimonial_rating: user.testimonial_rating || 0,
     })
     setGallery(user.gallery || [])
     setLogo(user.avatar_url || '')
@@ -168,7 +169,7 @@ export function SettingsBusiness() {
   const fstatus = user?.feature_status || 'none'
   const submitFeature = () => {
     setBusy(true)
-    api.post('/auth/feature-request', { testimonial: form.testimonial })
+    api.post('/auth/feature-request', { testimonial: form.testimonial, rating: form.testimonial_rating })
       .then((u) => { setUser(u); toast('Sent for review — we’ll check it before it goes live', 'sage') })
       .catch(toastErr).finally(() => setBusy(false))
   }
@@ -293,6 +294,11 @@ export function SettingsBusiness() {
             </span>
           </div>
         )}
+        <div className="mb-3">
+          <span className="label">Your rating (optional)</span>
+          <Stars value={form.testimonial_rating} size={24}
+            onChange={(n) => setForm({ ...form, testimonial_rating: n === form.testimonial_rating ? 0 : n })} />
+        </div>
         <Field label="Your words (optional testimonial)" hint="A sentence or two on how the platform helps your kitchen.">
           <Textarea rows={3} value={form.testimonial} onChange={(e) => setForm({ ...form, testimonial: e.target.value })}
             placeholder="The Creatiste Command keeps my whole operation in one place — I walk into every event prepped and calm." />

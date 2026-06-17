@@ -111,9 +111,10 @@ disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk befor
   keeps it off). `GET /public/featured` now also requires `feature_status == 'approved'`. New endpoints:
   `POST /auth/feature-request` + `POST /auth/feature-withdraw` (chef), `GET /admin/feature-requests` +
   `…/{id}/approve|reject` (owner, reuses `public._public_link`). Changing the logo on an *approved* listing auto-sends it
-  back to pending (re-review). `PUT /auth/me` no longer touches the feature fields. Also: **removed the fabricated 5-star
-  row** from testimonial cards (chefs never chose a rating — a chooseable one could be added later), and the wall heading
-  is now **"Loved by Chefs whose kitchens run on it."** Support FAQ updated to describe the review step.
+  back to pending (re-review). `PUT /auth/me` no longer touches the feature fields. Also: replaced the fabricated 5-star
+  row with a **chef-chosen rating** — a `Stars` input in Settings → Business (new additive `users.testimonial_rating`
+  0–5, sent with the feature request, optional/clearable), shown on the public wall + the Admin review card only when set;
+  and the wall heading is now **"Loved by Chefs whose kitchens run on it."** Support FAQ updated to describe the review step.
 - **Verified:** API (urllib, live server + seed) **14/14** — featured empty→opt-in→1 business→opt-out→empty; website
   normalised to `https://…`; testimonial exposed; **no private fields leaked**; robots/sitemap 200 + content; index.html
   carries JSON-LD + canonical. Playwright (system chromium, desktop) **13/13** — landing `#loved` renders the business +

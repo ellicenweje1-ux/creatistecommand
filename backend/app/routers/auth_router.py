@@ -147,6 +147,10 @@ def feature_request(payload: dict = Body(default={}), db: Session = Depends(get_
     if user.role == "staff":
         raise HTTPException(403, "Only the business owner can manage this.")
     user.testimonial = (payload.get("testimonial") or "").strip()[:600]
+    try:
+        user.testimonial_rating = max(0, min(5, int(payload.get("rating") or 0)))
+    except (TypeError, ValueError):
+        user.testimonial_rating = 0
     user.feature_publicly = True
     user.feature_status = "pending"
     db.commit()

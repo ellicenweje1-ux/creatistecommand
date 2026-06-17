@@ -480,6 +480,7 @@ def feature_requests(db: Session = Depends(get_db)):
         "logo": u.avatar_url or "",
         "link": _public_link(u.socials or {}),
         "testimonial": (u.testimonial or "").strip(),
+        "rating": int(u.testimonial_rating or 0),
         "status": u.feature_status or "none",
         "is_founder": bool(u.is_founder),
     } for u in rows]

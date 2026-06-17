@@ -176,6 +176,7 @@ def featured_businesses(db: Session = Depends(get_db)):
             "logo": u.avatar_url or "",
             "link": _public_link(u.socials or {}),
             "testimonial": (u.testimonial or "").strip(),
+            "rating": int(u.testimonial_rating or 0),
             "is_founder": bool(u.is_founder),
         })
     return {"featured": out[:24]}

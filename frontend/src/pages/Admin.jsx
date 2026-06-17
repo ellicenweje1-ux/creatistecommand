@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { cls, fmtDate, fmtMoney, label } from '../format'
-import { Badge, Button, Card, Field, Icon, Input, Modal, PageHeader, SearchInput, Select, Spinner, StatCard, Tabs, Textarea, toast, toastErr } from '../ui'
+import { Badge, Button, Card, Field, Icon, Input, Modal, PageHeader, SearchInput, Select, Spinner, StatCard, Stars, Tabs, Textarea, toast, toastErr } from '../ui'
 
 const STATUS_TONE = { active: 'sage', trialing: 'copper', pending: 'amber', suspended: 'red', canceled: 'ink' }
 const STATUSES = ['pending', 'trialing', 'active', 'suspended', 'canceled']
@@ -508,6 +508,7 @@ function FeatureCard({ item, onSaved }) {
         </div>
         <Badge tone={tone}>{label(item.status)}</Badge>
       </div>
+      {item.rating > 0 && <div className="mt-3"><Stars value={item.rating} size={15} /></div>}
       <Field label="Testimonial — edit to fix spelling before approving" className="mt-3">
         <Textarea rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder="No testimonial — logo & link only." />
       </Field>

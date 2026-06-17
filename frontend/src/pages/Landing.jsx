@@ -4,7 +4,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls, fmtMoney } from '../format'
 import IntroFilm from '../introfilm'
-import { Brand, Button, Icon } from '../ui'
+import { Brand, Button, Icon, Stars } from '../ui'
 import { VersionStamp } from '../version'
 
 const HOOKS = [
@@ -291,6 +291,7 @@ export default function Landing() {
           <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {testimonials.map((f, i) => (
               <figure key={i} className="flex flex-col rounded-xl border border-line bg-card p-5 shadow-card">
+                {f.rating > 0 && <div className="mb-3"><Stars value={f.rating} size={15} /></div>}
                 <blockquote className="flex-1 text-sm leading-relaxed text-fg/75">&ldquo;{f.testimonial}&rdquo;</blockquote>
                 <figcaption className="mt-4 flex items-center gap-2.5 border-t border-line pt-3">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-parchment/40">

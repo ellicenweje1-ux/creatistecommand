@@ -22,7 +22,7 @@ const FAQS = [
   ['What is the public enquiry form?',
    'A branded page you can link from your website or Instagram bio. Enquiries land straight in your Bookings as new leads with the client attached — open the Pipeline view there to fill in the rough details and progress the lead. Find your personal link in Settings → App & integrations.'],
   ['Can my business be featured on your site?',
-   'Yes. In Settings → Business, add your logo, a link to your website or socials and an optional testimonial, then tap “Submit for review”. We check every listing before it goes live (to catch typos and keep the site tidy) — once approved, your logo appears in the scrolling bar on our landing page and your testimonial on the wall. It’s opt-in, you can remove it any time, and founding members get a “Founding member” badge.'],
+   'Yes. In Settings → Business, add your logo, a link to your website or socials, a star rating and an optional testimonial, then tap “Submit for review”. We check every listing before it goes live (to catch typos and keep the site tidy) — once approved, your logo appears in the scrolling bar on our landing page and your testimonial on the wall. It’s opt-in, you can remove it any time, and founding members get a “Founding member” badge.'],
   ['How does the allergen matrix work?',
    'It reads the allergen tags on your recipe sheets and builds a dish-by-allergen grid (the UK’s 14 regulated allergens) for any booking’s menu — ready to print for the buffet table. Always double-check against actual labels; cross-contamination isn’t represented.'],
   ['Can I use it on my phone?',

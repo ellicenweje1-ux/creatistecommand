@@ -41,7 +41,7 @@ def ensure_columns():
             "services": "JSON", "socials": "JSON", "gallery": "JSON",
             "contact_channel": "VARCHAR(10) DEFAULT 'both'", "contact_template": "TEXT DEFAULT ''",
             "feature_publicly": "BOOLEAN DEFAULT 0", "testimonial": "TEXT DEFAULT ''",
-            "feature_status": "VARCHAR(10) DEFAULT 'none'",
+            "feature_status": "VARCHAR(10) DEFAULT 'none'", "testimonial_rating": "INTEGER DEFAULT 0",
         },
         "platform_settings": {"founders": "JSON"},
         "tasks": {"assignee_id": "INTEGER"},
