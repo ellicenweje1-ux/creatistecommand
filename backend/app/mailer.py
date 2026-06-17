@@ -77,3 +77,10 @@ def send_email(to: str, subject: str, body: str):
         log.info("email skipped (not configured): %s -> %s", subject, to)
         return
     threading.Thread(target=_deliver, args=(to, subject, body), daemon=True).start()
+
+
+def notify_admin(subject: str, body: str):
+    """Tell the platform owner (Ellice) about account events — new sign-ups, subscriptions,
+    plan changes and cancellations. Goes to SUPPORT_EMAIL (the admin/support inbox); a no-op
+    until email is configured. Prefixed so these are easy to filter in the inbox."""
+    send_email(config.SUPPORT_EMAIL, f"[Creatiste Command] {subject}", body)

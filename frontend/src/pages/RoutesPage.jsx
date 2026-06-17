@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { cls, fmtDate, todayISO, uid } from '../format'
-import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, Spinner, toastErr } from '../ui'
+import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, Select, Spinner, toast, toastErr } from '../ui'
 
 export function gmapsUrl(route) {
   const points = [route.start_location, ...(route.stops || []).map((s) => s.address || s.name)].filter(Boolean)
@@ -31,14 +31,48 @@ export function NewRouteModal({ open, onClose, onCreated, bookingId = null, defa
   )
 }
 
+// Distinct shops on a shopping list, in order (skips "Anywhere"/blank).
+function listShops(list) {
+  const seen = new Set(); const out = []
+  ;(list.items || []).forEach((it) => {
+    const shop = (it.shop || '').trim()
+    if (!shop || shop.toLowerCase() === 'anywhere') return
+    const key = shop.toLowerCase()
+    if (!seen.has(key)) { seen.add(key); out.push(shop) }
+  })
+  return out
+}
+
 export function RouteEditor({ route, onChanged, onDeleted }) {
   const [draft, setDraft] = useState({ name: '', address: '', purpose: '', eta: '' })
   const [suppliers, setSuppliers] = useState([])
-  useEffect(() => { api.get('/suppliers').then(setSuppliers).catch(() => {}) }, [])
+  const [lists, setLists] = useState([])
+  useEffect(() => {
+    api.get('/suppliers').then(setSuppliers).catch(() => {})
+    api.get('/shopping').then(setLists).catch(() => {})
+  }, [])
   const stops = [...(route.stops || [])].sort((a, b) => (a.order || 0) - (b.order || 0))
 
   const saveStops = (next) =>
     api.patch(`/routes/${route.id}`, { stops: next.map((s, i) => ({ ...s, order: i + 1 })) }).then(onChanged).catch(toastErr)
+
+  // Turn a saved shopping list into stops: one per shop, address pulled from the
+  // matching supplier, skipping shops already on the route.
+  const listsWithShops = lists.filter((l) => listShops(l).length)
+  const addFromList = (listId) => {
+    const list = lists.find((l) => String(l.id) === String(listId))
+    if (!list) return
+    const have = new Set(stops.map((s) => (s.name || '').toLowerCase()))
+    const toAdd = listShops(list)
+      .filter((shop) => !have.has(shop.toLowerCase()))
+      .map((shop) => {
+        const sup = suppliers.find((su) => (su.name || '').toLowerCase() === shop.toLowerCase())
+        return { id: uid(), name: shop, address: sup?.address || '', purpose: `Shop · ${list.title}`, eta: '', duration_min: 0, note: '', done: false }
+      })
+    if (!toAdd.length) { toast('Those shops are already stops (or the list has no shops set).', 'amber'); return }
+    saveStops([...stops, ...toAdd])
+    toast(`Added ${toAdd.length} stop${toAdd.length > 1 ? 's' : ''} from “${list.title}”`, 'sage')
+  }
 
   const addStop = (e) => {
     e.preventDefault()
@@ -75,7 +109,18 @@ export function RouteEditor({ route, onChanged, onDeleted }) {
         </div>
       </header>
       <div className="px-4 py-3">
-        {stops.length === 0 && <p className="pb-2 text-sm text-fg/45">No stops yet — add your first stop below.</p>}
+        {listsWithShops.length > 0 && (
+          <div className="mb-3 flex items-center gap-2">
+            <Icon name="cart" size={14} className="shrink-0 text-copper" />
+            <Select value="" onChange={(e) => e.target.value && addFromList(e.target.value)} className="max-w-xs text-sm">
+              <option value="">Add stops from a shopping list…</option>
+              {listsWithShops.map((l) => (
+                <option key={l.id} value={l.id}>{l.title} · {listShops(l).length} shop{listShops(l).length > 1 ? 's' : ''}</option>
+              ))}
+            </Select>
+          </div>
+        )}
+        {stops.length === 0 && <p className="pb-2 text-sm text-fg/45">No stops yet — add your first stop below, or pull them from a shopping list above.</p>}
         <ol className="space-y-1.5">
           {stops.map((s, i) => (
             <li key={s.id} className={cls('group flex items-center gap-3 rounded-lg border border-line/70 bg-parchment/30 px-3 py-2', s.done && 'opacity-55')}>

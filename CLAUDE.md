@@ -69,11 +69,93 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
     shared `Modal` (`ui.jsx`) no longer closes on a backdrop click — close only via the X or Escape.
     Fixes the data loss across every form modal in the app.
 
-**Sequencing:** the whole current batch is done — 5, 6, 7, 8, 9, 10, 11 (plus 4 confirmed working,
-Mise AI chat deferred). 3 is a standing rule. Only **1 & 2 remain, and both wait on the persistent
-disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk before any real chef signs up.
+### Second batch (collected 2026-06-17, twenty-first wave)
+12. ✅ **Shopping-page "Shop" dropdown steered from the Supplier page — DONE (21st wave).** The shop
+    field on each shopping-list item is now driven authoritatively by the chef's **Suppliers** (the
+    generic starter shops only show until they've added suppliers), with an inline hint linking to
+    Suppliers. Ties into #16. `frontend/src/pages/Shopping.jsx`. (It already pulled supplier names —
+    this makes suppliers the source of truth + wires the shop→supplier→route-address chain.)
+13. ✅ **Founders tab stays after every seat is filled — DONE (21st wave).** Was already structurally
+    true (the admin Founders tab is unconditional and the price/seats fields are always editable, even
+    when the programme is "closed"/full). Added explicit copy in `FoundersPanel` (`pages/Admin.jsx`):
+    "This tab stays here for good … adjust the lifetime rate below if you ever need to." So Ellice can
+    always track members + amend pricing.
+14. ✅ **Admin email notifications for account events — DONE (21st wave).** New `mailer.notify_admin()`
+    → emails **`SUPPORT_EMAIL`** (the verified `command@thecreatistecatering.com`) on: a **chef
+    sign-up** (`auth_router.register`), a **new subscription/activation** (`billing._activate`, fires
+    once per checkout — idempotent), a **plan change** (`billing.change_plan`, says upgraded/
+    downgraded), a **cancellation** (`billing.cancel`), plus webhook **payment-failed → suspended** and
+    **Stripe-side cancel/period-end** (guarded against duplicates). Best-effort/no-op until email is
+    configured. ⚠️ Ellice wrote the inbox as `command@creatistecatering.com` (missing "the") — routed
+    to the real verified `command@thecreatistecatering.com` (= `SUPPORT_EMAIL`); change the env var if
+    she truly wants a different address.
+15. ✅ **Unsubscribe retention — offer a lesser plan — DONE (21st wave).** Clicking "Cancel
+    subscription" (Settings → Membership) now opens a **retention modal** first: it offers the
+    cheaper tier(s) with a **"Switch & stay"** button (reuses `/billing/change-plan`), plus "Cancel
+    anyway" / "Never mind". Smallest-plan chefs see a gentle goodbye; founders see a lifetime-rate
+    warning. Pure frontend (`pages/Settings.jsx`).
+16. ✅ **Saved shopping lists → route stops dropdown — DONE (21st wave).** The route editor
+    (`pages/RoutesPage.jsx`) has an **"Add stops from a shopping list…"** picker: choosing a list turns
+    each distinct shop on it into a stop, with the **address auto-filled from the matching Supplier**
+    (skips "Anywhere"/blanks and shops already on the route). Pairs with #12. Pure frontend.
 
-## Latest session (2026-06-17, twentieth wave — marketing polish: founders logo wall + testimonials, SEO pack)
+**Sequencing:** first batch all done (4 confirmed, Mise AI chat deferred; 3 standing). Second batch
+(12–16) all done in the 21st wave. The only items still open are the original **1 & 2 (stay-logged-in /
+real-time), both gated on the persistent disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid
+Render disk before any real chef signs up.
+
+## Latest session (2026-06-17, twenty-first wave — shop/route wiring, founders-tab persistence, admin email alerts, unsubscribe retention)
+- Branch `claude/clever-goodall-te9p07` — **merge to `main` to deploy.** Ellice's second feedback batch
+  (backlog 12–16, above). **Backend: NO new columns/tables/env/deps** — just a new `mailer.notify_admin()`
+  helper + best-effort notify calls. Frontend-heavy. `npm run build` clean (**78 modules**).
+- **#14 Admin email alerts (only real backend change):** `mailer.notify_admin(subject, body)` →
+  `SUPPORT_EMAIL`, prefixed `[Creatiste Command]`. Wired at: **sign-up** (`auth_router.register`),
+  **first activation/subscribe** (`billing._activate`, placed after the idempotency early-return so a
+  webhook+confirm double-fire sends ONE email), **plan change** (`billing.change_plan`, captures
+  `old_plan` and labels upgraded/downgraded), **cancel** (`billing.cancel` → `_notify_cancel`, both the
+  Stripe cancel-at-period-end and demo paths), and in the **webhook** for `invoice.payment_failed`
+  (→ suspended) + `customer.subscription.deleted` (catches Stripe-portal cancels), each **guarded on a
+  status transition** so they don't repeat. All no-op until email is configured (Resend/SMTP).
+  ⚠️ **Inbox typo:** Ellice asked for `command@creatistecatering.com` (missing "the"); routed to the
+  verified `command@thecreatistecatering.com` (= `SUPPORT_EMAIL`). Change the env var if she wants else.
+- **#15 Unsubscribe retention (frontend, `pages/Settings.jsx`):** "Cancel subscription" now opens a
+  **"Before you go…"** modal that offers the cheaper tier(s) via **"Switch & stay"** (reuses
+  `/billing/change-plan` → which also fires the #14 "changed plan" alert, so a save is NOT a "cancel"),
+  with "Cancel anyway" / "Never mind". Founders get a lifetime-rate warning (no downgrade — backend
+  blocks founder plan-switch); smallest-plan chefs get a gentle goodbye. Replaced the old
+  `window.confirm`. New imports: `Modal`. NB the bare `amber` colour token doesn't exist here — the
+  warning box uses the default Tailwind `amber-*` palette like the `Badge` amber tone.
+- **#16 Shopping list → route stops (frontend, `pages/RoutesPage.jsx`):** the route editor fetches
+  `/shopping` too and shows **"Add stops from a shopping list…"** (`Select`); picking one turns each
+  distinct shop into a stop, **address auto-filled from the matching Supplier by name**, purpose tagged
+  `Shop · <list title>`, skipping "Anywhere"/blank shops and shops already on the route. Reuses
+  `/routes` PATCH — no new endpoint.
+- **#12 Shop dropdown steered from suppliers (frontend, `pages/Shopping.jsx`):** the item "Shop"
+  datalist is now **suppliers-only when the chef has any** (generic starters only until then) + a hint
+  linking to Suppliers ("…and feeds your route stops"). This makes #16's name→address match line up.
+  Module-level `GENERIC_SHOPS` for the no-suppliers fallback.
+- **#13 Founders tab persistence (frontend, `pages/Admin.jsx`):** added a reassurance note in
+  `FoundersPanel` — the tab + member list + lifetime-rate editing stay available even once every seat
+  is filled or the programme is closed. (No logic change; it was already unconditional.)
+- **FAQ kept current (rule #3):** Support FAQ — extended "How do I cancel or change my plan?" with the
+  retention/offer-a-smaller-plan step, and added "Can I build a route from a shopping list?" (covers
+  #12 + #16). Public pre-sign-up FAQ untouched (these are in-app operational flows).
+- **⚠️ Version stamp NOT bumped — needs Ellice.** Per the 19th-wave rule each release appends a
+  `VERSIONS` entry in `frontend/src/version.jsx` with **a new biblical reference of her choosing** (the
+  meaning is personal and never rendered) + the next v-number. I deliberately did **not** fabricate the
+  scripture. To ship v2: append `{ n: 2, ref: '<her reference>', text: '<private verse>', updates: [
+  'Shopping "Shop" list now driven by your Suppliers — and turns into route stops in one tap.',
+  'Plan a prep-day route straight from a saved shopping list, addresses filled in automatically.',
+  'Thinking of leaving? We now offer a smaller plan before you cancel.' ] }`.
+- **Verified:** backend FastAPI TestClient **7/7** (signup/subscribe/plan-up/plan-down notify; subscribe
+  idempotent = no dup; same-plan = no notify; cancel notify). Playwright (system chromium, desktop 1280)
+  **19/19 + 4/4**: F1 datalist = suppliers only (no generic) + hint; F5 list→stops with supplier address,
+  "Anywhere"/already-present skipped, purpose tagged; F4 retention modal + "Switch & stay" + decline
+  keeps the sub + **the positive path actually downgrades Elite→Pro and stays subscribed** (then restored
+  to Elite); F2 founders persistence copy + editable rate. **Zero app-origin console errors** (only the
+  known Google-Fonts noise). Temp verify scripts removed.
+
+## Previous session (2026-06-17, twentieth wave — marketing polish: founders logo wall + testimonials, SEO pack)
 - Branch `claude/cool-shannon-yyt4kh` — **merge to `main` to deploy.** Ellice's pick while the persistent disk /
   payments wait: "marketing polish." Builds the **promised founders perk** (logo on site + link as advertising) +
   testimonials, plus an SEO pack. **Backend: 2 additive `users` columns** (`feature_publicly`, `testimonial`) via

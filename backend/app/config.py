@@ -48,8 +48,10 @@ ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@creatistecommand.com")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin12345")
 ADMIN_NAME = os.getenv("ADMIN_NAME", "Platform Admin")
 
-# Where support requests are sent. Defaults to the admin email — point this at
-# your own domain's inbox later (e.g. support@thecreatiste.com) without code changes.
+# Where support requests AND account-event notifications (new sign-ups, subscriptions,
+# plan changes, cancellations — see mailer.notify_admin) are sent. Defaults to the admin
+# email; in production this is command@thecreatistecatering.com (the verified Resend
+# domain). Point it at any monitored inbox via the env var, no code change needed.
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "") or ADMIN_EMAIL
 
 # New chefs get this many free-trial days. The trial clock starts when their

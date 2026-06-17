@@ -403,6 +403,10 @@ function FoundersPanel({ data, onSaved }) {
             <span className="font-medium text-fg/80">{data.spots_taken} of {data.config.spots} founding seats claimed.</span>{' '}
             Closing the programme (or filling every seat) kills the link for good; existing founders keep their rate.
           </p>
+          <p className="rounded-lg border border-line bg-parchment/40 px-3 py-2 text-xs leading-relaxed text-fg/55">
+            This tab stays here for good — even once every seat is taken or the programme is closed — so you can always
+            see who's on the programme and <span className="font-medium text-fg/75">adjust the lifetime rate below if you ever need to</span>.
+          </p>
           <div className="grid grid-cols-3 gap-3 sm:max-w-md">
             <Field label="Founding seats"><Input type="number" min="0" value={cfg.spots} onChange={(e) => setCfg({ ...cfg, spots: e.target.value })} /></Field>
             <Field label="Monthly (for life)"><Input type="number" step="0.01" value={cfg.monthly} onChange={(e) => setCfg({ ...cfg, monthly: e.target.value })} /></Field>

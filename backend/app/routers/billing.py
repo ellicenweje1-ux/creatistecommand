@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from .. import config
+from .. import config, mailer
 from ..auth import get_current_user
 from ..database import get_db
 from ..models import Payment, PlatformSettings, User
@@ -108,6 +108,20 @@ def _activate(db: Session, user: User, plan_key: str, provider: str, reference: 
         + (" (lifetime founders rate)" if plan_key == "founders" else ""),
     ))
     db.commit()
+    # New subscriber — tell the platform owner. Only reached on first activation for a
+    # given checkout (the idempotency guard above returns early on duplicate webhooks).
+    sym = CURRENCY_SYMBOLS.get(settings.currency, settings.currency + " ")
+    mailer.notify_admin(
+        f"Chef subscribed — {user.business_name or user.name or user.email} ({plan.get('name', plan_key)})",
+        f"A chef has activated their subscription.\n\n"
+        f"Business: {user.business_name or '—'}\n"
+        f"Name: {user.name or '—'}\n"
+        f"Email: {user.email}\n"
+        f"Plan: {plan.get('name', plan_key)}\n"
+        f"Monthly: {sym}{plan.get('monthly', 0)}\n"
+        f"Billing: {provider}\n\n"
+        f"See Admin → Chefs / Payments.",
+    )
 
 
 @router.post("/checkout")
@@ -231,10 +245,27 @@ def cancel(db: Session = Depends(get_db), user: User = Depends(get_current_user)
             raise HTTPException(502, f"Stripe error: {exc}")
         ends = sub.get("current_period_end")
         ends_at = datetime.fromtimestamp(ends, tz=timezone.utc).strftime("%Y-%m-%d") if ends else None
+        _notify_cancel(user, ends_at)
         return {"ok": True, "ends_at": ends_at}
     user.subscription_status = "canceled"
     db.commit()
+    _notify_cancel(user, None)
     return {"ok": True}
+
+
+def _notify_cancel(user: User, ends_at: str | None):
+    """Email the platform owner when a chef cancels (unsubscribes)."""
+    mailer.notify_admin(
+        f"Chef cancelled — {user.business_name or user.name or user.email}",
+        f"A chef has cancelled their subscription.\n\n"
+        f"Business: {user.business_name or '—'}\n"
+        f"Name: {user.name or '—'}\n"
+        f"Email: {user.email}\n"
+        f"Plan: {user.plan or '—'}\n"
+        + (f"Access continues until {ends_at} (paid period), then it ends.\n"
+           if ends_at else "Access has ended now.\n")
+        + "\nSee Admin → Chefs.",
+    )
 
 
 @router.post("/change-plan")
@@ -258,6 +289,7 @@ def change_plan(payload: dict = Body(...), db: Session = Depends(get_db), user: 
     if new_key == user.plan:
         return {"ok": True, "plan": user.plan, "unchanged": True}
 
+    old_plan = user.plan
     plan = settings.plans[new_key]
     if stripe_enabled() and user.stripe_subscription_id:
         # Swap the subscription's recurring item to the new tier's price; Stripe prorates
@@ -286,6 +318,18 @@ def change_plan(payload: dict = Body(...), db: Session = Depends(get_db), user: 
 
     user.plan = new_key
     db.commit()
+    old_name = (settings.plans.get(old_plan) or {}).get("name", old_plan or "—")
+    direction = "upgraded" if plan.get("monthly", 0) > (settings.plans.get(old_plan) or {}).get("monthly", 0) else "downgraded"
+    mailer.notify_admin(
+        f"Chef changed plan — {user.business_name or user.name or user.email}",
+        f"A chef has {direction} their plan.\n\n"
+        f"Business: {user.business_name or '—'}\n"
+        f"Name: {user.name or '—'}\n"
+        f"Email: {user.email}\n"
+        f"From: {old_name}\n"
+        f"To: {plan.get('name', new_key)}\n\n"
+        f"See Admin → Chefs.",
+    )
     return {"ok": True, "plan": new_key}
 
 
@@ -344,8 +388,16 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
         sub_id = data.get("subscription")
         user = db.query(User).filter(User.stripe_subscription_id == sub_id).first() if sub_id else None
         if user:
+            was = user.subscription_status
             user.subscription_status = "suspended"
             db.commit()
+            if was != "suspended":
+                mailer.notify_admin(
+                    f"Chef payment failed — {user.business_name or user.name or user.email}",
+                    f"A subscription payment failed; the account is now suspended.\n\n"
+                    f"Business: {user.business_name or '—'}\nEmail: {user.email}\nPlan: {user.plan or '—'}\n\n"
+                    f"Stripe retries automatically — they may need to update their card. See Admin → Chefs.",
+                )
     elif etype == "customer.subscription.updated":
         user = db.query(User).filter(User.stripe_subscription_id == data.get("id")).first()
         if user:
@@ -360,6 +412,14 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
     elif etype == "customer.subscription.deleted":
         user = db.query(User).filter(User.stripe_subscription_id == data.get("id")).first()
         if user:
+            was = user.subscription_status
             user.subscription_status = "canceled"
             db.commit()
+            if was != "canceled":  # also catches a cancel made through the Stripe portal
+                mailer.notify_admin(
+                    f"Subscription ended — {user.business_name or user.name or user.email}",
+                    f"A chef's subscription has ended (cancelled).\n\n"
+                    f"Business: {user.business_name or '—'}\nEmail: {user.email}\nPlan: {user.plan or '—'}\n\n"
+                    f"See Admin → Chefs.",
+                )
     return {"received": True, "at": datetime.now(timezone.utc).isoformat()}

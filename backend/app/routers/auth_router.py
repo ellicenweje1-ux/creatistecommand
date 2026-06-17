@@ -91,6 +91,17 @@ def register(payload: dict = Body(...), db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+    # Tell the platform owner a new chef has joined (best-effort; no-op without email).
+    mailer.notify_admin(
+        f"New chef signed up — {user.business_name or user.name or user.email}",
+        f"A new chef has created an account.\n\n"
+        f"Name: {user.name or '—'}\n"
+        f"Business: {user.business_name or '—'}\n"
+        f"Email: {user.email}\n"
+        f"Phone: {user.phone or '—'}\n"
+        + (f"Founders seat #{user.founder_number} claimed.\n" if user.is_founder else "")
+        + "\nThey'll book their onboarding call next. See Admin → Chefs.",
+    )
     return {"token": create_token(user), "user": user_payload(user)}
 
 

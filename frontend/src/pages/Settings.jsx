@@ -6,7 +6,7 @@ import { perkIcon, perkTitle } from '../booking'
 import { DEFAULT_CONTACT_TEMPLATE } from '../contact'
 import { cls, fmtMoney, label, SYMBOLS } from '../format'
 import { getInstallPrompt, isStandalone } from '../offline'
-import { Badge, Button, Card, Field, Icon, Input, PageHeader, Select, Stars, Textarea, toast, toastErr } from '../ui'
+import { Badge, Button, Card, Field, Icon, Input, Modal, PageHeader, Select, Stars, Textarea, toast, toastErr } from '../ui'
 import { CURRENT, VERSIONS, VersionNotes, versionRef } from '../version'
 
 /* Settings is split into individual pages (own URL each) under /app/settings, so the
@@ -442,12 +442,29 @@ export function SettingsMembership() {
 
   const statusTone = { active: 'sage', trialing: 'copper', pending: 'amber', suspended: 'red', canceled: 'ink' }
 
-  const cancelSub = () => {
-    if (!window.confirm('Cancel your subscription? With Stripe billing you keep access until the end of the period you’ve already paid for.')) return
+  // Cancellation with a retention step: before pulling the plug, offer a lighter (cheaper)
+  // plan so a chef can stay on the platform instead of leaving.
+  const [cancelOpen, setCancelOpen] = useState(false)
+  const [busy, setBusy] = useState(null)
+  const symbol = plans?.symbol || ''
+  const currentMonthly = (plans?.plans?.[billing?.plan] || {}).monthly ?? Infinity
+  const cheaperPlans = (plans && billing && !user?.is_founder)
+    ? Object.entries(plans.plans).filter(([k, p]) => k !== billing.plan && (p.monthly || 0) < currentMonthly)
+    : []
+
+  const downgradeAndStay = (key) => {
+    setBusy(key)
+    api.post('/billing/change-plan', { plan: key })
+      .then(async () => { toast(`You're now on ${plans.plans[key].name} — glad you're staying!`, 'sage'); await refresh(); await loadBilling(); setCancelOpen(false) })
+      .catch(toastErr).finally(() => setBusy(null))
+  }
+  const doCancel = () => {
+    setBusy('cancel')
     api.post('/billing/cancel').then((r) => {
+      setCancelOpen(false)
       if (r?.ends_at) toast(`Cancellation set — your membership stays active until ${r.ends_at}`, 'sage')
-      setTimeout(() => window.location.reload(), r?.ends_at ? 1800 : 0)
-    }).catch(toastErr)
+      setTimeout(() => window.location.reload(), r?.ends_at ? 1800 : 400)
+    }).catch(toastErr).finally(() => setBusy(null))
   }
   const openPortal = () => {
     api.post('/billing/portal').then((r) => window.location.assign(r.url)).catch(toastErr)
@@ -528,12 +545,54 @@ export function SettingsMembership() {
             )}
             {user?.role !== 'admin' && billing.subscription_status === 'active' && (
               <div className="border-t border-line/70 pt-3 text-right">
-                <Button variant="danger" size="sm" onClick={cancelSub}>Cancel subscription</Button>
+                <Button variant="danger" size="sm" onClick={() => setCancelOpen(true)}>Cancel subscription</Button>
               </div>
             )}
           </div>
         ) : <p className="text-sm text-fg/45">Loading…</p>}
       </Card>
+
+      <Modal open={cancelOpen} onClose={() => setCancelOpen(false)} title="Before you go…">
+        <div className="space-y-4 text-sm">
+          {user?.is_founder ? (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 leading-relaxed text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+              You're a founding member on a <span className="font-medium">lifetime rate</span>. If you cancel you'll lose
+              that rate for good — please contact support first if there's anything we can put right.
+            </p>
+          ) : cheaperPlans.length > 0 ? (
+            <>
+              <p className="leading-relaxed text-fg/70">
+                Would a smaller plan suit you better? You'd <span className="font-medium text-fg">keep your kitchen and
+                everything in it</span> — just on a lighter tier.
+              </p>
+              <div className="space-y-2">
+                {cheaperPlans.map(([key, p]) => (
+                  <div key={key} className="flex items-center justify-between gap-3 rounded-xl border border-line p-3">
+                    <div className="min-w-0">
+                      <p className="font-display text-sm font-semibold">{p.name}</p>
+                      <p className="truncate text-xs text-fg/50">{symbol}{p.monthly}/mo · {p.tagline}</p>
+                    </div>
+                    <Button size="sm" disabled={!!busy} onClick={() => downgradeAndStay(key)}>
+                      {busy === key ? 'Switching…' : 'Switch & stay'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              {plans?.stripe_enabled && <p className="text-[11px] text-fg/40">A tier change is prorated on your next invoice.</p>}
+            </>
+          ) : (
+            <p className="leading-relaxed text-fg/70">
+              You're on our smallest plan already. Sorry to see you go — you can re-subscribe any time and your data will be waiting.
+            </p>
+          )}
+          <div className="flex items-center justify-between gap-2 border-t border-line/70 pt-3">
+            <Button variant="danger" size="sm" disabled={!!busy} onClick={doCancel}>
+              {busy === 'cancel' ? 'Cancelling…' : 'Cancel anyway'}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setCancelOpen(false)}>Never mind, keep my plan</Button>
+          </div>
+        </div>
+      </Modal>
 
       {canSwitchPlan && (
         <ChangePlanCard billing={billing} plans={plans} onChanged={async () => { await refresh(); await loadBilling() }} />

@@ -26,6 +26,10 @@ export function NewListModal({ open, onClose, onCreated, bookingId = null, defau
   )
 }
 
+// Starter shop suggestions shown only until the chef has added their own suppliers —
+// after that the dropdown is steered entirely from the Suppliers page.
+const GENERIC_SHOPS = ['Supermarket', 'Butcher', 'Fishmonger', 'Greengrocer', 'Wholesaler', 'Market', 'Online']
+
 /* ------------------------------- list editor -------------------------------- */
 export function ListEditor({ list, onChanged, onDeleted, currency = 'GBP', startOpen = false }) {
   const [open, setOpen] = useState(startOpen)
@@ -107,13 +111,18 @@ export function ListEditor({ list, onChanged, onDeleted, currency = 'GBP', start
             <Input className="col-span-12 sm:col-span-4" placeholder="Add item…" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
             <Input className="col-span-3 sm:col-span-1" placeholder="Qty" value={draft.qty} onChange={(e) => setDraft({ ...draft, qty: e.target.value })} />
             <Input className="col-span-3 sm:col-span-1" placeholder="Unit" value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.target.value })} />
-            <Input className="col-span-4 sm:col-span-3" placeholder="Shop (e.g. Butcher)" list={`shops-${list.id}`} value={draft.shop} onChange={(e) => setDraft({ ...draft, shop: e.target.value })} />
+            <Input className="col-span-4 sm:col-span-3" placeholder="Shop" list={`shops-${list.id}`} value={draft.shop} onChange={(e) => setDraft({ ...draft, shop: e.target.value })} />
             <Input className="col-span-2 sm:col-span-1" placeholder="£" value={draft.est_cost} onChange={(e) => setDraft({ ...draft, est_cost: e.target.value })} />
             <Button className="col-span-12 sm:col-span-2" size="sm" icon="plus">Add</Button>
             <datalist id={`shops-${list.id}`}>
-              {[...new Set([...shopOptions, 'Supermarket', 'Butcher', 'Fishmonger', 'Greengrocer', 'Wholesaler', 'Market', 'Online'])].map((s) => <option key={s} value={s} />)}
+              {(shopOptions.length ? shopOptions : GENERIC_SHOPS).map((s) => <option key={s} value={s} />)}
             </datalist>
           </form>
+          <p className="mt-1.5 text-[11px] text-fg/40">
+            {shopOptions.length
+              ? <>The Shop list is steered from your <Link to="/app/suppliers" className="text-copper hover:underline">Suppliers</Link> — and feeds your route stops.</>
+              : <>Tip: add your <Link to="/app/suppliers" className="text-copper hover:underline">Suppliers</Link> and they’ll fill this Shop dropdown.</>}
+          </p>
 
           <div className="mt-3 flex justify-between border-t border-line/70 pt-3">
             <Button size="sm" variant="danger" icon="trash" onClick={removeList}>Delete list</Button>
