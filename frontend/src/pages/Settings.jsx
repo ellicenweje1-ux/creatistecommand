@@ -633,7 +633,7 @@ export function SettingsAbout() {
     <div className="space-y-5">
       <Card title="What’s new">
         <p className="mb-4 text-sm leading-relaxed text-fg/60">
-          You’re on <span className="font-medium text-fg">{versionRef()}</span>. Here’s what changed in this
+          You’re on <span className="font-medium italic text-fg">{versionRef()}</span>. Here’s what changed in this
           update — a new entry is added each time the platform updates.
         </p>
         <VersionNotes version={CURRENT} />

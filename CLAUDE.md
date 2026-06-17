@@ -79,20 +79,21 @@ disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk befor
 - **⚠️ Read this — the brief was REVISED mid-session (final state below):** Ellice first asked for the version to be a
   Christian dedication marked with a **✝ cross**, the scripture explained on the Settings page. She then refined it:
   **the dedication is PERSONAL and must NOT be explained to users anywhere in the UI.** Final design:
-  - **The version = a number + a biblical reference, shown as `V1. Matthew 25:23`** (capital V). The reference is just
-    the version's name; its meaning is hers and is never spelled out to users. **Each future release gets a new
-    biblical reference + the next V-number** (V2, V3 …), in chronological order.
+  - **The version = a number + a biblical reference, rendered as a lowercase italic dotted/technical string
+    `v1.matthew.25:23`** (Ellice's preferred styling — `versionRef` = ``v${n}.`` + `ref.toLowerCase().replace(/\s+/g,'.')``).
+    The reference is just the version's name; its meaning is hers and is never spelled out to users. **Each future
+    release gets a new biblical reference + the next v-number** (v2, v3 …), in chronological order.
   - **The marker is a plain "circle-with-a-v" glyph** (NOT a cross): `circleV` in `ui.jsx` PATHS
     (`M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM8.5 9.5l3.5 5 3.5-5`, copper). The old `cross` glyph was removed.
   - **Settings → Version is iOS-style RELEASE NOTES** — short "what's new" bullets per release + a "Release history"
     list — **no scripture text, no dedication, no "Jesus", nothing personal** rendered. (Verified absent in tests.)
 - **Single source of truth: `frontend/src/version.jsx`** — `VERSIONS` (ordered `{n, ref, text, updates[]}`; `text` is
   Ellice's PRIVATE record of the verse and is **deliberately NOT rendered**), `CURRENT` (= last/highest entry, live),
-  `versionLabel` (→ `V1`), `versionRef` (→ `V1. Matthew 25:23`), `<VersionStamp>` (footer line: circle-v + the ref;
-  links to Settings → Version in-app, plain span on public pages; tooltip = the ref only, no verse), `<VersionNotes>`
-  (one release's what's-new block). **To ship a new version: append one entry with the next number, a new reference,
-  and its `updates` bullets — the whole app updates.** (This brand "VN" is separate from the semver `1.0.0` in
-  `package.json`/`main.py` — left untouched.)
+  `versionLabel` (→ `v1`), `versionRef` (→ `v1.matthew.25:23`, lowercase/italic at the call sites), `<VersionStamp>`
+  (footer line: circle-v + the ref; links to Settings → Version in-app, plain span on public pages; tooltip = the ref
+  only, no verse), `<VersionNotes>` (one release's what's-new block). **To ship a new version: append one entry with the
+  next number, a new reference, and its `updates` bullets — the whole app updates.** (This brand "vN" is separate from
+  the semver `1.0.0` in `package.json`/`main.py` — left untouched.)
 - **Where the stamp lives** ("base of the platform and required pages"): the **app shell footer** in `App.jsx` (centred
   `<footer>` at the base of `<main>`, on every one of the 30+ app pages, links to Settings → Version) **plus** the
   **Landing**, **Terms/Privacy** (`Legal.jsx`), and **Login/Register** (`AuthPage.jsx`) footers.
@@ -106,12 +107,13 @@ disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk befor
 - **No voiceover re-render needed:** `vo-script.json` + `introfilm.jsx` contain **no "pass"** (checked).
 - **FAQ kept current (standing rule #3):** Support FAQ "How do I see what's new when the platform updates?" — neutral,
   points at Settings → Version release notes; **no mention of the scripture/dedication**.
-- **Verified:** `npm run build` clean (78 modules). Playwright (system chromium, desktop 1280), demo chef — **22/22**:
-  stamp shows `V1. Matthew 25:23` + the circle-v glyph (old cross glyph gone); tooltip is the ref only (no verse prose);
-  "the pass" gone & "at the event"/"trained for the event" present; app base footer links to settings/about; Settings →
-  Version shows "What's new" + `V1. Matthew 25:23` + the update bullets + "Release history" + the Version nav pill, and
-  **contains no "Jesus"/"dedicat"/verse prose**; Support page has the neutral updates FAQ and no dedication wording.
-  Only console noise = the known harmless Google-Fonts failures (0 app-origin failures). Temp verify scripts removed.
+- **Verified:** `npm run build` clean (78 modules). Playwright (system chromium, desktop 1280), demo chef — version
+  format check **9/9** (on top of the earlier 22/22): stamp shows lowercase italic `v1.matthew.25:23` + circle-v glyph
+  (old cross/`V1. Matthew 25:23` gone); tooltip is the ref only; "the pass" gone & "at the event" present; app base
+  footer links to settings/about; Settings → Version shows "What's new" + `v1.matthew.25:23` (italic) + the update
+  bullets + "Release history" + the Version nav pill, and **contains no "Jesus"/"dedicat"/verse prose**; Support page
+  has the neutral updates FAQ. Only console noise = the known harmless Google-Fonts failures (0 app-origin). Temp
+  verify scripts removed.
 
 ## Latest session (2026-06-16, eighteenth wave — social preview, ICS calendar feed, DB backup, CSV export, trial-reminder email, self-serve plan switching)
 - Branch `claude/gracious-newton-tfm2dk` — **merge to `main` to deploy.** Clears the **rest of the 7th-wave review

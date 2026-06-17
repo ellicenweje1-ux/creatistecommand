@@ -30,21 +30,21 @@ export const VERSIONS = [
 
 // The live version is always the most recent entry in the list above.
 export const CURRENT = VERSIONS[VERSIONS.length - 1]
-export const versionLabel = (v = CURRENT) => `V${v.n}`
-// The full version reference shown to users, e.g. "V1. Matthew 25:23".
-export const versionRef = (v = CURRENT) => `${versionLabel(v)}. ${v.ref}`
+export const versionLabel = (v = CURRENT) => `v${v.n}`
+// The full version reference shown to users, as a lowercase dotted/technical
+// string, e.g. "v1.matthew.25:23".
+export const versionRef = (v = CURRENT) => `${versionLabel(v)}.${v.ref.toLowerCase().replace(/\s+/g, '.')}`
 
 /* The version stamp shown at the base of the platform and on the public pages:
-   a circled "v" mark + the version reference. Inside the app it links to the
-   Settings → Version release notes; on public pages it's a plain marker. */
+   a circled "v" mark + the version reference (lowercase, italic). Inside the app it
+   links to the Settings → Version release notes; on public pages it's a plain marker. */
 export function VersionStamp({ to, className = '' }) {
   const v = CURRENT
   const title = versionRef(v)
   const body = (
     <>
       <Icon name="circleV" size={13} className="shrink-0 text-copper" />
-      <span className="font-semibold tracking-wide">{versionLabel(v)}.</span>
-      <span>{v.ref}</span>
+      <span className="italic tracking-wide">{versionRef(v)}</span>
     </>
   )
   const base = 'inline-flex items-center gap-1.5 text-xs text-fg/40'
@@ -61,7 +61,7 @@ export function VersionNotes({ version = CURRENT, className = '' }) {
     <div className={className}>
       <div className="flex items-center gap-2">
         <Icon name="circleV" size={15} className="shrink-0 text-copper" />
-        <span className="font-display text-sm font-semibold">{versionRef(version)}</span>
+        <span className="font-display text-sm font-semibold italic">{versionRef(version)}</span>
       </div>
       <ul className="mt-2.5 space-y-1.5">
         {version.updates.map((u, i) => (
