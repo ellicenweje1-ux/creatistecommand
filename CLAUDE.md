@@ -77,12 +77,14 @@ disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk befor
   payments wait: "marketing polish." Builds the **promised founders perk** (logo on site + link as advertising) +
   testimonials, plus an SEO pack. **Backend: 2 additive `users` columns** (`feature_publicly`, `testimonial`) via
   `ensure_columns`; one new public endpoint. No new env/deps. `npm run build` clean (78 modules).
-- **Featured-businesses / testimonials wall** (`pages/Landing.jsx`, new `#loved` section between Features and How-it-
-  works): a **consent-based** logo wall (logo + business name, **linking out to their site as advertising**) + testimonial
-  cards. **Hidden entirely until ≥1 business opts in** (so the pre-launch page stays clean). Founders get a **"Founding
-  member"** badge. Fed by **`GET /api/public/featured`** (`routers/public.py`) — returns only opted-in chefs' public
-  bits (name, logo, normalised https link, optional testimonial, is_founder); leaks nothing private. `_public_link()`
-  turns `@handle`/bare domains into safe absolute URLs (or "").
+- **Two distinct sections on the landing** (`pages/Landing.jsx`, between Features and How-it-works), both **consent-based**
+  and **hidden until there's content** (per Ellice's steer — a scrolling logo bar, then a *separate* testimonial wall):
+  (1) a **continuous scrolling logo bar** — `#trusted`, a CSS marquee (`.cc-marquee` in `index.css`; each chip links out
+  to the client's site as advertising; pauses on hover, reduced-motion-safe; the duplicate copy that makes it loop is
+  `aria-hidden` + untabbable; short lists are padded so the strip still fills), and (2) a **separate testimonial wall** —
+  `#loved`, quote cards with a "Founding member" line for founders. Both fed by **`GET /api/public/featured`**
+  (`routers/public.py`) — only opted-in chefs' public bits (name, logo, normalised https link, optional testimonial,
+  is_founder); leaks nothing private. `_public_link()` turns `@handle`/bare domains into safe absolute URLs (or "").
 - **Opt-in lives in Settings → Business** (`SettingsBusiness`): a **"Feature on the Creatiste Command site"** card —
   a `Toggle` (`feature_publicly`) + a testimonial textarea, saved with the business profile (`PUT /auth/me` now
   whitelists `testimonial` + the bool `feature_publicly`). The outbound link reuses the website/first social already on

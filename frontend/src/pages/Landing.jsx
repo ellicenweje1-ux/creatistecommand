@@ -103,6 +103,26 @@ function CompareCell({ included, highlight }) {
   )
 }
 
+/* One business "chip" in the scrolling logo bar. `dup` marks the duplicated copy
+   that makes the marquee loop — kept out of the a11y tree and the tab order. */
+function LogoChip({ f, dup }) {
+  const inner = (
+    <span className="flex items-center gap-2.5">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-parchment/40">
+        {f.logo ? <img src={f.logo} alt="" className="h-full w-full object-cover" /> : <Icon name="flame" size={15} className="text-copper/50" />}
+      </span>
+      <span className="whitespace-nowrap font-display text-sm font-semibold">{f.business_name}</span>
+    </span>
+  )
+  const base = 'mr-3 flex shrink-0 items-center rounded-full border border-line bg-card px-4 py-2.5 shadow-card'
+  return f.link ? (
+    <a href={f.link} target="_blank" rel="noopener noreferrer" tabIndex={dup ? -1 : undefined} aria-hidden={dup || undefined}
+      className={cls(base, 'transition-colors hover:border-copper/40')}>{inner}</a>
+  ) : (
+    <span aria-hidden={dup || undefined} className={base}>{inner}</span>
+  )
+}
+
 const STEPS = [
   ['Create your account', 'Sign up in under a minute with your business details.'],
   ['Book your onboarding call', 'A personal video session to set up and verify your kitchen — your free trial unlocks the moment it’s done.'],
@@ -119,6 +139,10 @@ export default function Landing() {
 
   const currency = pricing?.currency || 'GBP'
   const testimonials = featured.filter((f) => f.testimonial)
+  // Logo bar: repeat the list so short ones still fill the strip, then render it twice
+  // (in the JSX) so the marquee loops seamlessly. Duration scales with length for even speed.
+  const logoBase = featured.length ? Array.from({ length: Math.max(1, Math.ceil(10 / featured.length)) }, () => featured).flat() : []
+  const marqueeDur = Math.max(24, logoBase.length * 3.5)
 
   return (
     <div className="min-h-screen bg-base">
@@ -242,55 +266,47 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Social proof — opted-in businesses (founders get a badge). Hidden until at least one. */}
+      {/* Client logos — a continuous scrolling bar (hidden until a business opts in). */}
       {featured.length > 0 && (
-        <section id="loved" className="mx-auto max-w-6xl px-5 py-16 md:py-20">
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-copper">In good company</p>
-          <h2 className="mt-3 font-display text-3xl font-semibold md:text-4xl">
-            Trusted by the kitchens <em className="italic text-copper">already running on it.</em>
-          </h2>
-          <p className="mt-3 max-w-2xl text-fg/60">Independent chefs and caterers running their whole operation from one command centre.</p>
+        <section id="trusted" className="border-y border-line bg-card/40 py-10 md:py-12">
+          <p className="px-5 text-center text-xs font-semibold uppercase tracking-[0.25em] text-fg/45">
+            The kitchens already running on it
+          </p>
+          <div className="cc-marquee mt-7 overflow-hidden">
+            <div className="cc-marquee-track flex w-max" style={{ '--cc-marquee-dur': `${marqueeDur}s` }}>
+              {logoBase.map((f, i) => <LogoChip key={`a${i}`} f={f} />)}
+              {logoBase.map((f, i) => <LogoChip key={`b${i}`} f={f} dup />)}
+            </div>
+          </div>
+        </section>
+      )}
 
-          <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {featured.map((f, i) => {
-              const inner = (
-                <span className="flex items-center gap-3">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-parchment/40">
-                    {f.logo ? <img src={f.logo} alt="" className="h-full w-full object-cover" /> : <Icon name="flame" size={18} className="text-copper/50" />}
+      {/* Testimonial wall — a separate section (hidden until a chef writes one). */}
+      {testimonials.length > 0 && (
+        <section id="loved" className="mx-auto max-w-6xl px-5 py-16 md:py-20">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-copper">In their words</p>
+          <h2 className="mt-3 font-display text-3xl font-semibold md:text-4xl">
+            Loved by the kitchens <em className="italic text-copper">running on it.</em>
+          </h2>
+          <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {testimonials.map((f, i) => (
+              <figure key={i} className="flex flex-col rounded-xl border border-line bg-card p-5 shadow-card">
+                <div className="flex gap-0.5" aria-hidden>
+                  {[0, 1, 2, 3, 4].map((n) => <Icon key={n} name="star" size={14} className="fill-copper text-copper" />)}
+                </div>
+                <blockquote className="mt-3 flex-1 text-sm leading-relaxed text-fg/75">&ldquo;{f.testimonial}&rdquo;</blockquote>
+                <figcaption className="mt-4 flex items-center gap-2.5 border-t border-line pt-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-parchment/40">
+                    {f.logo ? <img src={f.logo} alt="" className="h-full w-full object-cover" /> : <Icon name="flame" size={13} className="text-copper/50" />}
                   </span>
                   <span className="min-w-0">
-                    <span className="block truncate font-display font-semibold leading-tight">{f.business_name}</span>
+                    <span className="block text-sm font-semibold">{f.business_name}</span>
                     {f.is_founder && <span className="text-[11px] font-semibold uppercase tracking-wide text-copper">Founding member</span>}
                   </span>
-                </span>
-              )
-              return f.link ? (
-                <a key={i} href={f.link} target="_blank" rel="noopener noreferrer"
-                  className="rounded-xl border border-line bg-card p-3.5 shadow-card transition-colors hover:border-copper/40">{inner}</a>
-              ) : (
-                <div key={i} className="rounded-xl border border-line bg-card p-3.5 shadow-card">{inner}</div>
-              )
-            })}
+                </figcaption>
+              </figure>
+            ))}
           </div>
-
-          {testimonials.length > 0 && (
-            <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {testimonials.map((f, i) => (
-                <figure key={i} className="flex flex-col rounded-xl border border-line bg-card p-5 shadow-card">
-                  <div className="flex gap-0.5" aria-hidden>
-                    {[0, 1, 2, 3, 4].map((n) => <Icon key={n} name="star" size={14} className="fill-copper text-copper" />)}
-                  </div>
-                  <blockquote className="mt-3 flex-1 text-sm leading-relaxed text-fg/75">&ldquo;{f.testimonial}&rdquo;</blockquote>
-                  <figcaption className="mt-4 flex items-center gap-2.5 border-t border-line pt-3">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-parchment/40">
-                      {f.logo ? <img src={f.logo} alt="" className="h-full w-full object-cover" /> : <Icon name="flame" size={13} className="text-copper/50" />}
-                    </span>
-                    <span className="text-sm font-semibold">{f.business_name}</span>
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          )}
         </section>
       )}
 

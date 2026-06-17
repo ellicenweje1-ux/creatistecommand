@@ -87,3 +87,20 @@ body { @apply bg-base text-fg font-body antialiased; }
 @media (prefers-reduced-motion: reduce) {
   .bubble-in { animation: none; opacity: 1; }
 }
+
+/* ── Landing — client logo marquee ───────────────────────────────────────────
+   A continuous, looping logo bar. The track renders the logos twice; translating
+   it -50% loops seamlessly (each chip carries its own right margin so the spacing
+   is uniform across the wrap). Pauses on hover; reduced-motion falls back to a
+   normal horizontal scroll. Duration is set inline via --cc-marquee-dur. */
+.cc-marquee {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+.cc-marquee-track { animation: cc-marquee var(--cc-marquee-dur, 40s) linear infinite; }
+.cc-marquee:hover .cc-marquee-track { animation-play-state: paused; }
+@keyframes cc-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+  .cc-marquee { overflow-x: auto; }
+  .cc-marquee-track { animation: none; }
+}
