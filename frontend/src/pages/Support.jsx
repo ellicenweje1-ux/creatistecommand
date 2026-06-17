@@ -31,8 +31,8 @@ const FAQS = [
    'Always — your data is yours. Settings → App & integrations → “Export your data” downloads CSV files of your bookings, clients, invoices and expenses (open them in any spreadsheet or hand them to your accountant). There are quick export buttons on the Clients, Finance and Allergen-matrix pages too.'],
   ['How do I cancel or change my plan?',
    'Settings → Membership shows your plan and payment history, and lets you switch tier (upgrade or downgrade) yourself and cancel any time. With card billing a tier change is prorated on your next invoice; on the Founders Membership, contact support so your lifetime rate is preserved.'],
-  ['What does the version number and scripture at the foot of the page mean?',
-   'The ✝ and version mark which release of The Creatiste Command you’re running (we started at v1). Every version we push live is dedicated to Ellice’s Lord, Jesus Christ, and carries a line of scripture — a quiet thread of faith through the work. Tap it, or open Settings → Version, to read the verse and the full history.'],
+  ['How do I see what’s new when the platform updates?',
+   'Open Settings → Version (or tap the version at the foot of any page) for the release notes — short bullet points of what changed in each update, newest first, like an app’s “What’s New”. Each release has its own version number that updates whenever we ship something new.'],
 ]
 
 function Faq({ q, a }) {
