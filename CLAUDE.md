@@ -104,6 +104,16 @@ disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk befor
   "last updated" line), short pre-sign-up Q&As ending in a "Start your free trial" CTA + support email. Landing footer
   now links to `/faq` (label "FAQs"); the shared Legal/FAQ footer cross-links FAQs · Terms · Privacy · Home; `/faq`
   added to `sitemap.xml`. Detailed help still lives behind login on `/app/support`.
+- **Follow-on — listings now go through OWNER APPROVAL (Ellice's steer), no auto-publish:** being featured is no longer
+  an instant toggle. A chef sets logo/link/testimonial in Settings → Business and hits **"Submit for review"** →
+  `feature_status` goes **pending** (new additive `users` column: none|pending|approved|rejected); it only shows publicly
+  once the owner **approves** it in the new **Admin → Showcase** tab (approve can fix spelling first; reject/unpublish
+  keeps it off). `GET /public/featured` now also requires `feature_status == 'approved'`. New endpoints:
+  `POST /auth/feature-request` + `POST /auth/feature-withdraw` (chef), `GET /admin/feature-requests` +
+  `…/{id}/approve|reject` (owner, reuses `public._public_link`). Changing the logo on an *approved* listing auto-sends it
+  back to pending (re-review). `PUT /auth/me` no longer touches the feature fields. Also: **removed the fabricated 5-star
+  row** from testimonial cards (chefs never chose a rating — a chooseable one could be added later), and the wall heading
+  is now **"Loved by Chefs whose kitchens run on it."** Support FAQ updated to describe the review step.
 - **Verified:** API (urllib, live server + seed) **14/14** — featured empty→opt-in→1 business→opt-out→empty; website
   normalised to `https://…`; testimonial exposed; **no private fields leaked**; robots/sitemap 200 + content; index.html
   carries JSON-LD + canonical. Playwright (system chromium, desktop) **13/13** — landing `#loved` renders the business +

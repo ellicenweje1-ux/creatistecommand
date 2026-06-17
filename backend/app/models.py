@@ -30,6 +30,7 @@ class User(Base):
     # Public marketing — opt in to be featured (logo + link) on the Creatiste Command site
     feature_publicly: Mapped[bool] = mapped_column(Boolean, default=False)
     testimonial: Mapped[str] = mapped_column(Text, default="")   # optional quote shown in the spotlight
+    feature_status: Mapped[str] = mapped_column(String(10), default="none")  # none|pending|approved|rejected (admin review)
     # Quick-contact (WhatsApp / email) defaults used by the "Contact client" action
     contact_channel: Mapped[str] = mapped_column(String(10), default="both")   # both | whatsapp | email
     contact_template: Mapped[str] = mapped_column(Text, default="")

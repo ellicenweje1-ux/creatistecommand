@@ -161,7 +161,7 @@ def featured_businesses(db: Session = Depends(get_db)):
     (optional) testimonial are exposed here — never anything private."""
     rows = (
         db.query(User)
-        .filter(User.feature_publicly.is_(True), User.role.in_(["chef", "admin"]))
+        .filter(User.feature_publicly.is_(True), User.feature_status == "approved", User.role.in_(["chef", "admin"]))
         .all()
     )
     # Founders first (by their numbered seat), then everyone else.

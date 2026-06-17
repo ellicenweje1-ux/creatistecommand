@@ -119,13 +119,11 @@ def me(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
 
 @router.put("/me")
 def update_me(payload: dict = Body(...), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    old_avatar = user.avatar_url
     for field in ("name", "business_name", "phone", "currency", "avatar_url",
-                  "business_description", "business_email", "contact_channel",
-                  "contact_template", "testimonial"):
+                  "business_description", "business_email", "contact_channel", "contact_template"):
         if field in payload:
             setattr(user, field, payload[field] or "")
-    if "feature_publicly" in payload:
-        user.feature_publicly = bool(payload["feature_publicly"])
     # Structured business-profile fields. Assign fresh objects (don't mutate in place)
     # so SQLAlchemy detects the JSON change and actually persists it.
     if isinstance(payload.get("services"), list):
@@ -134,6 +132,35 @@ def update_me(payload: dict = Body(...), db: Session = Depends(get_db), user: Us
         user.gallery = [str(u) for u in payload["gallery"] if str(u).strip()][:30]
     if isinstance(payload.get("socials"), dict):
         user.socials = {k: str(v).strip() for k, v in payload["socials"].items() if str(v).strip()}
+    # Changing the logo on a live public listing sends it back for re-approval.
+    if user.feature_publicly and user.feature_status == "approved" and user.avatar_url != old_avatar:
+        user.feature_status = "pending"
+    db.commit()
+    db.refresh(user)
+    return enriched_user(db, user)
+
+
+@router.post("/feature-request")
+def feature_request(payload: dict = Body(default={}), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Chef asks to be featured on the public site. Saves their testimonial and marks the
+    listing 'pending' — it does NOT go live until the platform owner approves it."""
+    if user.role == "staff":
+        raise HTTPException(403, "Only the business owner can manage this.")
+    user.testimonial = (payload.get("testimonial") or "").strip()[:600]
+    user.feature_publicly = True
+    user.feature_status = "pending"
+    db.commit()
+    db.refresh(user)
+    return enriched_user(db, user)
+
+
+@router.post("/feature-withdraw")
+def feature_withdraw(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Chef removes their business from the public site."""
+    if user.role == "staff":
+        raise HTTPException(403, "Only the business owner can manage this.")
+    user.feature_publicly = False
+    user.feature_status = "none"
     db.commit()
     db.refresh(user)
     return enriched_user(db, user)

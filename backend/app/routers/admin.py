@@ -20,6 +20,7 @@ from ..utils import to_dict
 from .billing import get_settings
 from .founders import founders_config, founders_days_in, founders_taken
 from .onboarding import _today_local, availability_grid, slot_times
+from .public import _public_link
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)])
 
@@ -463,3 +464,48 @@ def update_ticket(ticket_id: int, payload: dict = Body(...), db: Session = Depen
         ticket.status = payload["status"]
     db.commit()
     return to_dict(ticket)
+
+
+# --- Public "Showcase": review feature requests before they go live -----------------------
+@router.get("/feature-requests")
+def feature_requests(db: Session = Depends(get_db)):
+    """Chefs who've asked to be featured on the public site, for the owner to review."""
+    rows = db.query(User).filter(User.feature_publicly.is_(True)).all()
+    order = {"pending": 0, "approved": 1, "rejected": 2}
+    rows.sort(key=lambda u: (order.get(u.feature_status, 9), u.id))
+    return [{
+        "id": u.id,
+        "business_name": u.business_name or u.name or "",
+        "email": u.email,
+        "logo": u.avatar_url or "",
+        "link": _public_link(u.socials or {}),
+        "testimonial": (u.testimonial or "").strip(),
+        "status": u.feature_status or "none",
+        "is_founder": bool(u.is_founder),
+    } for u in rows]
+
+
+@router.post("/feature-requests/{user_id}/approve")
+def approve_feature(user_id: int, payload: dict = Body(default={}), db: Session = Depends(get_db)):
+    """Approve a listing so it shows publicly. An edited testimonial can be passed to fix
+    spelling/wording before it goes live."""
+    u = db.get(User, user_id)
+    if not u:
+        raise HTTPException(404, "Not found")
+    if "testimonial" in payload:
+        u.testimonial = (payload.get("testimonial") or "").strip()[:600]
+    u.feature_publicly = True
+    u.feature_status = "approved"
+    db.commit()
+    return {"ok": True, "status": u.feature_status}
+
+
+@router.post("/feature-requests/{user_id}/reject")
+def reject_feature(user_id: int, db: Session = Depends(get_db)):
+    """Keep a listing off the public site (the chef can edit and resubmit)."""
+    u = db.get(User, user_id)
+    if not u:
+        raise HTTPException(404, "Not found")
+    u.feature_status = "rejected"
+    db.commit()
+    return {"ok": True, "status": u.feature_status}

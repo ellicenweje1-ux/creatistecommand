@@ -6,7 +6,7 @@ import { perkIcon, perkTitle } from '../booking'
 import { DEFAULT_CONTACT_TEMPLATE } from '../contact'
 import { cls, fmtMoney, label, SYMBOLS } from '../format'
 import { getInstallPrompt, isStandalone } from '../offline'
-import { Badge, Button, Card, Field, Icon, Input, PageHeader, Select, Textarea, Toggle, toast, toastErr } from '../ui'
+import { Badge, Button, Card, Field, Icon, Input, PageHeader, Select, Textarea, toast, toastErr } from '../ui'
 import { CURRENT, VERSIONS, VersionNotes, versionRef } from '../version'
 
 /* Settings is split into individual pages (own URL each) under /app/settings, so the
@@ -96,6 +96,13 @@ const SOCIAL_FIELDS = [
   ['website', 'Website'], ['x', 'X / Twitter'], ['youtube', 'YouTube'],
 ]
 
+const FEATURE_STATUS = {
+  none: { tone: 'gray', label: 'Not submitted' },
+  pending: { tone: 'amber', label: 'Pending review' },
+  approved: { tone: 'sage', label: 'Live on our site' },
+  rejected: { tone: 'red', label: 'Not approved' },
+}
+
 export function SettingsBusiness() {
   const { user, setUser } = useAuth()
   const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '', feature_publicly: false, testimonial: '' })
@@ -155,11 +162,22 @@ export function SettingsBusiness() {
   const removeService = (s) => setForm({ ...form, services: form.services.filter((x) => x !== s) })
   const setSocial = (k, v) => setForm({ ...form, socials: { ...form.socials, [k]: v } })
 
-  // When they opt in, nudge for whatever's still missing for a strong public listing.
+  // Public "feature my business" listing — submitted for the owner's approval, not auto-published.
   const hasPublicLink = Object.values(form.socials || {}).some((v) => (v || '').trim())
-  const featureMissing = form.feature_publicly
-    ? [!logo && 'a logo', !hasPublicLink && 'a website or social link'].filter(Boolean)
-    : []
+  const featureMissing = [!logo && 'a logo', !hasPublicLink && 'a website or social link'].filter(Boolean)
+  const fstatus = user?.feature_status || 'none'
+  const submitFeature = () => {
+    setBusy(true)
+    api.post('/auth/feature-request', { testimonial: form.testimonial })
+      .then((u) => { setUser(u); toast('Sent for review — we’ll check it before it goes live', 'sage') })
+      .catch(toastErr).finally(() => setBusy(false))
+  }
+  const withdrawFeature = () => {
+    setBusy(true)
+    api.post('/auth/feature-withdraw')
+      .then((u) => { setUser(u); toast('Removed from our site', 'sage') })
+      .catch(toastErr).finally(() => setBusy(false))
+  }
 
   return (
     <div className="space-y-5">
@@ -254,14 +272,19 @@ export function SettingsBusiness() {
 
       <Card title="Feature on the Creatiste Command site">
         <p className="mb-3 text-sm text-fg/60">
-          Switch this on and we’ll showcase your business on our public site — your logo and a link
-          to your website or socials — as a little extra advertising for you. Add a line about your
-          experience to be quoted too. It’s opt-in, and you can turn it off any time.
+          Ask to be showcased on our public site — your logo and a link to your website or socials, plus an
+          optional testimonial. <span className="font-medium text-fg">We review every listing before it goes live</span>,
+          so nothing is published until it’s approved. It’s opt-in, and you can remove it any time.
         </p>
-        <Toggle checked={form.feature_publicly} onChange={(v) => setForm({ ...form, feature_publicly: v })}
-          label={form.feature_publicly ? 'Showing on our site' : 'Not shown publicly'} />
+        <div className="mb-3 flex items-center gap-2 text-sm">
+          <span className="text-fg/55">Status:</span>
+          <Badge tone={FEATURE_STATUS[fstatus].tone}>{FEATURE_STATUS[fstatus].label}</Badge>
+        </div>
+        {fstatus === 'rejected' && (
+          <p className="mb-3 text-sm text-fg/60">Your listing isn’t live. Adjust it below and resubmit, or contact support if you’re unsure why.</p>
+        )}
         {featureMissing.length > 0 && (
-          <div className="mt-3 flex items-start gap-2 rounded-lg border border-copper/30 bg-copper/5 p-3 text-sm text-fg/70">
+          <div className="mb-3 flex items-start gap-2 rounded-lg border border-copper/30 bg-copper/5 p-3 text-sm text-fg/70">
             <Icon name="bulb" size={15} className="mt-0.5 shrink-0 text-copper" />
             <span>
               For the best listing, add {featureMissing.join(' and ')} — your logo shows in the scrolling bar on our site,
@@ -270,13 +293,21 @@ export function SettingsBusiness() {
             </span>
           </div>
         )}
-        <Field label="Your words (optional)" className="mt-4" hint="A sentence or two on how the platform helps your kitchen — shown as a testimonial.">
+        <Field label="Your words (optional testimonial)" hint="A sentence or two on how the platform helps your kitchen.">
           <Textarea rows={3} value={form.testimonial} onChange={(e) => setForm({ ...form, testimonial: e.target.value })}
             placeholder="The Creatiste Command keeps my whole operation in one place — I walk into every event prepped and calm." />
         </Field>
-        <p className="mt-3 text-xs text-fg/45">
-          The link uses your website (or first social link) from <span className="font-medium text-fg">Contact &amp; social media</span> above — add one so new clients can find you.
-        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button onClick={submitFeature} disabled={busy}>
+            {fstatus === 'approved' ? 'Update & resubmit' : fstatus === 'pending' ? 'Update request' : 'Submit for review'}
+          </Button>
+          {fstatus !== 'none' && (
+            <Button variant="secondary" onClick={withdrawFeature} disabled={busy}>Remove from our site</Button>
+          )}
+        </div>
+        {fstatus === 'approved' && (
+          <p className="mt-3 text-xs text-fg/45">Editing your testimonial (or changing your logo) sends the listing back for a quick re-check before it shows again.</p>
+        )}
       </Card>
 
       <div className="flex justify-end">

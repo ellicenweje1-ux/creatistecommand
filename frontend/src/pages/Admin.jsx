@@ -484,6 +484,62 @@ function FoundersPanel({ data, onSaved }) {
   )
 }
 
+/* Public "Showcase" review — a chef's feature request (logo + link + testimonial). The owner
+   can fix spelling in the testimonial, then approve (publish) or reject (keep off the site). */
+function FeatureCard({ item, onSaved }) {
+  const [text, setText] = useState(item.testimonial || '')
+  const [busy, setBusy] = useState(false)
+  const act = (p) => { setBusy(true); p.then(() => { toast('Updated', 'sage'); onSaved() }).catch(toastErr).finally(() => setBusy(false)) }
+  const tone = { pending: 'amber', approved: 'sage', rejected: 'red' }[item.status] || 'gray'
+  return (
+    <Card>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-line bg-parchment/40">
+            {item.logo ? <img src={item.logo} alt="" className="h-full w-full object-cover" /> : <Icon name="flame" size={18} className="text-fg/30" />}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate font-semibold">{item.business_name || '—'}{item.is_founder && <span className="ml-1.5 text-[11px] uppercase tracking-wide text-copper">· Founder</span>}</p>
+            <p className="text-xs text-fg/50">{item.email}</p>
+            {item.link
+              ? <a href={item.link} target="_blank" rel="noopener noreferrer" className="break-all text-xs text-copper hover:underline">{item.link}</a>
+              : <span className="text-xs text-fg/40">no link added</span>}
+          </div>
+        </div>
+        <Badge tone={tone}>{label(item.status)}</Badge>
+      </div>
+      <Field label="Testimonial — edit to fix spelling before approving" className="mt-3">
+        <Textarea rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder="No testimonial — logo & link only." />
+      </Field>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button size="sm" disabled={busy} onClick={() => act(api.post(`/admin/feature-requests/${item.id}/approve`, { testimonial: text }))}>
+          {item.status === 'approved' ? 'Save changes' : 'Approve & publish'}
+        </Button>
+        {item.status !== 'rejected' && (
+          <Button size="sm" variant="secondary" disabled={busy} onClick={() => act(api.post(`/admin/feature-requests/${item.id}/reject`))}>
+            {item.status === 'approved' ? 'Unpublish' : 'Reject'}
+          </Button>
+        )}
+      </div>
+    </Card>
+  )
+}
+
+function ShowcasePanel({ data, onSaved }) {
+  const pending = data.filter((f) => f.status === 'pending')
+  return (
+    <div className="space-y-2.5">
+      <p className="text-sm text-fg/55">
+        Chefs who’ve asked to be featured on your public site. Check the logo, link and testimonial, fix any
+        spelling, then approve — only approved listings appear publicly.{pending.length ? ` ${pending.length} waiting.` : ''}
+      </p>
+      {data.length === 0
+        ? <Card><p className="text-sm text-fg/45">No requests yet. When a chef submits one (Settings → Business), it’ll appear here.</p></Card>
+        : data.map((item) => <FeatureCard key={item.id} item={item} onSaved={onSaved} />)}
+    </div>
+  )
+}
+
 export default function Admin() {
   const [tab, setTab] = useState('overview')
   const [overview, setOverview] = useState(null)
@@ -495,6 +551,7 @@ export default function Admin() {
   const [tickets, setTickets] = useState([])
   const [founders, setFounders] = useState(null)
   const [sessions, setSessions] = useState(null)
+  const [features, setFeatures] = useState([])
 
   const load = () => {
     api.get('/admin/overview').then(setOverview).catch(toastErr)
@@ -504,6 +561,7 @@ export default function Admin() {
     api.get('/admin/support').then(setTickets).catch(() => {})
     api.get('/admin/founders').then(setFounders).catch(() => {})
     api.get('/admin/onboarding').then(setSessions).catch(() => {})
+    api.get('/admin/feature-requests').then(setFeatures).catch(() => {})
   }
   useEffect(load, [])
   const [backingUp, setBackingUp] = useState(false)
@@ -530,6 +588,7 @@ export default function Admin() {
         { id: 'founders', label: 'Founders', count: founders?.members?.length },
         { id: 'payments', label: 'Payments' },
         { id: 'support', label: 'Support', count: tickets.filter((t) => t.status === 'open').length },
+        { id: 'showcase', label: 'Showcase', count: features.filter((f) => f.status === 'pending').length },
         { id: 'pricing', label: 'Pricing' },
       ]} />
 
@@ -657,6 +716,8 @@ export default function Admin() {
       {tab === 'onboarding' && <OnboardingPanel data={sessions} onSaved={load} />}
 
       {tab === 'founders' && <FoundersPanel data={founders} onSaved={load} />}
+
+      {tab === 'showcase' && <ShowcasePanel data={features} onSaved={load} />}
 
       {tab === 'pricing' && <PlansEditor settings={settings} onSaved={load} />}
 

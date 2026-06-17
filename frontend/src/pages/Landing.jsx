@@ -286,15 +286,12 @@ export default function Landing() {
         <section id="loved" className="mx-auto max-w-6xl px-5 py-16 md:py-20">
           <p className="text-xs font-semibold uppercase tracking-[0.25em] text-copper">In their words</p>
           <h2 className="mt-3 font-display text-3xl font-semibold md:text-4xl">
-            Loved by the kitchens <em className="italic text-copper">running on it.</em>
+            Loved by Chefs <em className="italic text-copper">whose kitchens run on it.</em>
           </h2>
           <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {testimonials.map((f, i) => (
               <figure key={i} className="flex flex-col rounded-xl border border-line bg-card p-5 shadow-card">
-                <div className="flex gap-0.5" aria-hidden>
-                  {[0, 1, 2, 3, 4].map((n) => <Icon key={n} name="star" size={14} className="fill-copper text-copper" />)}
-                </div>
-                <blockquote className="mt-3 flex-1 text-sm leading-relaxed text-fg/75">&ldquo;{f.testimonial}&rdquo;</blockquote>
+                <blockquote className="flex-1 text-sm leading-relaxed text-fg/75">&ldquo;{f.testimonial}&rdquo;</blockquote>
                 <figcaption className="mt-4 flex items-center gap-2.5 border-t border-line pt-3">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md border border-line bg-parchment/40">
                     {f.logo ? <img src={f.logo} alt="" className="h-full w-full object-cover" /> : <Icon name="flame" size={13} className="text-copper/50" />}
