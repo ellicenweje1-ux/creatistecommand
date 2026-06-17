@@ -12,7 +12,12 @@ import { Icon } from './ui'
 
    Versions run in order from V1. To ship a NEW release: append the next entry with the
    next number, a fresh biblical reference, and its update bullets. The app always shows
-   the most recent entry as the live version, so this single list drives the platform. */
+   the most recent entry as the live version, so this single list drives the platform.
+
+   ⚠️ DO NOT add a new version entry until Ellice explicitly says so (standing rule,
+   2026-06-17). Version updates begin only after the official launch; Ellice confirms when
+   she wants the next cut and supplies the new biblical reference herself — never fabricate
+   it, and never bump pre-emptively. See CLAUDE.md (twenty-first wave notes). */
 export const VERSIONS = [
   {
     n: 1,

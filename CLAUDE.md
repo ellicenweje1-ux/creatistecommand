@@ -140,13 +140,16 @@ Render disk before any real chef signs up.
 - **FAQ kept current (rule #3):** Support FAQ — extended "How do I cancel or change my plan?" with the
   retention/offer-a-smaller-plan step, and added "Can I build a route from a shopping list?" (covers
   #12 + #16). Public pre-sign-up FAQ untouched (these are in-app operational flows).
-- **⚠️ Version stamp NOT bumped — needs Ellice.** Per the 19th-wave rule each release appends a
-  `VERSIONS` entry in `frontend/src/version.jsx` with **a new biblical reference of her choosing** (the
-  meaning is personal and never rendered) + the next v-number. I deliberately did **not** fabricate the
-  scripture. To ship v2: append `{ n: 2, ref: '<her reference>', text: '<private verse>', updates: [
-  'Shopping "Shop" list now driven by your Suppliers — and turns into route stops in one tap.',
-  'Plan a prep-day route straight from a saved shopping list, addresses filled in automatically.',
-  'Thinking of leaving? We now offer a smaller plan before you cancel.' ] }`.
+- **⚠️ Version stamp — DO NOT bump until Ellice says (standing rule, set 2026-06-17).** Version updates
+  begin **only once the platform is officially launched**. Ellice will **confirm when she wants the next
+  version cut**, and will provide **a new biblical reference** at that point; that release will roll up
+  **all amendments shipped since the last version**. Until she gives the word, **do not append a
+  `VERSIONS` entry** in `frontend/src/version.jsx` and **never fabricate the scripture**. (When she does:
+  append `{ n, ref: '<her reference>', text: '<private verse, not rendered>', updates: [ … ] }` covering
+  everything since the previous entry — e.g. for this wave: 'Shopping "Shop" list now driven by your
+  Suppliers — and turns into route stops in one tap.', 'Plan a prep-day route straight from a saved
+  shopping list, addresses filled in automatically.', 'Thinking of leaving? We now offer a smaller plan
+  before you cancel.')
 - **Verified:** backend FastAPI TestClient **7/7** (signup/subscribe/plan-up/plan-down notify; subscribe
   idempotent = no dup; same-plan = no notify; cancel notify). Playwright (system chromium, desktop 1280)
   **19/19 + 4/4**: F1 datalist = suppliers only (no generic) + hint; F5 list→stops with supplier address,
