@@ -303,6 +303,9 @@ export function SettingsBusiness() {
           <Textarea rows={3} value={form.testimonial} onChange={(e) => setForm({ ...form, testimonial: e.target.value })}
             placeholder="The Creatiste Command keeps my whole operation in one place — I walk into every event prepped and calm." />
         </Field>
+        <p className="mt-3 text-xs text-fg/55">
+          Not every submission is published on the public site, but your testimonial is important to us — thank you for sharing it.
+        </p>
         <div className="mt-3 flex flex-wrap gap-2">
           <Button onClick={submitFeature} disabled={busy}>
             {fstatus === 'approved' ? 'Update & resubmit' : fstatus === 'pending' ? 'Update request' : 'Submit for review'}
