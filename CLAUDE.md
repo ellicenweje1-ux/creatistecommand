@@ -27,9 +27,10 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
    only the admin recreated. So right now a deploy = total data loss for any live chef. **Add
    `DATA_DIR=/var/data` + a paid persistent disk on Render before any real chef signs up.** (Also
    the true fix for #1's logouts.)
-3. 🔲 **Keep the FAQs page continuously up to date (standing instruction).** FAQ copy lives in the
-   `FAQS` array in `frontend/src/pages/Support.jsx` (plus a few Q&As on Landing/Home). Whenever a
-   feature ships or changes, update the FAQs to match — treat it as part of "done" from now on.
+3. 🔲 **Keep the FAQs pages continuously up to date (standing instruction).** Two FAQ surfaces now: the
+   detailed in-app help is the `FAQS` array in `frontend/src/pages/Support.jsx`, and the **public, pre-sign-up
+   FAQ** is the `Faq` component in `frontend/src/pages/Legal.jsx` (route `/faq`, same format as Terms/Privacy) —
+   plus a few Q&As on Landing/Home. Whenever a feature ships or changes, update BOTH to match — part of "done".
 4. ✅ **Support feature — confirmed working (Ellice, 2026-06-16).** The Support page (`/app/support`)
    posts `/support/request` → creates a SupportTicket (Admin → Support) + emails `SUPPORT_EMAIL`
    (`command@thecreatistecatering.com` via Resend), and Ellice confirms this works. Only the **"Ask
@@ -97,6 +98,12 @@ disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid Render disk befor
   `SoftwareApplication` with an `AggregateOffer`; `lowPrice "39"` mirrors the entry tier — update if it changes). All
   absolute URLs use `creatistecommand.onrender.com` — **update on a custom domain** (same as the OG tags).
 - **FAQ kept current (rule #3):** new Support FAQ "Can my business be featured on your site?" → Settings → Business.
+- **Follow-on — public pre-sign-up FAQ page (same branch, after Ellice's steer):** the landing footer's "Support &
+  FAQs" link pointed at the **logged-in** `/app/support` (useless to a visitor). Added a **public `/faq`** page — `Faq`
+  in `pages/Legal.jsx`, reusing `LegalLayout` (same look as Terms/Privacy; `updated` made optional so it has no
+  "last updated" line), short pre-sign-up Q&As ending in a "Start your free trial" CTA + support email. Landing footer
+  now links to `/faq` (label "FAQs"); the shared Legal/FAQ footer cross-links FAQs · Terms · Privacy · Home; `/faq`
+  added to `sitemap.xml`. Detailed help still lives behind login on `/app/support`.
 - **Verified:** API (urllib, live server + seed) **14/14** — featured empty→opt-in→1 business→opt-out→empty; website
   normalised to `https://…`; testimonial exposed; **no private fields leaked**; robots/sitemap 200 + content; index.html
   carries JSON-LD + canonical. Playwright (system chromium, desktop) **13/13** — landing `#loved` renders the business +

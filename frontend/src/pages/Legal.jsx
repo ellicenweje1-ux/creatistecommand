@@ -16,7 +16,7 @@ function useSupportEmail() {
   return email
 }
 
-function LegalLayout({ title, lead, children }) {
+function LegalLayout({ title, lead, updated = UPDATED, children }) {
   return (
     <div className="min-h-screen bg-base">
       <header className="mx-auto flex max-w-3xl items-center justify-between px-5 py-5">
@@ -25,10 +25,11 @@ function LegalLayout({ title, lead, children }) {
       </header>
       <main className="mx-auto max-w-3xl px-5 pb-16 pt-4">
         <h1 className="font-display text-3xl font-semibold md:text-4xl">{title}</h1>
-        <p className="mt-2 text-sm text-fg/45">Last updated {UPDATED}</p>
+        {updated && <p className="mt-2 text-sm text-fg/45">Last updated {updated}</p>}
         {lead && <p className="mt-5 text-[15px] leading-relaxed text-fg/70">{lead}</p>}
         <div className="mt-2">{children}</div>
         <div className="mt-12 flex flex-wrap gap-x-4 gap-y-2 border-t border-line pt-6 text-sm">
+          <Link to="/faq" className="font-medium text-copper hover:underline">FAQs</Link>
           <Link to="/terms" className="font-medium text-copper hover:underline">Terms of Service</Link>
           <Link to="/privacy" className="font-medium text-copper hover:underline">Privacy Policy</Link>
           <Link to="/" className="font-medium text-copper hover:underline">Home</Link>
@@ -337,6 +338,94 @@ export function Privacy() {
           For any privacy question or request, email{' '}
           {email ? <a href={`mailto:${email}`} className="text-copper">{email}</a> : 'our support address'}.
         </p>
+      </Section>
+    </LegalLayout>
+  )
+}
+
+/* Public, pre-sign-up FAQ — deliberately short. Detailed, in-app help lives on the
+   Support page once someone has an account; this is just enough to decide to join. */
+export function Faq() {
+  const email = useSupportEmail()
+  return (
+    <LegalLayout
+      updated={null}
+      title="Frequently asked questions"
+      lead={
+        <>
+          The short version of what The Creatiste Command is and how it works — for anyone deciding whether to join.
+          Want the full picture? Start your free trial or get in touch, and we’ll show you the rest.
+        </>
+      }
+    >
+      <Section heading="What is The Creatiste Command?">
+        <p>
+          A complete management platform and one-stop shop built for private chefs, caterers and culinary
+          professionals — your bookings, recipes, stock, shopping, prep, clients, quotes and invoices in one
+          command centre, designed to be used on the move.
+        </p>
+      </Section>
+      <Section heading="Who is it for?">
+        <p>
+          Independent chefs and catering businesses of every size — from a solo private chef to a team with staff.
+          You pick the membership that matches how you work today and move up as you grow.
+        </p>
+      </Section>
+      <Section heading="What can it actually do?">
+        <p>Everything between the enquiry and the final plate, including:</p>
+        <Bullets items={[
+          'Bookings, an event calendar and a leads pipeline;',
+          'Recipes, inventory with shelf-life alerts and an allergen matrix;',
+          'Multi-shop shopping lists, packing checklists and a prep-day route planner;',
+          'Clients, tastings, quotes your client approves from their phone, and invoicing;',
+          'Staff logins with rotas, and an AI sous-chef on the top tier.',
+        ]} />
+      </Section>
+      <Section heading="How much does it cost?">
+        <p>
+          There are three monthly membership tiers plus a one-time onboarding fee. You can see the current prices
+          and exactly what each tier includes on our <Link to="/" className="text-copper">home page</Link>.
+        </p>
+      </Section>
+      <Section heading="Is there a free trial?">
+        <p>
+          Yes. After you sign up and complete your onboarding call, a free trial begins — no card needed for the
+          trial. When it ends, you choose a membership to carry on, and everything you added stays.
+        </p>
+      </Section>
+      <Section heading="What is the onboarding session?">
+        <p>
+          A short, personal video call to set up and verify your kitchen before your workspace opens — so the
+          platform fits the way you work from day one.
+        </p>
+      </Section>
+      <Section heading="Do I need to download or install anything?">
+        <p>
+          No. It runs in any web browser on phone, tablet or laptop. You can also install it as an app and keep
+          working offline — your changes sync when you’re back online.
+        </p>
+      </Section>
+      <Section heading="Is my information private and secure?">
+        <p>
+          Yes. Your data is yours — you can export it at any time — and we handle it in line with UK data
+          protection law. The details are in our <Link to="/privacy" className="text-copper">Privacy Policy</Link>.
+        </p>
+      </Section>
+      <Section heading="Can I cancel any time?">
+        <p>
+          Yes. Cancel from your account settings whenever you like; your membership stays active until the end of
+          the period you’ve already paid for. The full detail is in our{' '}
+          <Link to="/terms" className="text-copper">Terms</Link>.
+        </p>
+      </Section>
+      <Section heading="Still have questions?">
+        <p>
+          The best way to see if it’s right for you is to try it. Create your account to explore, or email us at{' '}
+          {email ? <a href={`mailto:${email}`} className="text-copper">{email}</a> : 'our support address'} and we’ll help.
+        </p>
+        <div className="pt-1">
+          <Link to="/register"><Button>Start your free trial</Button></Link>
+        </div>
       </Section>
     </LegalLayout>
   )

@@ -432,7 +432,7 @@ export default function Landing() {
       <footer className="border-t border-line py-8 text-center text-sm text-fg/40">
         <p>© {new Date().getFullYear()} The Creatiste Command — the command centre for chefs &amp; caterers.</p>
         <p className="mt-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-          <Link to="/app/support" className="font-medium text-copper hover:underline">Support &amp; FAQs</Link>
+          <Link to="/faq" className="font-medium text-copper hover:underline">FAQs</Link>
           <span className="text-fg/20" aria-hidden>·</span>
           <Link to="/terms" className="font-medium text-copper hover:underline">Terms of Service</Link>
           <span className="text-fg/20" aria-hidden>·</span>

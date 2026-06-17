@@ -19,7 +19,7 @@ import Home from './pages/Home'
 import Ideas from './pages/Ideas'
 import Inventory from './pages/Inventory'
 import Landing from './pages/Landing'
-import { Privacy, Terms } from './pages/Legal'
+import { Faq, Privacy, Terms } from './pages/Legal'
 import Menus from './pages/Menus'
 import Onboarding from './pages/Onboarding'
 import ResetPassword from './pages/ResetPassword'
@@ -280,6 +280,7 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/terms" element={<Terms />} />
       <Route path="/privacy" element={<Privacy />} />
+      <Route path="/faq" element={<Faq />} />
       <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
       <Route path="/q/:token" element={<PublicQuote />} />
       <Route path="/enquire/:token" element={<PublicEnquiry />} />
