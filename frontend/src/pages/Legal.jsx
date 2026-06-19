@@ -411,6 +411,13 @@ export function Faq() {
           protection law. The details are in our <Link to="/privacy" className="text-copper">Privacy Policy</Link>.
         </p>
       </Section>
+      <Section heading="What if I delete something by mistake?">
+        <p>
+          You can put it back yourself. Anything you delete goes to a “Recently deleted” area for 30 days, so a
+          mis-tap is never the end of your work — just tap Restore. Your kitchen is also backed up regularly behind
+          the scenes, so your records are kept safe.
+        </p>
+      </Section>
       <Section heading="Can I cancel any time?">
         <p>
           Yes. Cancel from your account settings whenever you like; your membership stays active until the end of
