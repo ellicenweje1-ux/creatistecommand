@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
-import { Brand, Button, Field, Input, toast, toastErr } from '../ui'
+import { Brand, Button, Field, PasswordInput, toast, toastErr } from '../ui'
 
 export default function ResetPassword() {
   const [params] = useSearchParams()
@@ -46,11 +46,11 @@ export default function ResetPassword() {
               <p className="mt-1 text-sm text-fg/55">Choose a new password for your account.</p>
               <div className="mt-6 space-y-4">
                 <Field label="New password" hint="At least 8 characters">
-                  <Input type="password" minLength={8} required value={form.password}
+                  <PasswordInput minLength={8} required value={form.password}
                     onChange={(e) => setForm({ ...form, password: e.target.value })} />
                 </Field>
                 <Field label="Confirm new password">
-                  <Input type="password" minLength={8} required value={form.confirm}
+                  <PasswordInput minLength={8} required value={form.confirm}
                     onChange={(e) => setForm({ ...form, confirm: e.target.value })} />
                 </Field>
               </div>
