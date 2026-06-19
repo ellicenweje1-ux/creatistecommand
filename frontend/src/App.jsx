@@ -128,7 +128,7 @@ function OfflineChip() {
       : `${pending} change${pending === 1 ? '' : 's'} waiting to sync`
   return (
     <div className={cls(
-      'fixed bottom-16 left-1/2 z-[60] -translate-x-1/2 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-medium shadow-lg backdrop-blur lg:bottom-4',
+      'fixed bottom-16 left-1/2 z-[60] -translate-x-1/2 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-medium shadow-lg backdrop-blur lg:bottom-4 print:hidden',
       !online ? 'border-amber-500/40 bg-amber-500/15 text-amber-600 dark:text-amber-300' : 'border-copper/40 bg-copper/15 text-copper')}>
       <span className={cls('mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle', !online ? 'bg-amber-500' : 'animate-pulse bg-copper')} />
       {text}
@@ -142,7 +142,7 @@ function TrialBanner({ user }) {
     ? Math.max(0, Math.ceil((new Date(`${user.trial_ends_at}T23:59:59`) - new Date()) / 86400000))
     : 0
   return (
-    <Link to="/onboarding" className="block bg-copper px-4 py-2 text-center text-xs font-semibold text-ink transition-colors hover:bg-copper-dark">
+    <Link to="/onboarding" className="block bg-copper px-4 py-2 text-center text-xs font-semibold text-ink transition-colors hover:bg-copper-dark print:hidden">
       Free trial — {days} day{days === 1 ? '' : 's'} left · Activate your kitchen now →
     </Link>
   )
@@ -167,9 +167,9 @@ function AppShell() {
   const allItems = NAV_GROUPS.flatMap((g) => visibleItems(g.items, user))
 
   return (
-    <div className="min-h-screen bg-base lg:pl-60">
+    <div className="min-h-screen bg-base lg:pl-60 print:bg-white print:pl-0">
       {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-white/5 bg-ink lg:flex">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-white/5 bg-ink lg:flex print:!hidden">
         <div className="px-5 pb-4 pt-6"><Brand on="dark" small /></div>
         <nav className="scrollbar-thin flex-1 space-y-3 overflow-y-auto px-3 pb-2">
           {NAV_GROUPS.map((group) => {
@@ -202,7 +202,7 @@ function AppShell() {
       </aside>
 
       {/* Mobile top bar */}
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-line bg-base/95 px-4 py-3 backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-line bg-base/95 px-4 py-3 backdrop-blur lg:hidden print:hidden">
         <button onClick={() => navigate('/app')}><Brand small /></button>
         <button onClick={() => setMoreOpen(true)} className="rounded-lg p-2 text-fg/60 hover:bg-fg/5"><Icon name="menu" /></button>
       </header>
@@ -210,9 +210,9 @@ function AppShell() {
       <TrialBanner user={user} />
       <FounderExperience />
 
-      <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-5 sm:px-6 lg:pb-10 lg:pt-8">
+      <main className="mx-auto w-full max-w-6xl px-4 pb-24 pt-5 sm:px-6 lg:pb-10 lg:pt-8 print:max-w-none print:p-0">
         <Outlet key={syncEpoch} />
-        <footer className="mt-10 flex justify-center border-t border-line/60 pt-5">
+        <footer className="mt-10 flex justify-center border-t border-line/60 pt-5 print:hidden">
           <VersionStamp to="/app/settings/about" />
         </footer>
       </main>
@@ -220,7 +220,7 @@ function AppShell() {
       <OfflineChip />
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden print:hidden">
         {mobileMain.map((item) => (
           <NavLink key={item.to} to={item.to} end={item.end}
             className={({ isActive }) => cls('flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium', isActive ? 'text-copper' : 'text-fg/45')}>

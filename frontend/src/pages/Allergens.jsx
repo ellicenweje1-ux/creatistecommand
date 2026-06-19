@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
+import { useAuth } from '../auth'
 import { cls } from '../format'
 import { Button, Card, EmptyState, Field, PageHeader, Select, Spinner, toastErr } from '../ui'
 
@@ -28,6 +29,7 @@ const matches = (recipeAllergens, terms, column) => {
 }
 
 export default function Allergens() {
+  const { user } = useAuth()
   const [bookings, setBookings] = useState(null)
   const [recipes, setRecipes] = useState([])
   const [bookingId, setBookingId] = useState('all')
@@ -64,65 +66,100 @@ export default function Allergens() {
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
+  const sourceLabel = booking ? booking.title : 'All recipe sheets'
+  const businessName = user?.business_name || user?.name || 'The Creatiste Command'
+  const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+
   return (
     <div>
-      <PageHeader title="Allergen matrix" sub="Dish-by-allergen grid built from your recipe sheets — print it for the buffet table."
+      <PageHeader title="Allergen matrix" sub="A dish-by-allergen table built from your recipe sheets — print it for the table or save it as a PDF."
         actions={
           <>
             {rows.length > 0 && <Button variant="secondary" icon="down" onClick={downloadCsv}>CSV</Button>}
-            <Button variant="secondary" icon="doc" onClick={() => window.print()}>Print</Button>
+            {rows.length > 0 && <Button variant="secondary" icon="doc" onClick={() => window.print()}>Print / PDF</Button>}
           </>
         } />
-      <div className="mb-4 max-w-sm print:hidden">
-        <Field label="Menu source">
+      <div className="mb-4 flex flex-wrap items-end gap-3 print:hidden">
+        <Field label="Menu source" className="max-w-sm flex-1">
           <Select value={bookingId} onChange={(e) => setBookingId(e.target.value)}>
             <option value="all">All recipe sheets</option>
             {bookings.map((b) => <option key={b.id} value={b.id}>{b.title}</option>)}
           </Select>
         </Field>
+        <p className="text-xs text-fg/45 sm:max-w-xs">
+          To save as a PDF, choose <span className="font-medium text-fg/60">Print</span> then “Save as PDF” as the destination.
+        </p>
       </div>
+
       {rows.length === 0 ? (
         <EmptyState icon="grid2" title="Nothing to map yet"
           hint={booking ? 'This booking has no menu yet — build it on the booking page first.' : 'Add recipes with allergen tags and the matrix builds itself.'} />
       ) : (
-        <Card pad={false}>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-sm">
-              <thead>
-                <tr className="border-b border-line bg-parchment/50">
-                  <th className="px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-fg/45">Dish</th>
-                  {ALLERGENS.map(([col]) => (
-                    <th key={col} className={cls('px-1 py-2.5 text-center text-[10px] uppercase tracking-wide',
-                      activeColumns.some(([c]) => c === col) ? 'text-copper' : 'text-fg/30')}>
-                      {col}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line/60">
-                {rows.map((row, i) => (
-                  <tr key={i}>
-                    <td className="px-4 py-2.5 font-medium">
-                      {row.name}
-                      {!row.known && <span className="ml-1.5 text-[10px] font-normal text-amber-600">no recipe sheet — verify by hand</span>}
-                    </td>
-                    {ALLERGENS.map(([col, terms]) => (
-                      <td key={col} className="px-1 py-2.5 text-center">
-                        {!row.known ? <span className="text-fg/25">?</span>
-                          : matches(row.allergens, terms, col)
-                            ? <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-copper text-[11px] font-bold text-ink">✓</span>
-                            : <span className="text-fg/15">·</span>}
-                      </td>
+        <div className="print-doc space-y-4">
+          {/* Print-only document header (the screen already has the page header above). */}
+          <div className="hidden print:block">
+            <h1 className="font-display text-2xl font-bold">{businessName}</h1>
+            <p className="text-sm text-fg/70">Allergen information — {sourceLabel}</p>
+            <p className="text-xs text-fg/50">Prepared {today}</p>
+          </div>
+
+          {/* UK FSA guidance template — the mandatory signposting statement. */}
+          <div className="rounded-xl border border-copper/40 bg-copper/5 p-4 print:border-black/30 print:bg-transparent">
+            <p className="font-display text-[15px] font-semibold text-copper-dark print:text-black">Allergies &amp; intolerances</p>
+            <p className="mt-1 text-sm leading-relaxed text-fg/80 print:text-black">
+              <span className="font-semibold">Before you order, please speak to a member of staff</span> if you
+              have a food allergy or intolerance. The table below shows which of the 14 allergens regulated under
+              UK law (Food Information Regulations 2014 / Natasha’s Law) are present in each dish, based on our recipes.
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-fg/55 print:text-black/70">
+              Our dishes are prepared in a kitchen that handles all 14 allergens, so we cannot guarantee any dish is
+              completely free from traces. Full ingredient information is available on request.
+            </p>
+          </div>
+
+          <Card pad={false}>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[700px] text-sm">
+                <thead>
+                  <tr className="border-b border-line bg-parchment/50 print:bg-transparent">
+                    <th className="px-4 py-2.5 text-left text-[11px] uppercase tracking-wider text-fg/45 print:text-black">Dish</th>
+                    {ALLERGENS.map(([col]) => (
+                      <th key={col} className={cls('px-1 py-2.5 text-center text-[10px] uppercase tracking-wide print:text-black',
+                        activeColumns.some(([c]) => c === col) ? 'text-copper' : 'text-fg/30')}>
+                        {col}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="border-t border-line px-4 py-2.5 text-xs text-fg/45">
-            Built from allergen tags on recipe sheets. Always verify against actual ingredients & labels — cross-contamination is not represented.
-          </p>
-        </Card>
+                </thead>
+                <tbody className="divide-y divide-line/60">
+                  {rows.map((row, i) => (
+                    <tr key={i}>
+                      <td className="px-4 py-2.5 font-medium print:text-black">
+                        {row.name}
+                        {!row.known && <span className="ml-1.5 text-[10px] font-normal text-amber-600">no recipe sheet — verify by hand</span>}
+                      </td>
+                      {ALLERGENS.map(([col, terms]) => (
+                        <td key={col} className="px-1 py-2.5 text-center">
+                          {!row.known ? <span className="text-fg/25 print:text-black">?</span>
+                            : matches(row.allergens, terms, col)
+                              ? <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-copper text-[11px] font-bold text-ink print:bg-black print:text-white">✓</span>
+                              : <span className="text-fg/15 print:text-black/20">·</span>}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="border-t border-line px-4 py-2.5 text-xs text-fg/45 print:text-black/70">
+              <p><span className="font-semibold">Key:</span> ✓ contains this allergen · · not present · ? no recipe sheet on file (verify by hand).</p>
+              <p className="mt-1">
+                Built from allergen tags on recipe sheets. Always verify against the actual ingredients &amp; supplier
+                labels before service — cross-contamination is not represented here.
+              </p>
+            </div>
+          </Card>
+        </div>
       )}
     </div>
   )

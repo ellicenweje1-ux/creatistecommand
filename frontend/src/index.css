@@ -104,3 +104,21 @@ body { @apply bg-base text-fg font-body antialiased; }
   .cc-marquee { overflow-x: auto; }
   .cc-marquee-track { animation: none; }
 }
+
+/* ── Print: clean A4 documents (allergen matrix → table cards / PDF) ──────────
+   The app chrome is marked print:hidden in App.jsx; these rules make whatever's
+   left print as a tidy document. Colour-adjust keeps the brand ticks visible. */
+@media print {
+  :root { --c-base: 255 255 255; --c-card: 255 255 255; }
+  html, body {
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  @page { margin: 14mm; }
+  /* The allergen document should never be clipped by an on-screen scroll box. */
+  .print-doc, .print-doc * { overflow: visible !important; }
+  .print-doc table { min-width: 0 !important; width: 100% !important; font-size: 10px; }
+  .print-doc thead { display: table-header-group; }   /* repeat the header on each page */
+  .print-doc tr { break-inside: avoid; page-break-inside: avoid; }
+}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { Link, NavLink, Outlet } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { perkIcon, perkTitle } from '../booking'
@@ -716,6 +716,16 @@ function DataExportCard({ user }) {
             <Button size="sm" variant="secondary" icon="down" onClick={() => dl(r.path, r.file)}>CSV</Button>
           </div>
         ))}
+        {/* Allergen matrix is built client-side from recipe sheets — CSV or a print/PDF table card. */}
+        <div className="flex items-center justify-between gap-3 py-2.5">
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Allergen matrix</p>
+            <p className="text-xs text-fg/45">FSA 14-allergen table for the dining table — CSV or print to PDF.</p>
+          </div>
+          <Link to="/app/allergens">
+            <Button size="sm" variant="secondary" icon="grid2">Open</Button>
+          </Link>
+        </div>
       </div>
     </Card>
   )
