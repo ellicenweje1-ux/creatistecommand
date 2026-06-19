@@ -201,8 +201,9 @@ function AppShell() {
         </div>
       </aside>
 
-      {/* Mobile top bar */}
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-line bg-base/95 px-4 py-3 backdrop-blur lg:hidden print:hidden">
+      {/* Mobile top bar — pad the top for the Dynamic Island / status bar (safe-area inset)
+          so the brand + menu sit below it on notched iPhones (viewport-fit=cover). */}
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-line bg-base/95 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] backdrop-blur lg:hidden print:hidden">
         <button onClick={() => navigate('/app')}><Brand small /></button>
         <button onClick={() => setMoreOpen(true)} className="rounded-lg p-2 text-fg/60 hover:bg-fg/5"><Icon name="menu" /></button>
       </header>
@@ -236,7 +237,7 @@ function AppShell() {
       {/* Mobile "more" sheet */}
       {moreOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] lg:hidden" onClick={() => setMoreOpen(false)}>
-          <div className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-2xl bg-base p-4 pb-8" onClick={(e) => e.stopPropagation()}>
+          <div className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-2xl bg-base p-4 pb-[calc(2rem+env(safe-area-inset-bottom))]" onClick={(e) => e.stopPropagation()}>
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-fg/15" />
             <div className="grid grid-cols-4 gap-3">
               {[...allItems, { to: '/app/support', icon: 'help', label: 'Help' }, { to: '/app/settings', icon: 'settings', label: 'Settings' },

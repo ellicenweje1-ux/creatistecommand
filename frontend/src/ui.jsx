@@ -240,13 +240,16 @@ export function Modal({ open, onClose, title, children, wide = false, footer }) 
   // discard whatever was being typed in a form. Close only via the X or Escape.
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 backdrop-blur-[2px] sm:items-center sm:p-6">
+      {/* Bottom sheet on mobile: 92vh leaves the top clear of the Dynamic Island, and the body
+          + footer are padded for the home indicator (safe-area insets) so nothing — dropdowns
+          included — sits off-screen on notched iPhones. */}
       <div className={cls('max-h-[92vh] w-full overflow-y-auto rounded-t-2xl bg-base shadow-pop sm:rounded-2xl', wide ? 'sm:max-w-3xl' : 'sm:max-w-lg')}>
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-base/95 px-5 py-3.5 backdrop-blur">
           <h2 className="font-display text-lg font-semibold">{title}</h2>
           <IconButton icon="x" label="Close" onClick={onClose} />
         </header>
-        <div className="px-5 py-4">{children}</div>
-        {footer && <footer className="sticky bottom-0 border-t border-line bg-base/95 px-5 py-3 backdrop-blur">{footer}</footer>}
+        <div className="px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">{children}</div>
+        {footer && <footer className="sticky bottom-0 border-t border-line bg-base/95 px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur">{footer}</footer>}
       </div>
     </div>
   )
