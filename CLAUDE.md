@@ -194,6 +194,53 @@ After the infra/password work above, three more asks landed and were built on th
   on Render disk snapshots / off-site backup (now part-built); (4) invite the first founder for a real run;
   (5) custom domain + the call-recording path. Medium: error monitoring (Sentry), email deliverability/DMARC.
 
+### Amendments batch (same 22nd-wave session, branch `claude/festive-tesla-8xs0jo`) — data-safety + allergen doc
+Ellice's amendments after the review, all built + verified on the same branch (still **merge to `main` to deploy**):
+- **Apple Calendar option (already on `main` at `94375ba`):** the Calendar-subscription card (Settings → App &
+  integrations) now spells out Apple / Google / Outlook subscribe-by-URL paths (was a generic webcal link).
+- **Admin backup & RESTORE button — DONE + drilled:** the admin "Database backup" card (Admin → Overview) gained a
+  **Restore from a backup** card. Upload a `.db` → it's validated (SQLite header + integrity + has a `users` table)
+  and **staged** next to the live DB; the swap happens on the **next restart** (`backup.apply_pending_restore()`,
+  called first thing in `main.bootstrap()` before the DB is opened), keeping the current DB as a timestamped
+  `.prerestore-*` copy so it can be undone. New `POST /api/admin/restore` (admin-only, size-capped). Frontend
+  `api.postFile()`. Stale free-tier-wipe copy on the download card was refreshed (disk is live now). **Drill passed
+  end-to-end via the real HTTP API:** backup → change a setting → upload → restart → data reverted to the snapshot,
+  `.prerestore` kept; junk file → clean 400. To actually apply a restore on Render: **Render → Manual Deploy →
+  Restart** (or any deploy) — the staged file swaps in on boot.
+- **Self-service recycle bin — DONE (backlog-style ask):** chefs can recover their own accidental deletes.
+  **Snapshot approach** (not soft-delete columns): the single `crud_router` delete chokepoint now writes a full
+  JSON snapshot of the row into a new **`deleted_items`** table before deleting, so existing list/get queries are
+  untouched (no risk of a "deleted" row leaking back into views, no per-model schema churn). New `app/recycle.py`:
+  a registry of the 14 recoverable crud models, `snapshot_deletion` / `restore_item` / `purge_expired`, and
+  `GET /recycle` + `POST /recycle/{id}/restore` + `DELETE /recycle/{id}` + `DELETE /recycle` (empty). **Restore keeps
+  the original id when it's still free** (so references survive) and falls back to a fresh id on collision (pre-check
+  + `IntegrityError` guard — NB the savepoint/`begin_nested` approach was buggy and was replaced with a clean
+  pre-check). Retention **30 days** (`RECYCLE_RETENTION_DAYS`, Ellice's choice), auto-purged by the scheduler sweep +
+  opportunistically on read. `DeletedItem` added to the delete-chef `PURGE_MODELS` cascade. `/recycle` added to the
+  offline `NO_QUEUE` (recovery needs a connection). Frontend: a new **Settings → Recently deleted** sub-page (nav
+  pill, `trash` icon) with a **"How recovery works" instructions card** (Ellice's explicit ask — so chefs understand
+  it and don't aim frustration at her), Restore (`replay` icon) + Delete-forever + Empty-bin, days-left countdown.
+- **Allergen matrix → FSA-compliant printable table card + export-hub link:** the Allergens page already had a
+  14-allergen grid + CSV; now **Print / PDF** yields a proper A4 document for the dining table — a **UK FSA guidance
+  template** (the mandatory "speak to a member of staff" allergy statement + a Food Information Regulations 2014 /
+  Natasha's Law line + key/legend + cross-contamination disclaimer) and a print-only header (business name, menu
+  source, date). New **`@media print`** block in `index.css` + **`print:hidden`** on the app chrome in `App.jsx`
+  (sidebar/headers/nav/footer/offline chip/trial banner) so only the document prints (brand ticks kept via
+  `print-color-adjust`, header repeats per page, rows don't split). Surfaced from **Settings → App & integrations →
+  Export your data** (links to the Allergens page — the matrix is built client-side from recipe sheets).
+- **Verified:** backend restore drill (HTTP) + recycle bin (HTTP e2e: create→delete→bin→restore→original-id kept;
+  delete-forever; menu/client modules) + unit (purge expired vs fresh; id-collision fallback leaves the occupying row
+  intact; free-id preserved). Playwright (system chromium, demo chef): recycle page 9/9 (instructions, item listed,
+  Restore clears it, empty-state); allergen doc — FSA statement + Natasha/FIR + all 14 columns + ticks + print-media
+  hides the sidebar & shows the doc header + export-hub row. `npm run build` clean (**78 modules**). Only console
+  noise = the known Google-Fonts cert failures. Temp verify scripts removed.
+- **FAQ kept current (rule #3):** Support FAQ — reworded the allergen entry (Print/PDF + FSA statement) and added
+  "I deleted something by accident — can I get it back?" (Settings → Recently deleted, 30-day restore). Public
+  pre-sign-up FAQ — added "What if I delete something by mistake?" under the data-safety section.
+- **⚠️ STILL PLANNED (Ellice's note, not yet built):** move the **weekly backup destination from EMAIL → encrypted
+  cloud storage (Backblaze B2 / S3)**. And the **Zoom call-recording path stays dormant** until Ellice does the Zoom
+  side (Pro plan + cloud recording + audio transcript + Server-to-Server OAuth + webhook → set the `ZOOM_*` envs).
+
 ## Previous session (2026-06-17, twenty-first wave — shop/route wiring, founders-tab persistence, admin email alerts, unsubscribe retention)
 - Branch `claude/clever-goodall-te9p07` — **merge to `main` to deploy.** Ellice's second feedback batch
   (backlog 12–16, above). **Backend: NO new columns/tables/env/deps** — just a new `mailer.notify_admin()`
@@ -1094,7 +1141,9 @@ bridge between sessions.
   disk (optional hardening: set an explicit `SECRET_KEY`).
   Optional since the 18th wave (all have safe defaults): `CRON_SECRET` (enables the
   external cron hook for reliable day-4 trial reminders), `TRIAL_REMINDER_DAYS_BEFORE`
-  (default 1), `SCHEDULER_INTERVAL_HOURS` (6), `ENABLE_SCHEDULER` (1).
+  (default 1), `SCHEDULER_INTERVAL_HOURS` (6), `ENABLE_SCHEDULER` (1). Backup/recovery
+  (22nd-wave amendments, safe defaults): `BACKUP_INTERVAL_DAYS` (7), `BACKUP_EMAIL`
+  (defaults to `SUPPORT_EMAIL`), `ENABLE_BACKUP` (1), `RECYCLE_RETENTION_DAYS` (30).
 
 ## Email & Domain Infrastructure (IMPORTANT — read before any email work)
 > Hard-won constraints for `thecreatistecatering.com` (Ellice supplied these after a
