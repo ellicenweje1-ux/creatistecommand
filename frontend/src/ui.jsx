@@ -63,6 +63,8 @@ const PATHS = {
   soundOff: 'M4 9v6h4l5 4V5L8 9H4Zm12 2 5 5m0-5-5 5',
   mobile: 'M8 2.5h8A1.5 1.5 0 0 1 17.5 4v16a1.5 1.5 0 0 1-1.5 1.5H8A1.5 1.5 0 0 1 6.5 20V4A1.5 1.5 0 0 1 8 2.5Zm2.5 15.5h3',
   circleV: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM8.5 9.5l3.5 5 3.5-5',
+  eye: 'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z',
+  eyeOff: 'M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24M1 1L23 23',
 }
 
 export function Icon({ name, size = 18, className = '', strokeWidth = 1.8 }) {
@@ -186,6 +188,25 @@ export function Field({ label: fieldLabel, children, hint, className = '' }) {
 }
 
 export const Input = (props) => <input {...props} className={cls('input', props.className)} />
+// Password field with a show/hide eye toggle. Drop-in replacement for <Input type="password" />.
+export function PasswordInput({ className = '', ...props }) {
+  const [show, setShow] = useState(false)
+  return (
+    <div className="relative">
+      <input {...props} type={show ? 'text' : 'password'} className={cls('input pr-10', className)} />
+      <button
+        type="button"
+        onClick={() => setShow((s) => !s)}
+        tabIndex={-1}
+        aria-label={show ? 'Hide password' : 'Show password'}
+        title={show ? 'Hide password' : 'Show password'}
+        className="absolute inset-y-0 right-0 flex items-center px-3 text-fg/40 transition-colors hover:text-fg/70"
+      >
+        <Icon name={show ? 'eyeOff' : 'eye'} size={18} />
+      </button>
+    </div>
+  )
+}
 export const Textarea = (props) => <textarea rows={3} {...props} className={cls('input', props.className)} />
 export const Select = ({ children, ...props }) => (
   <select {...props} className={cls('input appearance-none', props.className)}>{children}</select>

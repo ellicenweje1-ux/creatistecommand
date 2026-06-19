@@ -6,7 +6,7 @@ import { perkIcon, perkTitle } from '../booking'
 import { DEFAULT_CONTACT_TEMPLATE } from '../contact'
 import { cls, fmtMoney, label, SYMBOLS } from '../format'
 import { getInstallPrompt, isStandalone } from '../offline'
-import { Badge, Button, Card, Field, Icon, Input, Modal, PageHeader, Select, Stars, Textarea, toast, toastErr } from '../ui'
+import { Badge, Button, Card, Field, Icon, Input, PasswordInput, Modal, PageHeader, Select, Stars, Textarea, toast, toastErr } from '../ui'
 import { CURRENT, VERSIONS, VersionNotes, versionRef } from '../version'
 
 /* Settings is split into individual pages (own URL each) under /app/settings, so the
@@ -342,8 +342,8 @@ export function SettingsSecurity() {
         password, use the “Forgot password?” link on the sign-in page.
       </p>
       <form onSubmit={changePassword} className="space-y-4">
-        <Field label="Current password"><Input type="password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} required /></Field>
-        <Field label="New password"><Input type="password" minLength={8} value={pw.new} onChange={(e) => setPw({ ...pw, new: e.target.value })} required /></Field>
+        <Field label="Current password"><PasswordInput value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} required /></Field>
+        <Field label="New password"><PasswordInput minLength={8} value={pw.new} onChange={(e) => setPw({ ...pw, new: e.target.value })} required /></Field>
         <div className="flex justify-end"><Button variant="secondary">Update password</Button></div>
       </form>
     </Card>

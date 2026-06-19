@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { isActive, useAuth } from '../auth'
-import { Brand, Button, Field, Icon, Input, toastErr } from '../ui'
+import { Brand, Button, Field, Icon, Input, PasswordInput, toastErr } from '../ui'
 import { VersionStamp } from '../version'
 
 export default function AuthPage({ mode }) {
@@ -64,7 +64,7 @@ export default function AuthPage({ mode }) {
             )}
             <Field label="Email"><Input type="email" value={form.email} onChange={set('email')} placeholder="you@kitchen.com" required /></Field>
             <Field label="Password" hint={isLogin ? undefined : 'At least 8 characters'}>
-              <Input type="password" value={form.password} onChange={set('password')} required minLength={8} />
+              <PasswordInput value={form.password} onChange={set('password')} required minLength={8} />
             </Field>
             {isLogin && (
               <div className="text-right">
