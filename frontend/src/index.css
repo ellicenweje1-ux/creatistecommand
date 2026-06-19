@@ -107,7 +107,9 @@ body { @apply bg-base text-fg font-body antialiased; }
 
 /* ── Print: clean A4 documents (allergen matrix → table cards / PDF) ──────────
    The app chrome is marked print:hidden in App.jsx; these rules make whatever's
-   left print as a tidy document. Colour-adjust keeps the brand ticks visible. */
+   left print as a tidy document. The only print surface in the app is the allergen
+   matrix, which is wide (14 allergen columns) — so the export is standardised to
+   A4 landscape. Colour-adjust keeps the brand ticks visible. */
 @media print {
   :root { --c-base: 255 255 255; --c-card: 255 255 255; }
   html, body {
@@ -115,10 +117,10 @@ body { @apply bg-base text-fg font-body antialiased; }
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  @page { margin: 14mm; }
+  @page { size: A4 landscape; margin: 12mm; }
   /* The allergen document should never be clipped by an on-screen scroll box. */
   .print-doc, .print-doc * { overflow: visible !important; }
-  .print-doc table { min-width: 0 !important; width: 100% !important; font-size: 10px; }
+  .print-doc table { min-width: 0 !important; width: 100% !important; font-size: 11px; }
   .print-doc thead { display: table-header-group; }   /* repeat the header on each page */
   .print-doc tr { break-inside: avoid; page-break-inside: avoid; }
 }
