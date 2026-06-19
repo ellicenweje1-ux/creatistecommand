@@ -34,9 +34,9 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
    plus a few Q&As on Landing/Home. Whenever a feature ships or changes, update BOTH to match — part of "done".
 4. ✅ **Support feature — confirmed working (Ellice, 2026-06-16).** The Support page (`/app/support`)
    posts `/support/request` → creates a SupportTicket (Admin → Support) + emails `SUPPORT_EMAIL`
-   (`command@thecreatistecatering.com` via Resend), and Ellice confirms this works. Only the **"Ask
-   Mise" AI chat** is still off (needs `ANTHROPIC_API_KEY` → 503 → falls back to the form); she'll
-   set the AI key up later. So: support = live; Mise chat = deferred with the rest of the AI rollout.
+   (`command@thecreatistecatering.com` via Resend), and Ellice confirms this works. The **“Ask
+   Mise” AI chat** is now **live too** (22nd wave — `ANTHROPIC_API_KEY` set); its 503 fallback to the
+   support form only appears if the key is ever removed. So: support = live, Mise chat = live.
 5. ✅ **Split Settings into individual pages — DONE (14th wave).** `/app/settings` is now a layout
    with a sub-nav (Profile · Security · Appearance · Membership · App & integrations); each section
    is its own route/page. Details in the fourteenth-wave notes below.
