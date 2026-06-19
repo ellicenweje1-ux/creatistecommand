@@ -78,6 +78,10 @@ ONBOARDING_WEEKDAYS = {0, 1, 2, 3, 4, 5, 6}  # Mon–Sun (datetime.weekday numbe
 ZOOM_ACCOUNT_ID = os.getenv("ZOOM_ACCOUNT_ID", "")
 ZOOM_CLIENT_ID = os.getenv("ZOOM_CLIENT_ID", "")
 ZOOM_CLIENT_SECRET = os.getenv("ZOOM_CLIENT_SECRET", "")
+# Verification token from the Zoom webhook (Event Notification) subscription. When set,
+# onboarding calls are cloud-recorded and POST /api/zoom/webhook ingests the transcript →
+# auto-summary. Empty = the webhook 403s and nothing records (Jitsi / no-record as before).
+ZOOM_WEBHOOK_SECRET_TOKEN = os.getenv("ZOOM_WEBHOOK_SECRET_TOKEN", "")
 MEETING_URL = os.getenv("MEETING_URL", "")
 
 # Email notifications (optional — silently disabled when unset)

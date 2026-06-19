@@ -190,6 +190,7 @@ function SessionModal({ session, onClose, onSaved }) {
           <div className="flex items-center gap-2">
             <Badge tone={SESSION_TONE[session.status]}>{label(session.status)}</Badge>
             <a href={session.meeting_url} target="_blank" rel="noreferrer"><Button size="sm" icon="external">Join call</Button></a>
+            {session.recording_url && <a href={session.recording_url} target="_blank" rel="noreferrer"><Button size="sm" variant="secondary" icon="play">Recording</Button></a>}
           </div>
         </div>
         {session.status === 'booked' && (
@@ -204,7 +205,7 @@ function SessionModal({ session, onClose, onSaved }) {
         <Field label="Call notes">
           <Textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Anything worth remembering from the call…" />
         </Field>
-        <Field label="Transcript" hint="Paste the transcript (Zoom emails you one after cloud-recorded calls) or rough notes, then let AI pull out the key points.">
+        <Field label="Transcript" hint="Cloud-recorded Zoom calls fill this in and summarise themselves automatically. Otherwise paste a transcript or rough notes, then let AI pull out the key points.">
           <Textarea rows={5} value={form.transcript} onChange={(e) => setForm({ ...form, transcript: e.target.value })} placeholder="Paste the call transcript here…" />
         </Field>
         {summary && (

@@ -145,8 +145,10 @@ def availability_grid(db: Session, days_ahead: int | None = None) -> dict:
     }
 
 
-def create_meeting(user: User, kind: str, date: str, start_time: str) -> tuple[str, str]:
-    """Return (meeting_url, provider). Zoom API → fixed MEETING_URL → private Jitsi room."""
+def create_meeting(user: User, kind: str, date: str, start_time: str) -> tuple[str, str, str]:
+    """Return (meeting_url, provider, meeting_id). Zoom API → fixed MEETING_URL → private Jitsi room.
+    When the Zoom webhook token is configured the meeting is cloud-recorded, so the call is
+    auto-transcribed and summarised afterwards (see routers/zoom.py)."""
     if config.ZOOM_ACCOUNT_ID and config.ZOOM_CLIENT_ID and config.ZOOM_CLIENT_SECRET:
         try:
             import httpx
@@ -166,17 +168,22 @@ def create_meeting(user: User, kind: str, date: str, start_time: str) -> tuple[s
                     "start_time": f"{date}T{start_time}:00",
                     "timezone": config.ONBOARDING_TZ,  # interpret start_time as business-local, not GMT
                     "duration": config.ONBOARDING_SLOT_MINUTES,
-                    "settings": {"waiting_room": True, "join_before_host": False},
+                    "settings": {
+                        "waiting_room": True, "join_before_host": False,
+                        # Cloud-record + transcribe so the call auto-summarises afterwards.
+                        "auto_recording": "cloud" if config.ZOOM_WEBHOOK_SECRET_TOKEN else "none",
+                        "audio_transcript": True,
+                    },
                 },
                 timeout=15,
             ).json()
             if meeting.get("join_url"):
-                return meeting["join_url"], "zoom"
+                return meeting["join_url"], "zoom", str(meeting.get("id") or "")
         except Exception:
             pass  # fall through — a broken Zoom config must never block a booking
     if config.MEETING_URL:
-        return config.MEETING_URL, "custom"
-    return f"https://meet.jit.si/creatiste-{kind}-{secrets.token_hex(5)}", "jitsi"
+        return config.MEETING_URL, "custom", ""
+    return f"https://meet.jit.si/creatiste-{kind}-{secrets.token_hex(5)}", "jitsi", ""
 
 
 def book_session(db: Session, user: User, kind: str, date: str, start_time: str) -> OnboardingSession:
@@ -193,20 +200,28 @@ def book_session(db: Session, user: User, kind: str, date: str, start_time: str)
     )
     if existing:
         existing.status = "cancelled"
-    url, provider = create_meeting(user, kind, date, start_time)
+    url, provider, meeting_id = create_meeting(user, kind, date, start_time)
     session = OnboardingSession(
         user_id=user.id, kind=kind, date=date, start_time=start_time,
-        duration_min=config.ONBOARDING_SLOT_MINUTES, meeting_url=url, provider=provider,
+        duration_min=config.ONBOARDING_SLOT_MINUTES, meeting_url=url, provider=provider, meeting_id=meeting_id,
     )
     db.add(session)
     db.commit()
     db.refresh(session)
     label = KIND_LABELS[kind]
     when = f"{date} at {start_time}"
+    # When the call is cloud-recorded (Zoom), tell the client up front — consent + transparency.
+    recorded = provider == "zoom" and bool(config.ZOOM_WEBHOOK_SECRET_TOKEN)
+    rec_note = (
+        "\nNote: this call is recorded and transcribed so we can capture the details of your kitchen "
+        "accurately and set you up properly. The recording is stored securely and used only for your "
+        "onboarding and to improve your service — just tell us if you'd prefer we didn't.\n"
+        if recorded else ""
+    )
     mailer.send_email(
         user.email, f"Your {label.lower()} is booked — {when}",
         f"Hi {user.name or 'chef'},\n\nYour {label.lower()} is booked for {when} "
-        f"({session.duration_min} minutes).\nJoin the video call here: {url}\n\n"
+        f"({session.duration_min} minutes).\nJoin the video call here: {url}\n{rec_note}\n"
         f"Need to move it? Rebook from the app any time before the call.\n\n— The Creatiste Command",
     )
     mailer.send_email(
@@ -235,7 +250,7 @@ def my_sessions(db: Session = Depends(get_db), user: User = Depends(get_current_
     )
     return {
         "onboarded_at": user.onboarded_at,
-        "sessions": [to_dict(s, exclude=("transcript", "ai_summary", "notes")) for s in rows],
+        "sessions": [to_dict(s, exclude=("transcript", "ai_summary", "notes", "meeting_id", "recording_url")) for s in rows],
     }
 
 
@@ -251,7 +266,7 @@ def book(payload: dict = Body(...), db: Session = Depends(get_db), user: User = 
     date = (payload.get("date") or "").strip()
     start_time = (payload.get("start_time") or "").strip()
     session = book_session(db, user, kind, date, start_time)
-    return to_dict(session, exclude=("transcript", "ai_summary", "notes"))
+    return to_dict(session, exclude=("transcript", "ai_summary", "notes", "meeting_id", "recording_url"))
 
 
 @router.post("/cancel/{session_id}")

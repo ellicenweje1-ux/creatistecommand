@@ -409,18 +409,15 @@ def update_session(session_id: int, payload: dict = Body(...), db: Session = Dep
     return to_dict(session)
 
 
-@router.post("/onboarding/{session_id}/summarize")
-def summarize_session(session_id: int, db: Session = Depends(get_db)):
-    """AI key points from the call: paste the transcript (or rough notes), get a
-    structured summary saved on the session."""
+def run_onboarding_summary(db: Session, session: OnboardingSession) -> str:
+    """Generate + save the AI key-points summary for a call from its transcript/notes.
+    Shared by the admin button and the Zoom auto-ingest webhook. Returns the summary
+    ('' when there's nothing to summarise); raises (503) if the AI key isn't configured."""
     from .ai import ask_json
 
-    session = db.get(OnboardingSession, session_id)
-    if not session:
-        raise HTTPException(404, "Session not found")
     source = (session.transcript or session.notes or "").strip()
     if not source:
-        raise HTTPException(422, "Paste the call transcript (or notes) first, then summarise.")
+        return ""
     user = db.get(User, session.user_id)
     result = ask_json(
         f"Summarise this {KINDS_LABEL.get(session.kind, 'onboarding')} video call between the founder of a "
@@ -443,7 +440,19 @@ def summarize_session(session_id: int, db: Session = Depends(get_db)):
         lines.append(f"Sentiment: {result['sentiment']}")
     session.ai_summary = "\n".join(lines).strip()
     db.commit()
-    return {"ai_summary": session.ai_summary}
+    return session.ai_summary
+
+
+@router.post("/onboarding/{session_id}/summarize")
+def summarize_session(session_id: int, db: Session = Depends(get_db)):
+    """AI key points from the call: paste the transcript (or rough notes), get a
+    structured summary saved on the session."""
+    session = db.get(OnboardingSession, session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    if not (session.transcript or session.notes or "").strip():
+        raise HTTPException(422, "Paste the call transcript (or notes) first, then summarise.")
+    return {"ai_summary": run_onboarding_summary(db, session)}
 
 
 KINDS_LABEL = {"onboarding": "onboarding", "checkin": "founders day-5 feedback"}

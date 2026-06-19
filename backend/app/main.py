@@ -10,7 +10,7 @@ from .models import PlatformSettings, User
 from fastapi import Depends
 
 from .auth import require_owner, require_plan
-from .routers import admin, ai, auth_router, billing, bookings, calendar_feed, core, cron, dashboard, exports, finance, founders, onboarding, public, quotes, support, team, uploads
+from .routers import admin, ai, auth_router, billing, bookings, calendar_feed, core, cron, dashboard, exports, finance, founders, onboarding, public, quotes, support, team, uploads, zoom
 
 app = FastAPI(title="The Creatiste Command", version="1.0.0")
 
@@ -50,6 +50,7 @@ app.include_router(quotes.router, prefix=f"{API}/quotes", tags=["quotes"])
 app.include_router(public.router, prefix=API)
 app.include_router(founders.router, prefix=API)
 app.include_router(onboarding.router, prefix=API)
+app.include_router(zoom.router, prefix=API)
 app.include_router(support.router, prefix=API)
 app.include_router(calendar_feed.router, prefix=API)
 app.include_router(exports.router, prefix=API)

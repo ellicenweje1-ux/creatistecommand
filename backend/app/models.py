@@ -388,7 +388,9 @@ class OnboardingSession(Base):
     start_time: Mapped[str] = mapped_column(String(5), default="")  # HH:MM
     duration_min: Mapped[int] = mapped_column(Integer, default=45)
     meeting_url: Mapped[str] = mapped_column(String(500), default="")
+    meeting_id: Mapped[str] = mapped_column(String(40), default="")     # provider meeting id (Zoom) — matches the recording webhook back to this call
     provider: Mapped[str] = mapped_column(String(20), default="jitsi")  # zoom | jitsi | custom
+    recording_url: Mapped[str] = mapped_column(String(500), default="")  # Zoom cloud-recording share link
     status: Mapped[str] = mapped_column(String(20), default="booked")  # booked | completed | cancelled | no_show
     notes: Mapped[str] = mapped_column(Text, default="")        # admin notes
     transcript: Mapped[str] = mapped_column(Text, default="")   # pasted call transcript
