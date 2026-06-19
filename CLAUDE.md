@@ -161,6 +161,39 @@ now cleared** — only the standing FAQ rule (#3) remains ongoing.
   polygons + filled; supersample 4× → LANCZOS downscale. (Reusable if regenerating brand assets.)
 - **No version bump** (standing rule — awaiting Ellice's word + her biblical reference).
 
+### Follow-on builds (same 22nd-wave session, branch `claude/festive-tesla-8xs0jo`)
+After the infra/password work above, three more asks landed and were built on the same branch:
+- **Show/hide password eye toggle** — `PasswordInput` in `ui.jsx` (+`eye`/`eyeOff` glyphs); wired into
+  login/register (`AuthPage`), change-password (`Settings → Security`) and reset-password (`ResetPassword`).
+  **Merged to `main`.** (Also audited all 13 Mise touchpoints — all already present Mise as live/dynamic; only
+  stale note was backlog #4, fixed.)
+- **Onboarding call auto-record → transcribe → AI-summarise (Zoom):** when `ZOOM_*` creds +
+  `ZOOM_WEBHOOK_SECRET_TOKEN` are set, onboarding/check-in calls cloud-record; new signature-verified
+  `POST /api/zoom/webhook` (`routers/zoom.py`) pulls the Zoom audio transcript onto the matching
+  `OnboardingSession`, saves the recording link, and auto-runs the existing AI key-points summary (extracted
+  to `admin.run_onboarding_summary()`). Additive `onboarding_sessions.meeting_id` / `recording_url`;
+  `create_meeting` sets `auto_recording=cloud` + returns the meeting id; booking confirmation email gains a
+  recording-consent line; admin session modal gets a "Recording" link. **INERT until Zoom is configured**
+  (webhook 403s, calls don't record) — behaviour unchanged until Ellice does the Zoom side (Pro plan + cloud
+  recording + audio transcript + a Server-to-Server OAuth app + a webhook subscription → set
+  `ZOOM_ACCOUNT_ID/CLIENT_ID/CLIENT_SECRET/ZOOM_WEBHOOK_SECRET_TOKEN`). Verified: webhook 7/7.
+- **Weekly off-site backup (email) — LIVE:** `app/backup.py` — the in-process scheduler emails a full SQLite
+  snapshot to `BACKUP_EMAIL` (defaults to `SUPPORT_EMAIL`) every `BACKUP_INTERVAL_DAYS` (7), via Resend with an
+  attachment (new `mailer.send_email_sync` + attachment support on the Resend/SMTP paths). `make_snapshot()`
+  shared with the admin Download-backup endpoint; due-state in `DATA_DIR/.last_backup` (a restart won't
+  re-backup); no-op until email is configured (never "spends" a week silently). First run fires on the next
+  startup (no stamp yet → immediate), then weekly. The snapshot is the WHOLE platform DB (every chef account +
+  everything chefs & their clients entered) — keep the inbox secure. New env (safe defaults):
+  `BACKUP_INTERVAL_DAYS` (7), `BACKUP_EMAIL`, `ENABLE_BACKUP` (1). Verified: backup 8/8.
+  **⚠️ PLANNED UPGRADE (Ellice's explicit note): move the destination from EMAIL → encrypted CLOUD STORAGE
+  (Backblaze B2 / S3) — emailing a full DB is the start, not the end.** Also flagged: Render likely already
+  takes automatic daily disk snapshots (verify in the Disks tab) — that covers disk failure; this weekly email
+  is the independent off-Render copy.
+- **Full platform review + "first next steps" delivered in-chat:** (1) run one real end-to-end Stripe
+  subscription on her own card; (2) solicitor review of Terms/Privacy + registered business details; (3) turn
+  on Render disk snapshots / off-site backup (now part-built); (4) invite the first founder for a real run;
+  (5) custom domain + the call-recording path. Medium: error monitoring (Sentry), email deliverability/DMARC.
+
 ## Previous session (2026-06-17, twenty-first wave — shop/route wiring, founders-tab persistence, admin email alerts, unsubscribe retention)
 - Branch `claude/clever-goodall-te9p07` — **merge to `main` to deploy.** Ellice's second feedback batch
   (backlog 12–16, above). **Backend: NO new columns/tables/env/deps** — just a new `mailer.notify_admin()`

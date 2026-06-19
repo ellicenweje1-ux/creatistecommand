@@ -81,6 +81,12 @@ def _sweep():
         log.warning("trial-reminder sweep failed: %s", exc)
     finally:
         db.close()
+    try:
+        from .backup import run_weekly_backup
+
+        run_weekly_backup()  # emails an off-site DB snapshot if one is due (weekly)
+    except Exception as exc:
+        log.warning("backup sweep failed: %s", exc)
 
 
 def start_scheduler():

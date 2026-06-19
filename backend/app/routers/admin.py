@@ -156,35 +156,20 @@ def delete_chef(user_id: int, db: Session = Depends(get_db)):
 
 @router.get("/backup")
 def backup_database():
-    """Download a consistent snapshot of the SQLite database (one .db file). The free
-    Render tier wipes the disk on every deploy, so until the persistent disk is added
-    this is the only safety net — take one before every deploy. Uses SQLite's online
-    backup API so it's safe to run while the app is live."""
+    """Download a consistent snapshot of the SQLite database (one .db file). Safe to run
+    while the app is live (SQLite online-backup API). A copy is also emailed off-site
+    automatically every week — see app/backup.py."""
     import os
-    import sqlite3
-    import tempfile
-    from datetime import datetime as _dt
 
     from fastapi.responses import FileResponse
     from starlette.background import BackgroundTask
 
-    if not config.DATABASE_URL.startswith("sqlite"):
-        raise HTTPException(400, "Backup download is only available for SQLite databases.")
-    src_path = config.DATABASE_URL.replace("sqlite:///", "", 1)
-    if not os.path.exists(src_path):
-        raise HTTPException(404, "Database file not found.")
+    from ..backup import make_snapshot
 
-    fd, tmp_path = tempfile.mkstemp(suffix=".db", prefix="creatiste-backup-")
-    os.close(fd)
-    src = sqlite3.connect(src_path)
-    dst = sqlite3.connect(tmp_path)
     try:
-        with dst:
-            src.backup(dst)
-    finally:
-        src.close()
-        dst.close()
-    filename = f"creatiste-backup-{_dt.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}.db"
+        tmp_path, filename = make_snapshot()
+    except RuntimeError as exc:
+        raise HTTPException(400, str(exc))
     return FileResponse(
         tmp_path, media_type="application/octet-stream", filename=filename,
         background=BackgroundTask(os.unlink, tmp_path),

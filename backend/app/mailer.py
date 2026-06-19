@@ -3,6 +3,7 @@
 Sends via the Resend HTTP API when RESEND_API_KEY is set (works on hosts like Render
 that block outbound SMTP ports), otherwise over STARTTLS SMTP. Disabled (no-op) until
 one of those is configured."""
+import base64
 import json
 import logging
 import smtplib
@@ -20,14 +21,13 @@ def email_enabled() -> bool:
     return bool(config.RESEND_API_KEY) or bool(config.SMTP_HOST and config.SMTP_FROM)
 
 
-def _deliver_resend(to: str, subject: str, body: str):
+def _deliver_resend(to: str, subject: str, body: str, attachment=None):
     """Send over HTTPS via Resend's API (port 443 — never blocked by the host)."""
-    data = json.dumps({
-        "from": config.SMTP_FROM,
-        "to": [to],
-        "subject": subject,
-        "text": body,
-    }).encode()
+    payload = {"from": config.SMTP_FROM, "to": [to], "subject": subject, "text": body}
+    if attachment:
+        fname, content = attachment
+        payload["attachments"] = [{"filename": fname, "content": base64.b64encode(content).decode()}]
+    data = json.dumps(payload).encode()
     req = urllib.request.Request(
         "https://api.resend.com/emails",
         data=data,
@@ -49,8 +49,18 @@ def _deliver_resend(to: str, subject: str, body: str):
         raise RuntimeError(f"Resend API {exc.code}: {detail}") from None
 
 
-def _deliver_smtp(to: str, subject: str, body: str):
-    msg = MIMEText(body, "plain", "utf-8")
+def _deliver_smtp(to: str, subject: str, body: str, attachment=None):
+    if attachment:
+        from email.mime.application import MIMEApplication
+        from email.mime.multipart import MIMEMultipart
+
+        msg = MIMEMultipart()
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+        part = MIMEApplication(attachment[1])
+        part.add_header("Content-Disposition", "attachment", filename=attachment[0])
+        msg.attach(part)
+    else:
+        msg = MIMEText(body, "plain", "utf-8")
     msg["Subject"] = subject
     msg["From"] = config.SMTP_FROM
     msg["To"] = to
@@ -61,14 +71,16 @@ def _deliver_smtp(to: str, subject: str, body: str):
         server.send_message(msg)
 
 
-def _deliver(to: str, subject: str, body: str):
+def _deliver(to: str, subject: str, body: str, attachment=None) -> bool:
     try:
         if config.RESEND_API_KEY:
-            _deliver_resend(to, subject, body)
+            _deliver_resend(to, subject, body, attachment)
         else:
-            _deliver_smtp(to, subject, body)
+            _deliver_smtp(to, subject, body, attachment)
+        return True
     except Exception as exc:  # never let email failures break a request
         log.warning("email to %s failed: %s", to, exc)
+        return False
 
 
 def send_email(to: str, subject: str, body: str):
@@ -77,6 +89,15 @@ def send_email(to: str, subject: str, body: str):
         log.info("email skipped (not configured): %s -> %s", subject, to)
         return
     threading.Thread(target=_deliver, args=(to, subject, body), daemon=True).start()
+
+
+def send_email_sync(to: str, subject: str, body: str, attachment=None) -> bool:
+    """Synchronous send that reports success — used by the weekly backup so its 'last
+    backup' timestamp only advances when the email actually went out."""
+    if not email_enabled() or not to:
+        log.info("email skipped (not configured): %s -> %s", subject, to)
+        return False
+    return _deliver(to, subject, body, attachment)
 
 
 def notify_admin(subject: str, body: str):
