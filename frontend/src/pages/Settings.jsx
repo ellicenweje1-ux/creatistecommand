@@ -672,9 +672,20 @@ function CalendarFeedCard({ token }) {
         <Input readOnly value={httpsUrl} onFocus={(e) => e.target.select()} />
         <Button variant="secondary" onClick={() => { navigator.clipboard.writeText(httpsUrl); toast('Calendar link copied', 'sage') }}>Copy</Button>
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-        <a href={webcalUrl} className="text-xs font-medium text-copper hover:underline">Subscribe on this device →</a>
-        <span className="text-xs text-fg/40">or paste the link into Google Calendar → “From URL”, or Apple Calendar → “New Calendar Subscription”.</span>
+      <div className="mt-3 space-y-1.5 text-xs">
+        <p className="font-medium text-fg/70">Choose your calendar:</p>
+        <p className="text-fg/55">
+          <a href={webcalUrl} className="font-medium text-copper hover:underline">Add to Apple Calendar (one tap) →</a>
+          <span className="text-fg/40"> — on iPhone, iPad or Mac it opens straight into “Subscribe to Calendar”.</span>
+        </p>
+        <p className="text-fg/55">
+          <span className="font-medium text-fg/70">Google Calendar</span>
+          <span className="text-fg/40"> — open Google Calendar → “Other calendars” → <span className="font-medium text-fg/60">From URL</span> → paste the link above.</span>
+        </p>
+        <p className="text-fg/55">
+          <span className="font-medium text-fg/70">Outlook</span>
+          <span className="text-fg/40"> — “Add calendar” → <span className="font-medium text-fg/60">Subscribe from web</span> → paste the link above.</span>
+        </p>
       </div>
     </Card>
   )
