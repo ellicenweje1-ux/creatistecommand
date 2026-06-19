@@ -579,6 +579,17 @@ export default function Admin() {
       .catch(toastErr)
       .finally(() => setBackingUp(false))
   }
+  const [restoreFile, setRestoreFile] = useState(null)   // chosen .db, awaiting confirmation
+  const [restoring, setRestoring] = useState(false)
+  const [restored, setRestored] = useState(null)         // success message after staging
+  const doRestore = () => {
+    if (!restoreFile) return
+    setRestoring(true)
+    api.postFile('/admin/restore', restoreFile)
+      .then((res) => { setRestored(res.message || 'Backup staged. Restart to apply.'); setRestoreFile(null); toast('Backup verified & staged', 'sage') })
+      .catch(toastErr)
+      .finally(() => setRestoring(false))
+  }
   if (!overview) return <Spinner />
   const cur = overview.currency
 
@@ -635,14 +646,53 @@ export default function Admin() {
           <Card title="Database backup">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="max-w-xl text-sm text-fg/65">
-                Download a complete snapshot of the platform database (a single SQLite file).
-                <span className="font-medium text-amber-600"> The free hosting tier wipes the database on every deploy</span> —
-                until the persistent disk is added, take a backup before each deploy and keep it safe.
+                Download a complete snapshot of the platform database (a single SQLite file) —
+                every account plus everything your chefs have entered. A copy is also emailed
+                off-site automatically every week, and the hosting disk is snapshotted daily, so
+                this is your own extra safety copy. Keep any downloaded file somewhere secure.
               </p>
               <Button icon="down" disabled={backingUp} onClick={downloadBackup} className="shrink-0">
                 {backingUp ? 'Preparing…' : 'Download backup'}
               </Button>
             </div>
+          </Card>
+
+          <Card title="Restore from a backup">
+            {restored ? (
+              <div className="rounded-lg border border-sage/40 bg-sage/10 p-4 text-sm">
+                <p className="font-medium text-sage">Backup verified and staged ✓</p>
+                <p className="mt-1 text-fg/70">{restored}</p>
+                <p className="mt-2 text-xs text-fg/50">Your current data is kept as a “pre-restore” copy on the disk until the restart, so this can still be undone.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="max-w-xl text-sm text-fg/65">
+                  Replace the live database with a backup file (a <code>.db</code> downloaded above or from
+                  the weekly email). The file is checked, then applied on the next restart — your current
+                  data is kept as a recoverable copy first.
+                </p>
+                <div className="rounded-lg border border-red-400/40 bg-red-500/5 p-3 text-xs text-red-600 dark:text-red-400">
+                  <span className="font-semibold">This overwrites everything.</span> Every account and all
+                  current data is replaced by whatever is in the file you choose. Only use a backup you trust.
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <input
+                    type="file" accept=".db,.sqlite,application/octet-stream"
+                    onChange={(e) => setRestoreFile(e.target.files?.[0] || null)}
+                    className="block w-full text-sm text-fg/70 file:mr-3 file:rounded-lg file:border-0 file:bg-line file:px-3 file:py-2 file:text-sm file:font-medium file:text-fg hover:file:bg-line/70 sm:w-auto"
+                  />
+                  <Button
+                    icon="up" tone="danger" disabled={!restoreFile || restoring}
+                    onClick={doRestore} className="shrink-0"
+                  >
+                    {restoring ? 'Checking…' : 'Restore this backup'}
+                  </Button>
+                </div>
+                {restoreFile && (
+                  <p className="text-xs text-fg/50">Selected: {restoreFile.name} ({Math.round(restoreFile.size / 1024)} KB)</p>
+                )}
+              </div>
+            )}
           </Card>
         </div>
       )}

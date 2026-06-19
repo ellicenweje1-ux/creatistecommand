@@ -74,6 +74,10 @@ def bootstrap():
     import json
     import uuid
 
+    # Apply a staged restore (if any) BEFORE the DB is opened/migrated below.
+    from .backup import apply_pending_restore
+    apply_pending_restore()
+
     Base.metadata.create_all(bind=engine)
     ensure_columns()
     db = SessionLocal()

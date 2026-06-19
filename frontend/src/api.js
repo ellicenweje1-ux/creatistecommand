@@ -105,6 +105,13 @@ export const api = {
     fd.append('file', file)
     return request('/uploads', { method: 'POST', formData: fd })
   },
+  // POST a single file to an arbitrary endpoint (e.g. the admin DB restore). Needs a live
+  // connection — never queued offline.
+  postFile: (path, file) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return request(path, { method: 'POST', formData: fd })
+  },
   // Authenticated file download (CSV exports, DB backup): raw fetch with the bearer
   // token, streamed into a blob and saved — bypasses the GET cache/queue layer.
   download: async (path, filename) => {

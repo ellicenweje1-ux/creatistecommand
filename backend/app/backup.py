@@ -11,6 +11,7 @@ push to encrypted cloud storage (Backblaze B2 / S3) instead of email.
 make_snapshot() is also used by the admin Download-backup endpoint."""
 import logging
 import os
+import shutil
 import sqlite3
 import tempfile
 from datetime import datetime, timedelta, timezone
@@ -19,6 +20,16 @@ from . import config, mailer
 
 log = logging.getLogger("backup")
 _STAMP = config.DATA_DIR / ".last_backup"
+
+SQLITE_MAGIC = b"SQLite format 3\x00"
+
+
+def _live_db_path() -> str:
+    return config.DATABASE_URL.replace("sqlite:///", "", 1)
+
+
+def _restore_path() -> str:
+    return _live_db_path() + ".restore"
 
 
 def make_snapshot() -> tuple[str, str]:
@@ -84,3 +95,103 @@ def run_weekly_backup(force: bool = False) -> dict:
         _STAMP.write_text(datetime.now(timezone.utc).isoformat())
         log.info("weekly backup emailed (%d KB)", len(blob) // 1024)
     return {"backed_up": bool(ok), "size_kb": len(blob) // 1024}
+
+
+# --- Restore from a backup file ------------------------------------------------------------
+# A restore can't safely overwrite the DB SQLite is actively using, so it's a two-step,
+# restart-applied swap: the uploaded file is validated and *staged* next to the live DB now,
+# then applied on the next startup (apply_pending_restore, called first thing in bootstrap()).
+# The current DB is kept as a timestamped .prerestore copy so a bad restore can be undone.
+
+def validate_snapshot(data: bytes) -> str:
+    """Cheap sanity check that `data` is one of our SQLite backups before we stage it.
+    Returns '' if valid, else a human-readable reason it was rejected."""
+    if not data:
+        return "The file is empty."
+    if not data.startswith(SQLITE_MAGIC):
+        return "That isn't a SQLite database file (wrong file type)."
+    fd, tmp = tempfile.mkstemp(suffix=".db", prefix="creatiste-verify-")
+    os.close(fd)
+    try:
+        with open(tmp, "wb") as f:
+            f.write(data)
+        con = sqlite3.connect(tmp)
+        try:
+            ok = con.execute("PRAGMA integrity_check").fetchone()
+            if not ok or ok[0] != "ok":
+                return "The database file is corrupted (failed integrity check)."
+            tables = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+            if "users" not in tables:
+                return "That database doesn't look like a Creatiste Command backup (no accounts table)."
+        finally:
+            con.close()
+    except sqlite3.DatabaseError:
+        return "The database file is unreadable or corrupted."
+    finally:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+    return ""
+
+
+def stage_restore(data: bytes) -> dict:
+    """Validate an uploaded backup and stage it for the next restart. Raises ValueError
+    (→ a clean 400) on a bad file. The swap itself happens in apply_pending_restore()."""
+    if not config.DATABASE_URL.startswith("sqlite"):
+        raise ValueError("Restore is only available for SQLite databases.")
+    reason = validate_snapshot(data)
+    if reason:
+        raise ValueError(reason)
+    target = _restore_path()
+    with open(target, "wb") as f:
+        f.write(data)
+    log.info("restore staged (%d KB) — applies on next restart", len(data) // 1024)
+    return {"staged": True, "size_kb": len(data) // 1024}
+
+
+def restore_pending() -> bool:
+    return os.path.exists(_restore_path())
+
+
+def apply_pending_restore() -> bool:
+    """If a restore was staged, swap it in now (before anything opens the DB). Keeps the
+    current DB as a timestamped .prerestore-* copy so it can be rolled back by hand.
+    Returns True if a restore was applied. Called first thing in bootstrap()."""
+    staged = _restore_path()
+    if not os.path.exists(staged):
+        return False
+    if validate_snapshot_file(staged):
+        log.warning("staged restore failed re-validation — ignoring and removing it")
+        _safe_unlink(staged)
+        return False
+    live = _live_db_path()
+    try:
+        if os.path.exists(live):
+            keep = f"{live}.prerestore-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
+            shutil.copy2(live, keep)
+            log.info("kept pre-restore copy: %s", os.path.basename(keep))
+        # Drop any SQLite sidecar files from the old DB so they can't fight the new one.
+        for sidecar in (live + "-wal", live + "-shm", live + "-journal"):
+            _safe_unlink(sidecar)
+        os.replace(staged, live)
+        log.info("restore applied — live database replaced from staged backup")
+        return True
+    except OSError as exc:
+        log.error("restore failed to apply: %s", exc)
+        return False
+
+
+def validate_snapshot_file(path: str) -> str:
+    try:
+        with open(path, "rb") as f:
+            return validate_snapshot(f.read())
+    except OSError as exc:
+        return f"Could not read the staged file: {exc}"
+
+
+def _safe_unlink(path: str) -> None:
+    try:
+        os.unlink(path)
+    except OSError:
+        pass

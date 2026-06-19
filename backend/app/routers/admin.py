@@ -3,7 +3,7 @@ import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -174,6 +174,31 @@ def backup_database():
         tmp_path, media_type="application/octet-stream", filename=filename,
         background=BackgroundTask(os.unlink, tmp_path),
     )
+
+
+# Cap restore uploads (a full platform DB is small; this just stops a silly huge upload).
+MAX_RESTORE_BYTES = 200 * 1024 * 1024
+
+
+@router.post("/restore")
+async def restore_database(file: UploadFile = File(...)):
+    """Upload a .db backup to restore from. The file is validated and *staged* now, then
+    swapped in on the next restart (it can't overwrite the database SQLite is using live).
+    The current database is kept as a .prerestore copy so the swap can be undone."""
+    from ..backup import stage_restore
+
+    data = await file.read()
+    if len(data) > MAX_RESTORE_BYTES:
+        raise HTTPException(400, "That file is too large to be a database backup.")
+    try:
+        result = stage_restore(data)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    return {
+        **result,
+        "message": "Backup verified and staged. Restart the app (Render → Manual Deploy → "
+        "Restart) to apply it. Your current data is kept as a pre-restore copy until then.",
+    }
 
 
 @router.get("/payments")
