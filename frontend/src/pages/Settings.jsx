@@ -19,6 +19,7 @@ const SETTINGS_NAV = [
   { to: '/app/settings/appearance', icon: 'moon', label: 'Appearance' },
   { to: '/app/settings/membership', icon: 'coins', label: 'Membership' },
   { to: '/app/settings/integrations', icon: 'mobile', label: 'App & integrations' },
+  { to: '/app/settings/recycle', icon: 'trash', label: 'Recently deleted' },
   { to: '/app/settings/about', icon: 'circleV', label: 'Version' },
 ]
 
@@ -793,6 +794,125 @@ export function SettingsAbout() {
           <p className="text-sm text-fg/55">This is the first release — earlier versions will appear here as the platform updates.</p>
         )}
       </Card>
+    </div>
+  )
+}
+
+/* --------------------------------- Recently deleted (recycle bin) --------------------------------- */
+function deletedWhen(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+export function SettingsRecycle() {
+  const [data, setData] = useState(null)        // { retention_days, items }
+  const [busy, setBusy] = useState(0)           // id being restored/removed
+  const [confirm, setConfirm] = useState(null)  // item pending "delete forever", or 'empty'
+
+  const load = () => api.get('/recycle').then(setData).catch(toastErr)
+  useEffect(() => { load() }, [])
+
+  const items = data?.items || []
+  const retention = data?.retention_days || 30
+
+  const restore = (item) => {
+    setBusy(item.id)
+    api.post(`/recycle/${item.id}/restore`)
+      .then((res) => { toast(`${res.kind || 'Item'} restored`, 'sage'); load() })
+      .catch(toastErr).finally(() => setBusy(0))
+  }
+  const removeForever = (item) => {
+    setBusy(item.id)
+    api.del(`/recycle/${item.id}`)
+      .then(() => { setConfirm(null); toast('Deleted permanently'); load() })
+      .catch(toastErr).finally(() => setBusy(0))
+  }
+  const emptyBin = () => {
+    api.del('/recycle')
+      .then(() => { setConfirm(null); toast('Recycle bin emptied'); load() })
+      .catch(toastErr)
+  }
+
+  return (
+    <div className="space-y-5">
+      <Card title="How recovery works">
+        <div className="space-y-3 text-sm leading-relaxed text-fg/65">
+          <p>
+            Deleted something by mistake? Don’t worry — you can bring it back yourself. When you delete
+            a recipe, menu, client, list, supplier, task or any other item, it isn’t gone for good. It’s
+            kept here for <span className="font-semibold text-fg">{retention} days</span>, then removed
+            automatically.
+          </p>
+          <ul className="space-y-1.5">
+            <li className="flex gap-2"><Icon name="replay" size={16} className="mt-0.5 shrink-0 text-copper" /><span><span className="font-medium text-fg">Restore</span> puts the item straight back where it was, exactly as it was.</span></li>
+            <li className="flex gap-2"><Icon name="trash" size={16} className="mt-0.5 shrink-0 text-fg/50" /><span><span className="font-medium text-fg">Delete forever</span> removes it permanently — only use this if you’re certain.</span></li>
+            <li className="flex gap-2"><Icon name="clock" size={16} className="mt-0.5 shrink-0 text-fg/50" /><span>Anything older than {retention} days clears itself, so the bin never piles up.</span></li>
+          </ul>
+          <p className="text-fg/50">
+            Tip: if you can’t find an old item in its normal page, check here first — it may simply be waiting to be restored.
+          </p>
+        </div>
+      </Card>
+
+      <Card title={`In the bin${items.length ? ` · ${items.length}` : ''}`} action={
+        items.length ? <Button variant="ghost" size="sm" onClick={() => setConfirm('empty')}>Empty bin</Button> : null
+      }>
+        {!data ? (
+          <p className="py-6 text-center text-sm text-fg/45">Loading…</p>
+        ) : items.length === 0 ? (
+          <div className="py-10 text-center">
+            <Icon name="trash" size={32} className="mx-auto mb-3 text-fg/25" />
+            <p className="text-sm font-medium text-fg/70">Nothing deleted recently</p>
+            <p className="mt-1 text-sm text-fg/45">Anything you delete will appear here for {retention} days, ready to restore.</p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-line/70">
+            {items.map((item) => (
+              <li key={item.id} className="flex flex-wrap items-center gap-3 py-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <Badge tone="ink">{item.kind}</Badge>
+                    <p className="truncate font-medium text-fg">{item.label}</p>
+                  </div>
+                  <p className="mt-0.5 text-xs text-fg/45">
+                    Deleted {deletedWhen(item.deleted_at)}{item.deleted_by ? ` by ${item.deleted_by}` : ''} ·{' '}
+                    <span className={cls(item.days_left <= 3 ? 'font-medium text-red-500' : 'text-fg/45')}>
+                      {item.days_left} day{item.days_left === 1 ? '' : 's'} left to restore
+                    </span>
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <Button size="sm" icon="replay" disabled={busy === item.id || !item.restorable} onClick={() => restore(item)}>
+                    Restore
+                  </Button>
+                  <Button size="sm" variant="ghost" icon="trash" disabled={busy === item.id} onClick={() => setConfirm(item)}
+                    className="text-fg/50 hover:text-red-500" />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {confirm && (
+        <Modal open onClose={() => setConfirm(null)} title={confirm === 'empty' ? 'Empty the recycle bin?' : 'Delete forever?'}>
+          <div className="space-y-4">
+            <p className="text-sm text-fg/70">
+              {confirm === 'empty'
+                ? 'This permanently removes everything in the bin. Restored items are unaffected — but anything still in here will be gone for good and cannot be recovered.'
+                : <>This permanently removes <span className="font-medium text-fg">{confirm.label}</span>. It cannot be recovered afterwards.</>}
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setConfirm(null)}>Keep it</Button>
+              <Button variant="danger" onClick={() => confirm === 'empty' ? emptyBin() : removeForever(confirm)}>
+                {confirm === 'empty' ? 'Empty bin' : 'Delete forever'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

@@ -11,7 +11,7 @@ from .. import config, mailer
 from ..auth import hash_password, require_admin
 from ..database import get_db
 from ..models import (
-    ActivityLog, Appointment, BlockedSlot, Booking, Client, ClientReview, Design, Expense,
+    ActivityLog, Appointment, BlockedSlot, Booking, Client, ClientReview, DeletedItem, Design, Expense,
     FounderFeedback, Idea, InventoryItem, Invoice, Menu, OnboardingSession, OnlineOrder, PackingList,
     Payment, Quote, RoutePlan, Recipe, Shift, ShoppingList, Supplier, SupplierPrice,
     SupportTicket, Task, User,
@@ -28,7 +28,7 @@ router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(requir
 # id *and* their staff's ids, so nothing (quotes, suppliers, sessions, logs, tickets…)
 # is left orphaned in the database.
 PURGE_MODELS = (
-    ActivityLog, Appointment, Booking, Client, ClientReview, Design, Expense, FounderFeedback,
+    ActivityLog, Appointment, Booking, Client, ClientReview, DeletedItem, Design, Expense, FounderFeedback,
     Idea, InventoryItem, Invoice, Menu, OnboardingSession, OnlineOrder, PackingList, Payment, Quote,
     RoutePlan, Recipe, Shift, ShoppingList, Supplier, SupplierPrice, SupportTicket, Task,
 )

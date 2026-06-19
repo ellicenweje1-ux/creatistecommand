@@ -132,6 +132,10 @@ BACKUP_INTERVAL_DAYS = int(os.getenv("BACKUP_INTERVAL_DAYS", "7"))
 BACKUP_EMAIL = os.getenv("BACKUP_EMAIL", "") or SUPPORT_EMAIL
 ENABLE_BACKUP = os.getenv("ENABLE_BACKUP", "1") not in ("0", "false", "False", "")
 
+# Recycle bin: deleted workspace items are snapshotted and kept this many days so chefs
+# can restore them themselves, then auto-purged. (Self-service "Recently deleted".)
+RECYCLE_RETENTION_DAYS = int(os.getenv("RECYCLE_RETENTION_DAYS", "30"))
+
 # Founders Membership — the private launch programme for the platform's first chefs.
 # Joined only through the secret invite link (Admin → Founders); never shown on public
 # pages. All values editable live from the admin. Once the programme is closed (or every

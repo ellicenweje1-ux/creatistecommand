@@ -79,6 +79,12 @@ def _sweep():
         run_trial_reminders(db)
     except Exception as exc:  # a failed sweep must never crash the worker
         log.warning("trial-reminder sweep failed: %s", exc)
+    try:
+        from .recycle import purge_expired
+
+        purge_expired(db)  # drop recycle-bin items past their retention window
+    except Exception as exc:
+        log.warning("recycle purge failed: %s", exc)
     finally:
         db.close()
     try:

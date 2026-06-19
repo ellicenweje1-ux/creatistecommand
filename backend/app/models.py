@@ -434,3 +434,19 @@ class SupportTicket(Base):
     message: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(10), default="open")  # open | closed
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class DeletedItem(Base):
+    """Recycle bin: when a chef deletes a workspace item we snapshot the whole row here
+    (rather than wiping it) so they can restore it themselves. Auto-purged after the
+    retention window. Workspace-scoped via user_id, exactly like the live rows."""
+    __tablename__ = "deleted_items"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, index=True)        # workspace owner id
+    actor_id: Mapped[int] = mapped_column(Integer, nullable=True)    # who deleted it
+    actor_name: Mapped[str] = mapped_column(String(160), default="")
+    table_name: Mapped[str] = mapped_column(String(60), index=True)  # original __tablename__
+    entity_type: Mapped[str] = mapped_column(String(60), default="") # model class name (display)
+    label: Mapped[str] = mapped_column(String(200), default="")      # human label for the list
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)        # full row snapshot (incl. id)
+    deleted_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)

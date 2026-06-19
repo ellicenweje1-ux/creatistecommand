@@ -129,6 +129,10 @@ def crud_router(model, *, required=("title",), search_fields=(), default_order=N
         if not obj or obj.user_id != ws_id(user):
             raise HTTPException(404, "Not found")
         log_activity(db, user, "deleted", obj)
+        # Snapshot into the recycle bin so the chef can restore it themselves (lazy import
+        # avoids a utils <-> recycle circular import).
+        from .recycle import snapshot_deletion
+        snapshot_deletion(db, user, obj)
         db.delete(obj)
         db.commit()
 
