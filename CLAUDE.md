@@ -12,13 +12,14 @@ commit authorship may show a different name/email — the project is entirely El
 Ellice is sending pointers "in bits" from using the live platform. Capture each here as it lands
 so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in progress · ✅ done · ❓ answered.
 
-1. 🔲 **"Keep me logged in" / stay signed in.** Today: JWT in `localStorage` (`cc_token`),
+1. ✅ **"Keep me logged in" / stay signed in — DONE (22nd wave).** Fixed by the persistent disk (#2):
+   `DATA_DIR/.secret_key` now survives deploys, so the SQLite-wipe logout cause is gone. (Original analysis below.) Today: JWT in `localStorage` (`cc_token`),
    `TOKEN_TTL_DAYS=7` — sessions already persist ~7 days, then 401 → `/login`. The likely real
    cause of surprise logouts is the **free-tier SQLite wipe on every deploy** (user row vanishes →
    `get_current_user` 401 "User no longer exists" → `api.js` clears the token). Plan: add the
    persistent disk (infra — see #2) AND optionally lengthen the TTL + add sliding refresh and/or a
    "Remember me" choice on login.
-2. ❓ **"How do my updates affect live users in real time?"** — answered in chat. Merge→`main`→
+2. ✅ **"How do my updates affect live users in real time?" — answered; and its URGENT disk caveat is now DONE (22nd wave): the persistent disk + always-on Starter are live & verified, so deploys no longer wipe data.** — answered in chat. Merge→`main`→
    Render redeploys (~1–3 min build; brief blip on the free tier's single instance); existing
    logins survive a deploy (token is client-side, `SECRET_KEY` is a stable env var); a user with the
    app already open keeps the old frontend until they reload/navigate (SW is network-first, so a
@@ -99,12 +100,68 @@ so nothing is lost between sessions. Status: 🔲 not started · 🛠️ in prog
     each distinct shop on it into a stop, with the **address auto-filled from the matching Supplier**
     (skips "Anywhere"/blanks and shops already on the route). Pairs with #12. Pure frontend.
 
-**Sequencing:** first batch all done (4 confirmed, Mise AI chat deferred; 3 standing). Second batch
-(12–16) all done in the 21st wave. The only items still open are the original **1 & 2 (stay-logged-in /
-real-time), both gated on the persistent disk** (Ellice: "later") — add `DATA_DIR=/var/data` + a paid
-Render disk before any real chef signs up.
+**Sequencing:** first batch all done (4 confirmed; 3 standing). Second batch (12–16) all done in the 21st
+wave. **1 & 2 (stay-logged-in / real-time) — ✅ DONE (22nd wave, 2026-06-19):** the persistent disk +
+always-on Starter instance are live and verified, so the SQLite DB and `.secret_key` survive deploys.
+**Mise AI chat is live too** (`ANTHROPIC_API_KEY` set, `AI_MODEL=claude-sonnet-4-6`). **The whole backlog is
+now cleared** — only the standing FAQ rule (#3) remains ongoing.
 
-## Latest session (2026-06-17, twenty-first wave — shop/route wiring, founders-tab persistence, admin email alerts, unsubscribe retention)
+## Latest session (2026-06-19, twenty-second wave — LAUNCH: live infra activated (persistent disk + always-on · Stripe live · Mise ON) + password show/hide toggle)
+- **The platform is now genuinely launch-ready** — Ellice activated the paid stack (the long-standing
+  blocker), walked through live in-chat. Infra needed **no code**; the only code change this session is the
+  password toggle (below). **Backlog #1 & #2 — the only items left open — are now DONE.**
+- **Persistent disk + always-on (THE #1 operational risk, now CLEARED):** Render service upgraded
+  **Free → Starter** (always-on — no more sleep / cold-starts) + a **1 GB disk mounted at `/var/data`** +
+  env `DATA_DIR=/var/data`. **Verified live via Render → Shell:** `ls -la /var/data` → `creatiste.db` +
+  `.secret_key` + `uploads/`; `df -h /var/data` → `/dev/nvme25n1` as its own mount. So **the SQLite DB now
+  survives every deploy** (#2 done) and **`.secret_key` persists → no more surprise logouts on deploy**
+  (#1 done). ⚠️ Note: there is **no `SECRET_KEY` env var** — the app uses the auto-generated
+  `DATA_DIR/.secret_key`, now stable because the disk persists. (Optional future hardening: set an explicit
+  `SECRET_KEY` so tokens don't depend on the disk file.) Starter (~$7/mo + ~$0.25 disk) also ends the
+  free-tier wipe/sleep for good.
+- **Stripe LIVE:** account in live mode; `STRIPE_SECRET_KEY` (sk_live) + `STRIPE_WEBHOOK_SECRET` (whsec)
+  set; webhook at `…/api/billing/webhook` (5 events); **Customer portal configured** (update-card / cancel
+  / invoice-history ON; "switch plans" left **OFF** — the app does plan changes itself; portal legal links
+  → `/terms` `/privacy`). Told Ellice to **ignore** Stripe's "Set up Connect" / "recurring payments" /
+  integration wizards — the app already does Checkout via the API (Connect is the future *deposits* feature,
+  not now).
+- **Mise AI switched ON (was deferred "until first paying chef"):** `ANTHROPIC_API_KEY` set +
+  **`AI_MODEL=claude-sonnet-4-6`** (the cost pick — Sonnet $3/$15 vs Opus 4.8 $5/$25; **the old "~5×
+  cheaper" note predates Opus 4.8 pricing — it's now ~40% cheaper**, still the right call for Mise's
+  structured-JSON jobs). Live for **Elite** chefs + admin "Summarise with AI" + support chat. Verify:
+  public `GET /api/ai/status` → `{enabled:true, model:"claude-sonnet-4-6"}`, then a real **"Draft with
+  Mise"** as an Elite/founder (status only proves a key is *present*, not *valid* — the Mise action is the
+  real test; a wrong key → 503 "AI key rejected"). **Clarified for Ellice:** `AI_MODEL` is ONE
+  platform-wide setting, invisible to users — NOT a per-user model switch (her confusion was with the
+  per-chef *plan* switch, which IS user-facing).
+- **Email** already live (Resend) — `RESEND_API_KEY` / `SMTP_FROM` / `SUPPORT_EMAIL` confirmed present.
+- **External trial-reminder cron deleted:** the cron-job.org job kept failing with **timeout (30s) =
+  free-tier cold start**. With the instance now always-on, the **in-process scheduler** (`ENABLE_SCHEDULER=1`,
+  default) covers reminders, so the external cron is redundant and was removed. (`CRON_SECRET` can stay or go.)
+- **Security — rotate-on-exposure:** during setup Ellice revealed env *values* in a screenshot; she
+  **rotated the Stripe live secret key** (the high-risk one). Advised: change the **admin password** if it's
+  reused on her personal email; Resend / webhook / cron rotations flagged lower-priority/optional. (Same
+  pattern as the 11th-wave on-screen-exposure rotations.) Tip given: to confirm a Render var is set you don't
+  need to *reveal* it — the key names alone suffice.
+- **Feature shipped (only code change) — show/hide password eye toggle.** Branch
+  `claude/festive-tesla-8xs0jo` → **merged to `main`** (fast-forward; live on next build). New reusable
+  **`PasswordInput`** in `ui.jsx` (drop-in for `<Input type="password">` + an eye button; `tabIndex={-1}` so
+  it doesn't disrupt form tab-flow; defaults hidden) and **`eye`/`eyeOff`** glyphs added to the `PATHS` icon
+  set (canonical Feather paths). Wired into **login + register** (`AuthPage`, shared form), **change-password**
+  (`Settings → Security`, both fields) and **reset-password** (`ResetPassword`, New + Confirm). `npm run build`
+  clean (**78 modules**); rendered eye/eyeOff to PNG to confirm they look right.
+- **Brand assets generated for Ellice (delivered as files — NOT committed):** high-res logo PNGs (full
+  lockup on near-black + transparent; a **white-background variant** — the white "command" + flame highlight
+  recoloured to near-black `#0C0A08`, gold kept) and **flame-only icons** (1024² transparent — white-accent
+  for dark bg, dark-accent for white bg). **Brand colours confirmed: gold `#BFA987` (the "copper"/accent
+  token — the core brand colour), ivory `#FFFBF5`, near-black `#0C0A08`.** Wordmark = **Playfair Display**
+  (web stand-in for "The Seasons"). **Render recipe (fresh container has no chromium/venv):** `pip install
+  Pillow cairosvg`; Playfair Display variable fonts pulled from google/fonts GitHub raw
+  (`PlayfairDisplay[wght].ttf` + `-Italic`); flame = the two `Flame`/`make_icons` SVG paths flattened to
+  polygons + filled; supersample 4× → LANCZOS downscale. (Reusable if regenerating brand assets.)
+- **No version bump** (standing rule — awaiting Ellice's word + her biblical reference).
+
+## Previous session (2026-06-17, twenty-first wave — shop/route wiring, founders-tab persistence, admin email alerts, unsubscribe retention)
 - Branch `claude/clever-goodall-te9p07` — **merge to `main` to deploy.** Ellice's second feedback batch
   (backlog 12–16, above). **Backend: NO new columns/tables/env/deps** — just a new `mailer.notify_admin()`
   helper + best-effort notify calls. Frontend-heavy. `npm run build` clean (**78 modules**).
@@ -995,12 +1052,13 @@ bridge between sessions.
   hasn't happened yet and Render is still watching `claude/vigilant-volta-da1cu9`.
 - Build command: `pip install -r backend/requirements.txt && cd frontend && npm install && npm run build`
 - Start command: `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-- Env vars on Render: `SECRET_KEY`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `APP_URL`,
-  `PYTHON_VERSION=3.11.9`. Not yet set: `ANTHROPIC_API_KEY` (enables Mise),
-  `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` (real payments; demo mode without),
-  `SMTP_*` (email notifications), `SUPPORT_EMAIL` (support inbox — Ellice will
-  point this at her own domain later), `DATA_DIR=/var/data` (only after adding a
-  paid persistent disk — **free tier wipes the SQLite DB on every deploy/restart**).
+- **Env vars on Render (LIVE as of 22nd wave, 2026-06-19):** `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `APP_URL`,
+  `PYTHON_VERSION=3.11.9`, `DATA_DIR=/var/data` (paid Starter instance + 1 GB disk — DB survives deploys),
+  `ANTHROPIC_API_KEY` + `AI_MODEL=claude-sonnet-4-6` (Mise on), `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET`
+  (live; + webhook + customer portal), `RESEND_API_KEY` + `SMTP_FROM` + `SUPPORT_EMAIL` (email via Resend),
+  `CRON_SECRET` (external cron since removed — built-in scheduler covers reminders). **NB no `SECRET_KEY`
+  env var is set** — the app uses the auto-generated `DATA_DIR/.secret_key`, now stable on the persistent
+  disk (optional hardening: set an explicit `SECRET_KEY`).
   Optional since the 18th wave (all have safe defaults): `CRON_SECRET` (enables the
   external cron hook for reliable day-4 trial reminders), `TRIAL_REMINDER_DAYS_BEFORE`
   (default 1), `SCHEDULER_INTERVAL_HOURS` (6), `ENABLE_SCHEDULER` (1).
@@ -1124,14 +1182,13 @@ it matches the calling shell and kills it).
   **security hardening** — `.svg` upload drop, enquiry honeypot + rate-limit, login &
   forgot-password throttles (13th wave), **OG/social tags, ICS calendar feed, CSV export,
   admin DB-backup download, trial-ending reminder email, self-serve plan switching** (18th wave).
-- **NEXT ON THE LIST** (7th-wave review, above): **6** — when Mise goes live, set
-  `AI_MODEL=claude-sonnet-4-6` (~5x cheaper than Opus, fine for Mise's structured-JSON jobs;
-  just an env var). The rest of item 7 is now done (18th wave).
+- ✅ **Item 6 DONE (22nd wave):** `AI_MODEL=claude-sonnet-4-6` set when Mise went live. (Pricing note: vs
+  Opus 4.8's current $5/$25 it's ~40% cheaper — not the old "5×", which predated Opus 4.8's pricing.) The
+  rest of item 7 is done (18th wave).
 - **The big one down the road (Ellice's list):** deposits / client payments via **Stripe
   Connect** — the platform's natural next revenue layer (let chefs take deposits, take a cut).
-- **Still pending `ANTHROPIC_API_KEY`** to switch on Mise (deferred until the first paying chef).
-- **Add a persistent disk** (`DATA_DIR=/var/data`) before real chefs — the free tier wipes the
-  SQLite DB on every deploy/restart. (18th-wave admin **Download backup** is the interim stopgap.)
+- ✅ **Mise is ON (22nd wave):** `ANTHROPIC_API_KEY` set + `AI_MODEL=claude-sonnet-4-6` — live for Elite + admin summarise + support chat.
+- ✅ **Persistent disk DONE (22nd wave):** `DATA_DIR=/var/data` on a paid Starter instance + 1 GB disk, always-on, DB survives deploys (verified via Render Shell). The free-tier wipe/sleep is gone for good.
 - Custom app domain (currently on `creatistecommand.onrender.com`) — update the OG URLs in
   `frontend/index.html` when it changes.
 - ✅ Plan switching from the chef dashboard — **DONE (18th wave)**, Settings → Membership.
