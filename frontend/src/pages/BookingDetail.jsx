@@ -6,6 +6,7 @@ import { BOOKING_STATUSES, BOOKING_TONES, fmtDateLong, fmtMoney, invoiceTotal, l
 import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, Select, Spinner, Tabs, Textarea, toast, toastErr } from '../ui'
 import { BookingForm } from './Bookings'
 import { ContactClient } from '../contact'
+import { DishRowsEditor, dishFromCourse } from '../dishrows'
 import { DesignCard, DesignEditorModal } from './Designs'
 import { ExpenseFormModal, InvoiceEditorModal } from './Finance'
 import { OrderFormModal, OrderRow } from './Orders'
@@ -82,42 +83,37 @@ function AIModal({ state, onClose, onApply }) {
 }
 
 /* -------------------------------- menu builder --------------------------------- */
-function MenuBuilder({ booking, recipes, onSaved }) {
+function MenuBuilder({ booking, recipes, currency, onSaved }) {
   const [menu, setMenu] = useState(booking.menu || [])
   const [dirty, setDirty] = useState(false)
+  const [menus, setMenus] = useState([])
   useEffect(() => { setMenu(booking.menu || []); setDirty(false) }, [booking])
+  useEffect(() => { api.get('/menus').then(setMenus).catch(() => {}) }, [])
 
-  const update = (i, key, value) => {
-    const next = menu.map((m, idx) => (idx === i ? { ...m, [key]: value } : m))
-    setMenu(next); setDirty(true)
+  const change = (rows) => { setMenu(rows); setDirty(true) }
+  const importFrom = (menuId) => {
+    const m = menus.find((x) => String(x.id) === String(menuId))
+    if (!m) return
+    const rows = (m.courses || []).map((c) => dishFromCourse(c, m.price_per_head || ''))
+    if (!rows.length) { toast(`"${m.title}" has no dishes yet`, 'amber'); return }
+    setMenu([...menu, ...rows]); setDirty(true)
+    toast(`Added ${rows.length} dish${rows.length === 1 ? '' : 'es'} from "${m.title}"`, 'sage')
   }
-  const addRow = () => { setMenu([...menu, { id: uid(), course: '', name: '', recipe_id: null, notes: '' }]); setDirty(true) }
-  const removeRow = (i) => { setMenu(menu.filter((_, idx) => idx !== i)); setDirty(true) }
   const save = () => api.patch(`/bookings/${booking.id}`, { menu }).then((b) => { onSaved(b); setDirty(false); toast('Menu saved', 'sage') }).catch(toastErr)
+  const liveMenus = menus.filter((m) => m.active !== false)
 
   return (
-    <Card title="Menu" action={
-      <div className="flex gap-2">
-        <Button size="sm" variant="secondary" icon="plus" onClick={addRow}>Add dish</Button>
-        {dirty && <Button size="sm" icon="check" onClick={save}>Save menu</Button>}
-      </div>
-    }>
-      {menu.length === 0 ? <p className="text-sm text-fg/45">No dishes yet — add courses by hand or ask the AI sous-chef below.</p> : (
-        <div className="space-y-2">
-          {menu.map((m, i) => (
-            <div key={m.id || i} className="grid grid-cols-12 items-center gap-2 rounded-lg border border-line bg-parchment/30 p-2">
-              <Input className="col-span-6 sm:col-span-2" placeholder="Course" value={m.course || ''} onChange={(e) => update(i, 'course', e.target.value)} />
-              <Input className="col-span-6 sm:col-span-4" placeholder="Dish name" value={m.name || ''} onChange={(e) => update(i, 'name', e.target.value)} />
-              <Select className="col-span-6 sm:col-span-3" value={m.recipe_id || ''} onChange={(e) => update(i, 'recipe_id', e.target.value ? Number(e.target.value) : null)}>
-                <option value="">No recipe sheet</option>
-                {recipes.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
-              </Select>
-              <Input className="col-span-5 sm:col-span-2" placeholder="Notes" value={m.notes || ''} onChange={(e) => update(i, 'notes', e.target.value)} />
-              <IconButton icon="trash" label="Remove" className="col-span-1 justify-self-end" onClick={() => removeRow(i)} />
-            </div>
-          ))}
+    <Card title="Menu" action={dirty ? <Button size="sm" icon="check" onClick={save}>Save menu</Button> : null}>
+      {liveMenus.length > 0 && (
+        <div className="mb-3">
+          <Select value="" onChange={(e) => { importFrom(e.target.value); e.target.value = '' }}>
+            <option value="">Pull dishes in from a saved menu…</option>
+            {liveMenus.map((m) => <option key={m.id} value={m.id}>{m.title}{m.menu_type ? ` · ${m.menu_type}` : ''}</option>)}
+          </Select>
+          <p className="mt-1 text-xs text-fg/45">Adds that menu’s dishes to this booking — then tweak them here. Build set menus under <span className="font-medium">Menus</span>.</p>
         </div>
       )}
+      <DishRowsEditor rows={menu} recipes={recipes} currency={currency} onChange={change} />
     </Card>
   )
 }
@@ -242,7 +238,7 @@ export default function BookingDetail() {
                 <div className="mt-3 flex flex-wrap gap-1.5">{b.equipment.map((e, i) => <Badge key={i} tone="ink">{e}</Badge>)}</div>
               )}
             </Card>
-            <MenuBuilder booking={b} recipes={recipes} onSaved={(nb) => setWs({ ...ws, booking: nb })} />
+            <MenuBuilder booking={b} recipes={recipes} currency={cur} onSaved={(nb) => setWs({ ...ws, booking: nb })} />
           </div>
 
           <div className="space-y-5">

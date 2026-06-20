@@ -1,37 +1,13 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { cls, fmtMoney, uid } from '../format'
+import { cls, fmtMoney } from '../format'
+import { DishRowsEditor } from '../dishrows'
 import { Badge, Button, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, SearchInput, Select, Spinner, Textarea, toast, toastErr } from '../ui'
 
 const MENU_TYPES = ['Tasting menu', 'Set menu', 'Canapé selection', 'Sharing feast', 'Buffet', 'Bowl food', 'BBQ', 'Brunch', 'Drinks & cocktails']
 
-/* Course builder — same shape the booking menu uses, so dishes can link to recipe sheets. */
-function CoursesEditor({ courses, recipes, onChange }) {
-  const update = (i, k, v) => onChange(courses.map((c, idx) => (idx === i ? { ...c, [k]: v } : c)))
-  const add = () => onChange([...courses, { id: uid(), course: '', name: '', recipe_id: null, notes: '' }])
-  const remove = (i) => onChange(courses.filter((_, idx) => idx !== i))
-  return (
-    <div className="space-y-2">
-      {courses.length === 0 && <p className="text-sm text-fg/45">No dishes yet — add courses, optionally linking your recipe sheets.</p>}
-      {courses.map((c, i) => (
-        <div key={c.id || i} className="grid grid-cols-12 items-center gap-2 rounded-lg border border-line bg-parchment/30 p-2">
-          <Input className="col-span-6 sm:col-span-2" placeholder="Course" value={c.course || ''} onChange={(e) => update(i, 'course', e.target.value)} />
-          <Input className="col-span-6 sm:col-span-4" placeholder="Dish name" value={c.name || ''} onChange={(e) => update(i, 'name', e.target.value)} />
-          <Select className="col-span-6 sm:col-span-3" value={c.recipe_id || ''} onChange={(e) => update(i, 'recipe_id', e.target.value ? Number(e.target.value) : null)}>
-            <option value="">No recipe sheet</option>
-            {recipes.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
-          </Select>
-          <Input className="col-span-5 sm:col-span-2" placeholder="Notes" value={c.notes || ''} onChange={(e) => update(i, 'notes', e.target.value)} />
-          <IconButton icon="trash" label="Remove dish" className="col-span-1 justify-self-end" onClick={() => remove(i)} />
-        </div>
-      ))}
-      <Button type="button" size="sm" variant="secondary" icon="plus" onClick={add}>Add dish</Button>
-    </div>
-  )
-}
-
-export function MenuForm({ initial = {}, onSaved, onClose }) {
+export function MenuForm({ initial = {}, currency = 'GBP', onSaved, onClose }) {
   const [form, setForm] = useState({ title: '', menu_type: '', description: '', price_per_head: 0, courses: [], pdf_url: '', pdf_name: '', active: true, notes: '', ...initial })
   const [recipes, setRecipes] = useState([])
   const [busy, setBusy] = useState(false)
@@ -71,7 +47,7 @@ export function MenuForm({ initial = {}, onSaved, onClose }) {
       </div>
       <Field label="Description"><Textarea rows={2} value={form.description} onChange={set('description')} placeholder="A short summary you can read to a client." /></Field>
       <Field label="Courses">
-        <CoursesEditor courses={form.courses} recipes={recipes} onChange={(courses) => setForm({ ...form, courses })} />
+        <DishRowsEditor rows={form.courses} recipes={recipes} currency={currency} onChange={(courses) => setForm({ ...form, courses })} />
       </Field>
       <Field label="Menu PDF — the version you share with clients">
         {form.pdf_url ? (
@@ -167,7 +143,7 @@ export default function Menus() {
         </div>
       )}
       <Modal open={modal.open} onClose={close} title={modal.initial ? 'Edit menu' : 'New menu'} wide>
-        {modal.open && <MenuForm initial={modal.initial || {}} onClose={close} onSaved={() => { close(); load() }} />}
+        {modal.open && <MenuForm initial={modal.initial || {}} currency={user?.currency} onClose={close} onSaved={() => { close(); load() }} />}
       </Modal>
     </div>
   )
