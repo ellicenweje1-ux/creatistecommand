@@ -6,7 +6,7 @@ import { Badge, Button, EmptyState, Field, IconButton, Input, Modal, PageHeader,
 
 const TONES = { draft: 'gray', sent: 'amber', approved: 'sage', declined: 'red', expired: 'ink' }
 
-function QuoteEditor({ open, onClose, onSaved, initial = null, currency }) {
+export function QuoteEditor({ open, onClose, onSaved, initial = null, currency }) {
   const blank = { number: '', title: '', client_id: '', booking_id: '', items: [], tax_rate: 0, discount: 0, valid_until: '', notes: '' }
   const [form, setForm] = useState(blank)
   const [clients, setClients] = useState([])
@@ -15,8 +15,11 @@ function QuoteEditor({ open, onClose, onSaved, initial = null, currency }) {
     if (!open) return
     api.get('/clients').then(setClients).catch(() => {})
     api.get('/bookings').then(setBookings).catch(() => {})
-    if (initial) setForm({ ...blank, ...initial })
-    else api.get('/quotes/meta/next-number').then(({ number }) => setForm({ ...blank, number })).catch(() => setForm(blank))
+    if (initial?.id) setForm({ ...blank, ...initial })
+    // New quote (possibly pre-filled from a booking menu): still assign the next number.
+    else api.get('/quotes/meta/next-number')
+      .then(({ number }) => setForm({ ...blank, number, ...(initial || {}) }))
+      .catch(() => setForm({ ...blank, ...(initial || {}) }))
   }, [open, initial]) // eslint-disable-line react-hooks/exhaustive-deps
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
   const items = form.items || []

@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { BOOKING_STATUSES, BOOKING_TONES, fmtDateLong, fmtMoney, invoiceTotal, label, miseReady, relDays, todayISO, uid } from '../format'
+import { BOOKING_STATUSES, BOOKING_TONES, dishUnits, fmtDateLong, fmtMoney, invoiceTotal, label, menuTotal, miseReady, relDays, todayISO, uid } from '../format'
 import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, Select, Spinner, Tabs, Textarea, toast, toastErr } from '../ui'
 import { BookingForm } from './Bookings'
 import { ContactClient } from '../contact'
 import { DishRowsEditor, dishFromCourse } from '../dishrows'
+import { QuoteEditor } from './Quotes'
 import { DesignCard, DesignEditorModal } from './Designs'
 import { ExpenseFormModal, InvoiceEditorModal } from './Finance'
 import { OrderFormModal, OrderRow } from './Orders'
@@ -83,10 +84,11 @@ function AIModal({ state, onClose, onApply }) {
 }
 
 /* -------------------------------- menu builder --------------------------------- */
-function MenuBuilder({ booking, recipes, currency, onSaved }) {
+function MenuBuilder({ booking, recipes, currency, canQuote, onSaved }) {
   const [menu, setMenu] = useState(booking.menu || [])
   const [dirty, setDirty] = useState(false)
   const [menus, setMenus] = useState([])
+  const [quote, setQuote] = useState(null)  // prefilled draft for the QuoteEditor, or null
   useEffect(() => { setMenu(booking.menu || []); setDirty(false) }, [booking])
   useEffect(() => { api.get('/menus').then(setMenus).catch(() => {}) }, [])
 
@@ -101,9 +103,29 @@ function MenuBuilder({ booking, recipes, currency, onSaved }) {
   }
   const save = () => api.patch(`/bookings/${booking.id}`, { menu }).then((b) => { onSaved(b); setDirty(false); toast('Menu saved', 'sage') }).catch(toastErr)
   const liveMenus = menus.filter((m) => m.active !== false)
-  // Total the per-head line prices; × guests gives the event total.
-  const perHead = menu.reduce((sum, m) => sum + (Number(m.price) || 0), 0)
   const guests = Number(booking.guest_count) || 0
+  const total = menuTotal(menu, guests)       // serves-aware: trays/covers needed × £ per line
+  const perHead = guests > 0 ? total / guests : menu.reduce((s, m) => s + (Number(m.price) || 0), 0)
+  const priced = menu.some((m) => Number(m.price) > 0)
+
+  // Turn the priced menu lines into a client quote: each line becomes "units needed @ £".
+  const buildQuote = () => {
+    const items = menu
+      .filter((m) => Number(m.price) > 0 || (m.name || m.course))
+      .map((m) => ({
+        id: uid(),
+        description: [m.course, m.name].filter(Boolean).join(' — ') + (Number(m.serves) > 0 ? ` (serves ${m.serves})` : ''),
+        qty: dishUnits(m, guests),
+        unit_price: Number(m.price) || 0,
+      }))
+    setQuote({
+      title: `${booking.title || 'Event'} — menu`,
+      client_id: booking.client_id || '',
+      booking_id: booking.id,
+      items,
+      tax_rate: 0, discount: 0, valid_until: '', notes: '',
+    })
+  }
 
   return (
     <Card title="Menu" action={dirty ? <Button size="sm" icon="check" onClick={save}>Save menu</Button> : null}>
@@ -117,19 +139,30 @@ function MenuBuilder({ booking, recipes, currency, onSaved }) {
         </div>
       )}
       <DishRowsEditor rows={menu} recipes={recipes} currency={currency} onChange={change} />
-      {perHead > 0 && (
-        <div className="mt-3 space-y-1 border-t border-line/60 pt-3 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-fg/60">Menu total per head</span>
-            <span className="font-display text-base font-semibold">{fmtMoney(perHead, currency)}</span>
+      {priced && (
+        <div className="mt-3 space-y-2 border-t border-line/60 pt-3">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-fg/60">Menu total{guests > 0 ? ` · ${guests} guest${guests === 1 ? '' : 's'}` : ''}</span>
+            <span className="font-display text-lg font-semibold">{fmtMoney(total, currency)}</span>
           </div>
           {guests > 0 && (
-            <div className="flex items-center justify-between text-fg/65">
-              <span>Total · {guests} guest{guests === 1 ? '' : 's'}</span>
-              <span className="font-display text-base font-semibold text-copper-dark">{fmtMoney(perHead * guests, currency)}</span>
+            <div className="flex items-center justify-between text-xs text-fg/50">
+              <span>≈ {fmtMoney(perHead, currency)} per head</span>
+            </div>
+          )}
+          {canQuote && (
+            <div className="flex justify-end pt-1">
+              <Button size="sm" variant="secondary" icon="doc" onClick={buildQuote} disabled={dirty}>
+                {dirty ? 'Save menu first' : 'Build a quote from this menu'}
+              </Button>
             </div>
           )}
         </div>
+      )}
+      {canQuote && (
+        <QuoteEditor open={!!quote} initial={quote} currency={currency}
+          onClose={() => setQuote(null)}
+          onSaved={() => { setQuote(null); toast('Quote drafted — open Finance → Quotes to send it', 'sage') }} />
       )}
     </Card>
   )
@@ -141,6 +174,8 @@ export default function BookingDetail() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const cur = user?.currency || 'GBP'
+  // Quotes are an owner-only, Elite-plan feature — gate the "Build a quote" action to match.
+  const canQuote = !user?.is_staff && (user?.role === 'admin' || (user?.plan_level ?? 1) >= 3)
   const [ws, setWs] = useState(null)
   const [tab, setTab] = useState('overview')
   const [editing, setEditing] = useState(false)
@@ -255,7 +290,7 @@ export default function BookingDetail() {
                 <div className="mt-3 flex flex-wrap gap-1.5">{b.equipment.map((e, i) => <Badge key={i} tone="ink">{e}</Badge>)}</div>
               )}
             </Card>
-            <MenuBuilder booking={b} recipes={recipes} currency={cur} onSaved={(nb) => setWs({ ...ws, booking: nb })} />
+            <MenuBuilder booking={b} recipes={recipes} currency={cur} canQuote={canQuote} onSaved={(nb) => setWs({ ...ws, booking: nb })} />
           </div>
 
           <div className="space-y-5">
