@@ -18,7 +18,7 @@ const FAQS = [
   ['How do staff logins work?',
    'On the Elite plan, go to Team → Staff and create a login for each team member. They sign in with their own email, see the workspace, work their rota and assignments — and every change they make is recorded in Team → Activity for the owner to review. Staff never see Finance or Quotes.'],
   ['How do client quote approvals work?',
-   'Draft a quote under Finance → Quotes and hit Send. You get a private link to share — your client opens it on their phone, sees the quote beautifully laid out, and taps Approve or Decline. You’re notified instantly, and approved quotes convert to invoices in one click. Tip: on a booking, build the menu (each dish “serves N @ £X”), then tap “Build a quote from this menu” — it works out how many of each you need for the guest count and itemises the whole quote for you.'],
+   'Draft a quote under Finance → Quotes and hit Send. You get a private link to share — your client opens it on their phone, sees the quote beautifully laid out, and taps Approve or Decline. You’re notified instantly, and approved quotes convert to invoices in one click. Tip: on a booking, build the menu (each line is a dish with “serves” and a price), then tap “Build a quote from this menu” — every line drops in as a quote item at its price, ready for you to set quantities and send.'],
   ['What is the public enquiry form?',
    'A branded page you can link from your website or Instagram bio. Enquiries land straight in your Bookings as new leads with the client attached — open the Pipeline view there to fill in the rough details and progress the lead. Find your personal link in Settings → App & integrations.'],
   ['Can my business be featured on your site?',

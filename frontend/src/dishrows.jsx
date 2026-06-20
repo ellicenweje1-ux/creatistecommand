@@ -43,8 +43,9 @@ export function DishRowsEditor({ rows, recipes = [], currency = 'GBP', onChange 
       {rows.length > 0 && (
         <div className="hidden gap-2 px-2 pb-0.5 text-[11px] font-semibold uppercase tracking-wide text-fg/45 sm:grid sm:grid-cols-12">
           <span className="col-span-3">Course/component</span>
-          <span className="col-span-5">Dish</span>
-          <span className="col-span-4">Serves @ {sym}</span>
+          <span className="col-span-4">Dish</span>
+          <span className="col-span-2">Serves</span>
+          <span className="col-span-3">Price ({sym})</span>
         </div>
       )}
       {rows.map((r, i) => (
@@ -52,13 +53,13 @@ export function DishRowsEditor({ rows, recipes = [], currency = 'GBP', onChange 
           <div className="grid grid-cols-12 items-center gap-2">
             <Input data-dish-course className="col-span-12 sm:col-span-3" placeholder="Course/component"
               value={r.course || ''} onChange={(e) => update(i, 'course', e.target.value)} onKeyDown={onKey} />
-            <Input className="col-span-12 sm:col-span-5" placeholder="Dish name"
+            <Input className="col-span-12 sm:col-span-4" placeholder="Dish name"
               value={r.name || ''} onChange={(e) => update(i, 'name', e.target.value)} onKeyDown={onKey} />
-            <div className="col-span-10 flex items-center gap-1 sm:col-span-3">
-              <Input type="number" min="0" className="w-14 px-2 text-center" placeholder="0" aria-label="Serves"
-                value={r.serves ?? ''} onChange={(e) => update(i, 'serves', e.target.value)} onKeyDown={onKey} />
-              <span className="shrink-0 text-xs text-fg/45">@ {sym}</span>
-              <Input type="number" min="0" step="0.01" className="min-w-0 flex-1 px-2" placeholder="0" aria-label="Price per head"
+            <Input className="col-span-6 sm:col-span-2" placeholder="e.g. 10-12" aria-label="Serves"
+              value={r.serves ?? ''} onChange={(e) => update(i, 'serves', e.target.value)} onKeyDown={onKey} />
+            <div className="col-span-4 flex items-center gap-1 sm:col-span-2">
+              <span className="shrink-0 text-sm text-fg/50">{sym}</span>
+              <Input type="number" min="0" step="0.01" className="min-w-0 flex-1 px-2" placeholder="0" aria-label="Price"
                 value={r.price ?? ''} onChange={(e) => update(i, 'price', e.target.value)} onKeyDown={onKey} />
             </div>
             <IconButton icon="trash" label="Remove dish" className="col-span-2 justify-self-end sm:col-span-1" onClick={() => remove(i)} />

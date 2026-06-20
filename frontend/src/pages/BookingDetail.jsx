@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { BOOKING_STATUSES, BOOKING_TONES, dishUnits, fmtDateLong, fmtMoney, invoiceTotal, label, menuTotal, miseReady, relDays, todayISO, uid } from '../format'
+import { BOOKING_STATUSES, BOOKING_TONES, fmtDateLong, fmtMoney, invoiceTotal, label, menuPriceTotal, miseReady, relDays, todayISO, uid } from '../format'
 import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, Select, Spinner, Tabs, Textarea, toast, toastErr } from '../ui'
 import { BookingForm } from './Bookings'
 import { ContactClient } from '../contact'
@@ -103,19 +103,18 @@ function MenuBuilder({ booking, recipes, currency, canQuote, onSaved }) {
   }
   const save = () => api.patch(`/bookings/${booking.id}`, { menu }).then((b) => { onSaved(b); setDirty(false); toast('Menu saved', 'sage') }).catch(toastErr)
   const liveMenus = menus.filter((m) => m.active !== false)
-  const guests = Number(booking.guest_count) || 0
-  const total = menuTotal(menu, guests)       // serves-aware: trays/covers needed × £ per line
-  const perHead = guests > 0 ? total / guests : menu.reduce((s, m) => s + (Number(m.price) || 0), 0)
+  const total = menuPriceTotal(menu)   // straight sum of the line prices — no calculation
   const priced = menu.some((m) => Number(m.price) > 0)
 
-  // Turn the priced menu lines into a client quote: each line becomes "units needed @ £".
+  // Turn the menu lines into a client quote: each line is one item at its price (qty 1),
+  // ready to adjust quantities in the quote editor. No automatic guest/serves maths.
   const buildQuote = () => {
     const items = menu
-      .filter((m) => Number(m.price) > 0 || (m.name || m.course))
+      .filter((m) => Number(m.price) > 0 || m.name || m.course)
       .map((m) => ({
         id: uid(),
-        description: [m.course, m.name].filter(Boolean).join(' — ') + (Number(m.serves) > 0 ? ` (serves ${m.serves})` : ''),
-        qty: dishUnits(m, guests),
+        description: [m.course, m.name].filter(Boolean).join(' — ') + (m.serves ? ` (serves ${m.serves})` : ''),
+        qty: 1,
         unit_price: Number(m.price) || 0,
       }))
     setQuote({
@@ -142,14 +141,9 @@ function MenuBuilder({ booking, recipes, currency, canQuote, onSaved }) {
       {priced && (
         <div className="mt-3 space-y-2 border-t border-line/60 pt-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-fg/60">Menu total{guests > 0 ? ` · ${guests} guest${guests === 1 ? '' : 's'}` : ''}</span>
+            <span className="text-fg/60">Menu total <span className="text-xs text-fg/40">· sum of line prices</span></span>
             <span className="font-display text-lg font-semibold">{fmtMoney(total, currency)}</span>
           </div>
-          {guests > 0 && (
-            <div className="flex items-center justify-between text-xs text-fg/50">
-              <span>≈ {fmtMoney(perHead, currency)} per head</span>
-            </div>
-          )}
           {canQuote && (
             <div className="flex justify-end pt-1">
               <Button size="sm" variant="secondary" icon="doc" onClick={buildQuote} disabled={dirty}>

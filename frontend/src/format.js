@@ -67,14 +67,6 @@ export function invoiceTotal(inv) {
   return Math.max((sub - (Number(inv.discount) || 0)) * (1 + (Number(inv.tax_rate) || 0) / 100), 0)
 }
 
-// Menu line maths. Each line "serves N @ £X": with N portions per unit you need
-// ceil(guests / N) units (trays/platters) to feed everyone; a blank/0 "serves" means
-// the £ is a per-head rate (one unit per guest). Used for the booking menu total and to
-// itemise the menu into a client quote.
-export const dishUnits = (line, guests) => {
-  const serves = Number(line?.serves) || 0
-  const g = Number(guests) || 1
-  return serves > 0 ? Math.ceil(g / serves) : g
-}
-export const dishLineTotal = (line, guests) => dishUnits(line, guests) * (Number(line?.price) || 0)
-export const menuTotal = (menu, guests) => (menu || []).reduce((sum, l) => sum + dishLineTotal(l, guests), 0)
+// Simple sum of the per-line prices on a menu (no guest/serves maths — "serves" is just a
+// descriptive label like "10-12"). Used for the booking menu total and the quote it builds.
+export const menuPriceTotal = (menu) => (menu || []).reduce((sum, l) => sum + (Number(l?.price) || 0), 0)
