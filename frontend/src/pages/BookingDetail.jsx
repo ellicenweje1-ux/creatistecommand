@@ -101,6 +101,9 @@ function MenuBuilder({ booking, recipes, currency, onSaved }) {
   }
   const save = () => api.patch(`/bookings/${booking.id}`, { menu }).then((b) => { onSaved(b); setDirty(false); toast('Menu saved', 'sage') }).catch(toastErr)
   const liveMenus = menus.filter((m) => m.active !== false)
+  // Total the per-head line prices; × guests gives the event total.
+  const perHead = menu.reduce((sum, m) => sum + (Number(m.price) || 0), 0)
+  const guests = Number(booking.guest_count) || 0
 
   return (
     <Card title="Menu" action={dirty ? <Button size="sm" icon="check" onClick={save}>Save menu</Button> : null}>
@@ -114,6 +117,20 @@ function MenuBuilder({ booking, recipes, currency, onSaved }) {
         </div>
       )}
       <DishRowsEditor rows={menu} recipes={recipes} currency={currency} onChange={change} />
+      {perHead > 0 && (
+        <div className="mt-3 space-y-1 border-t border-line/60 pt-3 text-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-fg/60">Menu total per head</span>
+            <span className="font-display text-base font-semibold">{fmtMoney(perHead, currency)}</span>
+          </div>
+          {guests > 0 && (
+            <div className="flex items-center justify-between text-fg/65">
+              <span>Total · {guests} guest{guests === 1 ? '' : 's'}</span>
+              <span className="font-display text-base font-semibold text-copper-dark">{fmtMoney(perHead * guests, currency)}</span>
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   )
 }
