@@ -26,6 +26,7 @@ import ResetPassword from './pages/ResetPassword'
 import Orders from './pages/Orders'
 import Packing from './pages/Packing'
 import PublicEnquiry from './pages/PublicEnquiry'
+import PublicInvoice from './pages/PublicInvoice'
 import PublicQuote from './pages/PublicQuote'
 import Recipes from './pages/Recipes'
 import RoutesPage from './pages/RoutesPage'
@@ -290,6 +291,7 @@ export default function App() {
       <Route path="/faq" element={<Faq />} />
       <Route path="/onboarding" element={<RequireAuth><Onboarding /></RequireAuth>} />
       <Route path="/q/:token" element={<PublicQuote />} />
+      <Route path="/i/:token" element={<PublicInvoice />} />
       <Route path="/enquire/:token" element={<PublicEnquiry />} />
       <Route path="/founders/:code" element={<FoundersInvite />} />
       <Route path="/app" element={<RequireAuth><RequireActive><AppShell /></RequireActive></RequireAuth>}>

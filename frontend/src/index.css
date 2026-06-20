@@ -117,7 +117,10 @@ body { @apply bg-base text-fg font-body antialiased; }
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  @page { size: A4 landscape; margin: 12mm; }
+  /* Portrait by default (invoices etc.). The wide allergen matrix overrides this to
+     landscape via an inline <style> it renders only while that page is mounted (named
+     @page / the `page` property aren't honoured by the print-to-PDF engine). */
+  @page { size: A4 portrait; margin: 14mm; }
   /* The allergen document should never be clipped by an on-screen scroll box. */
   .print-doc, .print-doc * { overflow: visible !important; }
   .print-doc table { min-width: 0 !important; width: 100% !important; font-size: 11px; }

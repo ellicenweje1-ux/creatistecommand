@@ -53,7 +53,7 @@ def ensure_columns():
         "onboarding_sessions": {
             "meeting_id": "VARCHAR(40) DEFAULT ''", "recording_url": "VARCHAR(500) DEFAULT ''",
         },
-        "invoices": {"file_url": "VARCHAR(500) DEFAULT ''", "file_name": "VARCHAR(255) DEFAULT ''"},
+        "invoices": {"file_url": "VARCHAR(500) DEFAULT ''", "file_name": "VARCHAR(255) DEFAULT ''", "public_token": "VARCHAR(64) DEFAULT ''"},
     }
     inspector = sa.inspect(engine)
     with engine.begin() as conn:

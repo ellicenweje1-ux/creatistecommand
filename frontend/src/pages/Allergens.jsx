@@ -96,6 +96,9 @@ export default function Allergens() {
           hint={booking ? 'This booking has no menu yet — build it on the booking page first.' : 'Add recipes with allergen tags and the matrix builds itself.'} />
       ) : (
         <div className="print-doc space-y-4">
+          {/* This page prints landscape (the 14-allergen table is wide). Rendered only while
+              the allergen page is mounted, so it overrides the app's default portrait @page. */}
+          <style>{'@media print{@page{size:A4 landscape;margin:12mm}}'}</style>
           {/* Print-only document header (the screen already has the page header above). */}
           <div className="hidden print:block">
             <h1 className="font-display text-2xl font-bold">{businessName}</h1>

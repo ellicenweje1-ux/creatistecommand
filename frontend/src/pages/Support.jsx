@@ -7,6 +7,8 @@ import { Button, Card, Field, Icon, Input, PageHeader, Textarea, toastErr } from
 const FAQS = [
   ['What is The Creatiste Command?',
    'A command centre for private chefs and caterers: bookings, recipes, inventory with shelf life, shopping lists by shop, packing, tasks, route planning, tastings, clients, quotes, invoices, staff rotas and more — built to be used on the move.'],
+  ['Is it just for chefs and caterers?',
+   'No — it’s for all food & beverage service providers: private chefs, caterers, bakers and cake makers, cocktail and drinks businesses, grazing-table and dessert vendors, supper clubs, food trucks and pop-ups. Anywhere you plan events, build menus, shop, prep, deliver and bill, it fits. (It isn’t a full-service restaurant system — there’s no table service or in-house POS — it’s built around event and order-based food businesses.)'],
   ['How do the plans work?',
    'There are three tiers: Solo Chef (the core kitchen toolkit), Pro Caterer (adds clients, tastings, orders, routes, the design studio, supplier price book, public enquiry form and invoicing) and Elite Kitchen (adds Mise the AI sous-chef, staff logins with rotas & oversight, and client quote approval links). You can upgrade any time from Settings → Membership.'],
   ['How does the free trial work?',

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls, fmtDate, fmtMoney, INVOICE_STATUSES, INVOICE_TONES, invoiceTotal, todayISO, uid } from '../format'
-import { Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, Select, Spinner, StatCard, Tabs, Textarea, toastErr } from '../ui'
+import { Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, Select, Spinner, StatCard, Tabs, Textarea, toast, toastErr } from '../ui'
 import { QuotesPanel } from './Quotes'
 import { ChargesMenu } from '../charges'
 
@@ -32,16 +32,31 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
   const setItem = (i, key, value) => setForm({ ...form, items: items.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)) })
   const total = invoiceTotal(form)
 
-  const save = (e) => {
-    e.preventDefault()
-    const payload = {
-      ...form, tax_rate: Number(form.tax_rate) || 0, discount: Number(form.discount) || 0,
-      client_id: form.client_id ? Number(form.client_id) : null,
-      booking_id: initial?.booking_id ?? bookingId,
-      items: items.map((it) => ({ ...it, qty: Number(it.qty) || 0, unit_price: Number(it.unit_price) || 0 })),
-    }
-    const req = initial?.id ? api.patch(`/invoices/${initial.id}`, payload) : api.post('/invoices', payload)
-    req.then(onSaved).catch(toastErr)
+  const buildPayload = () => ({
+    ...form, tax_rate: Number(form.tax_rate) || 0, discount: Number(form.discount) || 0,
+    client_id: form.client_id ? Number(form.client_id) : null,
+    booking_id: initial?.booking_id ?? bookingId,
+    items: items.map((it) => ({ ...it, qty: Number(it.qty) || 0, unit_price: Number(it.unit_price) || 0 })),
+  })
+  const persist = () => (initial?.id ? api.patch(`/invoices/${initial.id}`, buildPayload()) : api.post('/invoices', buildPayload()))
+  const save = (e) => { e.preventDefault(); persist().then(onSaved).catch(toastErr) }
+  // Preview the polished invoice document (saving first), in a new tab — also the print/PDF view.
+  const preview = () => {
+    persist()
+      .then((inv) => api.post(`/invoices/${inv.id}/share`))
+      .then((r) => window.open(r.public_url, '_blank'))
+      .catch(toastErr)
+  }
+  // Save + share the read-only link with the client (emails them if their address is on file).
+  const sendToClient = () => {
+    persist()
+      .then((inv) => api.post(`/invoices/${inv.id}/share?send=true`))
+      .then((r) => {
+        navigator.clipboard?.writeText(r.public_url)
+        toast(r.emailed ? 'Invoice emailed to your client — link copied too' : 'Invoice link copied to share', 'sage')
+        onSaved()
+      })
+      .catch(toastErr)
   }
   const remove = () => {
     if (initial?.id && window.confirm('Delete this invoice?')) api.del(`/invoices/${initial.id}`).then(onSaved).catch(toastErr)
@@ -102,10 +117,12 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
           </div>
         </div>
         <Field label="Notes"><Textarea rows={2} value={form.notes} onChange={set('notes')} placeholder="Payment terms, bank details…" /></Field>
-        <div className="flex justify-between gap-2">
+        <div className="flex flex-wrap justify-between gap-2">
           {initial?.id ? <Button type="button" variant="danger" icon="trash" onClick={remove}>Delete</Button> : <span />}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="ghost" icon="external" onClick={preview}>Preview / print</Button>
+            <Button type="button" variant="secondary" icon="mail" onClick={sendToClient}>Send to client</Button>
             <Button>{initial?.id ? 'Save invoice' : 'Create invoice'}</Button>
           </div>
         </div>

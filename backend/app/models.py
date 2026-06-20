@@ -286,6 +286,8 @@ class Invoice(OwnedMixin, Base):
     # An invoice generated in another app and uploaded here (PDF) instead of built from items.
     file_url: Mapped[str] = mapped_column(String(500), default="")
     file_name: Mapped[str] = mapped_column(String(255), default="")
+    # Shareable read-only link for the in-app invoice document (like the public quote page).
+    public_token: Mapped[str] = mapped_column(String(64), default="", index=True)
 
 
 class Expense(OwnedMixin, Base):

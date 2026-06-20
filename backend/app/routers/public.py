@@ -7,12 +7,39 @@ from sqlalchemy.orm import Session
 
 from .. import config, mailer, ratelimit
 from ..database import get_db
-from ..models import ActivityLog, Booking, Client, Quote, User
+from ..models import ActivityLog, Booking, Client, Invoice, Quote, User
 from ..utils import EMAIL_RE, to_dict
 
 router = APIRouter(prefix="/public", tags=["public"])
 
 QUOTE_PUBLIC_FIELDS = ("id", "number", "title", "items", "tax_rate", "discount", "notes", "status", "valid_until")
+INVOICE_PUBLIC_FIELDS = ("id", "number", "items", "tax_rate", "discount", "notes", "status", "issue_date", "due_date", "paid_date")
+
+
+@router.get("/invoice/{token}")
+def view_invoice(token: str, db: Session = Depends(get_db)):
+    """Read-only invoice document for the client (and for the chef to print / save as PDF)."""
+    inv = db.query(Invoice).filter(Invoice.public_token == token).first() if token else None
+    if not inv or not inv.public_token:
+        raise HTTPException(404, "This invoice link is invalid or has been withdrawn.")
+    owner = db.get(User, inv.user_id)
+    if not owner:
+        raise HTTPException(404, "This invoice link is invalid.")
+    client = db.get(Client, inv.client_id) if inv.client_id else None
+    bill_to = {}
+    if client and client.user_id == owner.id:
+        bill_to = {"name": client.name, "company": client.company or "", "email": client.email or "", "phone": client.phone or ""}
+    return {
+        "invoice": {k: v for k, v in to_dict(inv).items() if k in INVOICE_PUBLIC_FIELDS},
+        "business": {
+            "name": owner.business_name or owner.name,
+            "email": owner.business_email or owner.email or "",
+            "phone": owner.phone or "",
+            "logo": owner.avatar_url or "",
+        },
+        "currency": owner.currency,
+        "client": bill_to,
+    }
 
 
 def _public_quote(db: Session, token: str) -> tuple[Quote, User]:

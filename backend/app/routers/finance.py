@@ -1,13 +1,15 @@
 """Invoices, expenses and finance reporting."""
+import uuid
 from datetime import date
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from .. import config, mailer
 from ..auth import require_active
 from ..database import get_db
 from ..models import Client, Expense, Invoice, User
-from ..utils import crud_router, effective_doc_format, next_doc_seq, render_doc_number, to_dict, ws_id
+from ..utils import crud_router, effective_doc_format, get_owned, log_activity, next_doc_seq, render_doc_number, to_dict, ws_id
 
 invoices = crud_router(
     Invoice, required=(), search_fields=("number", "notes"),
@@ -81,6 +83,33 @@ def summary(year: int | None = None, db: Session = Depends(get_db), user=Depends
         "by_category": [{"category": k, "amount": round(v, 2)} for k, v in sorted(by_category.items(), key=lambda kv: -kv[1])],
         "open_invoices": open_invoices,
     }
+
+
+@invoices.post("/{invoice_id}/share")
+def share_invoice(invoice_id: int, send: bool = False, db: Session = Depends(get_db), user=Depends(require_active)):
+    """Mint (once) the read-only public link for an in-app invoice. With send=true, also
+    emails the client the link and marks the invoice sent."""
+    inv = get_owned(db, Invoice, invoice_id, ws_id(user))
+    if not inv.public_token:
+        inv.public_token = uuid.uuid4().hex
+    link = f"{config.APP_URL.rstrip('/')}/i/{inv.public_token}"
+    emailed = False
+    if send:
+        if inv.status == "draft":
+            inv.status = "sent"
+        owner = db.get(User, ws_id(user))
+        client = db.get(Client, inv.client_id) if inv.client_id else None
+        if client and client.user_id == ws_id(user) and client.email:
+            biz = (owner.business_name or owner.name) if owner else "your caterer"
+            mailer.send_email(
+                client.email, f"Invoice {inv.number} from {biz}",
+                f"Hi {client.name},\n\nYour invoice {inv.number} is ready to view and download here:\n{link}\n\n{biz}",
+            )
+            emailed = True
+        log_activity(db, user, "updated", inv, summary=f"Sent invoice {inv.number or inv.id}")
+    db.commit()
+    db.refresh(inv)
+    return {**to_dict(inv), "public_url": link, "emailed": emailed}
 
 
 @router.get("/next-invoice-number")

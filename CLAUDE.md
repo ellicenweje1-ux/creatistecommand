@@ -290,8 +290,24 @@ Ellice testing the live app on her iPhone sent a run of pointers; each built, ve
   possible** (they send X-Frame-Options/CSP) — so it's a new-tab link + the existing upload-PDF-back-as-preview loop. All
   additive columns; `PUT /auth/me` whitelists `service_charges`/`invoice_app_url`. Verified: charges persist; quote
   (£38 + 12mi×£0.45 + £50 = £93.40) → invoice carries all 3 lines; Settings card + quote charges menu + My-app shortcut
-  (caught + fixed a missing `IconButton` import in Settings.jsx). ⚠️ **Possible next step Ellice may want:** a full native
-  **printable/sendable invoice** (like the public quote page) so she can drop the external invoice app entirely.
+  (caught + fixed a missing `IconButton` import in Settings.jsx).
+- **Native invoice document — DONE (so Ellice can drop her external invoice app, App Store id1590349103):** new
+  `invoices.public_token` (additive) + `POST /invoices/{id}/share?send=` (mints the link, optionally emails the client +
+  marks sent) + public `GET /public/invoice/{token}`. New **`pages/PublicInvoice.jsx`** at route **`/i/:token`** — a clean
+  **white, portrait, print-perfect** invoice (business logo/name/contact header, Bill-to, line-item table, subtotal/
+  discount/tax/Total in brand gold, notes, Download/Print button). `InvoiceEditorModal` (Finance.jsx) gained **"Preview /
+  print"** (saves → opens the doc) and **"Send to client"** (saves → shares → emails/copies link). **Print-orientation
+  fix:** named `@page`/`page:` aren't honoured by the print-to-PDF engine, so the default `@page` is now **portrait** and
+  the **Allergens page renders an inline `<style>@media print{@page{size:A4 landscape}}`** only while mounted (overrides to
+  landscape). Verified: invoice PDF 595×842 portrait, allergen PDF 842×595 landscape; public doc renders number/bill-to/
+  lines/total £131.40 as a white doc; editor Preview+Send present. **Audience copy broadened** (Support + public FAQ): it's
+  for **all food & beverage providers** (bakers, cocktail/drinks, grazing/dessert, supper clubs, food trucks, pop-ups) —
+  **not** a full-service restaurant system.
+- **⚠️ ROADMAP (Ellice's note, NOT built):** a **"Pop-up" feature** — a chef/caterer takes **pre-orders** for a set
+  **location + day/time**; customers order ahead; ideally a **payments/POS integration** for the pop-up day. She named
+  **SumUp** (has APIs + hosted checkout + an Orders/online-store product, so a menu+pre-order+payment flow is feasible —
+  likely a public per-popup order page like the enquiry/quote public pages, + SumUp for card payment, or Stripe which is
+  already wired). Sizeable feature — capture when she's ready to build it.
 - **FAQ kept current (rule #3):** added "Can I set my own invoice and quote numbers?" (+ upload-invoice tip) and extended
   the quote-approval FAQ for "Build a quote from this menu".
 - **Verified:** backend API (number prefixes → `CC-`/`QT-`; uploaded invoice file persists; comp pending→active/elite/

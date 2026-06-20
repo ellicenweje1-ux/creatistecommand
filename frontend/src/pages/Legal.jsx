@@ -367,8 +367,10 @@ export function Faq() {
       </Section>
       <Section heading="Who is it for?">
         <p>
-          Independent chefs and catering businesses of every size — from a solo private chef to a team with staff.
-          You pick the membership that matches how you work today and move up as you grow.
+          All food &amp; beverage service providers — private chefs and caterers, bakers and cake makers, cocktail and
+          drinks businesses, grazing-table and dessert vendors, supper clubs, food trucks and pop-ups — from a solo
+          operator to a team with staff. You pick the membership that matches how you work today and move up as you grow.
+          (It’s built for event and order-based food businesses, not full-service restaurants.)
         </p>
       </Section>
       <Section heading="What can it actually do?">
