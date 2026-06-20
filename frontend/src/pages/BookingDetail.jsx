@@ -501,7 +501,12 @@ export default function BookingDetail() {
             </Card>
           )}
           <Card title="Invoices" action={
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              {user?.invoice_app_url && (
+                <a href={user.invoice_app_url} target="_blank" rel="noreferrer">
+                  <Button size="sm" variant="ghost" icon="external">My app</Button>
+                </a>
+              )}
               <Button size="sm" variant="secondary" icon="up" onClick={() => setUploadInvoice(true)}>Upload</Button>
               <Button size="sm" icon="plus" onClick={() => setInvoiceModal({ open: true, initial: null })}>New invoice</Button>
             </div>

@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { fmtDate, fmtMoney, invoiceTotal, todayISO, uid } from '../format'
+import { ChargesMenu } from '../charges'
 import { Badge, Button, EmptyState, Field, IconButton, Input, Modal, PageHeader, Select, Spinner, Textarea, toast, toastErr } from '../ui'
 
 const TONES = { draft: 'gray', sent: 'amber', approved: 'sage', declined: 'red', expired: 'ink' }
 
 export function QuoteEditor({ open, onClose, onSaved, initial = null, currency }) {
+  const { user } = useAuth()
   const blank = { number: '', title: '', client_id: '', booking_id: '', items: [], tax_rate: 0, discount: 0, valid_until: '', notes: '' }
   const [form, setForm] = useState(blank)
   const [clients, setClients] = useState([])
@@ -25,16 +27,20 @@ export function QuoteEditor({ open, onClose, onSaved, initial = null, currency }
   const items = form.items || []
   const setItem = (i, key, value) => setForm({ ...form, items: items.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)) })
 
-  const save = (e) => {
-    e.preventDefault()
-    const payload = {
-      ...form, tax_rate: Number(form.tax_rate) || 0, discount: Number(form.discount) || 0,
-      client_id: form.client_id ? Number(form.client_id) : null,
-      booking_id: form.booking_id ? Number(form.booking_id) : null,
-      items: items.map((it) => ({ ...it, qty: Number(it.qty) || 0, unit_price: Number(it.unit_price) || 0 })),
-    }
-    const req = initial?.id ? api.patch(`/quotes/${initial.id}`, payload) : api.post('/quotes', payload)
-    req.then(onSaved).catch(toastErr)
+  const buildPayload = () => ({
+    ...form, tax_rate: Number(form.tax_rate) || 0, discount: Number(form.discount) || 0,
+    client_id: form.client_id ? Number(form.client_id) : null,
+    booking_id: form.booking_id ? Number(form.booking_id) : null,
+    items: items.map((it) => ({ ...it, qty: Number(it.qty) || 0, unit_price: Number(it.unit_price) || 0 })),
+  })
+  const persist = () => (initial?.id ? api.patch(`/quotes/${initial.id}`, buildPayload()) : api.post('/quotes', buildPayload()))
+  const save = (e) => { e.preventDefault(); persist().then(onSaved).catch(toastErr) }
+  // Quote → invoice in one step: save the quote (with its service lines), then create the invoice.
+  const saveAndInvoice = () => {
+    persist()
+      .then((q) => api.post(`/quotes/${q.id}/to-invoice`))
+      .then((inv) => { toast(`Invoice ${inv.number} created — see Finance → Invoices`, 'sage'); onSaved() })
+      .catch(toastErr)
   }
   const remove = () => { if (initial?.id && window.confirm('Delete this quote?')) api.del(`/quotes/${initial.id}`).then(onSaved).catch(toastErr) }
 
@@ -71,8 +77,12 @@ export function QuoteEditor({ open, onClose, onSaved, initial = null, currency }
               </div>
             ))}
           </div>
-          <Button type="button" size="sm" variant="secondary" icon="plus" className="mt-2"
-            onClick={() => setForm({ ...form, items: [...items, { id: uid(), description: '', qty: 1, unit_price: 0 }] })}>Add line</Button>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Button type="button" size="sm" variant="secondary" icon="plus"
+              onClick={() => setForm({ ...form, items: [...items, { id: uid(), description: '', qty: 1, unit_price: 0 }] })}>Add line</Button>
+            <ChargesMenu saved={user?.service_charges || []} className="w-auto"
+              onAdd={(line) => setForm({ ...form, items: [...items, line] })} />
+          </div>
         </div>
         <div className="grid grid-cols-3 gap-3">
           <Field label="Tax rate %"><Input type="number" step="0.1" value={form.tax_rate} onChange={set('tax_rate')} /></Field>
@@ -83,10 +93,11 @@ export function QuoteEditor({ open, onClose, onSaved, initial = null, currency }
           </div>
         </div>
         <Field label="Notes for the client"><Textarea rows={2} value={form.notes} onChange={set('notes')} placeholder="Deposit terms, what's included…" /></Field>
-        <div className="flex justify-between gap-2">
+        <div className="flex flex-wrap justify-between gap-2">
           {initial?.id ? <Button type="button" variant="danger" icon="trash" onClick={remove}>Delete</Button> : <span />}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="secondary" icon="coins" onClick={saveAndInvoice}>Save &amp; create invoice</Button>
             <Button>{initial?.id ? 'Save quote' : 'Create quote'}</Button>
           </div>
         </div>

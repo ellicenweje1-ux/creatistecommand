@@ -6,7 +6,7 @@ import { perkIcon, perkTitle } from '../booking'
 import { DEFAULT_CONTACT_TEMPLATE } from '../contact'
 import { cls, fmtMoney, label, renderDocNumber, SYMBOLS } from '../format'
 import { getInstallPrompt, isStandalone } from '../offline'
-import { Badge, Button, Card, Field, Icon, Input, PasswordInput, Modal, PageHeader, Select, Stars, Textarea, toast, toastErr } from '../ui'
+import { Badge, Button, Card, Field, Icon, IconButton, Input, PasswordInput, Modal, PageHeader, Select, Stars, Textarea, toast, toastErr } from '../ui'
 import { CURRENT, VERSIONS, VersionNotes, versionRef } from '../version'
 
 /* Settings is split into individual pages (own URL each) under /app/settings, so the
@@ -106,7 +106,7 @@ const FEATURE_STATUS = {
 
 export function SettingsBusiness() {
   const { user, setUser } = useAuth()
-  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '', feature_publicly: false, testimonial: '', testimonial_rating: 0, invoice_format: 'INV-{YYYY}-{nnn}', quote_format: 'Q-{YYYY}-{nnn}' })
+  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '', feature_publicly: false, testimonial: '', testimonial_rating: 0, invoice_format: 'INV-{YYYY}-{nnn}', quote_format: 'Q-{YYYY}-{nnn}', service_charges: [], invoice_app_url: '' })
   const [seqs, setSeqs] = useState({ invoice: 1, quote: 1 })
   const [gallery, setGallery] = useState([])
   const [logo, setLogo] = useState('')
@@ -130,6 +130,8 @@ export function SettingsBusiness() {
       testimonial_rating: user.testimonial_rating || 0,
       invoice_format: user.invoice_format || `${(user.invoice_prefix || 'INV').trim() || 'INV'}-{YYYY}-{nnn}`,
       quote_format: user.quote_format || `${(user.quote_prefix || 'Q').trim() || 'Q'}-{YYYY}-{nnn}`,
+      service_charges: user.service_charges || [],
+      invoice_app_url: user.invoice_app_url || '',
     })
     setGallery(user.gallery || [])
     setLogo(user.avatar_url || '')
@@ -292,6 +294,42 @@ export function SettingsBusiness() {
             <p className="mt-1.5 text-xs text-fg/50">Next quote: <span className="font-semibold text-copper">{renderDocNumber(form.quote_format, seqs.quote)}</span></p>
           </div>
         </div>
+      </Card>
+
+      <Card title="Service charges">
+        <p className="mb-3 text-sm text-fg/60">Save the extras you add to quotes &amp; invoices — delivery, mileage, service fee — so they’re one tap. For a per-unit charge (e.g. per mile) set the rate here, then enter the miles on the line.</p>
+        <div className="space-y-2">
+          {(form.service_charges || []).map((c, i) => {
+            const upd = (k, v) => setForm({ ...form, service_charges: form.service_charges.map((x, idx) => idx === i ? { ...x, [k]: v } : x) })
+            return (
+              <div key={c.id || i} className="grid grid-cols-12 items-center gap-2 rounded-lg border border-line bg-parchment/30 p-2">
+                <Input className="col-span-12 sm:col-span-5" placeholder="Delivery" value={c.label || ''} onChange={(e) => upd('label', e.target.value)} />
+                <div className="col-span-7 flex items-center gap-1 sm:col-span-4">
+                  <span className="shrink-0 text-sm text-fg/50">{SYMBOLS[user?.currency] || '£'}</span>
+                  <Input type="number" min="0" step="0.01" className="min-w-0 flex-1 px-2" placeholder="0.00" value={c.rate ?? ''} onChange={(e) => upd('rate', e.target.value)} />
+                  <span className="shrink-0 text-sm text-fg/40">/</span>
+                  <Input className="w-16 px-2" placeholder="mile" value={c.per || ''} onChange={(e) => upd('per', e.target.value)} aria-label="per unit (optional)" />
+                </div>
+                <IconButton icon="trash" label="Remove charge" className="col-span-5 justify-self-end sm:col-span-3"
+                  onClick={() => setForm({ ...form, service_charges: form.service_charges.filter((_, idx) => idx !== i) })} />
+              </div>
+            )
+          })}
+        </div>
+        <Button type="button" size="sm" variant="secondary" icon="plus" className="mt-2"
+          onClick={() => setForm({ ...form, service_charges: [...(form.service_charges || []), { id: `c${Date.now()}`, label: '', rate: 0, per: '' }] })}>Add a charge</Button>
+        <p className="mt-1 text-xs text-fg/45">Leave “/ unit” blank for a flat fee (e.g. a £50 service charge); use it for per-mile or per-hour rates.</p>
+      </Card>
+
+      <Card title="Your invoice app (optional)">
+        <p className="mb-3 text-sm text-fg/60">
+          Prefer to build invoices in your own app? Paste its link and a shortcut appears on every booking’s Money tab.
+          (Invoice apps can’t be embedded inside Creatiste Command for security, so this opens it in a new tab — then
+          you can <span className="font-medium text-fg">Upload</span> the finished PDF back onto the booking.)
+        </p>
+        <Field label="Invoice app link">
+          <Input type="url" value={form.invoice_app_url} onChange={(e) => setForm({ ...form, invoice_app_url: e.target.value })} placeholder="https://…" />
+        </Field>
       </Card>
 
       <Card title="Gallery">

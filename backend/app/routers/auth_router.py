@@ -1,4 +1,5 @@
 import secrets
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
@@ -151,6 +152,22 @@ def update_me(payload: dict = Body(...), db: Session = Depends(get_db), user: Us
     for field in ("invoice_format", "quote_format"):
         if field in payload:
             setattr(user, field, str(payload[field] or "").strip()[:40])
+    if "invoice_app_url" in payload:
+        user.invoice_app_url = str(payload["invoice_app_url"] or "").strip()[:500]
+    # Reusable service charges (delivery/mileage/service fee) for quotes & invoices.
+    if isinstance(payload.get("service_charges"), list):
+        cleaned = []
+        for c in payload["service_charges"]:
+            label = str((c or {}).get("label") or "").strip()[:60]
+            if not label:
+                continue
+            cleaned.append({
+                "id": str(c.get("id") or uuid.uuid4().hex[:8]),
+                "label": label,
+                "rate": round(float(c.get("rate") or 0), 2),
+                "per": str(c.get("per") or "").strip()[:20],
+            })
+        user.service_charges = cleaned[:30]
     # Changing the logo on a live public listing sends it back for re-approval.
     if user.feature_publicly and user.feature_status == "approved" and user.avatar_url != old_avatar:
         user.feature_status = "pending"

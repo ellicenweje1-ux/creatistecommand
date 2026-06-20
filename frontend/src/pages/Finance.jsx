@@ -4,9 +4,11 @@ import { useAuth } from '../auth'
 import { cls, fmtDate, fmtMoney, INVOICE_STATUSES, INVOICE_TONES, invoiceTotal, todayISO, uid } from '../format'
 import { Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, Select, Spinner, StatCard, Tabs, Textarea, toastErr } from '../ui'
 import { QuotesPanel } from './Quotes'
+import { ChargesMenu } from '../charges'
 
 /* ------------------------------ invoice editor ------------------------------ */
 export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, bookingId = null, clientId = null, currency = 'GBP' }) {
+  const { user } = useAuth()
   const blank = {
     number: '', status: 'draft', issue_date: todayISO(), due_date: '', paid_date: '',
     items: [], tax_rate: 0, discount: 0, notes: '',
@@ -81,10 +83,14 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
               </div>
             ))}
           </div>
-          <Button type="button" size="sm" variant="secondary" icon="plus" className="mt-2"
-            onClick={() => setForm({ ...form, items: [...items, { id: uid(), description: '', qty: 1, unit_price: 0 }] })}>
-            Add line
-          </Button>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <Button type="button" size="sm" variant="secondary" icon="plus"
+              onClick={() => setForm({ ...form, items: [...items, { id: uid(), description: '', qty: 1, unit_price: 0 }] })}>
+              Add line
+            </Button>
+            <ChargesMenu saved={user?.service_charges || []} className="w-auto"
+              onAdd={(line) => setForm({ ...form, items: [...items, line] })} />
+          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-3">

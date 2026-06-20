@@ -279,6 +279,19 @@ Ellice testing the live app on her iPhone sent a run of pointers; each built, ve
   6. **Complimentary accounts (mock onboarding / friends & family):** new `users.is_comp` (additive). Admin → Chefs modal
      has a **"Complimentary account"** checkbox → sets the chef **active + Elite + onboarded, never billed**, and **excluded
      from MRR** (`overview.comp_count`). They register/onboard exactly like any user; Ellice just ticks the box.
+- **Quote/invoice streamline batch (her live "wall" — quoting for her own clients):** (a) **reusable service charges** —
+  new `users.service_charges` JSON (`[{id,label,rate,per}]`) managed in **Settings → Business → "Service charges"**
+  (delivery per mile, service fee, etc.); a shared **`ChargesMenu`** (`frontend/src/charges.jsx`, with built-in presets)
+  sits beside "Add line" in **both** the `QuoteEditor` (Quotes.jsx) and `InvoiceEditorModal` (Finance.jsx) → one tap adds
+  the line (per-unit charges start qty 1, set miles/hours on the line). (b) **One-step quote→invoice** — `QuoteEditor`
+  gains **"Save & create invoice"** (saves the quote incl. its charge lines, then `POST /quotes/{id}/to-invoice` → draft
+  invoice with the chef's number format). (c) **Invoice-app deep link** — new `users.invoice_app_url`; Settings → Business
+  field + a **"My app"** shortcut on the booking Money tab. **Embedding an external invoice app in an iframe is NOT
+  possible** (they send X-Frame-Options/CSP) — so it's a new-tab link + the existing upload-PDF-back-as-preview loop. All
+  additive columns; `PUT /auth/me` whitelists `service_charges`/`invoice_app_url`. Verified: charges persist; quote
+  (£38 + 12mi×£0.45 + £50 = £93.40) → invoice carries all 3 lines; Settings card + quote charges menu + My-app shortcut
+  (caught + fixed a missing `IconButton` import in Settings.jsx). ⚠️ **Possible next step Ellice may want:** a full native
+  **printable/sendable invoice** (like the public quote page) so she can drop the external invoice app entirely.
 - **FAQ kept current (rule #3):** added "Can I set my own invoice and quote numbers?" (+ upload-invoice tip) and extended
   the quote-approval FAQ for "Build a quote from this menu".
 - **Verified:** backend API (number prefixes → `CC-`/`QT-`; uploaded invoice file persists; comp pending→active/elite/
