@@ -106,7 +106,7 @@ const FEATURE_STATUS = {
 
 export function SettingsBusiness() {
   const { user, setUser } = useAuth()
-  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '', feature_publicly: false, testimonial: '', testimonial_rating: 0 })
+  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '', feature_publicly: false, testimonial: '', testimonial_rating: 0, invoice_prefix: 'INV', quote_prefix: 'Q' })
   const [gallery, setGallery] = useState([])
   const [logo, setLogo] = useState('')
   const [svc, setSvc] = useState('')
@@ -127,6 +127,8 @@ export function SettingsBusiness() {
       feature_publicly: !!user.feature_publicly,
       testimonial: user.testimonial || '',
       testimonial_rating: user.testimonial_rating || 0,
+      invoice_prefix: user.invoice_prefix ?? 'INV',
+      quote_prefix: user.quote_prefix ?? 'Q',
     })
     setGallery(user.gallery || [])
     setLogo(user.avatar_url || '')
@@ -251,6 +253,18 @@ export function SettingsBusiness() {
           <Field label="Message template" hint="Placeholders {client}, {business}, {event} and {date} are filled in automatically.">
             <Textarea rows={4} value={form.contact_template} onChange={(e) => setForm({ ...form, contact_template: e.target.value })}
               placeholder={DEFAULT_CONTACT_TEMPLATE} />
+          </Field>
+        </div>
+      </Card>
+
+      <Card title="Invoice & quote numbering">
+        <p className="mb-3 text-sm text-fg/60">Set your own prefix for new invoice and quote numbers. The year and a running number are added automatically.</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Invoice prefix" hint={`Next: ${(form.invoice_prefix || 'INV').trim() || 'INV'}-${new Date().getFullYear()}-001`}>
+            <Input value={form.invoice_prefix} maxLength={12} onChange={(e) => setForm({ ...form, invoice_prefix: e.target.value })} placeholder="INV" />
+          </Field>
+          <Field label="Quote prefix" hint={`Next: ${(form.quote_prefix || 'Q').trim() || 'Q'}-${new Date().getFullYear()}-001`}>
+            <Input value={form.quote_prefix} maxLength={12} onChange={(e) => setForm({ ...form, quote_prefix: e.target.value })} placeholder="Q" />
           </Field>
         </div>
       </Card>

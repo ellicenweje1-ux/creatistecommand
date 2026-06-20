@@ -45,7 +45,7 @@ def overview(db: Session = Depends(get_db)):
     mrr = 0.0
     for chef in chefs:
         by_status[chef.subscription_status] = by_status.get(chef.subscription_status, 0) + 1
-        if chef.subscription_status == "active":
+        if chef.subscription_status == "active" and not chef.is_comp:  # comp accounts aren't billed
             if chef.plan == "founders":
                 mrr += (settings.founders or {}).get("monthly", 0)
             elif chef.plan in settings.plans:
@@ -61,6 +61,7 @@ def overview(db: Session = Depends(get_db)):
     return {
         "chefs_total": len(chefs),
         "by_status": by_status,
+        "comp_count": sum(1 for c in chefs if c.is_comp),
         "mrr": mrr,
         "total_revenue": total_revenue,
         "onboarding_revenue": onboarding_revenue,
@@ -109,6 +110,15 @@ def update_chef(user_id: int, payload: dict = Body(...), db: Session = Depends(g
         user.is_founder = False
         if user.plan == "founders":
             user.plan = "elite"  # keep their access level until a plan is chosen
+    # Complimentary account (mock onboarding / friends & family): full access, never billed.
+    if "is_comp" in payload:
+        user.is_comp = bool(payload["is_comp"])
+        if user.is_comp:
+            user.subscription_status = "active"
+            if not user.plan:
+                user.plan = "elite"
+            if not user.onboarded_at:
+                user.onboarded_at = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     db.commit()
     db.refresh(user)
     return to_dict(user, exclude=USER_EXCLUDE)

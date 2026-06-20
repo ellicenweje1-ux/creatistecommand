@@ -241,6 +241,44 @@ Ellice's amendments after the review, all built + verified on the same branch (s
   cloud storage (Backblaze B2 / S3)**. And the **Zoom call-recording path stays dormant** until Ellice does the Zoom
   side (Pro plan + cloud recording + audio transcript + Server-to-Server OAuth + webhook → set the `ZOOM_*` envs).
 
+### Live-use fixes & menu/quote/numbering batch (still 22nd-wave session, branch `claude/festive-tesla-8xs0jo`, all merged to `main`)
+Ellice testing the live app on her iPhone sent a run of pointers; each built, verified (Playwright + API), merged to `main`:
+- **Mobile safe-area fix (iPhone 17 Pro Max):** the app is `viewport-fit=cover` + `black-translucent`, but only the
+  bottom nav honoured insets — so the top bar and bottom-sheet modals (with their dropdowns) sat under the Dynamic
+  Island / home indicator and were unreachable. Added `env(safe-area-inset-top)` to the mobile header and
+  `safe-area-inset-bottom` padding to the `Modal` body+footer and the "More" sheet. Pure additive padding (0 on
+  desktop/non-notched — no distortion). Verified via CDP `setSafeAreaInsetsOverride`.
+- **Allergen PDF → A4 landscape (standardised):** the allergen matrix is the only print surface, so the print CSS now
+  forces `@page { size: A4 landscape }` (the 14-allergen table needs the width). Verified the rendered PDF is 297×210mm.
+- **Menu builder reworked (shared `frontend/src/dishrows.jsx` — used by booking menu AND saved Menus):** pull dishes in
+  from a saved menu (picker on the booking Menu card), **Enter adds the next line**, header **"Course/component"**, and a
+  **manual "Serves" (free text, e.g. "10-12") + "Price"** per line — **NO calculation** (Ellice's explicit steer: a tray
+  menu reads "Jollof Rice | serves 10-12 | £38"; serves is descriptive). Booking **Menu total = simple sum of line
+  prices** (`menuPriceTotal`). **"Build a quote from this menu"** (Elite owners) → each line becomes a quote item at
+  **qty 1 @ its price** in the exported `QuoteEditor` (set quantities + send). Serves/price live in the existing
+  `menu`/`courses` JSON — no backend change. (NB an earlier serves-aware ceil(guests/serves) tally was built then
+  removed per her "no calculation".)
+- **Six-pointer batch (this session's last set):**
+  1. **Custom invoice/quote number prefixes** — new `users.invoice_prefix` ("INV") / `quote_prefix` ("Q") (additive),
+     set in **Settings → Business → "Invoice & quote numbering"**; shared `utils.next_doc_number()` builds
+     `PREFIX-YYYY-NNN`; quote + finance + quote→invoice generators all read the **owner's** prefix.
+  2/3. **Booking detail tabs reordered:** Overview, **Money**, Shopping, Orders, Tasks, Route, Packing, Designs (Money
+     moved up right after the Menu/Overview, per her order).
+  4. **Upload-an-invoice** (she invoices in another app): new `invoices.file_url` / `file_name` (additive); a **Money-tab
+     "Upload"** button → `UploadInvoiceModal` (PDF via `api.upload` + number/amount/date/status) creates an Invoice with a
+     single line item; rows show a **PDF** chip + open link.
+  5. **Nav modules reordered chronologically** (`App.jsx NAV_GROUPS`): Operations = Home·Dashboard·Bookings·**Clients**·
+     Tastings·Tasks·Routes·Team; Kitchen = Menus·Recipes·Allergens·Inventory·Shopping·Orders·Suppliers·Packing; Business =
+     Finance·Designs·My Brain. Bottom nav is now **path-based** (`QUICK_PATHS`) so reorders can't break it.
+  6. **Complimentary accounts (mock onboarding / friends & family):** new `users.is_comp` (additive). Admin → Chefs modal
+     has a **"Complimentary account"** checkbox → sets the chef **active + Elite + onboarded, never billed**, and **excluded
+     from MRR** (`overview.comp_count`). They register/onboard exactly like any user; Ellice just ticks the box.
+- **FAQ kept current (rule #3):** added "Can I set my own invoice and quote numbers?" (+ upload-invoice tip) and extended
+  the quote-approval FAQ for "Build a quote from this menu".
+- **Verified:** backend API (number prefixes → `CC-`/`QT-`; uploaded invoice file persists; comp pending→active/elite/
+  onboarded + MRR excluded + workspace access) and Playwright (nav order, booking tab order, upload modal fields, numbering
+  card, comp checkbox). `npm run build` clean (**79 modules** — `dishrows.jsx` added).
+
 ## Previous session (2026-06-17, twenty-first wave — shop/route wiring, founders-tab persistence, admin email alerts, unsubscribe retention)
 - Branch `claude/clever-goodall-te9p07` — **merge to `main` to deploy.** Ellice's second feedback batch
   (backlog 12–16, above). **Backend: NO new columns/tables/env/deps** — just a new `mailer.notify_admin()`

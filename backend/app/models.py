@@ -35,6 +35,9 @@ class User(Base):
     # Quick-contact (WhatsApp / email) defaults used by the "Contact client" action
     contact_channel: Mapped[str] = mapped_column(String(10), default="both")   # both | whatsapp | email
     contact_template: Mapped[str] = mapped_column(Text, default="")
+    # Document numbering — the chef's own invoice/quote number prefixes (→ PREFIX-YYYY-001)
+    invoice_prefix: Mapped[str] = mapped_column(String(12), default="INV")
+    quote_prefix: Mapped[str] = mapped_column(String(12), default="Q")
     role: Mapped[str] = mapped_column(String(20), default="chef")  # chef | admin | staff
     owner_id: Mapped[int] = mapped_column(Integer, nullable=True)  # staff accounts belong to an owner
     job_title: Mapped[str] = mapped_column(String(120), default="")
@@ -52,6 +55,8 @@ class User(Base):
     onboarded_at: Mapped[str] = mapped_column(String(10), default="")  # YYYY-MM-DD
     stripe_customer_id: Mapped[str] = mapped_column(String(120), default="")
     stripe_subscription_id: Mapped[str] = mapped_column(String(120), default="")
+    # Complimentary account — full access, never billed (mock onboarding / friends & family).
+    is_comp: Mapped[bool] = mapped_column(Boolean, default=False)
     # Founders programme (private launch membership — lifetime rate, numbered seat)
     is_founder: Mapped[bool] = mapped_column(Boolean, default=False)
     founder_number: Mapped[int] = mapped_column(Integer, nullable=True)
@@ -270,6 +275,9 @@ class Invoice(OwnedMixin, Base):
     tax_rate: Mapped[float] = mapped_column(Float, default=0)  # percent
     discount: Mapped[float] = mapped_column(Float, default=0)  # absolute
     notes: Mapped[str] = mapped_column(Text, default="")
+    # An invoice generated in another app and uploaded here (PDF) instead of built from items.
+    file_url: Mapped[str] = mapped_column(String(500), default="")
+    file_name: Mapped[str] = mapped_column(String(255), default="")
 
 
 class Expense(OwnedMixin, Base):

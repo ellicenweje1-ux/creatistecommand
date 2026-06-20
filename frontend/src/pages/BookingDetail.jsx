@@ -162,6 +162,70 @@ function MenuBuilder({ booking, recipes, currency, canQuote, onSaved }) {
   )
 }
 
+/* Upload an invoice generated in another app (PDF) and record it against the booking. */
+function UploadInvoiceModal({ open, bookingId, clientId, currency, onClose, onSaved }) {
+  const [form, setForm] = useState({ number: '', issue_date: todayISO(), amount: '', status: 'sent' })
+  const [file, setFile] = useState(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    if (!open) return
+    setForm({ number: '', issue_date: todayISO(), amount: '', status: 'sent' }); setFile(null)
+    api.get('/finance/next-invoice-number').then(({ number }) => setForm((f) => ({ ...f, number }))).catch(() => {})
+  }, [open])
+  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
+
+  const save = async () => {
+    if (!file) { toast('Choose the invoice PDF to upload', 'amber'); return }
+    setBusy(true)
+    try {
+      const up = await api.upload(file)
+      await api.post('/invoices', {
+        number: form.number, booking_id: bookingId, client_id: clientId || null,
+        issue_date: form.issue_date, status: form.status,
+        file_url: up.url, file_name: up.filename || file.name,
+        items: [{ id: uid(), description: 'Invoice (uploaded)', qty: 1, unit_price: Number(form.amount) || 0 }],
+        notes: 'Uploaded from an external invoice.',
+      })
+      toast('Invoice uploaded', 'sage'); onSaved()
+    } catch (err) { toastErr(err) } finally { setBusy(false) }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Upload an invoice">
+      <div className="space-y-4">
+        <p className="text-sm text-fg/60">Generated your invoice elsewhere? Attach the PDF and record it here — it’ll show on this booking and in Finance.</p>
+        <Field label="Invoice PDF">
+          {file ? (
+            <div className="flex items-center justify-between rounded-lg border border-line bg-card px-3 py-2 text-sm">
+              <span className="flex min-w-0 items-center gap-2 font-medium"><Icon name="doc" size={15} className="shrink-0 text-copper" /><span className="truncate">{file.name}</span></span>
+              <IconButton icon="x" label="Remove" onClick={() => setFile(null)} />
+            </div>
+          ) : (
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-line py-3 text-sm font-medium text-fg/55 hover:border-copper/50 hover:text-copper">
+              <Icon name="plus" size={15} /> Choose a PDF
+              <input type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+            </label>
+          )}
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Invoice number"><Input value={form.number} onChange={set('number')} placeholder="INV-2026-001" /></Field>
+          <Field label={`Amount (${currency})`}><Input type="number" min="0" step="0.01" value={form.amount} onChange={set('amount')} placeholder="0.00" /></Field>
+          <Field label="Issue date"><Input type="date" value={form.issue_date} onChange={set('issue_date')} /></Field>
+          <Field label="Status">
+            <Select value={form.status} onChange={set('status')}>
+              {['draft', 'sent', 'paid', 'overdue', 'void'].map((s) => <option key={s} value={s}>{label(s)}</option>)}
+            </Select>
+          </Field>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button icon="up" disabled={busy} onClick={save}>{busy ? 'Uploading…' : 'Upload invoice'}</Button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 /* ----------------------------------- page -------------------------------------- */
 export default function BookingDetail() {
   const { id } = useParams()
@@ -181,6 +245,7 @@ export default function BookingDetail() {
   const [newRoute, setNewRoute] = useState(false)
   const [orderModal, setOrderModal] = useState({ open: false, initial: null })
   const [invoiceModal, setInvoiceModal] = useState({ open: false, initial: null })
+  const [uploadInvoice, setUploadInvoice] = useState(false)
   const [expenseModal, setExpenseModal] = useState({ open: false, initial: null })
   const [designModal, setDesignModal] = useState({ open: false, design: null })
 
@@ -232,13 +297,13 @@ export default function BookingDetail() {
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
+    { id: 'money', label: 'Money' },
     { id: 'shopping', label: 'Shopping', count: ws.shopping_lists.length },
-    { id: 'packing', label: 'Packing', count: (ws.packing_lists || []).length },
+    { id: 'orders', label: 'Orders', count: ws.orders.length },
     { id: 'tasks', label: 'Tasks', count: ws.tasks.filter((t) => t.status !== 'done').length },
     { id: 'route', label: 'Route', count: ws.routes.length },
-    { id: 'orders', label: 'Orders', count: ws.orders.length },
+    { id: 'packing', label: 'Packing', count: (ws.packing_lists || []).length },
     { id: 'designs', label: 'Designs', count: ws.designs.length },
-    { id: 'money', label: 'Money' },
   ]
 
   return (
@@ -435,14 +500,26 @@ export default function BookingDetail() {
               </ul>
             </Card>
           )}
-          <Card title="Invoices" action={<Button size="sm" icon="plus" onClick={() => setInvoiceModal({ open: true, initial: null })}>New invoice</Button>} pad={false}>
-            {ws.invoices.length === 0 ? <p className="p-5 text-sm text-fg/45">No invoices for this booking yet.</p> : (
+          <Card title="Invoices" action={
+            <div className="flex gap-2">
+              <Button size="sm" variant="secondary" icon="up" onClick={() => setUploadInvoice(true)}>Upload</Button>
+              <Button size="sm" icon="plus" onClick={() => setInvoiceModal({ open: true, initial: null })}>New invoice</Button>
+            </div>
+          } pad={false}>
+            {ws.invoices.length === 0 ? <p className="p-5 text-sm text-fg/45">No invoices for this booking yet — create one, or upload a PDF you generated elsewhere.</p> : (
               <ul className="divide-y divide-line/70">
                 {ws.invoices.map((inv) => (
                   <li key={inv.id} className="flex cursor-pointer items-center justify-between px-4 py-3 hover:bg-parchment/40"
                     onClick={() => setInvoiceModal({ open: true, initial: inv })}>
-                    <div><p className="text-sm font-medium">{inv.number || `Invoice #${inv.id}`}</p><p className="text-xs text-fg/45">{inv.issue_date}</p></div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">{inv.number || `Invoice #${inv.id}`}{inv.file_url && <span className="ml-1.5 align-middle text-[10px] font-normal uppercase tracking-wide text-copper">PDF</span>}</p>
+                      <p className="text-xs text-fg/45">{inv.issue_date}</p>
+                    </div>
                     <div className="flex items-center gap-2">
+                      {inv.file_url && (
+                        <a href={inv.file_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+                          className="text-copper hover:text-copper-dark" title="Open the uploaded PDF"><Icon name="external" size={15} /></a>
+                      )}
                       <span className="text-sm font-semibold">{fmtMoney(invoiceTotal(inv), cur)}</span>
                       <Badge tone={{ draft: 'gray', sent: 'amber', paid: 'sage', overdue: 'red', void: 'ink' }[inv.status]}>{inv.status}</Badge>
                     </div>
@@ -473,6 +550,9 @@ export default function BookingDetail() {
           <InvoiceEditorModal open={invoiceModal.open} initial={invoiceModal.initial} bookingId={b.id} clientId={b.client_id} currency={cur}
             onClose={() => setInvoiceModal({ open: false, initial: null })}
             onSaved={() => { setInvoiceModal({ open: false, initial: null }); load() }} />
+          <UploadInvoiceModal open={uploadInvoice} bookingId={b.id} clientId={b.client_id} currency={cur}
+            onClose={() => setUploadInvoice(false)}
+            onSaved={() => { setUploadInvoice(false); load() }} />
           <ExpenseFormModal open={expenseModal.open} initial={expenseModal.initial} bookingId={b.id}
             onClose={() => setExpenseModal({ open: false, initial: null })}
             onSaved={() => { setExpenseModal({ open: false, initial: null }); load() }} />

@@ -51,7 +51,7 @@ function PasswordReset({ chef }) {
 
 function ChefModal({ chef, onClose, onSaved, plans }) {
   const [form, setForm] = useState({})
-  useEffect(() => { if (chef) setForm({ subscription_status: chef.subscription_status, plan: chef.plan, admin_notes: chef.admin_notes || '', is_founder: !!chef.is_founder }) }, [chef])
+  useEffect(() => { if (chef) setForm({ subscription_status: chef.subscription_status, plan: chef.plan, admin_notes: chef.admin_notes || '', is_founder: !!chef.is_founder, is_comp: !!chef.is_comp }) }, [chef])
   if (!chef) return null
   const save = () => api.patch(`/admin/chefs/${chef.id}`, form).then(() => { toast('Chef updated', 'sage'); onSaved() }).catch(toastErr)
   const remove = () => {
@@ -85,6 +85,13 @@ function ChefModal({ chef, onClose, onSaved, plans }) {
           <span>
             Founding member{chef.founder_number ? ` #${chef.founder_number}` : ''} — lifetime founders rate
             {!chef.is_founder && <span className="text-fg/45"> (tick to grandfather this chef into the programme)</span>}
+          </span>
+        </label>
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" className="mt-0.5" checked={!!form.is_comp} onChange={(e) => setForm({ ...form, is_comp: e.target.checked })} />
+          <span>
+            Complimentary account — full access, never billed
+            <span className="block text-xs text-fg/45">For mock onboarding / friends &amp; family. Ticking it activates them (Elite access) without a subscription, and they’re left out of your MRR.</span>
           </span>
         </label>
         <Field label="Admin notes"><Textarea rows={3} value={form.admin_notes} onChange={(e) => setForm({ ...form, admin_notes: e.target.value })} /></Field>

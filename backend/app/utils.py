@@ -139,6 +139,14 @@ def crud_router(model, *, required=("title",), search_fields=(), default_order=N
     return router
 
 
+def next_doc_number(db: Session, model, owner_id: int, prefix: str) -> str:
+    """Build the next document number for an owner, e.g. 'INV-2026-001'. The prefix is the
+    chef's own (Settings → Business); the sequence is the count of their existing docs + 1."""
+    count = db.query(model).filter(model.user_id == owner_id).count()
+    clean = (prefix or "").strip() or "DOC"
+    return f"{clean}-{date.today().year}-{count + 1:03d}"
+
+
 def get_owned(db: Session, model, item_id: int, workspace_id: int):
     obj = db.get(model, item_id)
     if not obj or obj.user_id != workspace_id:

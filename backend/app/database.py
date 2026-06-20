@@ -42,6 +42,8 @@ def ensure_columns():
             "contact_channel": "VARCHAR(10) DEFAULT 'both'", "contact_template": "TEXT DEFAULT ''",
             "feature_publicly": "BOOLEAN DEFAULT 0", "testimonial": "TEXT DEFAULT ''",
             "feature_status": "VARCHAR(10) DEFAULT 'none'", "testimonial_rating": "INTEGER DEFAULT 0",
+            "invoice_prefix": "VARCHAR(12) DEFAULT 'INV'", "quote_prefix": "VARCHAR(12) DEFAULT 'Q'",
+            "is_comp": "BOOLEAN DEFAULT 0",
         },
         "platform_settings": {"founders": "JSON"},
         "tasks": {"assignee_id": "INTEGER"},
@@ -49,6 +51,7 @@ def ensure_columns():
         "onboarding_sessions": {
             "meeting_id": "VARCHAR(40) DEFAULT ''", "recording_url": "VARCHAR(500) DEFAULT ''",
         },
+        "invoices": {"file_url": "VARCHAR(500) DEFAULT ''", "file_name": "VARCHAR(255) DEFAULT ''"},
     }
     inspector = sa.inspect(engine)
     with engine.begin() as conn:

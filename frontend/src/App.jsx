@@ -39,6 +39,8 @@ import Team from './pages/Team'
 import { Brand, Icon, toast } from './ui'
 import { VersionStamp } from './version'
 
+// Ordered to follow a catering job's natural flow: see the day → take the booking →
+// plan the menu → source & prep → deliver → bill. (Reordered 2026, owner's steer.)
 const NAV_GROUPS = [
   {
     label: 'Operations',
@@ -46,6 +48,7 @@ const NAV_GROUPS = [
       { to: '/app', icon: 'home', label: 'Home', end: true },
       { to: '/app/dashboard', icon: 'pulse', label: 'Dashboard' },
       { to: '/app/bookings', icon: 'calendar', label: 'Bookings' },
+      { to: '/app/clients', icon: 'users', label: 'Clients', min: 2 },
       { to: '/app/tastings', icon: 'fork', label: 'Tastings', min: 2 },
       { to: '/app/tasks', icon: 'checks', label: 'Tasks' },
       { to: '/app/routes', icon: 'map', label: 'Routes', min: 2 },
@@ -55,26 +58,28 @@ const NAV_GROUPS = [
   {
     label: 'Kitchen',
     items: [
-      { to: '/app/recipes', icon: 'book', label: 'Recipes' },
       { to: '/app/menus', icon: 'doc', label: 'Menus' },
+      { to: '/app/recipes', icon: 'book', label: 'Recipes' },
+      { to: '/app/allergens', icon: 'grid2', label: 'Allergens' },
       { to: '/app/inventory', icon: 'box', label: 'Inventory' },
       { to: '/app/shopping', icon: 'cart', label: 'Shopping' },
-      { to: '/app/packing', icon: 'clipboard', label: 'Packing' },
       { to: '/app/orders', icon: 'truck', label: 'Orders', min: 2 },
-      { to: '/app/allergens', icon: 'grid2', label: 'Allergens' },
       { to: '/app/suppliers', icon: 'tag', label: 'Suppliers', min: 2 },
+      { to: '/app/packing', icon: 'clipboard', label: 'Packing' },
     ],
   },
   {
     label: 'Business',
     items: [
-      { to: '/app/clients', icon: 'users', label: 'Clients', min: 2 },
       { to: '/app/finance', icon: 'coins', label: 'Finance', min: 2, ownerOnly: true },
       { to: '/app/designs', icon: 'layout', label: 'Designs', min: 2 },
       { to: '/app/ideas', icon: 'bulb', label: 'My Brain' },
     ],
   },
 ]
+
+// Bottom-nav quick links (mobile) — referenced by path so the reorder above can't break them.
+const QUICK_PATHS = ['/app/dashboard', '/app/bookings', '/app/tasks', '/app/shopping']
 
 const PLAN_NAMES = { 2: 'Pro Caterer', 3: 'Elite Kitchen' }
 
@@ -163,8 +168,9 @@ function AppShell() {
   }, [])
   // Daily-use shortcuts; Home (the module guide at /app) stays reachable via the
   // brand logo tap and the "More" sheet.
-  const mobileMain = [NAV_GROUPS[0].items[1], NAV_GROUPS[0].items[2], NAV_GROUPS[0].items[4], NAV_GROUPS[1].items[3]]
   const allItems = NAV_GROUPS.flatMap((g) => visibleItems(g.items, user))
+  const byPath = Object.fromEntries(NAV_GROUPS.flatMap((g) => g.items).map((i) => [i.to, i]))
+  const mobileMain = QUICK_PATHS.map((p) => byPath[p]).filter(Boolean)
 
   return (
     <div className="min-h-screen bg-base lg:pl-60 print:bg-white print:pl-0">

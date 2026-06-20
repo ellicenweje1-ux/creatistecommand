@@ -6,8 +6,8 @@ from sqlalchemy.orm import Session
 
 from ..auth import require_active
 from ..database import get_db
-from ..models import Client, Expense, Invoice
-from ..utils import crud_router, to_dict, ws_id
+from ..models import Client, Expense, Invoice, User
+from ..utils import crud_router, next_doc_number, to_dict, ws_id
 
 invoices = crud_router(
     Invoice, required=(), search_fields=("number", "notes"),
@@ -85,9 +85,8 @@ def summary(year: int | None = None, db: Session = Depends(get_db), user=Depends
 
 @router.get("/next-invoice-number")
 def next_invoice_number(db: Session = Depends(get_db), user=Depends(require_active)):
-    year = date.today().year
-    count = db.query(Invoice).filter(Invoice.user_id == ws_id(user)).count()
-    return {"number": f"INV-{year}-{count + 1:03d}"}
+    owner = db.get(User, ws_id(user))  # staff use their owner's prefix
+    return {"number": next_doc_number(db, Invoice, ws_id(user), owner.invoice_prefix if owner else "INV")}
 
 
 def _invoice_subtotal(inv: Invoice) -> float:
