@@ -509,21 +509,44 @@ export default function BookingDetail() {
             {ws.invoices.length === 0 ? <p className="p-5 text-sm text-fg/45">No invoices for this booking yet — create one, or upload a PDF you generated elsewhere.</p> : (
               <ul className="divide-y divide-line/70">
                 {ws.invoices.map((inv) => (
-                  <li key={inv.id} className="flex cursor-pointer items-center justify-between px-4 py-3 hover:bg-parchment/40"
-                    onClick={() => setInvoiceModal({ open: true, initial: inv })}>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium">{inv.number || `Invoice #${inv.id}`}{inv.file_url && <span className="ml-1.5 align-middle text-[10px] font-normal uppercase tracking-wide text-copper">PDF</span>}</p>
-                      <p className="text-xs text-fg/45">{inv.issue_date}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {inv.file_url && (
-                        <a href={inv.file_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-                          className="text-copper hover:text-copper-dark" title="Open the uploaded PDF"><Icon name="external" size={15} /></a>
-                      )}
-                      <span className="text-sm font-semibold">{fmtMoney(invoiceTotal(inv), cur)}</span>
-                      <Badge tone={{ draft: 'gray', sent: 'amber', paid: 'sage', overdue: 'red', void: 'ink' }[inv.status]}>{inv.status}</Badge>
-                    </div>
-                  </li>
+                  inv.file_url ? (
+                    /* Uploaded invoice — show a live preview you can glance at; tap to open full in a new tab. */
+                    <li key={inv.id} className="p-3 sm:p-4">
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium">{inv.number || `Invoice #${inv.id}`}
+                            <span className="ml-1.5 align-middle text-[10px] font-normal uppercase tracking-wide text-copper">PDF</span>
+                          </p>
+                          <p className="text-xs text-fg/45">{inv.issue_date}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold">{fmtMoney(invoiceTotal(inv), cur)}</span>
+                          <Badge tone={{ draft: 'gray', sent: 'amber', paid: 'sage', overdue: 'red', void: 'ink' }[inv.status]}>{inv.status}</Badge>
+                          <IconButton icon="edit" label="Edit record" onClick={() => setInvoiceModal({ open: true, initial: inv })} />
+                        </div>
+                      </div>
+                      <a href={inv.file_url} target="_blank" rel="noreferrer" title="Open the full invoice in a new tab"
+                        className="group relative block overflow-hidden rounded-lg border border-line bg-white">
+                        <iframe src={`${inv.file_url}#toolbar=0&navpanes=0&view=FitH`} title={`Invoice ${inv.number || inv.id} preview`}
+                          loading="lazy" className="pointer-events-none aspect-[210/297] w-full bg-white" />
+                        <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-ink/80 px-2.5 py-1 text-[11px] font-medium text-cream opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                          <Icon name="external" size={12} /> Open full
+                        </span>
+                      </a>
+                    </li>
+                  ) : (
+                    <li key={inv.id} className="flex cursor-pointer items-center justify-between px-4 py-3 hover:bg-parchment/40"
+                      onClick={() => setInvoiceModal({ open: true, initial: inv })}>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{inv.number || `Invoice #${inv.id}`}</p>
+                        <p className="text-xs text-fg/45">{inv.issue_date}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold">{fmtMoney(invoiceTotal(inv), cur)}</span>
+                        <Badge tone={{ draft: 'gray', sent: 'amber', paid: 'sage', overdue: 'red', void: 'ink' }[inv.status]}>{inv.status}</Badge>
+                      </div>
+                    </li>
+                  )
                 ))}
               </ul>
             )}
