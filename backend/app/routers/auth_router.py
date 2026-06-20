@@ -143,11 +143,14 @@ def update_me(payload: dict = Body(...), db: Session = Depends(get_db), user: Us
         user.gallery = [str(u) for u in payload["gallery"] if str(u).strip()][:30]
     if isinstance(payload.get("socials"), dict):
         user.socials = {k: str(v).strip() for k, v in payload["socials"].items() if str(v).strip()}
-    # Document number prefixes (Settings → Business). Stripped + capped; the generator
-    # falls back gracefully if left blank.
+    # Document number prefixes + format templates (Settings → Business). Stripped + capped;
+    # the generator falls back gracefully if left blank.
     for field in ("invoice_prefix", "quote_prefix"):
         if field in payload:
             setattr(user, field, str(payload[field] or "").strip()[:12])
+    for field in ("invoice_format", "quote_format"):
+        if field in payload:
+            setattr(user, field, str(payload[field] or "").strip()[:40])
     # Changing the logo on a live public listing sends it back for re-approval.
     if user.feature_publicly and user.feature_status == "approved" and user.avatar_url != old_avatar:
         user.feature_status = "pending"

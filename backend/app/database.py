@@ -43,6 +43,7 @@ def ensure_columns():
             "feature_publicly": "BOOLEAN DEFAULT 0", "testimonial": "TEXT DEFAULT ''",
             "feature_status": "VARCHAR(10) DEFAULT 'none'", "testimonial_rating": "INTEGER DEFAULT 0",
             "invoice_prefix": "VARCHAR(12) DEFAULT 'INV'", "quote_prefix": "VARCHAR(12) DEFAULT 'Q'",
+            "invoice_format": "VARCHAR(40) DEFAULT ''", "quote_format": "VARCHAR(40) DEFAULT ''",
             "is_comp": "BOOLEAN DEFAULT 0",
         },
         "platform_settings": {"founders": "JSON"},

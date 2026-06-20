@@ -262,6 +262,12 @@ Ellice testing the live app on her iPhone sent a run of pointers; each built, ve
   1. **Custom invoice/quote number prefixes** — new `users.invoice_prefix` ("INV") / `quote_prefix` ("Q") (additive),
      set in **Settings → Business → "Invoice & quote numbering"**; shared `utils.next_doc_number()` builds
      `PREFIX-YYYY-NNN`; quote + finance + quote→invoice generators all read the **owner's** prefix.
+     **Upgraded to full FORMAT TEMPLATES (follow-on, Ellice's ask):** new `users.invoice_format` / `quote_format`
+     (additive). `utils.render_doc_number(fmt, seq, today)` renders tokens `{n}/{nn}/{nnn}` (zero-padded sequence) +
+     `{DD} {MM} {YY} {YYYY}`; `effective_doc_format(owner, kind)` falls back to the prefix style when no format set.
+     So Ellice's "number then date" → format `{nn}{DD}{MM}{YY}` → **23200626** (23rd invoice, 20 Jun 26). Settings
+     card now has a token legend, **live preview of the real next number** (endpoints return `seq`), and one-tap
+     preset chips (incl. `23200626`). Frontend mirror `format.renderDocNumber()`.
   2/3. **Booking detail tabs reordered:** Overview, **Money**, Shopping, Orders, Tasks, Route, Packing, Designs (Money
      moved up right after the Menu/Overview, per her order).
   4. **Upload-an-invoice** (she invoices in another app): new `invoices.file_url` / `file_name` (additive); a **Money-tab

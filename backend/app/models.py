@@ -38,6 +38,10 @@ class User(Base):
     # Document numbering — the chef's own invoice/quote number prefixes (→ PREFIX-YYYY-001)
     invoice_prefix: Mapped[str] = mapped_column(String(12), default="INV")
     quote_prefix: Mapped[str] = mapped_column(String(12), default="Q")
+    # Full number format templates (tokens: {n}/{nn}/{nnn} number, {DD} {MM} {YY} {YYYY}).
+    # Empty = fall back to the prefix style above. e.g. "{nn}{DD}{MM}{YY}" → 23200626.
+    invoice_format: Mapped[str] = mapped_column(String(40), default="")
+    quote_format: Mapped[str] = mapped_column(String(40), default="")
     role: Mapped[str] = mapped_column(String(20), default="chef")  # chef | admin | staff
     owner_id: Mapped[int] = mapped_column(Integer, nullable=True)  # staff accounts belong to an owner
     job_title: Mapped[str] = mapped_column(String(120), default="")

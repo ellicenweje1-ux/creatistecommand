@@ -4,7 +4,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { perkIcon, perkTitle } from '../booking'
 import { DEFAULT_CONTACT_TEMPLATE } from '../contact'
-import { cls, fmtMoney, label, SYMBOLS } from '../format'
+import { cls, fmtMoney, label, renderDocNumber, SYMBOLS } from '../format'
 import { getInstallPrompt, isStandalone } from '../offline'
 import { Badge, Button, Card, Field, Icon, Input, PasswordInput, Modal, PageHeader, Select, Stars, Textarea, toast, toastErr } from '../ui'
 import { CURRENT, VERSIONS, VersionNotes, versionRef } from '../version'
@@ -106,7 +106,8 @@ const FEATURE_STATUS = {
 
 export function SettingsBusiness() {
   const { user, setUser } = useAuth()
-  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '', feature_publicly: false, testimonial: '', testimonial_rating: 0, invoice_prefix: 'INV', quote_prefix: 'Q' })
+  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '', feature_publicly: false, testimonial: '', testimonial_rating: 0, invoice_format: 'INV-{YYYY}-{nnn}', quote_format: 'Q-{YYYY}-{nnn}' })
+  const [seqs, setSeqs] = useState({ invoice: 1, quote: 1 })
   const [gallery, setGallery] = useState([])
   const [logo, setLogo] = useState('')
   const [svc, setSvc] = useState('')
@@ -127,12 +128,17 @@ export function SettingsBusiness() {
       feature_publicly: !!user.feature_publicly,
       testimonial: user.testimonial || '',
       testimonial_rating: user.testimonial_rating || 0,
-      invoice_prefix: user.invoice_prefix ?? 'INV',
-      quote_prefix: user.quote_prefix ?? 'Q',
+      invoice_format: user.invoice_format || `${(user.invoice_prefix || 'INV').trim() || 'INV'}-{YYYY}-{nnn}`,
+      quote_format: user.quote_format || `${(user.quote_prefix || 'Q').trim() || 'Q'}-{YYYY}-{nnn}`,
     })
     setGallery(user.gallery || [])
     setLogo(user.avatar_url || '')
   }, [user])
+  // Current sequence numbers, so the numbering preview shows your real next number.
+  useEffect(() => {
+    api.get('/finance/next-invoice-number').then((r) => setSeqs((s) => ({ ...s, invoice: r.seq || 1 }))).catch(() => {})
+    api.get('/quotes/meta/next-number').then((r) => setSeqs((s) => ({ ...s, quote: r.seq || 1 }))).catch(() => {})
+  }, [])
 
   if (user?.is_staff) {
     return <Card title="Business profile"><p className="text-sm text-fg/55">Your business owner sets up the business profile.</p></Card>
@@ -258,14 +264,33 @@ export function SettingsBusiness() {
       </Card>
 
       <Card title="Invoice & quote numbering">
-        <p className="mb-3 text-sm text-fg/60">Set your own prefix for new invoice and quote numbers. The year and a running number are added automatically.</p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Invoice prefix" hint={`Next: ${(form.invoice_prefix || 'INV').trim() || 'INV'}-${new Date().getFullYear()}-001`}>
-            <Input value={form.invoice_prefix} maxLength={12} onChange={(e) => setForm({ ...form, invoice_prefix: e.target.value })} placeholder="INV" />
-          </Field>
-          <Field label="Quote prefix" hint={`Next: ${(form.quote_prefix || 'Q').trim() || 'Q'}-${new Date().getFullYear()}-001`}>
-            <Input value={form.quote_prefix} maxLength={12} onChange={(e) => setForm({ ...form, quote_prefix: e.target.value })} placeholder="Q" />
-          </Field>
+        <p className="mb-2 text-sm text-fg/60">Set the format for new numbers. Build it from these tokens — anything else (letters, dashes) stays exactly as you type it:</p>
+        <ul className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-fg/55 sm:grid-cols-3">
+          <li><code className="rounded bg-fg/5 px-1">{'{n}'}</code> number (23)</li>
+          <li><code className="rounded bg-fg/5 px-1">{'{nn}'}</code>/<code className="rounded bg-fg/5 px-1">{'{nnn}'}</code> padded (07 / 007)</li>
+          <li><code className="rounded bg-fg/5 px-1">{'{DD}'}</code> day · <code className="rounded bg-fg/5 px-1">{'{MM}'}</code> month</li>
+          <li><code className="rounded bg-fg/5 px-1">{'{YY}'}</code> year (26)</li>
+          <li><code className="rounded bg-fg/5 px-1">{'{YYYY}'}</code> full year (2026)</li>
+        </ul>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Field label="Invoice number format">
+              <Input value={form.invoice_format} maxLength={40} onChange={(e) => setForm({ ...form, invoice_format: e.target.value })} placeholder="INV-{YYYY}-{nnn}" />
+            </Field>
+            <p className="mt-1.5 text-xs text-fg/50">Next invoice: <span className="font-semibold text-copper">{renderDocNumber(form.invoice_format, seqs.invoice)}</span></p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {[['INV-{YYYY}-{nnn}', 'INV-2026-001'], ['{nn}{DD}{MM}{YY}', '23200626'], ['{YYYY}{MM}{DD}-{nn}', '20260620-23']].map(([f, ex]) => (
+                <button type="button" key={f} onClick={() => setForm({ ...form, invoice_format: f })}
+                  className={cls('rounded-full border px-2.5 py-1 text-xs transition-colors', form.invoice_format === f ? 'border-copper bg-copper/10 text-copper' : 'border-line text-fg/55 hover:border-copper hover:text-copper')}>{ex}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <Field label="Quote number format">
+              <Input value={form.quote_format} maxLength={40} onChange={(e) => setForm({ ...form, quote_format: e.target.value })} placeholder="Q-{YYYY}-{nnn}" />
+            </Field>
+            <p className="mt-1.5 text-xs text-fg/50">Next quote: <span className="font-semibold text-copper">{renderDocNumber(form.quote_format, seqs.quote)}</span></p>
+          </div>
         </div>
       </Card>
 

@@ -139,12 +139,48 @@ def crud_router(model, *, required=("title",), search_fields=(), default_order=N
     return router
 
 
-def next_doc_number(db: Session, model, owner_id: int, prefix: str) -> str:
-    """Build the next document number for an owner, e.g. 'INV-2026-001'. The prefix is the
-    chef's own (Settings → Business); the sequence is the count of their existing docs + 1."""
-    count = db.query(model).filter(model.user_id == owner_id).count()
-    clean = (prefix or "").strip() or "DOC"
-    return f"{clean}-{date.today().year}-{count + 1:03d}"
+def render_doc_number(fmt: str, seq: int, today: date | None = None) -> str:
+    """Render a document-number format template. Tokens: {n}/{nn}/{nnn}… = sequence number
+    (zero-padded to the token length), {DD} {MM} {YY} {YYYY} = today's date. Anything else is
+    kept literally. e.g. '{nn}{DD}{MM}{YY}' with seq 23 on 20 Jun 2026 → '23200626'."""
+    today = today or date.today()
+
+    def repl(m: "re.Match") -> str:
+        tok = m.group(1)
+        if tok == "DD":
+            return f"{today.day:02d}"
+        if tok == "MM":
+            return f"{today.month:02d}"
+        if tok == "YY":
+            return f"{today.year % 100:02d}"
+        if tok == "YYYY":
+            return f"{today.year:04d}"
+        if set(tok) == {"n"}:  # n, nn, nnn… → zero-padded sequence
+            return str(seq).zfill(len(tok))
+        return m.group(0)
+
+    out = re.sub(r"\{([A-Za-z]+)\}", repl, fmt or "").strip()
+    return out or f"{seq:03d}"
+
+
+def effective_doc_format(owner, kind: str) -> str:
+    """The owner's number format for 'invoice'|'quote'. Falls back to their prefix
+    (PREFIX-YYYY-001) when no explicit format is set."""
+    fmt = (getattr(owner, f"{kind}_format", "") or "").strip()
+    if fmt:
+        return fmt
+    prefix = (getattr(owner, f"{kind}_prefix", "") or "").strip() or ("INV" if kind == "invoice" else "Q")
+    return f"{prefix}-{{YYYY}}-{{nnn}}"
+
+
+def next_doc_seq(db: Session, model, owner_id: int) -> int:
+    """The next chronological sequence number for an owner's docs (their Nth invoice/quote)."""
+    return db.query(model).filter(model.user_id == owner_id).count() + 1
+
+
+def next_doc_number(db: Session, model, owner_id: int, fmt: str) -> str:
+    """Build the next document number for an owner from a format template."""
+    return render_doc_number(fmt, next_doc_seq(db, model, owner_id), date.today())
 
 
 def get_owned(db: Session, model, item_id: int, workspace_id: int):

@@ -10,7 +10,10 @@ from .. import config, mailer
 from ..auth import require_owner, require_plan
 from ..database import get_db
 from ..models import Client, Invoice, Quote
-from ..utils import crud_router, get_owned, log_activity, next_doc_number, to_dict, ws_id
+from ..utils import (
+    crud_router, effective_doc_format, get_owned, log_activity, next_doc_number,
+    next_doc_seq, render_doc_number, to_dict, ws_id,
+)
 
 QUOTE_PLAN = 3  # Elite Kitchen
 
@@ -24,7 +27,9 @@ router.dependencies.append(Depends(require_owner))
 
 @router.get("/meta/next-number")
 def next_quote_number(db: Session = Depends(get_db), user=Depends(require_owner)):
-    return {"number": next_doc_number(db, Quote, ws_id(user), user.quote_prefix)}
+    seq = next_doc_seq(db, Quote, ws_id(user))
+    fmt = effective_doc_format(user, "quote")
+    return {"number": render_doc_number(fmt, seq), "seq": seq, "format": fmt}
 
 
 @router.post("/{quote_id}/send")
@@ -54,7 +59,7 @@ def quote_to_invoice(quote_id: int, db: Session = Depends(get_db), user=Depends(
     quote = get_owned(db, Quote, quote_id, ws_id(user))
     invoice = Invoice(
         user_id=ws_id(user), booking_id=quote.booking_id, client_id=quote.client_id,
-        number=next_doc_number(db, Invoice, ws_id(user), user.invoice_prefix), status="draft",
+        number=next_doc_number(db, Invoice, ws_id(user), effective_doc_format(user, "invoice")), status="draft",
         issue_date=date.today().isoformat(), items=quote.items,
         tax_rate=quote.tax_rate, discount=quote.discount,
         notes=f"From approved quote {quote.number}".strip(),

@@ -70,3 +70,20 @@ export function invoiceTotal(inv) {
 // Simple sum of the per-line prices on a menu (no guest/serves maths — "serves" is just a
 // descriptive label like "10-12"). Used for the booking menu total and the quote it builds.
 export const menuPriceTotal = (menu) => (menu || []).reduce((sum, l) => sum + (Number(l?.price) || 0), 0)
+
+// Render an invoice/quote number format (mirrors backend utils.render_doc_number) for the
+// live preview in Settings. Tokens: {n}/{nn}/{nnn}… = sequence, {DD} {MM} {YY} {YYYY} = date.
+export function renderDocNumber(fmt, seq = 1, d = new Date()) {
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const yyyy = String(d.getFullYear())
+  const out = String(fmt || '').replace(/\{([A-Za-z]+)\}/g, (m, tok) => {
+    if (tok === 'DD') return dd
+    if (tok === 'MM') return mm
+    if (tok === 'YY') return yyyy.slice(-2)
+    if (tok === 'YYYY') return yyyy
+    if (/^n+$/.test(tok)) return String(seq).padStart(tok.length, '0')
+    return m
+  }).trim()
+  return out || String(seq).padStart(3, '0')
+}

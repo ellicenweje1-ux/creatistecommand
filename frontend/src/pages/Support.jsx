@@ -34,7 +34,7 @@ const FAQS = [
   ['Can I add my bookings to my phone calendar?',
    'Yes. Settings → App & integrations has a private “Calendar subscription” link — add it to Apple, Google or Outlook calendar (subscribe by URL) and your bookings and tastings appear alongside everything else, updating automatically whenever you change them here. It’s read-only and the link is private to you.'],
   ['Can I set my own invoice and quote numbers?',
-   'Yes. In Settings → Business → “Invoice & quote numbering”, set your own prefix for each (e.g. “INV” or your initials) — the year and a running number are added automatically, like INV-2026-001. Already generate invoices in another app? On a booking’s Money tab, tap “Upload” to attach the PDF and record it here — it shows on the booking and in Finance.'],
+   'Yes — fully. In Settings → Business → “Invoice & quote numbering”, build the format from simple tokens: {n}/{nn}/{nnn} for the running number and {DD} {MM} {YY} {YYYY} for the date. So “INV-{YYYY}-{nnn}” gives INV-2026-001, and “{nn}{DD}{MM}{YY}” gives 23200626 (your 23rd invoice, dated today). A live preview shows your next number as you type. Already generate invoices in another app? On a booking’s Money tab, tap “Upload” to attach the PDF — it shows as a preview on the booking and in Finance.'],
   ['Can I export my data?',
    'Always — your data is yours. Settings → App & integrations → “Export your data” downloads CSV files of your bookings, clients, invoices and expenses (open them in any spreadsheet or hand them to your accountant). There are quick export buttons on the Clients, Finance and Allergen-matrix pages too.'],
   ['How do I cancel or change my plan?',
