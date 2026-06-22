@@ -3,6 +3,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { fmtDate, fmtMoney, invoiceTotal, todayISO, uid } from '../format'
 import { ChargesMenu } from '../charges'
+import { MenuItemsMenu, fetchMenuItems } from '../menulines'
 import { Badge, Button, EmptyState, Field, IconButton, Input, Modal, PageHeader, Select, Spinner, Textarea, toast, toastErr } from '../ui'
 
 const TONES = { draft: 'gray', sent: 'amber', approved: 'sage', declined: 'red', expired: 'ink' }
@@ -13,6 +14,7 @@ export function QuoteEditor({ open, onClose, onSaved, initial = null, currency }
   const [form, setForm] = useState(blank)
   const [clients, setClients] = useState([])
   const [bookings, setBookings] = useState([])
+  const [menuItems, setMenuItems] = useState([])
   useEffect(() => {
     if (!open) return
     api.get('/clients').then(setClients).catch(() => {})
@@ -23,6 +25,11 @@ export function QuoteEditor({ open, onClose, onSaved, initial = null, currency }
       .then(({ number }) => setForm({ ...blank, number, ...(initial || {}) }))
       .catch(() => setForm({ ...blank, ...(initial || {}) }))
   }, [open, initial]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Priced dishes to pull onto a line — refreshed when the linked booking changes.
+  useEffect(() => {
+    if (!open) return
+    fetchMenuItems(form.booking_id || null).then(setMenuItems).catch(() => {})
+  }, [open, form.booking_id])
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
   const items = form.items || []
   const setItem = (i, key, value) => setForm({ ...form, items: items.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)) })
@@ -80,6 +87,8 @@ export function QuoteEditor({ open, onClose, onSaved, initial = null, currency }
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Button type="button" size="sm" variant="secondary" icon="plus"
               onClick={() => setForm({ ...form, items: [...items, { id: uid(), description: '', qty: 1, unit_price: 0 }] })}>Add line</Button>
+            <MenuItemsMenu items={menuItems} currency={currency} className="w-auto"
+              onAdd={(line) => setForm({ ...form, items: [...items, line] })} />
             <ChargesMenu saved={user?.service_charges || []} className="w-auto"
               onAdd={(line) => setForm({ ...form, items: [...items, line] })} />
           </div>

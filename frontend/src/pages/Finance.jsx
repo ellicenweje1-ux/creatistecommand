@@ -5,6 +5,7 @@ import { cls, fmtDate, fmtMoney, INVOICE_STATUSES, INVOICE_TONES, invoiceTotal, 
 import { Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, Select, Spinner, StatCard, Tabs, Textarea, toast, toastErr } from '../ui'
 import { QuotesPanel } from './Quotes'
 import { ChargesMenu } from '../charges'
+import { MenuItemsMenu, fetchMenuItems } from '../menulines'
 
 /* ------------------------------ invoice editor ------------------------------ */
 export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, bookingId = null, clientId = null, currency = 'GBP' }) {
@@ -15,10 +16,12 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
   }
   const [form, setForm] = useState(blank)
   const [clients, setClients] = useState([])
+  const [menuItems, setMenuItems] = useState([])
 
   useEffect(() => {
     if (!open) return
     api.get('/clients').then(setClients).catch(() => {})
+    fetchMenuItems(initial?.booking_id ?? bookingId).then(setMenuItems).catch(() => {})
     if (initial) setForm({ ...blank, ...initial })
     else {
       api.get('/finance/next-invoice-number')
@@ -103,6 +106,8 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
               onClick={() => setForm({ ...form, items: [...items, { id: uid(), description: '', qty: 1, unit_price: 0 }] })}>
               Add line
             </Button>
+            <MenuItemsMenu items={menuItems} currency={currency} className="w-auto"
+              onAdd={(line) => setForm({ ...form, items: [...items, line] })} />
             <ChargesMenu saved={user?.service_charges || []} className="w-auto"
               onAdd={(line) => setForm({ ...form, items: [...items, line] })} />
           </div>

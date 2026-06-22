@@ -45,6 +45,7 @@ def ensure_columns():
             "invoice_prefix": "VARCHAR(12) DEFAULT 'INV'", "quote_prefix": "VARCHAR(12) DEFAULT 'Q'",
             "invoice_format": "VARCHAR(40) DEFAULT ''", "quote_format": "VARCHAR(40) DEFAULT ''",
             "service_charges": "JSON", "invoice_app_url": "VARCHAR(500) DEFAULT ''",
+            "invoice_accent": "VARCHAR(20) DEFAULT ''",
             "is_comp": "BOOLEAN DEFAULT 0",
         },
         "platform_settings": {"founders": "JSON"},

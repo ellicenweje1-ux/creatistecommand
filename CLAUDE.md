@@ -303,6 +303,13 @@ Ellice testing the live app on her iPhone sent a run of pointers; each built, ve
   lines/total £131.40 as a white doc; editor Preview+Send present. **Audience copy broadened** (Support + public FAQ): it's
   for **all food & beverage providers** (bakers, cocktail/drinks, grazing/dessert, supper clubs, food trucks, pop-ups) —
   **not** a full-service restaurant system.
+- **Invoice line auto-fill + branding colour (follow-on):** shared **`MenuItemsMenu`** (`frontend/src/menulines.jsx`,
+  `fetchMenuItems(bookingId)` flattens the booking's menu + all saved menus' **priced** courses) sits beside Add-line in
+  **both** the quote + invoice editors → one tap auto-fills a line with the dish + its price. **Invoice branding colour:**
+  new `users.invoice_accent` (additive, default brand gold `#BFA987`), set in **Settings → Appearance → "Invoice branding"**
+  (colour picker + presets + live mini-invoice preview); the public invoice endpoint returns `business.accent` and
+  `PublicInvoice.jsx` uses it for the INVOICE heading / total / table rule. Verified: accent persists + greens the public
+  doc; menu-item dropdown auto-fills "Rice — Jollof Rice" @ £38.
 - **⚠️ ROADMAP (Ellice's note, NOT built):** a **"Pop-up" feature** — a chef/caterer takes **pre-orders** for a set
   **location + day/time**; customers order ahead; ideally a **payments/POS integration** for the pop-up day. She named
   **SumUp** (has APIs + hosted checkout + an Orders/online-store product, so a menu+pre-order+payment flow is feasible —

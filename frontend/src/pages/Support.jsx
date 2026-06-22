@@ -35,6 +35,8 @@ const FAQS = [
    'Yes. The “Shop” on each shopping-list item is steered from your Suppliers (add them under Suppliers, with addresses). On Routes, open a route and choose “Add stops from a shopping list” — each shop on that list becomes a stop, with its address filled in from your Suppliers, ready to open in Google Maps. No more zig-zagging across town.'],
   ['Can I add my bookings to my phone calendar?',
    'Yes. Settings → App & integrations has a private “Calendar subscription” link — add it to Apple, Google or Outlook calendar (subscribe by URL) and your bookings and tastings appear alongside everything else, updating automatically whenever you change them here. It’s read-only and the link is private to you.'],
+  ['Can I brand my invoices?',
+   'Yes. Your logo and business name (Settings → Business) appear on every invoice and quote, and you can set your brand colour in Settings → Appearance → “Invoice branding” — it colours the heading, total and table line on the document your client sees, with a live preview. When building a quote or invoice, use “Add a menu item” to pull a priced dish straight onto a line, or “Add a charge” for delivery/service fees.'],
   ['Can I set my own invoice and quote numbers?',
    'Yes — fully. In Settings → Business → “Invoice & quote numbering”, build the format from simple tokens: {n}/{nn}/{nnn} for the running number and {DD} {MM} {YY} {YYYY} for the date. So “INV-{YYYY}-{nnn}” gives INV-2026-001, and “{nn}{DD}{MM}{YY}” gives 23200626 (your 23rd invoice, dated today). A live preview shows your next number as you type. Already generate invoices in another app? On a booking’s Money tab, tap “Upload” to attach the PDF — it shows as a preview on the booking and in Finance.'],
   ['Can I export my data?',

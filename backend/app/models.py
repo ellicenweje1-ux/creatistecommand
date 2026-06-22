@@ -46,6 +46,8 @@ class User(Base):
     service_charges: Mapped[list] = mapped_column(JSON, default=list)  # [{id,label,rate,per}]
     # Optional deep-link to the chef's own invoice-building app (can't be iframe-embedded).
     invoice_app_url: Mapped[str] = mapped_column(String(500), default="")
+    # Invoice branding — accent colour for the in-app invoice document (defaults to brand gold).
+    invoice_accent: Mapped[str] = mapped_column(String(20), default="")
     role: Mapped[str] = mapped_column(String(20), default="chef")  # chef | admin | staff
     owner_id: Mapped[int] = mapped_column(Integer, nullable=True)  # staff accounts belong to an owner
     job_title: Mapped[str] = mapped_column(String(120), default="")

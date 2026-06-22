@@ -154,6 +154,8 @@ def update_me(payload: dict = Body(...), db: Session = Depends(get_db), user: Us
             setattr(user, field, str(payload[field] or "").strip()[:40])
     if "invoice_app_url" in payload:
         user.invoice_app_url = str(payload["invoice_app_url"] or "").strip()[:500]
+    if "invoice_accent" in payload:
+        user.invoice_accent = str(payload["invoice_accent"] or "").strip()[:20]
     # Reusable service charges (delivery/mileage/service fee) for quotes & invoices.
     if isinstance(payload.get("service_charges"), list):
         cleaned = []

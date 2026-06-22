@@ -25,16 +25,17 @@ export default function PublicInvoice() {
   if (error) return <Wrap><p className="py-24 text-center text-neutral-500">{error}</p></Wrap>
   if (!data) return <Wrap><p className="py-24 text-center text-neutral-400">Loading…</p></Wrap>
   const { invoice, business, currency, client } = data
+  const accent = business.accent || GOLD
   const items = invoice.items || []
   const subtotal = items.reduce((a, it) => a + (Number(it.qty) || 0) * (Number(it.unit_price) || 0), 0)
   const total = invoiceTotal(invoice)
   const taxAmt = total - (subtotal - (Number(invoice.discount) || 0))
-  const statusColor = { paid: '#2e7d32', overdue: '#c62828', sent: GOLD, draft: '#888', void: '#999' }[invoice.status] || '#888'
+  const statusColor = { paid: '#2e7d32', overdue: '#c62828', sent: accent, draft: '#888', void: '#999' }[invoice.status] || '#888'
 
   return (
     <Wrap>
       <div className="mx-auto mb-4 flex max-w-2xl justify-end print:hidden">
-        <button onClick={() => window.print()} style={{ background: GOLD }}
+        <button onClick={() => window.print()} style={{ background: accent }}
           className="rounded-lg px-4 py-2 text-sm font-semibold text-white shadow">Download / Print</button>
       </div>
       <div className="mx-auto max-w-2xl bg-white p-8 text-neutral-800 shadow-lg print:max-w-none print:p-0 print:shadow-none">
@@ -48,7 +49,7 @@ export default function PublicInvoice() {
             </div>
           </div>
           <div className="text-right">
-            <p className="font-display text-2xl font-bold tracking-wide" style={{ color: GOLD }}>INVOICE</p>
+            <p className="font-display text-2xl font-bold tracking-wide" style={{ color: accent }}>INVOICE</p>
             <p className="text-sm font-medium">{invoice.number}</p>
             <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide" style={{ color: statusColor }}>{invoice.status}</p>
           </div>
@@ -70,7 +71,7 @@ export default function PublicInvoice() {
 
         <table className="mt-6 w-full text-sm">
           <thead>
-            <tr className="text-left text-[10px] uppercase tracking-wider text-neutral-400" style={{ borderBottom: `2px solid ${GOLD}` }}>
+            <tr className="text-left text-[10px] uppercase tracking-wider text-neutral-400" style={{ borderBottom: `2px solid ${accent}` }}>
               <th className="pb-2 font-semibold">Description</th>
               <th className="pb-2 text-right font-semibold">Qty</th>
               <th className="pb-2 text-right font-semibold">Unit</th>
@@ -94,8 +95,8 @@ export default function PublicInvoice() {
             <Row label="Subtotal" value={fmtMoney(subtotal, currency)} />
             {Number(invoice.discount) > 0 && <Row label="Discount" value={`−${fmtMoney(invoice.discount, currency)}`} />}
             {Number(invoice.tax_rate) > 0 && <Row label={`Tax (${invoice.tax_rate}%)`} value={fmtMoney(taxAmt, currency)} />}
-            <div className="mt-1 flex justify-between border-t pt-2 font-display text-lg font-bold" style={{ borderColor: GOLD }}>
-              <span>Total</span><span style={{ color: GOLD }}>{fmtMoney(total, currency)}</span>
+            <div className="mt-1 flex justify-between border-t pt-2 font-display text-lg font-bold" style={{ borderColor: accent }}>
+              <span>Total</span><span style={{ color: accent }}>{fmtMoney(total, currency)}</span>
             </div>
           </div>
         </div>
