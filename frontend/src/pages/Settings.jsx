@@ -106,7 +106,7 @@ const FEATURE_STATUS = {
 
 export function SettingsBusiness() {
   const { user, setUser } = useAuth()
-  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '', feature_publicly: false, testimonial: '', testimonial_rating: 0, invoice_format: 'INV-{YYYY}-{nnn}', quote_format: 'Q-{YYYY}-{nnn}', service_charges: [], invoice_app_url: '' })
+  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '', feature_publicly: false, testimonial: '', testimonial_rating: 0, invoice_format: 'INV-{YYYY}-{nnn}', quote_format: 'Q-{YYYY}-{nnn}', service_charges: [], invoice_app_url: '', invoice_accent: BRAND_GOLD })
   const [seqs, setSeqs] = useState({ invoice: 1, quote: 1 })
   const [gallery, setGallery] = useState([])
   const [logo, setLogo] = useState('')
@@ -132,6 +132,7 @@ export function SettingsBusiness() {
       quote_format: user.quote_format || `${(user.quote_prefix || 'Q').trim() || 'Q'}-{YYYY}-{nnn}`,
       service_charges: user.service_charges || [],
       invoice_app_url: user.invoice_app_url || '',
+      invoice_accent: user.invoice_accent || BRAND_GOLD,
     })
     setGallery(user.gallery || [])
     setLogo(user.avatar_url || '')
@@ -209,6 +210,39 @@ export function SettingsBusiness() {
               placeholder="A few lines about your kitchen — your style, your specialities, the experience you create." />
           </Field>
         </div>
+      </Card>
+
+      <Card title="Invoice branding">
+        <p className="mb-3 text-sm text-fg/60">
+          Your brand colour for the invoices &amp; quotes your clients see — it colours the heading, the total
+          and the table line. Your logo and business name (above) appear on them too.
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <input type="color" value={isHex(form.invoice_accent) ? form.invoice_accent : BRAND_GOLD}
+            onChange={(e) => setForm({ ...form, invoice_accent: e.target.value })}
+            aria-label="Invoice colour" className="h-10 w-12 cursor-pointer rounded-lg border border-line bg-transparent p-0.5" />
+          <Input value={form.invoice_accent} onChange={(e) => setForm({ ...form, invoice_accent: e.target.value })}
+            className="w-28 font-mono uppercase" placeholder="#BFA987" />
+          <div className="flex flex-wrap gap-1.5">
+            {ACCENT_PRESETS.map((c) => (
+              <button key={c} type="button" onClick={() => setForm({ ...form, invoice_accent: c })} style={{ background: c }} aria-label={c}
+                className={cls('h-7 w-7 rounded-full border transition-transform hover:scale-110',
+                  (form.invoice_accent || '').toLowerCase() === c.toLowerCase() ? 'ring-2 ring-offset-2 ring-offset-base ring-fg/50' : 'border-line')} />
+            ))}
+          </div>
+        </div>
+        {/* Live preview — how your invoice document will look */}
+        <div className="mt-4 rounded-xl border border-neutral-200 bg-white p-4 text-neutral-800 shadow-sm">
+          <div className="flex items-center justify-between border-b border-neutral-200 pb-2">
+            <span className="font-display text-sm font-bold">{user?.business_name || user?.name || 'Your business'}</span>
+            <span className="font-display text-lg font-bold tracking-wide" style={{ color: isHex(form.invoice_accent) ? form.invoice_accent : BRAND_GOLD }}>INVOICE</span>
+          </div>
+          <div className="mt-2 flex justify-between text-xs text-neutral-500"><span>2 × Sample dish</span><span>£120</span></div>
+          <div className="mt-2 flex items-center justify-between border-t pt-2 font-display text-sm font-bold" style={{ borderColor: isHex(form.invoice_accent) ? form.invoice_accent : BRAND_GOLD }}>
+            <span>Total</span><span style={{ color: isHex(form.invoice_accent) ? form.invoice_accent : BRAND_GOLD }}>£120</span>
+          </div>
+        </div>
+        <button type="button" onClick={() => setForm({ ...form, invoice_accent: BRAND_GOLD })} className="mt-2 text-xs font-medium text-copper hover:underline">Reset to brand gold</button>
       </Card>
 
       <Card title="Services you offer">
@@ -434,76 +468,30 @@ const ACCENT_PRESETS = ['#BFA987', '#0C0A08', '#1F6F54', '#7A2E2E', '#2E4A7A', '
 const isHex = (v) => /^#[0-9a-fA-F]{6}$/.test(v || '')
 
 export function SettingsAppearance() {
-  const { user, setUser } = useAuth()
   const [theme, setThemeState] = useState(() => localStorage.getItem('cc_theme') || 'dark')
   const setTheme = (t) => {
     localStorage.setItem('cc_theme', t)
     document.documentElement.classList.toggle('dark', t === 'dark')
     setThemeState(t)
   }
-  const [accent, setAccent] = useState(user?.invoice_accent || BRAND_GOLD)
-  useEffect(() => { setAccent(user?.invoice_accent || BRAND_GOLD) }, [user])
-  const saveAccent = (val) => {
-    const v = (val || '').trim() || BRAND_GOLD
-    setAccent(v)
-    api.put('/auth/me', { invoice_accent: v }).then(setUser).then(() => toast('Invoice colour saved', 'sage')).catch(toastErr)
-  }
-  const swatch = isHex(accent) ? accent : BRAND_GOLD
 
   return (
-    <div className="space-y-5">
-      <Card title="Appearance">
-        <p className="mb-3 text-sm text-fg/60">
-          The signature Creatiste look is dark & sultry — switch to the brighter mode whenever it
-          suits the light you're working in. Applies across every module.
-        </p>
-        <div className="flex gap-2">
-          {[['dark', 'moon', 'Dark — signature'], ['light', 'sun', 'Light — bright kitchen']].map(([t, ic, lbl]) => (
-            <button key={t} type="button" onClick={() => setTheme(t)}
-              className={cls('flex flex-1 flex-col items-center gap-1.5 rounded-xl border p-3 text-xs font-medium transition-all',
-                theme === t ? 'border-copper ring-2 ring-copper/30 text-copper' : 'border-line text-fg/55 hover:border-copper/40')}>
-              <Icon name={ic} size={18} />
-              {lbl}
-            </button>
-          ))}
-        </div>
-      </Card>
-
-      {!user?.is_staff && (
-        <Card title="Invoice branding">
-          <p className="mb-3 text-sm text-fg/60">
-            Pick your brand colour — it’s used on the invoices and quotes your clients see (the heading,
-            the total and the table line). Your logo and business name come from Settings → Business.
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <input type="color" value={swatch} onChange={(e) => setAccent(e.target.value)} onBlur={(e) => saveAccent(e.target.value)}
-              aria-label="Invoice colour" className="h-10 w-12 cursor-pointer rounded-lg border border-line bg-transparent p-0.5" />
-            <Input value={accent} onChange={(e) => setAccent(e.target.value)} onBlur={(e) => saveAccent(e.target.value)}
-              className="w-28 font-mono uppercase" placeholder="#BFA987" />
-            <div className="flex flex-wrap gap-1.5">
-              {ACCENT_PRESETS.map((c) => (
-                <button key={c} type="button" onClick={() => saveAccent(c)} style={{ background: c }} aria-label={c}
-                  className={cls('h-7 w-7 rounded-full border transition-transform hover:scale-110',
-                    swatch.toLowerCase() === c.toLowerCase() ? 'ring-2 ring-offset-2 ring-offset-base ring-fg/50' : 'border-line')} />
-              ))}
-            </div>
-          </div>
-
-          {/* Live preview — how the invoice document will look */}
-          <div className="mt-4 rounded-xl border border-neutral-200 bg-white p-4 text-neutral-800 shadow-sm">
-            <div className="flex items-center justify-between border-b border-neutral-200 pb-2">
-              <span className="font-display text-sm font-bold">{user?.business_name || user?.name || 'Your business'}</span>
-              <span className="font-display text-lg font-bold tracking-wide" style={{ color: swatch }}>INVOICE</span>
-            </div>
-            <div className="mt-2 flex justify-between text-xs text-neutral-500"><span>2 × Sample dish</span><span>£120</span></div>
-            <div className="mt-2 flex items-center justify-between border-t pt-2 font-display text-sm font-bold" style={{ borderColor: swatch }}>
-              <span>Total</span><span style={{ color: swatch }}>£120</span>
-            </div>
-          </div>
-          <Button variant="ghost" size="sm" className="mt-3" onClick={() => saveAccent(BRAND_GOLD)}>Reset to brand gold</Button>
-        </Card>
-      )}
-    </div>
+    <Card title="Appearance">
+      <p className="mb-3 text-sm text-fg/60">
+        The signature Creatiste look is dark & sultry — switch to the brighter mode whenever it
+        suits the light you're working in. Applies across every module.
+      </p>
+      <div className="flex gap-2">
+        {[['dark', 'moon', 'Dark — signature'], ['light', 'sun', 'Light — bright kitchen']].map(([t, ic, lbl]) => (
+          <button key={t} type="button" onClick={() => setTheme(t)}
+            className={cls('flex flex-1 flex-col items-center gap-1.5 rounded-xl border p-3 text-xs font-medium transition-all',
+              theme === t ? 'border-copper ring-2 ring-copper/30 text-copper' : 'border-line text-fg/55 hover:border-copper/40')}>
+            <Icon name={ic} size={18} />
+            {lbl}
+          </button>
+        ))}
+      </div>
+    </Card>
   )
 }
 

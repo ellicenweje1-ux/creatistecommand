@@ -306,8 +306,8 @@ Ellice testing the live app on her iPhone sent a run of pointers; each built, ve
 - **Invoice line auto-fill + branding colour (follow-on):** shared **`MenuItemsMenu`** (`frontend/src/menulines.jsx`,
   `fetchMenuItems(bookingId)` flattens the booking's menu + all saved menus' **priced** courses) sits beside Add-line in
   **both** the quote + invoice editors → one tap auto-fills a line with the dish + its price. **Invoice branding colour:**
-  new `users.invoice_accent` (additive, default brand gold `#BFA987`), set in **Settings → Appearance → "Invoice branding"**
-  (colour picker + presets + live mini-invoice preview); the public invoice endpoint returns `business.accent` and
+  new `users.invoice_accent` (additive, default brand gold `#BFA987`), set in **Settings → Business → "Invoice branding"**
+  (colour picker + presets + live mini-invoice preview, next to the logo — saves with the business profile); the public invoice endpoint returns `business.accent` and
   `PublicInvoice.jsx` uses it for the INVOICE heading / total / table rule. Verified: accent persists + greens the public
   doc; menu-item dropdown auto-fills "Rice — Jollof Rice" @ £38.
 - **⚠️ ROADMAP (Ellice's note, NOT built):** a **"Pop-up" feature** — a chef/caterer takes **pre-orders** for a set
