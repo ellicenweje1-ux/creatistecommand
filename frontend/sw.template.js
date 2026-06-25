@@ -70,6 +70,46 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(staleWhileRevalidate(request))
 })
 
+// Web Push: show the notification the server sent, and focus/open the app on tap.
+// (Inert unless the chef has enabled notifications and VAPID keys are set server-side.)
+self.addEventListener('push', (event) => {
+  let data = {}
+  try {
+    data = event.data ? event.data.json() : {}
+  } catch (e) {
+    data = { body: event.data && event.data.text ? event.data.text() : '' }
+  }
+  const title = data.title || 'The Creatiste Command'
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || '',
+      tag: data.tag || 'cc',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: { url: data.url || '/app/tasks' },
+    }),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const url = (event.notification.data && event.notification.data.url) || '/app/tasks'
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      for (const c of clients) {
+        if (c.url.includes(url) && 'focus' in c) return c.focus()
+      }
+      for (const c of clients) {
+        if ('focus' in c) {
+          if (c.navigate) c.navigate(url)
+          return c.focus()
+        }
+      }
+      return self.clients.openWindow(url)
+    }),
+  )
+})
+
 function putRuntime(request, response) {
   caches
     .open(RUNTIME)

@@ -6,7 +6,8 @@ import { perkIcon, perkTitle } from '../booking'
 import { DEFAULT_CONTACT_TEMPLATE } from '../contact'
 import { cls, fmtMoney, label, renderDocNumber, SYMBOLS } from '../format'
 import { getInstallPrompt, isStandalone } from '../offline'
-import { Badge, Button, Card, Field, Icon, IconButton, Input, PasswordInput, Modal, PageHeader, Select, Stars, Textarea, toast, toastErr } from '../ui'
+import { currentSubscription, disablePush, enablePush, getPushConfig, iosNeedsInstall, permissionState, pushSupported, sendTestPush } from '../push'
+import { Badge, Button, Card, Field, Icon, IconButton, Input, PasswordInput, Modal, PageHeader, Select, Stars, Textarea, Toggle, toast, toastErr } from '../ui'
 import { CURRENT, VERSIONS, VersionNotes, versionRef } from '../version'
 
 /* Settings is split into individual pages (own URL each) under /app/settings, so the
@@ -846,6 +847,77 @@ function DataExportCard({ user }) {
   )
 }
 
+/* Phone notifications (Web Push): a heads-up before a task is due, on your phone. */
+function NotificationsCard() {
+  const [cfg, setCfg] = useState(null)          // {enabled, public_key} from the server
+  const [on, setOn] = useState(false)           // this device subscribed?
+  const [busy, setBusy] = useState(false)
+  const [perm, setPerm] = useState(permissionState())
+  const supported = pushSupported()
+
+  useEffect(() => {
+    getPushConfig().then(setCfg).catch(() => setCfg({ enabled: false }))
+    if (supported) currentSubscription().then((s) => setOn(!!s)).catch(() => {})
+  }, [supported])
+
+  const toggle = async () => {
+    if (busy) return
+    setBusy(true)
+    try {
+      if (on) { await disablePush(); setOn(false); toast('Notifications turned off', 'ink') }
+      else { await enablePush(cfg?.public_key); setOn(true); setPerm(permissionState()); toast('Notifications on for this device', 'sage') }
+    } catch (e) { setPerm(permissionState()); toastErr(e) } finally { setBusy(false) }
+  }
+  const test = async () => {
+    try { await sendTestPush(); toast('Test sent — check your phone', 'sage') } catch (e) { toastErr(e) }
+  }
+
+  return (
+    <Card title="Phone notifications">
+      <p className="mb-3 text-sm text-fg/65">
+        Get a heads-up on your phone before a task is due — even when the app is closed. Turn it
+        on for each device you want pinged.
+      </p>
+
+      {!supported ? (
+        <p className="rounded-lg border border-line bg-fg/[0.03] px-3 py-2 text-xs leading-relaxed text-fg/60">
+          This browser can’t show notifications. On iPhone, open the app from your Home Screen (add it
+          via <span className="font-medium text-fg">Share → Add to Home Screen</span>) and try again.
+        </p>
+      ) : !cfg ? (
+        <p className="text-sm text-fg/45">Checking…</p>
+      ) : !cfg.enabled ? (
+        <p className="rounded-lg border border-line bg-fg/[0.03] px-3 py-2 text-xs leading-relaxed">
+          Not switched on yet — the platform owner needs to set the{' '}
+          <code className="rounded bg-fg/5 px-1">VAPID_*</code> keys on the server
+          (<code className="rounded bg-fg/5 px-1">python -m app.push --gen</code> prints them).
+        </p>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-line px-3 py-2.5">
+            <div className="min-w-0">
+              <p className="text-sm font-medium">Notify me on this device</p>
+              <p className="text-xs text-fg/45">{on ? 'On — reminders will arrive here.' : 'Off'}</p>
+            </div>
+            <span className="shrink-0"><Toggle checked={on} onChange={toggle} /></span>
+          </div>
+          {perm === 'denied' && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+              Notifications are blocked for this site — allow them in your browser/phone settings, then toggle again.
+            </p>
+          )}
+          {iosNeedsInstall() && (
+            <p className="rounded-lg border border-line bg-fg/[0.03] px-3 py-2 text-xs leading-relaxed text-fg/60">
+              On iPhone, add this app to your Home Screen first (<span className="font-medium text-fg">Share → Add to Home Screen</span>) — Apple only delivers push to the installed app.
+            </p>
+          )}
+          {on && <Button size="sm" variant="secondary" icon="bell" onClick={test}>Send a test notification</Button>}
+        </div>
+      )}
+    </Card>
+  )
+}
+
 /* ---------------------------- App & integrations --------------------------- */
 export function SettingsIntegrations() {
   const { user } = useAuth()
@@ -855,6 +927,8 @@ export function SettingsIntegrations() {
   return (
     <div className="space-y-5">
       <MobileAppCard />
+
+      <NotificationsCard />
 
       {!user?.is_staff && user?.calendar_token && <CalendarFeedCard token={user.calendar_token} />}
 

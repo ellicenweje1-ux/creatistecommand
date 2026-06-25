@@ -244,6 +244,9 @@ class Task(OwnedMixin, Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     assignee_id: Mapped[int] = mapped_column(Integer, nullable=True)  # staff member assigned by the owner
     completed_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    # The due "date time" we last sent a phone reminder for. Storing the key (not a bool)
+    # means rescheduling a task auto-re-arms its reminder. Empty = never reminded.
+    due_reminder_for: Mapped[str] = mapped_column(String(20), default="")
 
 
 class RoutePlan(OwnedMixin, Base):
@@ -453,6 +456,20 @@ class SupportTicket(Base):
     subject: Mapped[str] = mapped_column(String(300), default="")
     message: Mapped[str] = mapped_column(Text, default="")
     status: Mapped[str] = mapped_column(String(10), default="open")  # open | closed
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+
+class PushSubscription(Base):
+    """A Web Push subscription for one of a user's devices/browsers — lets the platform
+    send 'task due soon' notifications to the chef's phone even when the app is closed.
+    Inert until VAPID keys are configured on the server (see app/push.py)."""
+    __tablename__ = "push_subscriptions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, index=True)   # the person to notify (not workspace)
+    endpoint: Mapped[str] = mapped_column(String(600), index=True)
+    p256dh: Mapped[str] = mapped_column(String(255), default="")
+    auth: Mapped[str] = mapped_column(String(255), default="")
+    user_agent: Mapped[str] = mapped_column(String(255), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
 

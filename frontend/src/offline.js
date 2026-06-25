@@ -64,7 +64,7 @@ export async function clearOfflineData() {
 /* ------------------------------- outbox ---------------------------------- */
 // Flows that genuinely need a live connection (payments, login, AI, file uploads,
 // bookable call slots) are never queued — they fail fast with a clear message instead.
-const NO_QUEUE = ['/auth/', '/billing/', '/ai/', '/admin/', '/onboarding/', '/founders', '/uploads', '/public/', '/exports/', '/calendar/', '/cron/', '/recycle']
+const NO_QUEUE = ['/auth/', '/billing/', '/ai/', '/admin/', '/onboarding/', '/founders', '/uploads', '/public/', '/exports/', '/calendar/', '/cron/', '/recycle', '/push']
 export const queueable = (path) => !NO_QUEUE.some((p) => path.startsWith(p))
 
 export const pendingCount = () =>

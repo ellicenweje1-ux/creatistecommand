@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { cls, uid } from '../format'
+import { DragList, GripHandle } from '../sortable'
 import { Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, ProgressBar, Spinner, toastErr } from '../ui'
 
 const STANDARD_KIT = [
@@ -49,6 +50,13 @@ export function PackEditor({ list, onChanged, onDeleted, startOpen = false }) {
     if (extra.length) saveItems([...items, ...extra])
   }
   const removeList = () => { if (window.confirm('Delete this packing list?')) api.del(`/packing/${list.id}`).then(onDeleted).catch(toastErr) }
+  // Reorder within a category: refill that category's positions in the master array with
+  // the new order, leaving the other categories where they are.
+  const reorderGroup = (cat, nextGroup) => {
+    let gi = 0
+    const next = items.map((it) => ((it.category || 'Misc') === cat ? nextGroup[gi++] : it))
+    saveItems(next)
+  }
 
   const groups = Object.entries(items.reduce((acc, i) => {
     const key = i.category || 'Misc'
@@ -71,13 +79,15 @@ export function PackEditor({ list, onChanged, onDeleted, startOpen = false }) {
           {groups.map(([cat, catItems]) => (
             <div key={cat} className="mb-3">
               <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wider text-copper">{cat}</p>
-              <ul className="space-y-1">
-                {catItems.map((i) => (
-                  <li key={i.id} className="group flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-parchment/50">
-                    <button onClick={() => toggle(i.id)}
-                      className={cls('flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-colors',
+              <DragList items={catItems} onReorder={(next) => reorderGroup(cat, next)} className="space-y-1">
+                {(i, handle) => (
+                  <li key={i.id} {...handle.row} className="group flex items-center gap-2 rounded-lg px-1 py-1.5 hover:bg-parchment/50">
+                    {catItems.length > 1 && <GripHandle handle={handle.grip} />}
+                    <button onClick={() => toggle(i.id)} aria-label={i.packed ? 'Mark not packed' : 'Mark packed'}
+                      className={cls('flex h-7 w-7 shrink-0 items-center justify-center rounded-md border transition-colors sm:h-5 sm:w-5',
                         i.packed ? 'border-sage bg-sage text-white' : 'border-fg/25 bg-card')}>
-                      {i.packed && <Icon name="check" size={12} />}
+                      {i.packed && <Icon name="check" size={15} className="sm:hidden" />}
+                      {i.packed && <Icon name="check" size={12} className="hidden sm:block" />}
                     </button>
                     <span className={cls('min-w-0 flex-1 truncate text-sm', i.packed && 'text-fg/35 line-through')}>
                       {i.name}{Number(i.qty) > 1 ? <span className="text-fg/45"> ×{i.qty}</span> : null}
@@ -85,8 +95,8 @@ export function PackEditor({ list, onChanged, onDeleted, startOpen = false }) {
                     <IconButton icon="trash" label="Remove" className="opacity-0 group-hover:opacity-100"
                       onClick={() => saveItems(items.filter((x) => x.id !== i.id))} />
                   </li>
-                ))}
-              </ul>
+                )}
+              </DragList>
             </div>
           ))}
           <form onSubmit={addItem} className="mt-2 grid grid-cols-12 gap-1.5">

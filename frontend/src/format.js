@@ -7,6 +7,13 @@ export const uid = () =>
 
 export const todayISO = () => new Date().toISOString().slice(0, 10)
 
+// ISO date N days from a given ISO date (default today). Used for "Tomorrow" grouping etc.
+export function addDaysISO(iso, n) {
+  const d = new Date(`${(iso || todayISO())}T00:00:00`)
+  d.setDate(d.getDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+
 export function fmtMoney(n, currency = 'GBP') {
   const symbol = SYMBOLS[currency] || `${currency} `
   const val = Number(n || 0)

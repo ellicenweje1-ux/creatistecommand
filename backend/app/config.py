@@ -136,6 +136,19 @@ ENABLE_BACKUP = os.getenv("ENABLE_BACKUP", "1") not in ("0", "false", "False", "
 # can restore them themselves, then auto-purged. (Self-service "Recently deleted".)
 RECYCLE_RETENTION_DAYS = int(os.getenv("RECYCLE_RETENTION_DAYS", "30"))
 
+# Web Push (phone notifications for tasks about to time out). INERT until the VAPID keys
+# are set — without them the toggle shows "not configured" and nothing is sent. Generate a
+# keypair once (e.g. `python -m app.push --gen`) and set all three on the server. The
+# subject is a contact mailto/URL required by the push services.
+#   On iOS, web push only works for the app *added to the Home Screen* (PWA) — by design.
+VAPID_PUBLIC_KEY = os.getenv("VAPID_PUBLIC_KEY", "")
+VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY", "")
+VAPID_SUBJECT = os.getenv("VAPID_SUBJECT", "") or f"mailto:{SUPPORT_EMAIL}"
+# Notify when a task's deadline is within this many hours (and not done). Runs on the
+# scheduler sweep, so SCHEDULER_INTERVAL_HOURS bounds how promptly it fires.
+TASK_REMINDER_LEAD_HOURS = int(os.getenv("TASK_REMINDER_LEAD_HOURS", "24"))
+ENABLE_TASK_REMINDERS = os.getenv("ENABLE_TASK_REMINDERS", "1") not in ("0", "false", "False", "")
+
 # Founders Membership — the private launch programme for the platform's first chefs.
 # Joined only through the secret invite link (Admin → Founders); never shown on public
 # pages. All values editable live from the admin. Once the programme is closed (or every

@@ -11,7 +11,7 @@ from fastapi import Depends
 
 from . import recycle
 from .auth import require_owner, require_plan
-from .routers import admin, ai, auth_router, billing, bookings, calendar_feed, core, cron, dashboard, exports, finance, founders, onboarding, public, quotes, support, team, uploads, zoom
+from .routers import admin, ai, auth_router, billing, bookings, calendar_feed, core, cron, dashboard, exports, finance, founders, onboarding, public, push, quotes, support, team, uploads, zoom
 
 app = FastAPI(title="The Creatiste Command", version="1.0.0")
 
@@ -56,6 +56,7 @@ app.include_router(support.router, prefix=API)
 app.include_router(calendar_feed.router, prefix=API)
 app.include_router(exports.router, prefix=API)
 app.include_router(cron.router, prefix=API)
+app.include_router(push.router, prefix=API)
 app.include_router(recycle.router, prefix=API)
 # Money is owner-only (staff never see finance) and part of the Pro tier upward
 _money = [Depends(require_owner), Depends(require_plan(2))]

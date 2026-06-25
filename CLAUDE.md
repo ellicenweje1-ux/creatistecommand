@@ -106,7 +106,86 @@ always-on Starter instance are live and verified, so the SQLite DB and `.secret_
 **Mise AI chat is live too** (`ANTHROPIC_API_KEY` set, `AI_MODEL=claude-sonnet-4-6`). **The whole backlog is
 now cleared** — only the standing FAQ rule (#3) remains ongoing.
 
-## Latest session (2026-06-19, twenty-second wave — LAUNCH: live infra activated (persistent disk + always-on · Stripe live · Mise ON) + password show/hide toggle)
+### Third batch (collected 2026-06-25, twenty-third wave — on-the-go amendments from live use)
+All built + verified this wave (branch `claude/optimistic-meitner-yqvl2l`) — **merge to `main` to deploy**.
+17. ✅ **Tasks: priority dropdown in the quick-add bar, with a blank "No priority" option** — was only in
+    the edit modal before; now in the composer (`Tasks.jsx`). Blank priority stores `""` and shows no badge.
+18. ✅ **Tasks: due *time* in the quick-add bar** (`due_time` already existed on the model; just exposed it).
+19. ✅ **Tasks: grouped by date chronologically (Overdue · Today · Tomorrow · each day · No date), and
+    auto-ordered by time within each day** — untimed sink to the bottom; overdue stays red at the top.
+20. ✅ **Shopping: active bookings pulled into the page header** — a "Shopping for · active bookings" strip
+    (confirmed/in-prep, date≥today) with a one-tap "List" to start a shopping list for that event.
+21. ✅ **Shopping: amend an item already on a list** — pencil → Edit-item modal (name/qty/unit/shop/cost/note).
+22. ✅ **Shopping & Packing: bigger tick boxes on phone** — `h-7 w-7` on mobile, `h-5` desktop (verified 28px vs 20px).
+23. ✅ **All checklist items: drag to reorder** — new touch-friendly `frontend/src/sortable.jsx` (`DragList` +
+    `GripHandle`, Pointer Events so it works with finger or mouse), wired into Shopping + Packing item lists
+    (reorders **within a shop/category group**; refills that group's positions in the master JSON array, other
+    groups untouched). NOT added to Tasks — those auto-order by date/time per #17–19 (would conflict).
+24. ✅ **Supplier price book: amend a logged price inline** (pencil → row becomes an edit form; saving stamps
+    `last_checked`=today) **and it's listed A–Z** (backend already ordered by item_name; also sorted client-side).
+25. ✅ **Tasks: phone notification before a task times out** — full **Web Push**, *inert until VAPID keys are set*
+    (house pattern). See the wave notes below for the env vars + the iOS "add to Home Screen" caveat.
+
+## Latest session (2026-06-25, twenty-third wave — on-the-go amendments: tasks ordering, shopping/checklist UX, drag-to-reorder, phone notifications)
+- Branch `claude/optimistic-meitner-yqvl2l` — **merge to `main` to deploy.** Ellice's third feedback batch
+  (backlog 17–25, above), from using the live app on her phone. `npm run build` clean (**84 modules**).
+- **Backend: 1 new table + 1 additive column + 1 new dep.** New `push_subscriptions` table (`create_all`);
+  additive `tasks.due_reminder_for` (`ensure_columns`); **`pywebpush>=2.0`** added to `requirements.txt`
+  (pulls in `cryptography`/`py_vapid`). New files: `app/push.py`, `app/routers/push.py`, plus frontend
+  `src/sortable.jsx` + `src/push.js`. `PushSubscription` added to the delete-chef `PURGE_MODELS` cascade;
+  `/push` added to the offline `NO_QUEUE`.
+- **Tasks (#17–19, `pages/Tasks.jsx`):** quick-add bar now has a **priority `<select>` (with a blank "No
+  priority")** + a **time** input; tasks **group by date chronologically** (Overdue → Today → Tomorrow → each
+  day → No date) and **auto-sort by time within each day** (untimed last). Priority badge only renders for
+  low/medium/high. `format.js` gained `addDaysISO()` for the Tomorrow label.
+- **Drag-to-reorder (#23, `src/sortable.jsx`):** `<DragList>` + `<GripHandle>` (the new `grip` ⠿ glyph in
+  `ui.jsx`). **Pointer Events** (finger *and* mouse), `touch-action:none` on the handle, drag by the grip.
+  Reorders within a shop (Shopping) / category (Packing) group; the master JSON array's group positions are
+  refilled in the new order so other groups don't move; persists via the existing list PATCH.
+  **GOTCHA fixed:** the "keep the dragged order until the save round-trips" clear-logic must key off an
+  **id-signature**, not the `items` array identity — Packing rebuilds its groups array every render (not
+  memoised like Shopping), so an identity-based effect reset the drag mid-gesture. Verified both lists drag
+  + persist across reload.
+- **Shopping (#20–22, `pages/Shopping.jsx`):** an **active-bookings strip** in the header (confirmed/in-prep,
+  date≥today) with one-tap "List" (seeds `NewListModal` with the booking + a title); an **Edit-item modal**
+  (pencil) to amend name/qty/unit/shop/cost/note; **bigger tick boxes on mobile** (`h-7 w-7 sm:h-5`).
+  `NewListModal` gained an optional `defaultTitle` (back-compatible — BookingDetail still uses it unchanged).
+- **Packing (#22–23):** same bigger tick boxes + drag-to-reorder within category groups.
+- **Suppliers (#24, `pages/Suppliers.jsx`):** price-book rows get an inline **edit** form (pencil → save
+  stamps `last_checked`=today); list is sorted **A–Z** (label says so) on top of the backend's order.
+- **Phone notifications (#25 — the big one): Web Push, INERT until configured** (same pattern as Zoom/Stripe/
+  email). `app/push.py` (`push_enabled()`, `notify_user()` with dead-subscription pruning, + a `--gen` CLI for
+  the keypair); `routers/push.py` (`GET /push/config`, `POST /push/{subscribe,unsubscribe,test}`); the SW
+  (`sw.template.js`) gained `push` + `notificationclick` handlers; `src/push.js` does subscribe/permission;
+  **Settings → App & integrations → "Phone notifications"** card has the per-device toggle + "Send a test" +
+  the not-configured / iOS-install hints. The **scheduler sweep** now also runs `run_task_reminders()`: pushes
+  a heads-up for tasks due within `TASK_REMINDER_LEAD_HOURS` (24) and not done; idempotent + auto-re-arming via
+  `tasks.due_reminder_for` (stores the deadline it reminded for, so rescheduling re-arms). Times read in
+  `ONBOARDING_TZ` (Europe/London). **Granularity = the scheduler interval (6h default)** — fine for a day-ahead
+  nudge; lower `SCHEDULER_INTERVAL_HOURS` for snappier.
+  - **⚠️ ACTION for Ellice to turn it on (no code, like the other integrations):** run **`python -m app.push
+    --gen`** once (locally or in Render → Shell — it prints the three vars), then set **`VAPID_PUBLIC_KEY`**,
+    **`VAPID_PRIVATE_KEY`** and **`VAPID_SUBJECT`** (a `mailto:` — defaults to `SUPPORT_EMAIL`) on Render and
+    redeploy. Until then the card shows "not configured" and nothing sends. **iOS rule (not a bug):** web push
+    only reaches the app once it's **added to the Home Screen** (installed PWA) — the card spells this out.
+  - **What couldn't be verified in-sandbox:** the actual end-to-end *delivery* of a push (needs a real device +
+    a push service like FCM). Everything around it was tested (gating, subscribe/unsubscribe de-dupe, the
+    reminder selection/idempotency/re-arm, the card states, the SW handlers compiled into `dist/sw.js`).
+- **FAQ kept current (rule #3):** Support FAQ — extended the mobile FAQ (bigger tick boxes + drag), added
+  "Can I get a reminder before a task is due?", "How are my tasks ordered… leave priority blank?", "Can I edit
+  or reorder items on a shopping list?", and a price-book-edit note on the routes/suppliers FAQ. (Public
+  pre-sign-up FAQ untouched — these are in-app operational flows.)
+- **Verified:** backend FastAPI TestClient **18/18** (blank-priority + due_time persist; push config gating
+  on/off; subscribe + de-dupe + 422; reminder fires-once / idempotent / re-arms-on-reschedule / no-op when
+  unconfigured; supplier price PATCH). Playwright (system chromium, demo Elite chef) **17/17 desktop**
+  (composer priority+time, Today/Tomorrow groups, blank vs high badge, time-order within a day, active-bookings
+  strip, shopping item edit, shopping drag, supplier price book A–Z + inline edit, packing drag handles, the
+  notifications card configured-state) **+ mobile** (tick box 28px vs 20px desktop) **+ drag 3/3** (shopping +
+  packing reorder, persists across reload). Zero app-origin console errors (only the known Google-Fonts noise).
+  Temp verify scripts live in the scratchpad — nothing left in the tree.
+- **No version bump** (standing rule — awaiting Ellice's word + her biblical reference).
+
+## Previous session (2026-06-19, twenty-second wave — LAUNCH: live infra activated (persistent disk + always-on · Stripe live · Mise ON) + password show/hide toggle)
 - **The platform is now genuinely launch-ready** — Ellice activated the paid stack (the long-standing
   blocker), walked through live in-chat. Infra needed **no code**; the only code change this session is the
   password toggle (below). **Backlog #1 & #2 — the only items left open — are now DONE.**
@@ -1224,6 +1303,10 @@ bridge between sessions.
   (default 1), `SCHEDULER_INTERVAL_HOURS` (6), `ENABLE_SCHEDULER` (1). Backup/recovery
   (22nd-wave amendments, safe defaults): `BACKUP_INTERVAL_DAYS` (7), `BACKUP_EMAIL`
   (defaults to `SUPPORT_EMAIL`), `ENABLE_BACKUP` (1), `RECYCLE_RETENTION_DAYS` (30).
+  Phone notifications / Web Push (23rd wave — **off until set**): `VAPID_PUBLIC_KEY`,
+  `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (a `mailto:`; defaults to `SUPPORT_EMAIL`) — generate
+  with `python -m app.push --gen`. Tuning (safe defaults): `TASK_REMINDER_LEAD_HOURS` (24),
+  `ENABLE_TASK_REMINDERS` (1). Needs the `pywebpush` dependency (now in requirements.txt).
 
 ## Email & Domain Infrastructure (IMPORTANT — read before any email work)
 > Hard-won constraints for `thecreatistecatering.com` (Ellice supplied these after a

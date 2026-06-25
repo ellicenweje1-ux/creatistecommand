@@ -13,7 +13,7 @@ from ..database import get_db
 from ..models import (
     ActivityLog, Appointment, BlockedSlot, Booking, Client, ClientReview, DeletedItem, Design, Expense,
     FounderFeedback, Idea, InventoryItem, Invoice, Menu, OnboardingSession, OnlineOrder, PackingList,
-    Payment, Quote, RoutePlan, Recipe, Shift, ShoppingList, Supplier, SupplierPrice,
+    Payment, PushSubscription, Quote, RoutePlan, Recipe, Shift, ShoppingList, Supplier, SupplierPrice,
     SupportTicket, Task, User,
 )
 from ..utils import to_dict
@@ -29,8 +29,8 @@ router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(requir
 # is left orphaned in the database.
 PURGE_MODELS = (
     ActivityLog, Appointment, Booking, Client, ClientReview, DeletedItem, Design, Expense, FounderFeedback,
-    Idea, InventoryItem, Invoice, Menu, OnboardingSession, OnlineOrder, PackingList, Payment, Quote,
-    RoutePlan, Recipe, Shift, ShoppingList, Supplier, SupplierPrice, SupportTicket, Task,
+    Idea, InventoryItem, Invoice, Menu, OnboardingSession, OnlineOrder, PackingList, Payment, PushSubscription,
+    Quote, RoutePlan, Recipe, Shift, ShoppingList, Supplier, SupplierPrice, SupportTicket, Task,
 )
 
 # Fields stripped from any chef record sent to the admin UI.

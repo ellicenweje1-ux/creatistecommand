@@ -49,7 +49,7 @@ def ensure_columns():
             "is_comp": "BOOLEAN DEFAULT 0",
         },
         "platform_settings": {"founders": "JSON"},
-        "tasks": {"assignee_id": "INTEGER"},
+        "tasks": {"assignee_id": "INTEGER", "due_reminder_for": "VARCHAR(20) DEFAULT ''"},
         "bookings": {"menu_type": "VARCHAR(80) DEFAULT ''"},
         "onboarding_sessions": {
             "meeting_id": "VARCHAR(40) DEFAULT ''", "recording_url": "VARCHAR(500) DEFAULT ''",

@@ -40,31 +40,59 @@ function SupplierModal({ open, onClose, onSaved, initial = null }) {
 
 function PriceBook({ supplier, prices, onChanged, currency }) {
   const [draft, setDraft] = useState({ item_name: '', unit: '', price: '' })
-  const mine = prices.filter((p) => p.supplier_id === supplier.id)
+  const [editId, setEditId] = useState(null)         // price row being amended (owner ask)
+  const [editForm, setEditForm] = useState({ item_name: '', unit: '', price: '' })
+  // Always show the price book A→Z by item name (owner ask) — case-insensitive.
+  const mine = prices
+    .filter((p) => p.supplier_id === supplier.id)
+    .sort((a, b) => (a.item_name || '').localeCompare(b.item_name || '', undefined, { sensitivity: 'base' }))
   const add = (e) => {
     e.preventDefault()
     if (!draft.item_name.trim()) return
     api.post('/supplier-prices', { ...draft, price: Number(draft.price) || 0, supplier_id: supplier.id, last_checked: todayISO() })
       .then(() => { setDraft({ item_name: '', unit: '', price: '' }); onChanged() }).catch(toastErr)
   }
+  const startEdit = (p) => { setEditId(p.id); setEditForm({ item_name: p.item_name || '', unit: p.unit || '', price: p.price ?? '' }) }
+  const saveEdit = (e) => {
+    e.preventDefault()
+    if (!editForm.item_name.trim()) return
+    // Saving counts as re-confirming the price, so stamp "last checked" to today.
+    api.patch(`/supplier-prices/${editId}`, { item_name: editForm.item_name.trim(), unit: editForm.unit, price: Number(editForm.price) || 0, last_checked: todayISO() })
+      .then(() => { setEditId(null); onChanged() }).catch(toastErr)
+  }
   return (
     <div>
-      <p className="label">Price book ({mine.length})</p>
+      <p className="label">Price book ({mine.length}) · A–Z</p>
       {mine.length > 0 && (
         <table className="w-full text-sm">
           <tbody className="divide-y divide-line/60">
-            {mine.map((p) => (
+            {mine.map((p) => (editId === p.id ? (
+              <tr key={p.id}>
+                <td colSpan={5} className="py-1.5">
+                  <form onSubmit={saveEdit} className="grid grid-cols-12 items-center gap-1.5">
+                    <Input className="col-span-5" placeholder="Item" value={editForm.item_name} onChange={(e) => setEditForm({ ...editForm, item_name: e.target.value })} autoFocus />
+                    <Input className="col-span-2" placeholder="Unit" value={editForm.unit} onChange={(e) => setEditForm({ ...editForm, unit: e.target.value })} />
+                    <Input className="col-span-2" type="number" step="0.01" placeholder="Price" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })} />
+                    <Button className="col-span-2" size="sm" icon="check">Save</Button>
+                    <IconButton icon="x" label="Cancel" className="col-span-1" onClick={() => setEditId(null)} />
+                  </form>
+                </td>
+              </tr>
+            ) : (
               <tr key={p.id} className="group">
                 <td className="py-1.5">{p.item_name}</td>
                 <td className="py-1.5 text-fg/50">{p.unit}</td>
                 <td className="py-1.5 text-right font-medium">{fmtMoney(p.price, currency)}</td>
                 <td className="py-1.5 text-right text-xs text-fg/40">{p.last_checked ? fmtDate(p.last_checked) : ''}</td>
-                <td className="w-8 py-1.5 text-right">
-                  <IconButton icon="trash" label="Remove price" className="opacity-0 group-hover:opacity-100"
-                    onClick={() => api.del(`/supplier-prices/${p.id}`).then(onChanged).catch(toastErr)} />
+                <td className="w-16 py-1.5 text-right">
+                  <span className="inline-flex opacity-0 transition-opacity group-hover:opacity-100">
+                    <IconButton icon="edit" label="Edit price" onClick={() => startEdit(p)} />
+                    <IconButton icon="trash" label="Remove price"
+                      onClick={() => api.del(`/supplier-prices/${p.id}`).then(onChanged).catch(toastErr)} />
+                  </span>
                 </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       )}

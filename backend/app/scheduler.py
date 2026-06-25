@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from . import config, mailer
 from .database import SessionLocal
-from .models import User
+from .models import PushSubscription, Task, User
 
 log = logging.getLogger("scheduler")
 _started = False
@@ -73,12 +73,71 @@ def run_trial_reminders(db: Session) -> dict:
     return {"sent": sent}
 
 
+def run_task_reminders(db: Session) -> dict:
+    """Push a heads-up to the chef's phone for tasks whose deadline is within the lead
+    window (and not done). Idempotent via Task.due_reminder_for (keyed to the exact
+    deadline, so rescheduling a task re-arms it). No-op unless push is configured.
+    Times are read in the business timezone (Europe/London), matching what the chef sees."""
+    from zoneinfo import ZoneInfo
+
+    from . import push
+
+    if not config.ENABLE_TASK_REMINDERS or not push.push_enabled():
+        return {"sent": 0, "reason": "disabled_or_unconfigured"}
+    sub_user_ids = {s.user_id for s in db.query(PushSubscription.user_id).distinct().all()}
+    if not sub_user_ids:
+        return {"sent": 0}
+    tz = ZoneInfo(config.ONBOARDING_TZ)
+    now = datetime.now(tz)
+    lead = timedelta(hours=config.TASK_REMINDER_LEAD_HOURS)
+    candidates = db.query(Task).filter(Task.status != "done", Task.due_date != "").all()
+    sent = 0
+    for t in candidates:
+        if t.user_id not in sub_user_ids:
+            continue
+        try:
+            d = datetime.strptime(t.due_date, "%Y-%m-%d").date()
+        except ValueError:
+            continue
+        hh, mm = 23, 59  # no time set → treat as end of the due day
+        if t.due_time:
+            try:
+                parts = t.due_time.split(":")
+                hh, mm = int(parts[0]), int(parts[1])
+            except (ValueError, IndexError):
+                hh, mm = 23, 59
+        due_dt = datetime(d.year, d.month, d.day, hh, mm, tzinfo=tz)
+        key = due_dt.strftime("%Y-%m-%dT%H:%M")
+        if t.due_reminder_for == key or now < due_dt - lead:
+            continue  # already nudged for this deadline, or still too far out
+        delta = due_dt - now
+        if delta.total_seconds() < 0:
+            when = "is overdue"
+        elif delta < timedelta(hours=1):
+            when = "is due within the hour"
+        elif due_dt.date() == now.date():
+            when = f"is due today{(' at ' + t.due_time) if t.due_time else ''}"
+        elif due_dt.date() == now.date() + timedelta(days=1):
+            when = f"is due tomorrow{(' at ' + t.due_time) if t.due_time else ''}"
+        else:
+            when = f"is due {due_dt.strftime('%a %d %b')}"
+        push.notify_user(db, t.user_id, f"Task {when}", t.title, url="/app/tasks", tag=f"task-{t.id}")
+        t.due_reminder_for = key
+        sent += 1
+    db.commit()
+    return {"sent": sent}
+
+
 def _sweep():
     db = SessionLocal()
     try:
         run_trial_reminders(db)
     except Exception as exc:  # a failed sweep must never crash the worker
         log.warning("trial-reminder sweep failed: %s", exc)
+    try:
+        run_task_reminders(db)
+    except Exception as exc:
+        log.warning("task-reminder sweep failed: %s", exc)
     try:
         from .recycle import purge_expired
 
