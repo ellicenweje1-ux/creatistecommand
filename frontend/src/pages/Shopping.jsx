@@ -4,22 +4,49 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls, fmtDate, fmtMoney, relDays, todayISO, uid } from '../format'
 import { DragList, GripHandle } from '../sortable'
-import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, ProgressBar, Spinner, toast, toastErr } from '../ui'
+import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, ProgressBar, Select, Spinner, toast, toastErr } from '../ui'
 
 /* ------------------------------ new list modal ------------------------------ */
-export function NewListModal({ open, onClose, onCreated, bookingId = null, defaultDate = '', defaultTitle = '' }) {
+// `bookings` (optional) shows a "Link to a booking" dropdown so a list and an event merge
+// in one step. When a fixed `bookingId` is passed (from a booking's own page) the picker is
+// hidden — the booking is already known.
+export function NewListModal({ open, onClose, onCreated, bookingId = null, defaultDate = '', defaultTitle = '', bookings = [] }) {
   const [title, setTitle] = useState('')
   const [date, setDate] = useState(defaultDate || todayISO())
-  useEffect(() => { if (open) { setTitle(defaultTitle || ''); setDate(defaultDate || todayISO()) } }, [open, defaultDate, defaultTitle])
+  const [picked, setPicked] = useState('')        // booking id chosen from the dropdown
+  const [titleTouched, setTitleTouched] = useState(false)
+  useEffect(() => {
+    if (open) { setTitle(defaultTitle || ''); setDate(defaultDate || todayISO()); setPicked(''); setTitleTouched(!!defaultTitle) }
+  }, [open, defaultDate, defaultTitle])
+
+  const showPicker = !bookingId && bookings.length > 0
+  // Sort bookings the way you'd prep them: upcoming first.
+  const opts = [...bookings].sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'))
+  const choose = (val) => {
+    setPicked(val)
+    const bk = bookings.find((x) => String(x.id) === String(val))
+    if (bk) {
+      if (bk.date) setDate(bk.date)
+      if (!titleTouched) setTitle(`${bk.title} — shopping`)  // auto-fill, still editable
+    }
+  }
   const create = (e) => {
     e.preventDefault()
-    api.post('/shopping', { title, shop_date: date, booking_id: bookingId, items: [] })
+    api.post('/shopping', { title, shop_date: date, booking_id: bookingId || picked || null, items: [] })
       .then((l) => onCreated(l)).catch(toastErr)
   }
   return (
     <Modal open={open} onClose={onClose} title="New shopping list">
       <form onSubmit={create} className="space-y-4">
-        <Field label="List title"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Saturday market run" required /></Field>
+        {showPicker && (
+          <Field label="Link to a booking" hint="Pick the event this shop is for — the list attaches to it and fills in the date.">
+            <Select value={picked} onChange={(e) => choose(e.target.value)}>
+              <option value="">No booking — standalone list</option>
+              {opts.map((b) => <option key={b.id} value={b.id}>{b.title}{b.date ? ` · ${fmtDate(b.date)}` : ''}</option>)}
+            </Select>
+          </Field>
+        )}
+        <Field label="List title"><Input value={title} onChange={(e) => { setTitle(e.target.value); setTitleTouched(true) }} placeholder="Saturday market run" required /></Field>
         <Field label="Shop date"><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
         <div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button>Create list</Button></div>
       </form>
@@ -264,6 +291,7 @@ export default function Shopping() {
         </div>
       )}
       <NewListModal open={!!creating} bookingId={creating?.bookingId || null} defaultDate={creating?.defaultDate || ''} defaultTitle={creating?.defaultTitle || ''}
+        bookings={bookings}
         onClose={() => setCreating(null)} onCreated={() => { setCreating(null); load(); toast('List created', 'sage') }} />
     </div>
   )

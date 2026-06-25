@@ -183,6 +183,33 @@ All built + verified this wave (branch `claude/optimistic-meitner-yqvl2l`) — *
   notifications card configured-state) **+ mobile** (tick box 28px vs 20px desktop) **+ drag 3/3** (shopping +
   packing reorder, persists across reload). Zero app-origin console errors (only the known Google-Fonts noise).
   Temp verify scripts live in the scratchpad — nothing left in the tree.
+
+### Follow-on (same 23rd-wave session — flow/streamlining + booking↔list link, after Ellice clarified #20)
+Ellice clarified that "active bookings in the shopping header" meant: **when you click New list, the
+"List title" step should have a dropdown of your bookings so the list and the event merge.** Also asked for
+**a smoother prep flow** (less bouncing between Shopping/Tasks/Route) and **steps to comp her aunt's account** for a trial.
+- **Booking picker in `NewListModal` (`pages/Shopping.jsx`):** a "Link to a booking" `<Select>` (shown only on
+  the standalone Shopping page — hidden when a booking is already fixed, e.g. from a booking's own Shopping tab).
+  Picking a booking sets `booking_id`, fills the shop date from the event, and auto-fills the title
+  (`"<event> — shopping"`, still editable). `NewListModal` gained a `bookings` prop; the page passes its list.
+- **"Getting ready" launchpad on the booking Overview (`pages/BookingDetail.jsx` `PrepProgress`):** one card at
+  the top of Overview showing Menu + Shopping/Tasks/Route/Packing with live progress (X/Y bought·done·packed) and
+  a one-tap row that jumps straight to that tab — so prepping an event happens from one place instead of bouncing
+  between top-level pages. (The booking detail was already a per-event hub with those tabs; this makes it the
+  obvious cockpit.) Menu row smooth-scrolls to the `#menu-builder` anchor.
+- **⚠️ GOTCHA (cost a couple of verify rounds): `npm run build` does NOT catch undefined components** (no ESLint
+  in the repo) — I used `<Select>` in the new modal without importing it; the build was green but the Shopping
+  page threw `ReferenceError: Select is not defined` **at render of the always-mounted modal** (JSX children are
+  `createElement`'d even while `Modal` returns null when closed, so a closed modal still evaluates its `<Select>`).
+  Fix: import it. **Lesson: a clean `npm run build` ≠ no runtime ReferenceErrors — always load the changed pages
+  in Playwright and watch for `pageerror`.** Verified after fix: Playwright 9/9 functional (picker + auto-fill +
+  linked list + launchpad rows + tab-jump), Shopping page renders clean (only the known Google-Fonts network noise).
+- **Further flow ideas surfaced to Ellice (NOT yet built — her call which to do next):** same booking picker on
+  the New Route + New Packing modals; a one-tap "Build a route from this booking's shopping lists" on the booking
+  Route tab; a single "Start prep" action on a confirmed booking that spins up a shopping + packing list (and, for
+  Elite, runs Mise's shopping-list + prep-plan from the menu) in one go.
+- **No code for the comp trial** — it uses the existing **Admin → Chefs → "Complimentary account"** checkbox
+  (sets active + Elite + onboarded, never billed, excluded from MRR). Steps were given to Ellice in chat.
 - **No version bump** (standing rule — awaiting Ellice's word + her biblical reference).
 
 ## Previous session (2026-06-19, twenty-second wave — LAUNCH: live infra activated (persistent disk + always-on · Stripe live · Mise ON) + password show/hide toggle)

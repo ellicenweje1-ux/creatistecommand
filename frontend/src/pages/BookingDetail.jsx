@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { BOOKING_STATUSES, BOOKING_TONES, fmtDateLong, fmtMoney, invoiceTotal, label, menuPriceTotal, miseReady, relDays, todayISO, uid } from '../format'
-import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, Select, Spinner, Tabs, Textarea, toast, toastErr } from '../ui'
+import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, ProgressBar, Select, Spinner, Tabs, Textarea, toast, toastErr } from '../ui'
 import { BookingForm } from './Bookings'
 import { ContactClient } from '../contact'
 import { DishRowsEditor, dishFromCourse } from '../dishrows'
@@ -226,6 +226,58 @@ function UploadInvoiceModal({ open, bookingId, clientId, currency, onClose, onSa
   )
 }
 
+/* --------------------------- prep launchpad (overview) -------------------------- */
+// One glance at where prep stands for this event + a one-tap jump into each area, so you
+// don't bounce between tabs (and pages) to find out what's left. Owner ask: easier flow.
+function PrepProgress({ ws, onJump }) {
+  const b = ws.booking
+  const shop = ws.shopping_lists || []
+  const sItems = shop.flatMap((l) => l.items || [])
+  const sBought = sItems.filter((i) => i.purchased).length
+  const tasks = ws.tasks || []
+  const tDone = tasks.filter((t) => t.status === 'done').length
+  const routes = ws.routes || []
+  const pack = ws.packing_lists || []
+  const pItems = pack.flatMap((l) => l.items || [])
+  const pPacked = pItems.filter((i) => i.packed).length
+  const menuN = (b.menu || []).length
+
+  const rows = [
+    { tab: 'shopping', icon: 'cart', label: 'Shopping', has: shop.length > 0, value: sBought, max: sItems.length,
+      summary: shop.length ? `${shop.length} list${shop.length === 1 ? '' : 's'} · ${sBought}/${sItems.length} bought` : 'No list yet' },
+    { tab: 'tasks', icon: 'checks', label: 'Prep tasks', has: tasks.length > 0, value: tDone, max: tasks.length,
+      summary: tasks.length ? `${tDone}/${tasks.length} done` : 'No tasks yet' },
+    { tab: 'route', icon: 'map', label: 'Route', has: routes.length > 0, value: routes.length ? 1 : 0, max: 1,
+      summary: routes.length ? `${routes.length} planned` : 'Not planned' },
+    { tab: 'packing', icon: 'clipboard', label: 'Packing', has: pack.length > 0, value: pPacked, max: pItems.length,
+      summary: pack.length ? `${pPacked}/${pItems.length} packed` : 'No list yet' },
+  ]
+  return (
+    <Card title="Getting ready">
+      <p className="mb-3 text-xs text-fg/50">Everything for this event in one place — tap a row to jump straight in.</p>
+      <button onClick={() => { const el = document.getElementById('menu-builder'); el?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }}
+        className="mb-2 flex w-full items-center justify-between rounded-lg border border-line bg-parchment/40 px-3 py-2 text-sm hover:border-copper/40">
+        <span className="flex items-center gap-2 font-medium"><Icon name="fork" size={15} className="text-copper" /> Menu</span>
+        <span className="text-fg/55">{menuN ? `${menuN} dish${menuN === 1 ? '' : 'es'} · below ↓` : 'Set it below ↓'}</span>
+      </button>
+      <div className="space-y-1.5">
+        {rows.map((r) => (
+          <button key={r.tab} onClick={() => onJump(r.tab)}
+            className="flex w-full items-center gap-3 rounded-lg border border-line bg-card px-3 py-2.5 text-left transition-colors hover:border-copper/40">
+            <Icon name={r.icon} size={16} className="shrink-0 text-copper" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium">{r.label}</span>
+              <span className="block text-xs text-fg/50">{r.summary}</span>
+            </span>
+            {r.has && r.max > 0 && <span className="hidden w-16 shrink-0 sm:block"><ProgressBar value={r.value} max={r.max} /></span>}
+            <Badge tone={r.has ? 'sage' : 'gray'}>{r.has ? 'Open' : 'Add'}</Badge>
+          </button>
+        ))}
+      </div>
+    </Card>
+  )
+}
+
 /* ----------------------------------- page -------------------------------------- */
 export default function BookingDetail() {
   const { id } = useParams()
@@ -332,6 +384,7 @@ export default function BookingDetail() {
       {tab === 'overview' && (
         <div className="grid gap-5 lg:grid-cols-3">
           <div className="space-y-5 lg:col-span-2">
+            <PrepProgress ws={ws} onJump={setTab} />
             <Card title="Event details">
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm md:grid-cols-3">
                 {[['Type', b.event_type || '—'], ['Menu', b.menu_type || '—'], ['Status', label(b.status)], ['Guests', b.guest_count],
@@ -349,7 +402,9 @@ export default function BookingDetail() {
                 <div className="mt-3 flex flex-wrap gap-1.5">{b.equipment.map((e, i) => <Badge key={i} tone="ink">{e}</Badge>)}</div>
               )}
             </Card>
-            <MenuBuilder booking={b} recipes={recipes} currency={cur} canQuote={canQuote} onSaved={(nb) => setWs({ ...ws, booking: nb })} />
+            <div id="menu-builder">
+              <MenuBuilder booking={b} recipes={recipes} currency={cur} canQuote={canQuote} onSaved={(nb) => setWs({ ...ws, booking: nb })} />
+            </div>
           </div>
 
           <div className="space-y-5">
