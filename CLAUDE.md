@@ -204,10 +204,20 @@ Ellice clarified that "active bookings in the shopping header" meant: **when you
   Fix: import it. **Lesson: a clean `npm run build` ≠ no runtime ReferenceErrors — always load the changed pages
   in Playwright and watch for `pageerror`.** Verified after fix: Playwright 9/9 functional (picker + auto-fill +
   linked list + launchpad rows + tab-jump), Shopping page renders clean (only the known Google-Fonts network noise).
-- **Further flow ideas surfaced to Ellice (NOT yet built — her call which to do next):** same booking picker on
-  the New Route + New Packing modals; a one-tap "Build a route from this booking's shopping lists" on the booking
-  Route tab; a single "Start prep" action on a confirmed booking that spins up a shopping + packing list (and, for
-  Elite, runs Mise's shopping-list + prep-plan from the menu) in one go.
+- **Further flow steps — ✅ ALL BUILT (Ellice: "lets build in all those flow steps"):**
+  - **Shared `frontend/src/prep.jsx`** — `BookingPicker` (the "Link to a booking" dropdown), plus `listShops` +
+    `stopsFromLists` (extracted from `RoutesPage` so the booking hub and the Routes page share one engine).
+  - **Booking picker on ALL three "new" modals** — New List (refactored to use `BookingPicker`), **New Route**
+    (auto-fills "<event> — prep run" + date) and **New Packing** ("<event> — packing"). Hidden when the booking is
+    already fixed (from a booking's own tab). Each page passes its `bookings`.
+  - **"Build from shopping lists" on the booking Route tab** — one tap turns the event's shopping-list shops into
+    route stops (addresses from the matching Suppliers), via `stopsFromLists`. Same engine as the Routes-page picker.
+  - **"Start prep" on the booking launchpad** (shown only when nothing's set up yet) — spins up a shopping + packing
+    list in one tap; when **Mise** is on AND there's a menu, it also drafts the shopping list + prep tasks from the
+    menu (falls back to a plain list if Mise errors; everything it makes is editable). Then jumps to Shopping.
+  - Verified: Playwright **12/12** (all three pickers + auto-fill, Build-from-lists creates a route with stops,
+    Start-prep creates shopping+packing on a fresh booking and is hidden once prep exists), zero JS pageerrors.
+    `npm run build` clean (**85 modules** — `prep.jsx` added). Frontend-only — no backend/endpoint changes.
 - **No code for the comp trial** — it uses the existing **Admin → Chefs → "Complimentary account"** checkbox
   (sets active + Elite + onboarded, never billed, excluded from MRR). Steps were given to Ellice in chat.
 - **No version bump** (standing rule — awaiting Ellice's word + her biblical reference).

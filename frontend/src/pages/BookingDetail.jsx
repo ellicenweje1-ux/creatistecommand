@@ -14,6 +14,7 @@ import { OrderFormModal, OrderRow } from './Orders'
 import { NewRouteModal, RouteEditor } from './RoutesPage'
 import { NewPackingModal, PackEditor } from './Packing'
 import { ListEditor, NewListModal } from './Shopping'
+import { stopsFromLists } from '../prep'
 import { TaskComposer, TaskItem } from './Tasks'
 
 /* ------------------------------- AI result modal ------------------------------- */
@@ -229,7 +230,7 @@ function UploadInvoiceModal({ open, bookingId, clientId, currency, onClose, onSa
 /* --------------------------- prep launchpad (overview) -------------------------- */
 // One glance at where prep stands for this event + a one-tap jump into each area, so you
 // don't bounce between tabs (and pages) to find out what's left. Owner ask: easier flow.
-function PrepProgress({ ws, onJump }) {
+function PrepProgress({ ws, onJump, onStartPrep, prepping, miseOn }) {
   const b = ws.booking
   const shop = ws.shopping_lists || []
   const sItems = shop.flatMap((l) => l.items || [])
@@ -241,6 +242,7 @@ function PrepProgress({ ws, onJump }) {
   const pItems = pack.flatMap((l) => l.items || [])
   const pPacked = pItems.filter((i) => i.packed).length
   const menuN = (b.menu || []).length
+  const started = shop.length > 0 || pack.length > 0 || tasks.length > 0 || routes.length > 0
 
   const rows = [
     { tab: 'shopping', icon: 'cart', label: 'Shopping', has: shop.length > 0, value: sBought, max: sItems.length,
@@ -253,7 +255,15 @@ function PrepProgress({ ws, onJump }) {
       summary: pack.length ? `${pPacked}/${pItems.length} packed` : 'No list yet' },
   ]
   return (
-    <Card title="Getting ready">
+    <Card title="Getting ready" action={!started && (
+      <Button size="sm" icon="sparkle" disabled={prepping} onClick={onStartPrep}>{prepping ? 'Starting…' : 'Start prep'}</Button>
+    )}>
+      {!started && (
+        <p className="mb-3 rounded-lg border border-copper/30 bg-copper/5 px-3 py-2 text-xs text-fg/65">
+          New event? <span className="font-medium text-fg">Start prep</span> spins up a shopping list and a packing list in one tap
+          {miseOn ? ', and Mise drafts your shopping list & prep tasks from the menu' : ''}.
+        </p>
+      )}
       <p className="mb-3 text-xs text-fg/50">Everything for this event in one place — tap a row to jump straight in.</p>
       <button onClick={() => { const el = document.getElementById('menu-builder'); el?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }}
         className="mb-2 flex w-full items-center justify-between rounded-lg border border-line bg-parchment/40 px-3 py-2 text-sm hover:border-copper/40">
@@ -300,6 +310,7 @@ export default function BookingDetail() {
   const [uploadInvoice, setUploadInvoice] = useState(false)
   const [expenseModal, setExpenseModal] = useState({ open: false, initial: null })
   const [designModal, setDesignModal] = useState({ open: false, design: null })
+  const [prepping, setPrepping] = useState(false)
 
   const load = () => api.get(`/bookings/${id}/workspace`).then(setWs).catch(toastErr)
   useEffect(() => { load(); api.get('/recipes').then(setRecipes).catch(() => {}) }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -347,6 +358,48 @@ export default function BookingDetail() {
     } catch (err) { toastErr(err) }
   }
 
+  // One-tap "Start prep": spin up a shopping + packing list for this event (and, when Mise
+  // is on and there's a menu, draft the shopping list & prep tasks from it). Everything it
+  // creates is editable afterwards. Falls back to a plain shopping list if Mise errors.
+  const startPrep = async () => {
+    setPrepping(true)
+    try {
+      const title = b.title || 'Event'
+      await api.post('/packing', { title: `${title} — packing`, booking_id: b.id, items: [] })
+      let madeShopping = false
+      if (miseReady(user) && (b.menu || []).length) {
+        try {
+          const sl = await api.post('/ai/shopping-list', { booking_id: b.id })
+          const items = (sl.items || []).map((i) => ({ id: uid(), name: i.name, qty: i.qty, unit: i.unit || '', shop: i.shop || 'Supermarket', category: i.category || '', est_cost: i.est_cost || 0, purchased: false, note: i.note || '' }))
+          await api.post('/shopping', { title: sl.title || `${title} — shopping`, booking_id: b.id, shop_date: b.date, items })
+          const pp = await api.post('/ai/prep-plan', { booking_id: b.id })
+          for (const t of (pp.tasks || [])) await api.post('/tasks', { ...t, booking_id: b.id, status: 'todo' })
+          madeShopping = true
+          toast('Prep started — Mise drafted your shopping list & tasks', 'sage')
+        } catch (err) { /* Mise failed — fall back to a plain list below so prep still starts */ }
+      }
+      if (!madeShopping) {
+        await api.post('/shopping', { title: `${title} — shopping`, booking_id: b.id, shop_date: b.date, items: [] })
+        toast('Prep started — shopping & packing lists created', 'sage')
+      }
+      await load()
+      setTab('shopping')
+    } catch (err) { toastErr(err) } finally { setPrepping(false) }
+  }
+
+  // Build a prep-day route straight from this booking's shopping lists: one stop per shop,
+  // address filled from the matching Supplier. (Same engine as the Routes page picker.)
+  const buildRouteFromLists = async () => {
+    try {
+      const suppliers = await api.get('/suppliers').catch(() => [])
+      const stops = stopsFromLists(ws.shopping_lists || [], suppliers, [])
+      if (!stops.length) { toast('Set a Shop on this booking’s shopping-list items first.', 'amber'); return }
+      await api.post('/routes', { title: `${b.title || 'Event'} — prep run`, date: b.date, booking_id: b.id, start_location: '', stops: stops.map((s, i) => ({ ...s, order: i + 1 })) })
+      toast(`Route built with ${stops.length} stop${stops.length > 1 ? 's' : ''} from your shopping lists`, 'sage')
+      load()
+    } catch (err) { toastErr(err) }
+  }
+
   const tabs = [
     { id: 'overview', label: 'Overview' },
     { id: 'money', label: 'Money' },
@@ -384,7 +437,7 @@ export default function BookingDetail() {
       {tab === 'overview' && (
         <div className="grid gap-5 lg:grid-cols-3">
           <div className="space-y-5 lg:col-span-2">
-            <PrepProgress ws={ws} onJump={setTab} />
+            <PrepProgress ws={ws} onJump={setTab} onStartPrep={startPrep} prepping={prepping} miseOn={miseReady(user)} />
             <Card title="Event details">
               <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm md:grid-cols-3">
                 {[['Type', b.event_type || '—'], ['Menu', b.menu_type || '—'], ['Status', label(b.status)], ['Guests', b.guest_count],
@@ -492,7 +545,12 @@ export default function BookingDetail() {
 
       {tab === 'route' && (
         <div className="space-y-4">
-          <div className="flex justify-end"><Button icon="plus" onClick={() => setNewRoute(true)}>New route plan</Button></div>
+          <div className="flex flex-wrap justify-end gap-2">
+            {(ws.shopping_lists || []).length > 0 && (
+              <Button variant="secondary" icon="cart" onClick={buildRouteFromLists}>Build from shopping lists</Button>
+            )}
+            <Button icon="plus" onClick={() => setNewRoute(true)}>New route plan</Button>
+          </div>
           {ws.routes.length === 0 ? (
             <EmptyState icon="map" title="No route planned" hint="Plan your prep-day run: market, butcher, wholesaler — in the right order." />
           ) : ws.routes.map((r) => <RouteEditor key={r.id} route={r} onChanged={load} onDeleted={load} />)}

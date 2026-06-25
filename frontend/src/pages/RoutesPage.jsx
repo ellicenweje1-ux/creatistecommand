@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { cls, fmtDate, todayISO, uid } from '../format'
+import { BookingPicker, listShops, stopsFromLists } from '../prep'
 import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, Select, Spinner, toast, toastErr } from '../ui'
 
 export function gmapsUrl(route) {
@@ -10,17 +11,25 @@ export function gmapsUrl(route) {
   return `https://www.google.com/maps/dir/${points.map((p) => encodeURIComponent(p)).join('/')}`
 }
 
-export function NewRouteModal({ open, onClose, onCreated, bookingId = null, defaultDate = '' }) {
+export function NewRouteModal({ open, onClose, onCreated, bookingId = null, defaultDate = '', bookings = [] }) {
   const [form, setForm] = useState({ title: '', date: '', start_location: '' })
-  useEffect(() => { if (open) setForm({ title: '', date: defaultDate || todayISO(), start_location: '' }) }, [open, defaultDate])
+  const [picked, setPicked] = useState('')
+  const [titleTouched, setTitleTouched] = useState(false)
+  useEffect(() => { if (open) { setForm({ title: '', date: defaultDate || todayISO(), start_location: '' }); setPicked(''); setTitleTouched(false) } }, [open, defaultDate])
+  const showPicker = !bookingId && bookings.length > 0
+  const choose = (val, bk) => {
+    setPicked(val)
+    if (bk) setForm((f) => ({ ...f, date: bk.date || f.date, title: titleTouched ? f.title : `${bk.title} — prep run` }))
+  }
   const create = (e) => {
     e.preventDefault()
-    api.post('/routes', { ...form, booking_id: bookingId, stops: [] }).then(onCreated).catch(toastErr)
+    api.post('/routes', { ...form, booking_id: bookingId || picked || null, stops: [] }).then(onCreated).catch(toastErr)
   }
   return (
     <Modal open={open} onClose={onClose} title="New route plan">
       <form onSubmit={create} className="space-y-4">
-        <Field label="Title"><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Saturday prep-day run" required /></Field>
+        {showPicker && <BookingPicker bookings={bookings} value={picked} onChange={choose} hint="Pick the event this run is for — fills in the date." />}
+        <Field label="Title"><Input value={form.title} onChange={(e) => { setForm({ ...form, title: e.target.value }); setTitleTouched(true) }} placeholder="Saturday prep-day run" required /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Date"><Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
           <Field label="Start from"><Input value={form.start_location} onChange={(e) => setForm({ ...form, start_location: e.target.value })} placeholder="Home kitchen, SE15" /></Field>
@@ -29,18 +38,6 @@ export function NewRouteModal({ open, onClose, onCreated, bookingId = null, defa
       </form>
     </Modal>
   )
-}
-
-// Distinct shops on a shopping list, in order (skips "Anywhere"/blank).
-function listShops(list) {
-  const seen = new Set(); const out = []
-  ;(list.items || []).forEach((it) => {
-    const shop = (it.shop || '').trim()
-    if (!shop || shop.toLowerCase() === 'anywhere') return
-    const key = shop.toLowerCase()
-    if (!seen.has(key)) { seen.add(key); out.push(shop) }
-  })
-  return out
 }
 
 export function RouteEditor({ route, onChanged, onDeleted }) {
@@ -62,13 +59,7 @@ export function RouteEditor({ route, onChanged, onDeleted }) {
   const addFromList = (listId) => {
     const list = lists.find((l) => String(l.id) === String(listId))
     if (!list) return
-    const have = new Set(stops.map((s) => (s.name || '').toLowerCase()))
-    const toAdd = listShops(list)
-      .filter((shop) => !have.has(shop.toLowerCase()))
-      .map((shop) => {
-        const sup = suppliers.find((su) => (su.name || '').toLowerCase() === shop.toLowerCase())
-        return { id: uid(), name: shop, address: sup?.address || '', purpose: `Shop · ${list.title}`, eta: '', duration_min: 0, note: '', done: false }
-      })
+    const toAdd = stopsFromLists(list, suppliers, stops)
     if (!toAdd.length) { toast('Those shops are already stops (or the list has no shops set).', 'amber'); return }
     saveStops([...stops, ...toAdd])
     toast(`Added ${toAdd.length} stop${toAdd.length > 1 ? 's' : ''} from “${list.title}”`, 'sage')
@@ -189,7 +180,7 @@ export default function RoutesPage() {
           ))}
         </div>
       )}
-      <NewRouteModal open={creating} onClose={() => setCreating(false)} onCreated={() => { setCreating(false); load() }} />
+      <NewRouteModal open={creating} bookings={bookings} onClose={() => setCreating(false)} onCreated={() => { setCreating(false); load() }} />
     </div>
   )
 }

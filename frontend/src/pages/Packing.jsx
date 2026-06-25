@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { cls, uid } from '../format'
+import { BookingPicker } from '../prep'
 import { DragList, GripHandle } from '../sortable'
 import { Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, ProgressBar, Spinner, toastErr } from '../ui'
 
@@ -12,17 +13,22 @@ const STANDARD_KIT = [
   ['Phone charger & power bank', 'Misc'],
 ]
 
-export function NewPackingModal({ open, onClose, onCreated, bookingId = null }) {
+export function NewPackingModal({ open, onClose, onCreated, bookingId = null, bookings = [] }) {
   const [title, setTitle] = useState('')
-  useEffect(() => { if (open) setTitle('') }, [open])
+  const [picked, setPicked] = useState('')
+  const [titleTouched, setTitleTouched] = useState(false)
+  useEffect(() => { if (open) { setTitle(''); setPicked(''); setTitleTouched(false) } }, [open])
+  const showPicker = !bookingId && bookings.length > 0
+  const choose = (val, bk) => { setPicked(val); if (bk && !titleTouched) setTitle(`${bk.title} — packing`) }
   const create = (e) => {
     e.preventDefault()
-    api.post('/packing', { title, booking_id: bookingId, items: [] }).then(onCreated).catch(toastErr)
+    api.post('/packing', { title, booking_id: bookingId || picked || null, items: [] }).then(onCreated).catch(toastErr)
   }
   return (
     <Modal open={open} onClose={onClose} title="New packing list">
       <form onSubmit={create} className="space-y-4">
-        <Field label="List title"><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Saturday — van pack" required /></Field>
+        {showPicker && <BookingPicker bookings={bookings} value={picked} onChange={choose} hint="Pick the event you’re packing for." />}
+        <Field label="List title"><Input value={title} onChange={(e) => { setTitle(e.target.value); setTitleTouched(true) }} placeholder="Saturday — van pack" required /></Field>
         <div className="flex justify-end gap-2"><Button type="button" variant="ghost" onClick={onClose}>Cancel</Button><Button>Create</Button></div>
       </form>
     </Modal>
@@ -143,7 +149,7 @@ export default function Packing() {
           ))}
         </div>
       )}
-      <NewPackingModal open={creating} onClose={() => setCreating(false)} onCreated={() => { setCreating(false); load() }} />
+      <NewPackingModal open={creating} bookings={bookings} onClose={() => setCreating(false)} onCreated={() => { setCreating(false); load() }} />
     </div>
   )
 }
