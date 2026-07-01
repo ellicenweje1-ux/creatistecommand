@@ -104,3 +104,116 @@ export function GripHandle({ handle, className = '' }) {
     </button>
   )
 }
+
+/* A smoother reorder for tall rows inside a scrollable container (e.g. invoice line items in
+   a modal). Unlike DragList (which reflows the whole list as you cross midpoints), the grabbed
+   row visually LIFTS and follows the pointer, the other rows stay put, and the list commits a
+   single reorder on drop — so it feels smooth and always stays where you let go. Edge
+   auto-scroll keeps long lists reachable. Pointer Events → works with finger or mouse.
+
+   Usage:
+     <SortableList items={items} onReorder={(next) => save(next)} className="space-y-1.5">
+       {(item, sort) => (
+         <li key={item.id} {...sort.row} className={sort.active ? 'cursor-grabbing' : ''}>
+           <GripHandle handle={sort.grip} /> …row content…
+         </li>
+       )}
+     </SortableList>
+   `sort.grip` → the drag handle; `sort.row` → the row element (adds data-sort-row + the lift
+   transform while active); `sort.active` → true for the row being dragged. */
+export function SortableList({ items, keyOf = (i) => i.id, onReorder, className = '', children }) {
+  const [drag, setDrag] = useState(null) // { key, dy } — for the visual lift only
+  const wrapRef = useRef(null)
+  const scrollerRef = useRef(null)
+  const fromRef = useRef(-1)
+  const grabYRef = useRef(0)
+  const pyRef = useRef(0)
+  const rafRef = useRef(0)
+
+  const findScroller = (el) => {
+    let n = el?.parentElement
+    while (n) {
+      const oy = getComputedStyle(n).overflowY
+      if ((oy === 'auto' || oy === 'scroll') && n.scrollHeight > n.clientHeight + 1) return n
+      n = n.parentElement
+    }
+    return null
+  }
+  const loop = () => {
+    if (fromRef.current < 0) return
+    const sc = scrollerRef.current
+    if (sc) {
+      const b = sc.getBoundingClientRect()
+      const M = 44
+      if (pyRef.current < b.top + M) sc.scrollTop -= 10
+      else if (pyRef.current > b.bottom - M) sc.scrollTop += 10
+    }
+    rafRef.current = requestAnimationFrame(loop)
+  }
+  useEffect(() => () => cancelAnimationFrame(rafRef.current), [])
+
+  const start = (index, key) => (e) => {
+    if ((items?.length || 0) < 2) return
+    e.preventDefault()
+    e.currentTarget.setPointerCapture?.(e.pointerId)
+    scrollerRef.current = findScroller(wrapRef.current)
+    fromRef.current = index
+    grabYRef.current = e.clientY
+    pyRef.current = e.clientY
+    cancelAnimationFrame(rafRef.current)
+    rafRef.current = requestAnimationFrame(loop)
+    setDrag({ key, dy: 0 })
+  }
+  const move = (e) => {
+    if (fromRef.current < 0) return
+    pyRef.current = e.clientY
+    setDrag((d) => (d ? { ...d, dy: e.clientY - grabYRef.current } : d))
+  }
+  const finish = (e) => {
+    if (fromRef.current < 0) return
+    cancelAnimationFrame(rafRef.current)
+    const clientY = (e && typeof e.clientY === 'number') ? e.clientY : pyRef.current
+    const from = fromRef.current
+    fromRef.current = -1
+    setDrag(null)
+    // Drop target = how many OTHER rows have their midpoint above the cursor (= insertion index).
+    const rows = Array.from(wrapRef.current?.querySelectorAll('[data-sort-row]') || [])
+    let to = 0
+    rows.forEach((r, idx) => {
+      if (idx === from) return
+      const b = r.getBoundingClientRect()
+      if (clientY > b.top + b.height / 2) to += 1
+    })
+    if (to !== from) {
+      const next = items.slice()
+      const [moved] = next.splice(from, 1)
+      next.splice(to, 0, moved)
+      onReorder(next)
+    }
+  }
+
+  return (
+    <ul ref={wrapRef} className={className}>
+      {items.map((item, index) => {
+        const key = keyOf(item)
+        const active = drag?.key === key
+        const grip = {
+          onPointerDown: start(index, key),
+          onPointerMove: move,
+          onPointerUp: finish,
+          onPointerCancel: finish,
+          style: { touchAction: 'none' },
+          'aria-label': 'Drag to reorder',
+          title: 'Drag to reorder',
+        }
+        const row = {
+          'data-sort-row': true,
+          style: active
+            ? { transform: `translateY(${drag.dy}px)`, position: 'relative', zIndex: 30, opacity: 0.97, boxShadow: '0 10px 26px rgba(0,0,0,.28)', borderRadius: 8 }
+            : undefined,
+        }
+        return children(item, { grip, row, active }, index)
+      })}
+    </ul>
+  )
+}

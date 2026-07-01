@@ -202,11 +202,19 @@ via `ensure_columns` + one new endpoint; no new env/deps.
   `deposit_type=''` (pay in full); migration idempotent on re-run. **LESSON: additive-migration tests must exercise an
   EXISTING table missing the new column (drop-column then `ensure_columns`), not just a fresh `create_all` DB — and never
   duplicate a table key in `wanted`.**
-- **Drag-to-reorder invoice line items (follow-on ask):** wired the existing `sortable.jsx` `DragList` + `GripHandle`
-  (the same touch-friendly reorder used on Shopping/Packing) into the `InvoiceEditorModal` line items — a grip per row,
-  reorders the flat `items` array (sections + normal lines alike). Loaded items get an `id` backfilled (`it.id || uid()`)
-  so drag keys stay stable. Frontend-only. Verified 7/7 (Playwright real pointer-drag: 3rd line → top = [CCC,AAA,BBB],
-  order persists after save via the API, zero JS errors). FAQ (rule #3) updated with the reorder note.
+- **Drag-to-reorder invoice line items (follow-on ask):** wired reorder into the `InvoiceEditorModal` line items — a
+  grip per row, reorders the flat `items` array (sections + normal lines alike). Loaded items get an `id` backfilled
+  (`it.id || uid()`) so drag keys stay stable. Frontend-only. FAQ (rule #3) updated with the reorder note.
+  - **⚠️ Ellice found the first cut (shared `DragList`) janky in the modal — "not smooth / doesn't stay put".** `DragList`
+    reflows the whole list as you cross midpoints and the grabbed row never follows the cursor; fine for the compact
+    single-line Shopping/Packing lists, poor for the tall input rows in a scrollable modal. **Fix: a NEW
+    `sortable.jsx SortableList`** (kept `DragList` untouched so Shopping/Packing are unaffected) — the grabbed row **lifts
+    and follows the pointer** (translateY), the other rows stay put, and it commits **one clean reorder on drop** (so it
+    always stays where you let go), plus **edge auto-scroll** (rAF) for long lists. Finance now imports `SortableList`
+    (not `DragList`). Verified 8/8 (Playwright real pointer-drag: row carries a translateY lift mid-drag, drops [CCC,AAA,BBB],
+    transform clears after drop = no stuck offset, order persists via API, zero JS errors). She **prefers drag over up/down
+    arrows** (offered; declined). **LESSON: the reflow-style `DragList` feels bad for tall rows in a modal — use
+    `SortableList` (pointer-follow + drop-commit) there.**
 
 ## Previous session (2026-06-25, twenty-third wave — on-the-go amendments: tasks ordering, shopping/checklist UX, drag-to-reorder, phone notifications)
 - Branch `claude/optimistic-meitner-yqvl2l` — **merge to `main` to deploy.** Ellice's third feedback batch

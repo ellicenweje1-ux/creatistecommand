@@ -6,7 +6,7 @@ import { Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageH
 import { QuotesPanel } from './Quotes'
 import { ChargesMenu } from '../charges'
 import { MenuItemsMenu, fetchMenuItems } from '../menulines'
-import { DragList, GripHandle } from '../sortable'
+import { GripHandle, SortableList } from '../sortable'
 
 /* ------------------------------ invoice editor ------------------------------ */
 export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, bookingId = null, clientId = null, currency = 'GBP' }) {
@@ -122,12 +122,12 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
         <div>
           <p className="label">Line items</p>
           <p className="mb-1.5 text-xs text-fg/45">Drag the ⠿ handle to reorder lines up or down.</p>
-          <DragList items={items} onReorder={(next) => setForm({ ...form, items: next })} className="space-y-1.5">
-            {(it, handle, dragging) => {
+          <SortableList items={items} onReorder={(next) => setForm({ ...form, items: next })} className="space-y-1.5">
+            {(it, sort) => {
               const i = items.indexOf(it)
               return (
-                <li key={it.id} {...handle.row} className={cls('flex items-center gap-1', dragging && 'opacity-60')}>
-                  <GripHandle handle={handle.grip} />
+                <li key={it.id} {...sort.row} className={cls('flex items-center gap-1', sort.active && 'cursor-grabbing')}>
+                  <GripHandle handle={sort.grip} />
                   {it.section ? (
                     <div className="grid flex-1 grid-cols-12 items-center gap-1.5 rounded-lg bg-parchment/40 px-1 py-0.5">
                       <Input className="col-span-10 font-display font-semibold" placeholder="Section heading — e.g. DAY 1 (no price)"
@@ -147,7 +147,7 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
                 </li>
               )
             }}
-          </DragList>
+          </SortableList>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Button type="button" size="sm" variant="secondary" icon="plus" onClick={() => addItem({ id: uid(), description: '', qty: 1, unit_price: 0 })}>Add line</Button>
             <Button type="button" size="sm" variant="ghost" icon="menu" onClick={() => addItem({ id: uid(), description: '', section: true })}>Add break</Button>
