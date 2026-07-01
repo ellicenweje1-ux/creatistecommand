@@ -262,6 +262,27 @@ clean (**85 modules**). Verified Playwright (demo Elite) **13/13**, zero JS/cons
 - FAQ (rule #3) updated: the quote FAQ now notes both build buttons + that the quote shares the invoice's branded layout.
 - **No version bump** (standing rule).
 
+### Follow-on (same 24th-wave session — quote editor parity + shopping from price book + IconButton submit fix)
+Two more amendments + one bug fix, on branch `claude/busy-cerf-3k7klg` (**merge to `main` to deploy**). `npm run build`
+clean (**85 modules**). Verified Playwright (demo Elite) **10/10**, zero JS/console errors.
+- **Quote EDITOR now matches the invoice editor** (Ellice: "quote match needs to be from the actual build … match invoice
+  format elements when editing"). Brought `QuoteEditor` (`Quotes.jsx`) to parity with `InvoiceEditorModal`'s line-items:
+  **drag-to-reorder** (`SortableList` + `GripHandle`), **Add break** (section rows), **Duplicate line** (copy icon), id
+  backfill on load, `buildPayload` emits `{section:true}` rows. (Public quote already renders section rows + the invoice
+  layout from the prior follow-on.) Notes bumped to a multi-line box.
+- **Build a shopping list from the price book** (Ellice: "build shop list also from auto population of items from pricebook").
+  `Shopping.jsx ListEditor` gains an **"Add from your price book"** search — type → **Enter** (or click a result) drops the
+  item in with its price (→ `est_cost`) and supplier (→ `shop`), plus qty/unit. Same `/suppliers/prices/search` engine as the
+  expense builder. Frontend-only.
+- **⚠️ Bug fix (latent, affected both editors): `IconButton` had no `type`, so inside a `<form>` it defaulted to
+  `type="submit"`** — clicking a line's **Duplicate/Remove** icon *submitted the form* (saved + closed the editor) instead of
+  just editing the line. Root-caused while the quote-editor duplicate kept closing the modal. Fix: **`ui.jsx IconButton` now
+  defaults to `type="button"`** (pass `type="submit"` explicitly if ever wanted). This also fixes the invoice editor's
+  duplicate/remove-line buttons. **LESSON: any `<button>`/icon-button inside a `<form>` needs `type="button"` unless it's the
+  submit.**
+- FAQ (rule #3) updated: shopping FAQ now covers "Add from your price book".
+- **No version bump** (standing rule).
+
 ## Previous session (2026-06-25, twenty-third wave — on-the-go amendments: tasks ordering, shopping/checklist UX, drag-to-reorder, phone notifications)
 - Branch `claude/optimistic-meitner-yqvl2l` — **merge to `main` to deploy.** Ellice's third feedback batch
   (backlog 17–25, above), from using the live app on her phone. `npm run build` clean (**84 modules**).

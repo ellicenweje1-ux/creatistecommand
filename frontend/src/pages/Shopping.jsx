@@ -96,10 +96,18 @@ export function ListEditor({ list, onChanged, onDeleted, currency = 'GBP', start
   const [draft, setDraft] = useState({ name: '', qty: '', unit: '', shop: '', est_cost: '' })
   const [shopOptions, setShopOptions] = useState([])
   const [editing, setEditing] = useState(null) // item being amended
+  const [q, setQ] = useState('')               // price-book search
+  const [results, setResults] = useState([])
   useEffect(() => {
     if (!open) return
     api.get('/suppliers').then((s) => setShopOptions(s.map((x) => x.name))).catch(() => {})
   }, [open])
+  // Auto-populate items from the price book: search → Enter (or click) drops the item in.
+  useEffect(() => {
+    if (!open || !q.trim()) { setResults([]); return }
+    const t = setTimeout(() => api.get(`/suppliers/prices/search?q=${encodeURIComponent(q)}`).then((r) => setResults(r.slice(0, 6))).catch(() => {}), 200)
+    return () => clearTimeout(t)
+  }, [q, open])
 
   const items = list.items || []
   const done = items.filter((i) => i.purchased).length
@@ -127,6 +135,11 @@ export function ListEditor({ list, onChanged, onDeleted, currency = 'GBP', start
     saveItems([...items, { id: uid(), name: draft.name.trim(), qty: draft.qty ? Number(draft.qty) : '', unit: draft.unit, shop: draft.shop.trim() || 'Anywhere', category: '', est_cost: draft.est_cost ? Number(draft.est_cost) : 0, purchased: false, note: '' }])
     setDraft({ name: '', qty: '', unit: '', shop: draft.shop, est_cost: '' })
   }
+  const addFromPrice = (p) => {
+    saveItems([...items, { id: uid(), name: p.item_name, qty: Number(p.quantity) || '', unit: p.unit || '', shop: p.supplier_name || draft.shop.trim() || 'Anywhere', category: '', est_cost: Number(p.price) || 0, purchased: false, note: '' }])
+    setQ(''); setResults([])
+  }
+  const onSearchKey = (e) => { if (e.key === 'Enter') { e.preventDefault(); if (results[0]) addFromPrice(results[0]) } }
   const markDone = () => api.patch(`/shopping/${list.id}`, { status: list.status === 'done' ? 'open' : 'done' }).then(onChanged).catch(toastErr)
   const removeList = () => {
     if (!window.confirm('Delete this shopping list?')) return
@@ -179,6 +192,21 @@ export function ListEditor({ list, onChanged, onDeleted, currency = 'GBP', start
             </div>
           ))}
 
+          <div className="relative mt-3">
+            <Input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onSearchKey}
+              placeholder="Add from your price book — search (e.g. cream), press Enter" />
+            {results.length > 0 && (
+              <div className="absolute z-30 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-line bg-card shadow-pop">
+                {results.map((r, idx) => (
+                  <button type="button" key={r.id} onClick={() => addFromPrice(r)}
+                    className={cls('flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-parchment/50', idx === 0 && 'bg-parchment/30')}>
+                    <span>{r.item_name} <span className="text-fg/45">{[Number(r.quantity) > 0 ? +r.quantity : '', r.unit].filter(Boolean).join(' ')}</span> <span className="text-fg/35">· {r.supplier_name}</span></span>
+                    <span className="shrink-0 font-medium">{fmtMoney(r.price, currency)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <form onSubmit={addItem} className="mt-2 grid grid-cols-12 gap-1.5">
             <Input className="col-span-12 sm:col-span-4" placeholder="Add item…" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
             <Input className="col-span-3 sm:col-span-1" placeholder="Qty" value={draft.qty} onChange={(e) => setDraft({ ...draft, qty: e.target.value })} />

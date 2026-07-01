@@ -101,9 +101,11 @@ export function Button({ variant = 'primary', size = 'md', icon, children, class
   )
 }
 
-export function IconButton({ icon, label, className = '', size = 16, ...props }) {
+export function IconButton({ icon, label, className = '', size = 16, type = 'button', ...props }) {
+  // Default to type="button" so icon actions inside a <form> (duplicate/remove a line, etc.)
+  // never accidentally submit it. Pass type="submit" explicitly if a submit is ever wanted.
   return (
-    <button title={label} aria-label={label}
+    <button type={type} title={label} aria-label={label}
       className={cls('rounded-lg p-1.5 text-fg/45 transition-colors hover:bg-fg/5 hover:text-fg', className)} {...props}>
       <Icon name={icon} size={size} />
     </button>

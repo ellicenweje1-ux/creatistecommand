@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { fmtDate, fmtMoney, invoiceTotal, todayISO, uid } from '../format'
+import { cls, fmtDate, fmtMoney, invoiceTotal, todayISO, uid } from '../format'
 import { ChargesMenu } from '../charges'
 import { MenuItemsMenu, fetchMenuItems } from '../menulines'
+import { GripHandle, SortableList } from '../sortable'
 import { Badge, Button, EmptyState, Field, IconButton, Input, Modal, PageHeader, Select, Spinner, Textarea, toast, toastErr } from '../ui'
 
 const TONES = { draft: 'gray', sent: 'amber', approved: 'sage', declined: 'red', expired: 'ink' }
@@ -15,15 +16,16 @@ export function QuoteEditor({ open, onClose, onSaved, initial = null, currency }
   const [clients, setClients] = useState([])
   const [bookings, setBookings] = useState([])
   const [menuItems, setMenuItems] = useState([])
+  const withIds = (arr) => (arr || []).map((it) => ({ ...it, id: it.id || uid() }))
   useEffect(() => {
     if (!open) return
     api.get('/clients').then(setClients).catch(() => {})
     api.get('/bookings').then(setBookings).catch(() => {})
-    if (initial?.id) setForm({ ...blank, ...initial })
+    if (initial?.id) setForm({ ...blank, ...initial, items: withIds(initial.items) })
     // New quote (possibly pre-filled from a booking menu): still assign the next number.
     else api.get('/quotes/meta/next-number')
-      .then(({ number }) => setForm({ ...blank, number, ...(initial || {}) }))
-      .catch(() => setForm({ ...blank, ...(initial || {}) }))
+      .then(({ number }) => setForm({ ...blank, number, ...(initial || {}), items: withIds(initial?.items) }))
+      .catch(() => setForm({ ...blank, ...(initial || {}), items: withIds(initial?.items) }))
   }, [open, initial]) // eslint-disable-line react-hooks/exhaustive-deps
   // Priced dishes to pull onto a line — refreshed when the linked booking changes.
   useEffect(() => {
@@ -33,12 +35,17 @@ export function QuoteEditor({ open, onClose, onSaved, initial = null, currency }
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
   const items = form.items || []
   const setItem = (i, key, value) => setForm({ ...form, items: items.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)) })
+  const addItem = (line) => setForm({ ...form, items: [...items, line] })
+  const dupItem = (i) => setForm({ ...form, items: [...items.slice(0, i + 1), { ...items[i], id: uid() }, ...items.slice(i + 1)] })
+  const removeItem = (i) => setForm({ ...form, items: items.filter((_, idx) => idx !== i) })
 
   const buildPayload = () => ({
     ...form, tax_rate: Number(form.tax_rate) || 0, discount: Number(form.discount) || 0,
     client_id: form.client_id ? Number(form.client_id) : null,
     booking_id: form.booking_id ? Number(form.booking_id) : null,
-    items: items.map((it) => ({ ...it, qty: Number(it.qty) || 0, unit_price: Number(it.unit_price) || 0 })),
+    items: items.map((it) => (it.section
+      ? { id: it.id, description: it.description, section: true }
+      : { ...it, qty: Number(it.qty) || 0, unit_price: Number(it.unit_price) || 0 })),
   })
   const persist = () => (initial?.id ? api.patch(`/quotes/${initial.id}`, buildPayload()) : api.post('/quotes', buildPayload()))
   const save = (e) => { e.preventDefault(); persist().then(onSaved).catch(toastErr) }
@@ -73,24 +80,38 @@ export function QuoteEditor({ open, onClose, onSaved, initial = null, currency }
         </div>
         <div>
           <p className="label">Line items</p>
-          <div className="space-y-1.5">
-            {items.map((it, i) => (
-              <div key={it.id || i} className="grid grid-cols-12 gap-1.5">
-                <Input className="col-span-6" placeholder="Description" value={it.description} onChange={(e) => setItem(i, 'description', e.target.value)} />
-                <Input className="col-span-2" type="number" step="any" placeholder="Qty" value={it.qty} onChange={(e) => setItem(i, 'qty', e.target.value)} />
-                <Input className="col-span-3" type="number" step="0.01" placeholder="Unit price" value={it.unit_price} onChange={(e) => setItem(i, 'unit_price', e.target.value)} />
-                <IconButton icon="trash" label="Remove" className="col-span-1 self-center justify-self-center"
-                  onClick={() => setForm({ ...form, items: items.filter((_, idx) => idx !== i) })} />
-              </div>
-            ))}
-          </div>
+          <p className="mb-1.5 text-xs text-fg/45">Drag the ⠿ handle to reorder lines up or down.</p>
+          <SortableList items={items} onReorder={(next) => setForm({ ...form, items: next })} className="space-y-1.5">
+            {(it, sort) => {
+              const i = items.indexOf(it)
+              return (
+                <li key={it.id} {...sort.row} className={cls('flex items-center gap-1', sort.active && 'cursor-grabbing')}>
+                  <GripHandle handle={sort.grip} />
+                  {it.section ? (
+                    <div className="grid flex-1 grid-cols-12 items-center gap-1.5 rounded-lg bg-parchment/40 px-1 py-0.5">
+                      <Input className="col-span-10 font-display font-semibold" placeholder="Section heading — e.g. DAY 1 (no price)"
+                        value={it.description} onChange={(e) => setItem(i, 'description', e.target.value)} />
+                      <IconButton icon="copy" label="Duplicate line" className="col-span-1 justify-self-center self-center" onClick={() => dupItem(i)} />
+                      <IconButton icon="trash" label="Remove line" className="col-span-1 justify-self-center self-center" onClick={() => removeItem(i)} />
+                    </div>
+                  ) : (
+                    <div className="grid flex-1 grid-cols-12 gap-1.5">
+                      <Input className="col-span-5" placeholder="Description" value={it.description} onChange={(e) => setItem(i, 'description', e.target.value)} />
+                      <Input className="col-span-2" type="number" step="any" placeholder="Qty" value={it.qty} onChange={(e) => setItem(i, 'qty', e.target.value)} />
+                      <Input className="col-span-3" type="number" step="0.01" placeholder="Unit price" value={it.unit_price} onChange={(e) => setItem(i, 'unit_price', e.target.value)} />
+                      <IconButton icon="copy" label="Duplicate line" className="col-span-1 justify-self-center self-center" onClick={() => dupItem(i)} />
+                      <IconButton icon="trash" label="Remove line" className="col-span-1 justify-self-center self-center" onClick={() => removeItem(i)} />
+                    </div>
+                  )}
+                </li>
+              )
+            }}
+          </SortableList>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Button type="button" size="sm" variant="secondary" icon="plus"
-              onClick={() => setForm({ ...form, items: [...items, { id: uid(), description: '', qty: 1, unit_price: 0 }] })}>Add line</Button>
-            <MenuItemsMenu items={menuItems} currency={currency} className="w-auto"
-              onAdd={(line) => setForm({ ...form, items: [...items, line] })} />
-            <ChargesMenu saved={user?.service_charges || []} className="w-auto"
-              onAdd={(line) => setForm({ ...form, items: [...items, line] })} />
+            <Button type="button" size="sm" variant="secondary" icon="plus" onClick={() => addItem({ id: uid(), description: '', qty: 1, unit_price: 0 })}>Add line</Button>
+            <Button type="button" size="sm" variant="ghost" icon="menu" onClick={() => addItem({ id: uid(), description: '', section: true })}>Add break</Button>
+            <MenuItemsMenu items={menuItems} currency={currency} className="w-auto" onAdd={addItem} />
+            <ChargesMenu saved={user?.service_charges || []} className="w-auto" onAdd={addItem} />
           </div>
         </div>
         <div className="grid grid-cols-3 gap-3">
@@ -101,7 +122,7 @@ export function QuoteEditor({ open, onClose, onSaved, initial = null, currency }
             <p className="font-display text-lg font-semibold">{fmtMoney(invoiceTotal(form), currency)}</p>
           </div>
         </div>
-        <Field label="Notes for the client"><Textarea rows={2} value={form.notes} onChange={set('notes')} placeholder="Deposit terms, what's included…" /></Field>
+        <Field label="Notes for the client" hint="Press Enter for a new line — it shows as a new line on the quote."><Textarea rows={3} value={form.notes} onChange={set('notes')} placeholder="Deposit terms, what's included…" /></Field>
         <div className="flex flex-wrap justify-between gap-2">
           {initial?.id ? <Button type="button" variant="danger" icon="trash" onClick={remove}>Delete</Button> : <span />}
           <div className="flex flex-wrap gap-2">
