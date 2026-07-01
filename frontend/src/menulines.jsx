@@ -4,24 +4,38 @@ import { Select } from './ui'
 
 const itemLabel = (m) => [m.course, m.name].filter(Boolean).join(' | ') || m.name || 'Item'
 
+/* One dish → one or more picker entries. A dish with serving sizes (e.g. 32oz / 58oz) yields
+   one entry per priced size ("Course | Name (32oz)"); otherwise a single entry at its price.
+   Each entry carries course/name so a saved invoice can sync back into the booking's menu. */
+function dishEntries(group, m) {
+  const base = itemLabel(m)
+  if (Array.isArray(m.sizes) && m.sizes.length > 0) {
+    return m.sizes
+      .filter((s) => Number(s.price) > 0)
+      .map((s) => ({
+        group, price: Number(s.price),
+        label: s.label ? `${base} (${s.label})` : base,
+        course: m.course || '', name: [m.name, s.label && `(${s.label})`].filter(Boolean).join(' '),
+      }))
+  }
+  if (Number(m.price) > 0) return [{ group, label: base, price: Number(m.price), course: m.course || '', name: m.name || '' }]
+  return []
+}
+
 /* Gather priced dishes the chef can pull straight onto a quote/invoice line: the booking's
-   own menu (when there is one) + every saved menu. Returns [{group, label, price}]. */
+   own menu (when there is one) + every saved menu. Returns [{group, label, price, course, name}]. */
 export async function fetchMenuItems(bookingId) {
   const out = []
   if (bookingId) {
     try {
       const bk = await api.get(`/bookings/${bookingId}`)
-      ;(bk.menu || []).forEach((m) => {
-        if (Number(m.price) > 0) out.push({ group: 'This booking’s menu', label: itemLabel(m), price: Number(m.price) })
-      })
+      ;(bk.menu || []).forEach((m) => out.push(...dishEntries('This booking’s menu', m)))
     } catch { /* booking may be gone — ignore */ }
   }
   try {
     const menus = await api.get('/menus')
     ;(menus || []).forEach((menu) => {
-      (menu.courses || []).forEach((c) => {
-        if (Number(c.price) > 0) out.push({ group: menu.title || 'Saved menu', label: itemLabel(c), price: Number(c.price) })
-      })
+      (menu.courses || []).forEach((c) => out.push(...dishEntries(menu.title || 'Saved menu', c)))
     })
   } catch { /* no menus — ignore */ }
   return out
@@ -37,7 +51,7 @@ export function MenuItemsMenu({ items = [], currency = 'GBP', onAdd, className =
     e.target.value = ''
     if (v === '') return
     const it = items[Number(v)]
-    if (it) onAdd({ id: uid(), description: it.label, qty: 1, unit_price: it.price })
+    if (it) onAdd({ id: uid(), description: it.label, qty: 1, unit_price: it.price, course: it.course || '', name: it.name || '' })
   }
   return (
     <Select value="" onChange={pick} className={className} aria-label="Add a menu item">

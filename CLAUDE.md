@@ -216,6 +216,31 @@ via `ensure_columns` + one new endpoint; no new env/deps.
     arrows** (offered; declined). **LESSON: the reflow-style `DragList` feels bad for tall rows in a modal — use
     `SortableList` (pointer-follow + drop-commit) there.**
 
+### Follow-on (same 24th-wave session — invoice↔booking sync, price book, expenses, menu sizes)
+Ellice's next amendments batch, all built + verified on branch `claude/busy-cerf-3k7klg` (**merge to `main` to deploy**).
+`npm run build` clean (**85 modules**). **Backend: 1 additive `supplier_prices` col + 1 additive `expenses` col** via
+`ensure_columns` (single-key entries — no dup-key trap); menu sizes are JSON so no schema change. Verified TestClient
+**11/11** + Playwright (demo Elite) **13/13**, zero JS/console errors. **Migration re-tested on EXISTING tables**
+(drop-column → `ensure_columns` → query 200, per the earlier lesson).
+- **Invoice → booking menu sync:** on invoice **save**, its menu-derived lines are merged into the linked booking's
+  **Menu** tab (non-destructive — adds dishes not already there by course+name; skips section breaks + charges; a line
+  counts as a menu item if it came from the picker or is typed `Course | Name`). Added a **Booking picker** to the
+  invoice editor (`Finance.jsx`, shown when not already opened from a booking) so Finance-made invoices can link too;
+  `MenuItemsMenu`/`fetchMenuItems` now carry `course`/`name` on each line for the match. `syncMenuToBooking` runs inside
+  `persist()` (awaited, best-effort). Avoids entering the menu twice.
+- **Price book (`Suppliers.jsx` + `SupplierPrice.quantity`):** split the amount into **quantity + unit** (unit is a
+  datalist: g/kg/ml/l/pc/pk/ea/oz…), and a **Duplicate item** copy icon per row. Search results + rows show "2 l".
+- **Expenses (`ExpenseFormModal` + `Expense.items` JSON):** a **booking picker** that titles the expense; a **price-book
+  search box** (type → Enter adds the top match as an item line); **Add item / Add break** (section rows to group stores);
+  **amount auto-sums** from the items (leave items empty to just type a figure — back-compatible). Existing expenses have
+  `items=None` → the UI reads `items || []`.
+- **Menu multiple serving sizes (`dishrows.jsx` + `menulines.jsx`):** each dish can **"Offer multiple sizes"** —
+  `sizes:[{id,label,price}]` in the courses/menu JSON (no backend change). A sized dish expands into **one invoice-picker
+  entry per size** ("Course | Name (32oz) — £9"). For Ellice's meal-prep containers (32oz / 58oz).
+- FAQ (rule #3) updated: price-book pack size + duplicate, "build an expense from my price book", "menu dish in more than
+  one size", and the invoice→booking sync line.
+- **No version bump** (standing rule).
+
 ## Previous session (2026-06-25, twenty-third wave — on-the-go amendments: tasks ordering, shopping/checklist UX, drag-to-reorder, phone notifications)
 - Branch `claude/optimistic-meitner-yqvl2l` — **merge to `main` to deploy.** Ellice's third feedback batch
   (backlog 17–25, above), from using the live app on her phone. `npm run build` clean (**84 modules**).

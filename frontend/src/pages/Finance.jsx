@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { cls, fmtDate, fmtMoney, INVOICE_STATUSES, INVOICE_TONES, invoiceTotal, todayISO, uid } from '../format'
+import { cls, fmtDate, fmtMoney, INVOICE_STATUSES, INVOICE_TONES, invoiceTotal, SYMBOLS, todayISO, uid } from '../format'
 import { Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, Select, Spinner, StatCard, Tabs, Textarea, toast, toastErr } from '../ui'
 import { QuotesPanel } from './Quotes'
 import { ChargesMenu } from '../charges'
@@ -17,12 +17,14 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
   }
   const [form, setForm] = useState(blank)
   const [clients, setClients] = useState([])
+  const [bookings, setBookings] = useState([])
   const [menuItems, setMenuItems] = useState([])
   const [sendPreview, setSendPreview] = useState(null)  // { url, email, invoiceId } — confirm before sending
 
   useEffect(() => {
     if (!open) return
     api.get('/clients').then(setClients).catch(() => {})
+    if (!bookingId) api.get('/bookings').then(setBookings).catch(() => {})
     fetchMenuItems(initial?.booking_id ?? bookingId).then(setMenuItems).catch(() => {})
     if (initial) setForm({ ...blank, ...initial, items: (initial.items || []).map((it) => ({ ...it, id: it.id || uid() })) })
     else {
@@ -54,12 +56,39 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
     ...form, tax_rate: Number(form.tax_rate) || 0, discount: Number(form.discount) || 0,
     deposit_type: form.deposit_type || '', deposit_value: Number(form.deposit_value) || 0,
     client_id: form.client_id ? Number(form.client_id) : null,
-    booking_id: initial?.booking_id ?? bookingId,
+    booking_id: bookingId ?? (form.booking_id ? Number(form.booking_id) : null),
     items: items.map((it) => (it.section
       ? { id: it.id, description: it.description, section: true }             // a break/heading — no qty/price
       : { ...it, qty: Number(it.qty) || 0, unit_price: Number(it.unit_price) || 0 })),
   })
+  // When an invoice tied to a booking is saved, pull its menu items into that booking's Menu
+  // tab so the menu isn't entered twice. Non-destructive: only adds dishes not already there,
+  // matched by course+name; skips section breaks and charges/custom lines (a line counts as a
+  // menu item if it came from the menu picker or is typed "Course | Name").
+  const syncMenuToBooking = async (inv) => {
+    const bkId = inv?.booking_id
+    if (!bkId) return
+    const dishes = (form.items || []).filter((it) => !it.section).map((it) => {
+      let { course, name } = it
+      if (course == null && name == null) {
+        const parts = String(it.description || '').split(' | ')
+        if (parts.length >= 2) { course = parts[0].trim(); name = parts.slice(1).join(' | ').trim() }
+      }
+      return { course: (course || '').trim(), name: (name || '').trim(), price: Number(it.unit_price) || 0 }
+    }).filter((d) => d.name)
+    if (!dishes.length) return
+    try {
+      const bk = await api.get(`/bookings/${bkId}`)
+      const menu = bk.menu || []
+      const key = (d) => `${(d.course || '').toLowerCase()}|${(d.name || '').toLowerCase()}`
+      const have = new Set(menu.map(key))
+      const additions = dishes.filter((d) => !have.has(key(d)))
+        .map((d) => ({ id: uid(), course: d.course, name: d.name, recipe_id: null, serves: '', price: d.price, notes: '' }))
+      if (additions.length) await api.patch(`/bookings/${bkId}`, { menu: [...menu, ...additions] })
+    } catch { /* best-effort — never block the invoice save */ }
+  }
   const persist = () => (initial?.id ? api.patch(`/invoices/${initial.id}`, buildPayload()) : api.post('/invoices', buildPayload()))
+    .then(async (inv) => { await syncMenuToBooking(inv); return inv })
   const save = (e) => { e.preventDefault(); persist().then(onSaved).catch(toastErr) }
   // Preview the polished invoice document (saving first), in a new tab — also the print/PDF view.
   const preview = () => {
@@ -116,6 +145,14 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
               {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </Select>
           </Field>
+          {!bookingId && (
+            <Field label="Booking (optional)" hint="Menu items on this invoice sync to the booking’s Menu tab.">
+              <Select value={form.booking_id || ''} onChange={set('booking_id')}>
+                <option value="">— None —</option>
+                {bookings.map((b) => <option key={b.id} value={b.id}>{b.title || `Booking #${b.id}`}</option>)}
+              </Select>
+            </Field>
+          )}
           {form.status === 'paid' && <Field label="Paid on"><Input type="date" value={form.paid_date || ''} onChange={set('paid_date')} /></Field>}
         </div>
 
@@ -225,15 +262,50 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
 }
 
 /* ------------------------------ expense modal ------------------------------- */
+const EXPENSE_CATS = ['Ingredients', 'Equipment', 'Travel', 'Staff', 'Kitchen', 'Marketing', 'Insurance', 'Other']
+const priceQtyUnit = (r) => [Number(r?.quantity) > 0 ? +Number(r.quantity) : '', r?.unit || ''].filter(Boolean).join(' ')
+
 export function ExpenseFormModal({ open, onClose, onSaved, initial = null, bookingId = null }) {
-  const blank = { category: 'Ingredients', description: '', amount: '', date: todayISO(), supplier: '', receipt_url: '' }
+  const { user } = useAuth()
+  const cur = user?.currency || 'GBP'
+  const sym = SYMBOLS[cur] || '£'
+  const blank = { category: 'Ingredients', description: '', amount: '', date: todayISO(), supplier: '', receipt_url: '', items: [], booking_id: null }
   const [form, setForm] = useState(blank)
-  useEffect(() => { if (open) setForm(initial ? { ...blank, ...initial } : blank) }, [open, initial]) // eslint-disable-line react-hooks/exhaustive-deps
+  const [bookings, setBookings] = useState([])
+  const [q, setQ] = useState('')
+  const [results, setResults] = useState([])
+  useEffect(() => {
+    if (!open) return
+    setForm(initial ? { ...blank, ...initial, items: initial.items || [] } : { ...blank, booking_id: bookingId })
+    setQ(''); setResults([])
+    if (!bookingId) api.get('/bookings').then(setBookings).catch(() => {})
+  }, [open, initial]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Live price-book search → Enter (or click) adds the item as an expense line.
+  useEffect(() => {
+    if (!q.trim()) { setResults([]); return }
+    const t = setTimeout(() => api.get(`/suppliers/prices/search?q=${encodeURIComponent(q)}`).then((r) => setResults(r.slice(0, 6))).catch(() => {}), 200)
+    return () => clearTimeout(t)
+  }, [q])
+
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
+  const items = form.items || []
+  const usingItems = items.length > 0
+  const itemsTotal = items.filter((i) => !i.section).reduce((a, i) => a + (Number(i.cost) || 0), 0)
+  const amount = usingItems ? itemsTotal : (Number(form.amount) || 0)
+  const setItem = (i, k, v) => setForm({ ...form, items: items.map((it, idx) => (idx === i ? { ...it, [k]: v } : it)) })
+  const addItem = (line) => setForm({ ...form, items: [...items, line] })
+  const removeItem = (i) => setForm({ ...form, items: items.filter((_, idx) => idx !== i) })
+  const addFromPrice = (p) => { addItem({ id: uid(), name: p.item_name, qty: p.quantity || '', unit: p.unit || '', cost: p.price || 0 }); setQ(''); setResults([]) }
+  const onSearchKey = (e) => { if (e.key === 'Enter') { e.preventDefault(); if (results[0]) addFromPrice(results[0]) } }
+  const pickBooking = (e) => {
+    const id = e.target.value ? Number(e.target.value) : null
+    const bk = bookings.find((b) => b.id === id)
+    setForm((f) => ({ ...f, booking_id: id, description: f.description || (bk ? `${bk.title || 'Event'} — ${(f.category || 'expenses').toLowerCase()}` : f.description) }))
+  }
 
   const save = (e) => {
     e.preventDefault()
-    const payload = { ...form, amount: Number(form.amount) || 0, booking_id: initial?.booking_id ?? bookingId }
+    const payload = { ...form, amount, items, booking_id: initial?.booking_id ?? bookingId ?? form.booking_id }
     const req = initial?.id ? api.patch(`/expenses/${initial.id}`, payload) : api.post('/expenses', payload)
     req.then(onSaved).catch(toastErr)
   }
@@ -246,21 +318,76 @@ export function ExpenseFormModal({ open, onClose, onSaved, initial = null, booki
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={initial?.id ? 'Edit expense' : 'Log an expense'}>
+    <Modal open={open} onClose={onClose} title={initial?.id ? 'Edit expense' : 'Log an expense'} wide>
       <form onSubmit={save} className="space-y-4">
+        {!bookingId && bookings.length > 0 && (
+          <Field label="For a booking (optional)" hint="Links the spend to an event and titles it for you.">
+            <Select value={form.booking_id || ''} onChange={pickBooking}>
+              <option value="">— None —</option>
+              {bookings.map((b) => <option key={b.id} value={b.id}>{b.title || `Booking #${b.id}`}</option>)}
+            </Select>
+          </Field>
+        )}
         <Field label="Description"><Input value={form.description} onChange={set('description')} placeholder="New Covent Garden produce" required /></Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Amount"><Input type="number" step="0.01" min="0" value={form.amount} onChange={set('amount')} required /></Field>
-          <Field label="Date"><Input type="date" value={form.date} onChange={set('date')} /></Field>
-        </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Category">
             <Select value={form.category} onChange={set('category')}>
-              {['Ingredients', 'Equipment', 'Travel', 'Staff', 'Kitchen', 'Marketing', 'Insurance', 'Other'].map((c) => <option key={c}>{c}</option>)}
+              {EXPENSE_CATS.map((c) => <option key={c}>{c}</option>)}
             </Select>
           </Field>
-          <Field label="Supplier"><Input value={form.supplier} onChange={set('supplier')} /></Field>
+          <Field label="Date"><Input type="date" value={form.date} onChange={set('date')} /></Field>
         </div>
+        <Field label="Supplier / store"><Input value={form.supplier} onChange={set('supplier')} placeholder="Tesco, New Covent Garden…" /></Field>
+
+        <div>
+          <p className="label">Items (optional) — build it from your price book</p>
+          <div className="relative">
+            <Input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onSearchKey}
+              placeholder="Search your price book (e.g. cream) then press Enter to add" />
+            {results.length > 0 && (
+              <div className="absolute z-30 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-line bg-card shadow-pop">
+                {results.map((r, idx) => (
+                  <button type="button" key={r.id} onClick={() => addFromPrice(r)}
+                    className={cls('flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-parchment/50', idx === 0 && 'bg-parchment/30')}>
+                    <span>{r.item_name} <span className="text-fg/45">{priceQtyUnit(r)}</span> <span className="text-fg/35">· {r.supplier_name}</span></span>
+                    <span className="shrink-0 font-medium">{fmtMoney(r.price, cur)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {items.length > 0 && (
+            <div className="mt-2 space-y-1.5">
+              {items.map((it, i) => (it.section ? (
+                <div key={it.id || i} className="grid grid-cols-12 items-center gap-1.5 rounded-lg bg-parchment/40 px-1 py-0.5">
+                  <Input className="col-span-11 font-display font-semibold" placeholder="Store / section — e.g. Tesco" value={it.name || ''} onChange={(e) => setItem(i, 'name', e.target.value)} />
+                  <IconButton icon="trash" label="Remove" className="col-span-1 justify-self-center self-center" onClick={() => removeItem(i)} />
+                </div>
+              ) : (
+                <div key={it.id || i} className="grid grid-cols-12 items-center gap-1.5">
+                  <Input className="col-span-5" placeholder="Item" value={it.name || ''} onChange={(e) => setItem(i, 'name', e.target.value)} />
+                  <Input className="col-span-2" placeholder="Qty" value={it.qty ?? ''} onChange={(e) => setItem(i, 'qty', e.target.value)} />
+                  <Input className="col-span-2" placeholder="Unit" value={it.unit ?? ''} onChange={(e) => setItem(i, 'unit', e.target.value)} />
+                  <div className="col-span-2 flex items-center gap-1">
+                    <span className="shrink-0 text-sm text-fg/50">{sym}</span>
+                    <Input type="number" step="0.01" className="min-w-0 flex-1 px-2" placeholder="0" aria-label="Cost" value={it.cost ?? ''} onChange={(e) => setItem(i, 'cost', e.target.value)} />
+                  </div>
+                  <IconButton icon="trash" label="Remove" className="col-span-1 justify-self-center self-center" onClick={() => removeItem(i)} />
+                </div>
+              )))}
+            </div>
+          )}
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant="secondary" icon="plus" onClick={() => addItem({ id: uid(), name: '', qty: '', unit: '', cost: '' })}>Add item</Button>
+            <Button type="button" size="sm" variant="ghost" icon="menu" onClick={() => addItem({ id: uid(), section: true, name: '' })}>Add break</Button>
+          </div>
+        </div>
+
+        <Field label="Amount" hint={usingItems ? 'Summed from the items above.' : undefined}>
+          {usingItems
+            ? <div className="rounded-lg border border-line bg-parchment/30 px-3 py-2 font-display text-lg font-semibold">{fmtMoney(amount, cur)}</div>
+            : <Input type="number" step="0.01" min="0" value={form.amount} onChange={set('amount')} required />}
+        </Field>
         <Field label="Receipt" hint={form.receipt_url ? 'Receipt attached ✓' : 'Photo or PDF up to 10MB'}>
           <input type="file" accept="image/*,.pdf" onChange={uploadReceipt} className="block w-full text-sm text-fg/60 file:mr-3 file:rounded-lg file:border-0 file:bg-ink file:px-3 file:py-2 file:text-xs file:font-medium file:text-cream" />
         </Field>

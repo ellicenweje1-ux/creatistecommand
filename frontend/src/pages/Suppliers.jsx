@@ -38,10 +38,13 @@ function SupplierModal({ open, onClose, onSaved, initial = null }) {
   )
 }
 
+const PRICE_UNITS = ['g', 'kg', 'ml', 'l', 'pc', 'pk', 'ea', 'box', 'case', 'dozen', 'bunch', 'tray', 'punnet', 'bottle', 'can', 'jar', 'tin', 'oz', 'lb']
+export const qtyUnitLabel = (p) => [Number(p?.quantity) > 0 ? +Number(p.quantity) : '', p?.unit || ''].filter(Boolean).join(' ')
+
 function PriceBook({ supplier, prices, onChanged, currency }) {
-  const [draft, setDraft] = useState({ item_name: '', unit: '', price: '' })
+  const [draft, setDraft] = useState({ item_name: '', quantity: '', unit: '', price: '' })
   const [editId, setEditId] = useState(null)         // price row being amended (owner ask)
-  const [editForm, setEditForm] = useState({ item_name: '', unit: '', price: '' })
+  const [editForm, setEditForm] = useState({ item_name: '', quantity: '', unit: '', price: '' })
   // Always show the price book A→Z by item name (owner ask) — case-insensitive.
   const mine = prices
     .filter((p) => p.supplier_id === supplier.id)
@@ -49,19 +52,24 @@ function PriceBook({ supplier, prices, onChanged, currency }) {
   const add = (e) => {
     e.preventDefault()
     if (!draft.item_name.trim()) return
-    api.post('/supplier-prices', { ...draft, price: Number(draft.price) || 0, supplier_id: supplier.id, last_checked: todayISO() })
-      .then(() => { setDraft({ item_name: '', unit: '', price: '' }); onChanged() }).catch(toastErr)
+    api.post('/supplier-prices', { ...draft, quantity: Number(draft.quantity) || 0, price: Number(draft.price) || 0, supplier_id: supplier.id, last_checked: todayISO() })
+      .then(() => { setDraft({ item_name: '', quantity: '', unit: '', price: '' }); onChanged() }).catch(toastErr)
   }
-  const startEdit = (p) => { setEditId(p.id); setEditForm({ item_name: p.item_name || '', unit: p.unit || '', price: p.price ?? '' }) }
+  const duplicate = (p) => api.post('/supplier-prices', {
+    item_name: p.item_name, quantity: p.quantity || 0, unit: p.unit || '', price: p.price || 0,
+    supplier_id: supplier.id, last_checked: todayISO(),
+  }).then(onChanged).catch(toastErr)
+  const startEdit = (p) => { setEditId(p.id); setEditForm({ item_name: p.item_name || '', quantity: p.quantity ?? '', unit: p.unit || '', price: p.price ?? '' }) }
   const saveEdit = (e) => {
     e.preventDefault()
     if (!editForm.item_name.trim()) return
     // Saving counts as re-confirming the price, so stamp "last checked" to today.
-    api.patch(`/supplier-prices/${editId}`, { item_name: editForm.item_name.trim(), unit: editForm.unit, price: Number(editForm.price) || 0, last_checked: todayISO() })
+    api.patch(`/supplier-prices/${editId}`, { item_name: editForm.item_name.trim(), quantity: Number(editForm.quantity) || 0, unit: editForm.unit, price: Number(editForm.price) || 0, last_checked: todayISO() })
       .then(() => { setEditId(null); onChanged() }).catch(toastErr)
   }
   return (
     <div>
+      <datalist id="cc-price-units">{PRICE_UNITS.map((u) => <option key={u} value={u} />)}</datalist>
       <p className="label">Price book ({mine.length}) · A–Z</p>
       {mine.length > 0 && (
         <table className="w-full text-sm">
@@ -70,10 +78,11 @@ function PriceBook({ supplier, prices, onChanged, currency }) {
               <tr key={p.id}>
                 <td colSpan={5} className="py-1.5">
                   <form onSubmit={saveEdit} className="grid grid-cols-12 items-center gap-1.5">
-                    <Input className="col-span-5" placeholder="Item" value={editForm.item_name} onChange={(e) => setEditForm({ ...editForm, item_name: e.target.value })} autoFocus />
-                    <Input className="col-span-2" placeholder="Unit" value={editForm.unit} onChange={(e) => setEditForm({ ...editForm, unit: e.target.value })} />
+                    <Input className="col-span-4" placeholder="Item" value={editForm.item_name} onChange={(e) => setEditForm({ ...editForm, item_name: e.target.value })} autoFocus />
+                    <Input className="col-span-2" type="number" step="any" placeholder="Qty" aria-label="Quantity" value={editForm.quantity} onChange={(e) => setEditForm({ ...editForm, quantity: e.target.value })} />
+                    <Input list="cc-price-units" className="col-span-2" placeholder="Unit" value={editForm.unit} onChange={(e) => setEditForm({ ...editForm, unit: e.target.value })} />
                     <Input className="col-span-2" type="number" step="0.01" placeholder="Price" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: e.target.value })} />
-                    <Button className="col-span-2" size="sm" icon="check">Save</Button>
+                    <Button className="col-span-1" size="sm" icon="check" aria-label="Save" />
                     <IconButton icon="x" label="Cancel" className="col-span-1" onClick={() => setEditId(null)} />
                   </form>
                 </td>
@@ -81,12 +90,13 @@ function PriceBook({ supplier, prices, onChanged, currency }) {
             ) : (
               <tr key={p.id} className="group">
                 <td className="py-1.5">{p.item_name}</td>
-                <td className="py-1.5 text-fg/50">{p.unit}</td>
+                <td className="py-1.5 text-fg/50">{qtyUnitLabel(p)}</td>
                 <td className="py-1.5 text-right font-medium">{fmtMoney(p.price, currency)}</td>
                 <td className="py-1.5 text-right text-xs text-fg/40">{p.last_checked ? fmtDate(p.last_checked) : ''}</td>
-                <td className="w-16 py-1.5 text-right">
+                <td className="w-24 py-1.5 text-right">
                   <span className="inline-flex opacity-0 transition-opacity group-hover:opacity-100">
                     <IconButton icon="edit" label="Edit price" onClick={() => startEdit(p)} />
+                    <IconButton icon="copy" label="Duplicate item" onClick={() => duplicate(p)} />
                     <IconButton icon="trash" label="Remove price"
                       onClick={() => api.del(`/supplier-prices/${p.id}`).then(onChanged).catch(toastErr)} />
                   </span>
@@ -97,9 +107,10 @@ function PriceBook({ supplier, prices, onChanged, currency }) {
         </table>
       )}
       <form onSubmit={add} className="mt-2 grid grid-cols-12 gap-1.5">
-        <Input className="col-span-5" placeholder="Item" value={draft.item_name} onChange={(e) => setDraft({ ...draft, item_name: e.target.value })} />
-        <Input className="col-span-2" placeholder="Unit" value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.target.value })} />
-        <Input className="col-span-3" type="number" step="0.01" placeholder="Price" value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} />
+        <Input className="col-span-4" placeholder="Item" value={draft.item_name} onChange={(e) => setDraft({ ...draft, item_name: e.target.value })} />
+        <Input className="col-span-2" type="number" step="any" placeholder="Qty" aria-label="Quantity" value={draft.quantity} onChange={(e) => setDraft({ ...draft, quantity: e.target.value })} />
+        <Input list="cc-price-units" className="col-span-2" placeholder="Unit" value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.target.value })} />
+        <Input className="col-span-2" type="number" step="0.01" placeholder="Price" value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} />
         <Button className="col-span-2" size="sm" icon="plus">Add</Button>
       </form>
     </div>
@@ -147,7 +158,7 @@ export default function Suppliers() {
               <tbody className="divide-y divide-line/60">
                 {results.map((r, i) => (
                   <tr key={r.id} className={i === 0 ? 'bg-sage/10' : ''}>
-                    <td className="px-4 py-2">{r.item_name} <span className="text-fg/40">{r.unit}</span></td>
+                    <td className="px-4 py-2">{r.item_name} <span className="text-fg/40">{qtyUnitLabel(r)}</span></td>
                     <td className="px-4 py-2">{r.supplier_name}</td>
                     <td className="px-4 py-2 text-right font-semibold">{fmtMoney(r.price, cur)}{i === 0 && <span className="ml-2 text-xs font-medium text-sage">best</span>}</td>
                   </tr>

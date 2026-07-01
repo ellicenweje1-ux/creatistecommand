@@ -319,6 +319,9 @@ class Expense(OwnedMixin, Base):
     category: Mapped[str] = mapped_column(String(80), default="")  # Ingredients / Equipment / Travel / Staff...
     description: Mapped[str] = mapped_column(String(300), default="")
     amount: Mapped[float] = mapped_column(Float, default=0)
+    # Optional itemised breakdown (from the price book), with section rows for separate stores.
+    # [{id,name,qty,unit,cost,section?}] — when present, amount is the sum of the item costs.
+    items: Mapped[list] = mapped_column(JSON, default=list)
     date: Mapped[str] = mapped_column(String(10), default="")
     supplier: Mapped[str] = mapped_column(String(160), default="")
     receipt_url: Mapped[str] = mapped_column(String(500), default="")
@@ -378,7 +381,8 @@ class SupplierPrice(OwnedMixin, Base):
     __tablename__ = "supplier_prices"
     supplier_id: Mapped[int] = mapped_column(Integer, index=True)
     item_name: Mapped[str] = mapped_column(String(200))
-    unit: Mapped[str] = mapped_column(String(40), default="")
+    quantity: Mapped[float] = mapped_column(Float, default=0)  # pack size, e.g. 5 (kg) — separate from unit
+    unit: Mapped[str] = mapped_column(String(40), default="")  # kg | g | l | ml | pc | pk | ea …
     price: Mapped[float] = mapped_column(Float, default=0)
     last_checked: Mapped[str] = mapped_column(String(10), default="")
     notes: Mapped[str] = mapped_column(String(300), default="")
