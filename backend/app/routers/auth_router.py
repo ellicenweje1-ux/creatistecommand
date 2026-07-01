@@ -156,6 +156,11 @@ def update_me(payload: dict = Body(...), db: Session = Depends(get_db), user: Us
         user.invoice_app_url = str(payload["invoice_app_url"] or "").strip()[:500]
     if "invoice_accent" in payload:
         user.invoice_accent = str(payload["invoice_accent"] or "").strip()[:20]
+    # Payment details (bank / how-to-pay) + a customisable footer line, both shown on invoices.
+    if "invoice_payment_details" in payload:
+        user.invoice_payment_details = str(payload["invoice_payment_details"] or "").strip()[:1000]
+    if "invoice_footer" in payload:
+        user.invoice_footer = str(payload["invoice_footer"] or "").strip()[:300]
     # Reusable service charges (delivery/mileage/service fee) for quotes & invoices.
     if isinstance(payload.get("service_charges"), list):
         cleaned = []

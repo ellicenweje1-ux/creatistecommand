@@ -101,12 +101,18 @@ export default function PublicInvoice() {
           </div>
         </div>
 
+        {business.payment_details && (
+          <div className="mt-6 rounded-lg border border-neutral-200 p-4" style={{ borderLeft: `3px solid ${accent}` }}>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: accent }}>Payment details</p>
+            <p className="whitespace-pre-line text-sm text-neutral-700">{business.payment_details}</p>
+          </div>
+        )}
         {invoice.notes && (
           <div className="mt-6 border-t border-neutral-200 pt-3 text-xs text-neutral-500">
             <p className="mb-1 font-semibold text-neutral-600">Notes</p>{invoice.notes}
           </div>
         )}
-        <p className="mt-8 text-center text-[10px] text-neutral-400">Thank you for your business.</p>
+        <p className="mt-8 whitespace-pre-line text-center text-[10px] text-neutral-400">{business.footer || 'Thank you for your business.'}</p>
       </div>
     </Wrap>
   )

@@ -48,6 +48,10 @@ class User(Base):
     invoice_app_url: Mapped[str] = mapped_column(String(500), default="")
     # Invoice branding — accent colour for the in-app invoice document (defaults to brand gold).
     invoice_accent: Mapped[str] = mapped_column(String(20), default="")
+    # Payment details (bank / how-to-pay) printed on every invoice the client sees.
+    invoice_payment_details: Mapped[str] = mapped_column(Text, default="")
+    # Customisable footer / thank-you line at the base of the invoice document.
+    invoice_footer: Mapped[str] = mapped_column(String(300), default="")
     role: Mapped[str] = mapped_column(String(20), default="chef")  # chef | admin | staff
     owner_id: Mapped[int] = mapped_column(Integer, nullable=True)  # staff accounts belong to an owner
     job_title: Mapped[str] = mapped_column(String(120), default="")

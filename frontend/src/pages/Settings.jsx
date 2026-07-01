@@ -107,7 +107,7 @@ const FEATURE_STATUS = {
 
 export function SettingsBusiness() {
   const { user, setUser } = useAuth()
-  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '', feature_publicly: false, testimonial: '', testimonial_rating: 0, invoice_format: 'INV-{YYYY}-{nnn}', quote_format: 'Q-{YYYY}-{nnn}', service_charges: [], invoice_app_url: '', invoice_accent: BRAND_GOLD })
+  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '', feature_publicly: false, testimonial: '', testimonial_rating: 0, invoice_format: 'INV-{YYYY}-{nnn}', quote_format: 'Q-{YYYY}-{nnn}', service_charges: [], invoice_app_url: '', invoice_accent: BRAND_GOLD, invoice_payment_details: '', invoice_footer: '' })
   const [seqs, setSeqs] = useState({ invoice: 1, quote: 1 })
   const [gallery, setGallery] = useState([])
   const [logo, setLogo] = useState('')
@@ -134,6 +134,8 @@ export function SettingsBusiness() {
       service_charges: user.service_charges || [],
       invoice_app_url: user.invoice_app_url || '',
       invoice_accent: user.invoice_accent || BRAND_GOLD,
+      invoice_payment_details: user.invoice_payment_details || '',
+      invoice_footer: user.invoice_footer || '',
     })
     setGallery(user.gallery || [])
     setLogo(user.avatar_url || '')
@@ -244,6 +246,22 @@ export function SettingsBusiness() {
           </div>
         </div>
         <button type="button" onClick={() => setForm({ ...form, invoice_accent: BRAND_GOLD })} className="mt-2 text-xs font-medium text-copper hover:underline">Reset to brand gold</button>
+      </Card>
+
+      <Card title="Payment details & invoice footer">
+        <p className="mb-3 text-sm text-fg/60">
+          Add how you’d like to be paid and a closing line — both appear on every invoice your clients see.
+        </p>
+        <div className="space-y-4">
+          <Field label="Payment details" hint="Bank name, account name, sort code &amp; account number, or a payment link — however clients should pay you.">
+            <Textarea rows={4} value={form.invoice_payment_details} onChange={(e) => setForm({ ...form, invoice_payment_details: e.target.value })}
+              placeholder={'Bank: The Creatiste Catering\nSort code: 00-00-00\nAccount no: 12345678\nReference: your invoice number'} />
+          </Field>
+          <Field label="Footer / thank-you line" hint="Shown at the very bottom of the invoice. Leave blank to use “Thank you for your business.”">
+            <Input value={form.invoice_footer} maxLength={300} onChange={(e) => setForm({ ...form, invoice_footer: e.target.value })}
+              placeholder="Thank you for your business." />
+          </Field>
+        </div>
       </Card>
 
       <Card title="Services you offer">

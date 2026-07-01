@@ -37,6 +37,8 @@ def view_invoice(token: str, db: Session = Depends(get_db)):
             "phone": owner.phone or "",
             "logo": owner.avatar_url or "",
             "accent": owner.invoice_accent or "#BFA987",
+            "payment_details": owner.invoice_payment_details or "",
+            "footer": owner.invoice_footer or "",
         },
         "currency": owner.currency,
         "client": bill_to,

@@ -126,7 +126,33 @@ All built + verified this wave (branch `claude/optimistic-meitner-yqvl2l`) — *
 25. ✅ **Tasks: phone notification before a task times out** — full **Web Push**, *inert until VAPID keys are set*
     (house pattern). See the wave notes below for the env vars + the iOS "add to Home Screen" caveat.
 
-## Latest session (2026-06-25, twenty-third wave — on-the-go amendments: tasks ordering, shopping/checklist UX, drag-to-reorder, phone notifications)
+## Latest session (2026-07-01, twenty-fourth wave — invoice payment details + customisable footer line)
+- Branch `claude/busy-cerf-3k7klg` — **merge to `main` to deploy.** Ellice's ask: (a) a fill-in **payment
+  details** option that shows on invoices, and (b) a **customisable footer/thank-you line** on invoices.
+  Both are **business-level defaults** (set once, apply to every invoice) — the natural fit alongside the
+  existing `invoice_accent` branding, not per-invoice. **Backend: 2 additive `users` columns** via
+  `ensure_columns`; no new env/deps. `npm run build` clean (**85 modules**).
+- **Backend:** new `users.invoice_payment_details` (Text — bank/how-to-pay) + `users.invoice_footer`
+  (VARCHAR(300) — the closing line). Added to the `User` model **and** `ensure_columns` (the model-class
+  gotcha: `to_dict`/whitelist is built from `__table__.columns`, so a DB-only column silently wouldn't
+  serialize). Whitelisted in `PUT /auth/me` (payment capped 1000, footer 300). The public invoice endpoint
+  (`routers/public.py view_invoice`) now returns `business.payment_details` + `business.footer` from the owner.
+- **Frontend:** **Settings → Business** gains a **"Payment details & invoice footer"** card (right after
+  Invoice branding) — a payment-details `Textarea` + a footer/thank-you `Input`, saved with the business
+  profile. **`PublicInvoice.jsx`** renders a bordered **"Payment details"** box (accent left-border,
+  `whitespace-pre-line` so multi-line bank details keep their breaks) after the totals, and the footer line
+  now reads `business.footer || 'Thank you for your business.'` (blank = the original default). FAQ kept
+  current (rule #3): new Support FAQ "Can I show my bank details and a thank-you message on invoices?".
+- **Verified:** backend FastAPI TestClient **13/13** (both fields save on `PUT /me` + round-trip on `GET /me`;
+  footer capped at 300; public invoice returns both; fresh owner → empty strings so the frontend falls back).
+  Playwright (system chromium, demo Elite chef) **11/11** — the Settings card renders + saves + persists across
+  reload; the public invoice shows the payment box (bank line + multi-line sort code preserved) and the custom
+  footer replacing the default; **zero uncaught JS / app-origin console errors** (only the known blocked-font
+  network noise). Screenshots of the public invoice + Settings card confirmed the look. Temp scripts live in
+  the scratchpad — nothing left in the tree.
+- **No version bump** (standing rule — awaiting Ellice's word + her biblical reference).
+
+## Previous session (2026-06-25, twenty-third wave — on-the-go amendments: tasks ordering, shopping/checklist UX, drag-to-reorder, phone notifications)
 - Branch `claude/optimistic-meitner-yqvl2l` — **merge to `main` to deploy.** Ellice's third feedback batch
   (backlog 17–25, above), from using the live app on her phone. `npm run build` clean (**84 modules**).
 - **Backend: 1 new table + 1 additive column + 1 new dep.** New `push_subscriptions` table (`create_all`);
