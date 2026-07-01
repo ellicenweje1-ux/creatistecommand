@@ -190,6 +190,18 @@ via `ensure_columns` + one new endpoint; no new env/deps.
   errors (only the known blocked-font noise). Screenshot of the finished invoice confirmed the look. FAQ (rule #3) updated:
   reworded "Can I brand my invoices?" (→ Settings → Invoices), added deposit/bank/payment-link + duplicate/break/preview Q&As.
 - **No version bump** (standing rule).
+- **⚠️ HOTFIX (post-merge, same session) — Finance page 500 on live after deploy.** The `ensure_columns` `wanted`
+  dict had **two `"invoices"` keys** (my `deposit_type`/`deposit_value` entry + the existing `file_url/file_name/
+  public_token` entry) — in a Python dict literal the **last key wins**, so the deposit-columns migration was silently
+  dropped. On a **fresh DB it was invisible** (`create_all` builds the table complete from the model), so all local
+  tests passed; on the **live DB** the invoices table predated the columns → every invoices query threw `no such column:
+  invoices.deposit_type` → `/finance/summary` + `/invoices` 500 (two "Something went wrong" toasts + stuck spinner;
+  Settings fine). Fix: merged both into ONE `"invoices"` entry (+ a comment warning against a duplicate key). **Verified
+  the exact live path:** built an old-schema DB (dropped the two columns), confirmed the model query raises the same
+  500, ran `bootstrap()`, then `/finance/summary` + `/invoices` + `/expenses` all 200 and existing invoices default to
+  `deposit_type=''` (pay in full); migration idempotent on re-run. **LESSON: additive-migration tests must exercise an
+  EXISTING table missing the new column (drop-column then `ensure_columns`), not just a fresh `create_all` DB — and never
+  duplicate a table key in `wanted`.**
 
 ## Previous session (2026-06-25, twenty-third wave — on-the-go amendments: tasks ordering, shopping/checklist UX, drag-to-reorder, phone notifications)
 - Branch `claude/optimistic-meitner-yqvl2l` — **merge to `main` to deploy.** Ellice's third feedback batch

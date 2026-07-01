@@ -56,11 +56,16 @@ def ensure_columns():
         "platform_settings": {"founders": "JSON"},
         "tasks": {"assignee_id": "INTEGER", "due_reminder_for": "VARCHAR(20) DEFAULT ''"},
         "bookings": {"menu_type": "VARCHAR(80) DEFAULT ''"},
-        "invoices": {"deposit_type": "VARCHAR(10) DEFAULT ''", "deposit_value": "FLOAT DEFAULT 0"},
         "onboarding_sessions": {
             "meeting_id": "VARCHAR(40) DEFAULT ''", "recording_url": "VARCHAR(500) DEFAULT ''",
         },
-        "invoices": {"file_url": "VARCHAR(500) DEFAULT ''", "file_name": "VARCHAR(255) DEFAULT ''", "public_token": "VARCHAR(64) DEFAULT ''"},
+        # NB: keep every invoices column in this ONE entry — a second "invoices" key would
+        # overwrite this one (dict literal: last key wins) and silently drop the migration.
+        "invoices": {
+            "file_url": "VARCHAR(500) DEFAULT ''", "file_name": "VARCHAR(255) DEFAULT ''",
+            "public_token": "VARCHAR(64) DEFAULT ''",
+            "deposit_type": "VARCHAR(10) DEFAULT ''", "deposit_value": "FLOAT DEFAULT 0",
+        },
     }
     inspector = sa.inspect(engine)
     with engine.begin() as conn:
