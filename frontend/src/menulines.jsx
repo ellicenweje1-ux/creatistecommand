@@ -41,6 +41,22 @@ export async function fetchMenuItems(bookingId) {
   return out
 }
 
+/* Map a whole booking/saved menu into invoice/quote line items: one line per dish (or per
+   priced size), qty 1 at its price. Unpriced dishes still list at £0 so they can be priced in
+   the editor. Carries course/name so a saved invoice can sync back into the booking's menu. */
+export function menuToLines(menu) {
+  const out = []
+  ;(menu || []).forEach((m) => {
+    const entries = dishEntries('', m)
+    if (entries.length) {
+      entries.forEach((e) => out.push({ id: uid(), description: e.label, qty: 1, unit_price: e.price, course: e.course, name: e.name }))
+    } else if ((m.name || '').trim() || (m.course || '').trim()) {
+      out.push({ id: uid(), description: itemLabel(m), qty: 1, unit_price: Number(m.price) || 0, course: m.course || '', name: m.name || '' })
+    }
+  })
+  return out
+}
+
 /* "Add a menu item…" dropdown — one tap auto-fills a line with the dish + its price. */
 export function MenuItemsMenu({ items = [], currency = 'GBP', onAdd, className = '' }) {
   if (!items.length) return null

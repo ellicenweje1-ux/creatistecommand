@@ -7,6 +7,7 @@ import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal,
 import { BookingForm } from './Bookings'
 import { ContactClient } from '../contact'
 import { DishRowsEditor, dishFromCourse } from '../dishrows'
+import { menuToLines } from '../menulines'
 import { QuoteEditor } from './Quotes'
 import { DesignCard, DesignEditorModal } from './Designs'
 import { ExpenseFormModal, InvoiceEditorModal } from './Finance'
@@ -85,11 +86,12 @@ function AIModal({ state, onClose, onApply }) {
 }
 
 /* -------------------------------- menu builder --------------------------------- */
-function MenuBuilder({ booking, recipes, currency, canQuote, onSaved }) {
+function MenuBuilder({ booking, recipes, currency, canQuote, canInvoice, onSaved }) {
   const [menu, setMenu] = useState(booking.menu || [])
   const [dirty, setDirty] = useState(false)
   const [menus, setMenus] = useState([])
   const [quote, setQuote] = useState(null)  // prefilled draft for the QuoteEditor, or null
+  const [invoiceItems, setInvoiceItems] = useState(null)  // prefilled lines for the InvoiceEditorModal, or null
   useEffect(() => { setMenu(booking.menu || []); setDirty(false) }, [booking])
   useEffect(() => { api.get('/menus').then(setMenus).catch(() => {}) }, [])
 
@@ -107,25 +109,16 @@ function MenuBuilder({ booking, recipes, currency, canQuote, onSaved }) {
   const total = menuPriceTotal(menu)   // straight sum of the line prices — no calculation
   const priced = menu.some((m) => Number(m.price) > 0)
 
-  // Turn the menu lines into a client quote: each line is one item at its price (qty 1),
-  // ready to adjust quantities in the quote editor. No automatic guest/serves maths.
-  const buildQuote = () => {
-    const items = menu
-      .filter((m) => Number(m.price) > 0 || m.name || m.course)
-      .map((m) => ({
-        id: uid(),
-        description: [m.course, m.name].filter(Boolean).join(' — ') + (m.serves ? ` (serves ${m.serves})` : ''),
-        qty: 1,
-        unit_price: Number(m.price) || 0,
-      }))
-    setQuote({
-      title: `${booking.title || 'Event'} — menu`,
-      client_id: booking.client_id || '',
-      booking_id: booking.id,
-      items,
-      tax_rate: 0, discount: 0, valid_until: '', notes: '',
-    })
-  }
+  // Turn the menu lines into a client quote or invoice: each dish is one line at its price
+  // (qty 1), ready to adjust quantities in the editor. Sized dishes expand to a line per size.
+  const buildQuote = () => setQuote({
+    title: `${booking.title || 'Event'} — menu`,
+    client_id: booking.client_id || '',
+    booking_id: booking.id,
+    items: menuToLines(menu),
+    tax_rate: 0, discount: 0, valid_until: '', notes: '',
+  })
+  const buildInvoice = () => setInvoiceItems(menuToLines(menu))
 
   return (
     <Card title="Menu" action={dirty ? <Button size="sm" icon="check" onClick={save}>Save menu</Button> : null}>
@@ -145,11 +138,18 @@ function MenuBuilder({ booking, recipes, currency, canQuote, onSaved }) {
             <span className="text-fg/60">Menu total <span className="text-xs text-fg/40">· sum of line prices</span></span>
             <span className="font-display text-lg font-semibold">{fmtMoney(total, currency)}</span>
           </div>
-          {canQuote && (
-            <div className="flex justify-end pt-1">
-              <Button size="sm" variant="secondary" icon="doc" onClick={buildQuote} disabled={dirty}>
-                {dirty ? 'Save menu first' : 'Build a quote from this menu'}
-              </Button>
+          {(canQuote || canInvoice) && (
+            <div className="flex flex-wrap justify-end gap-2 pt-1">
+              {canQuote && (
+                <Button size="sm" variant="secondary" icon="doc" onClick={buildQuote} disabled={dirty}>
+                  {dirty ? 'Save menu first' : 'Build a quote from this menu'}
+                </Button>
+              )}
+              {canInvoice && (
+                <Button size="sm" variant="secondary" icon="coins" onClick={buildInvoice} disabled={dirty}>
+                  {dirty ? 'Save menu first' : 'Build an invoice from this menu'}
+                </Button>
+              )}
             </div>
           )}
         </div>
@@ -158,6 +158,11 @@ function MenuBuilder({ booking, recipes, currency, canQuote, onSaved }) {
         <QuoteEditor open={!!quote} initial={quote} currency={currency}
           onClose={() => setQuote(null)}
           onSaved={() => { setQuote(null); toast('Quote drafted — open Finance → Quotes to send it', 'sage') }} />
+      )}
+      {canInvoice && (
+        <InvoiceEditorModal open={!!invoiceItems} prefillItems={invoiceItems} bookingId={booking.id} clientId={booking.client_id} currency={currency}
+          onClose={() => setInvoiceItems(null)}
+          onSaved={() => { setInvoiceItems(null); toast('Invoice drafted — open Finance → Invoices', 'sage'); api.get(`/bookings/${booking.id}`).then((nb) => onSaved && onSaved(nb)).catch(() => {}) }} />
       )}
     </Card>
   )
@@ -296,6 +301,7 @@ export default function BookingDetail() {
   const cur = user?.currency || 'GBP'
   // Quotes are an owner-only, Elite-plan feature — gate the "Build a quote" action to match.
   const canQuote = !user?.is_staff && (user?.role === 'admin' || (user?.plan_level ?? 1) >= 3)
+  const canInvoice = !user?.is_staff && (user?.role === 'admin' || (user?.plan_level ?? 1) >= 2)  // invoicing is Pro+
   const [ws, setWs] = useState(null)
   const [tab, setTab] = useState('overview')
   const [editing, setEditing] = useState(false)
@@ -456,7 +462,7 @@ export default function BookingDetail() {
               )}
             </Card>
             <div id="menu-builder">
-              <MenuBuilder booking={b} recipes={recipes} currency={cur} canQuote={canQuote} onSaved={(nb) => setWs({ ...ws, booking: nb })} />
+              <MenuBuilder booking={b} recipes={recipes} currency={cur} canQuote={canQuote} canInvoice={canInvoice} onSaved={(nb) => setWs({ ...ws, booking: nb })} />
             </div>
           </div>
 

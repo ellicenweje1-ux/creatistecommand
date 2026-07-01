@@ -241,6 +241,27 @@ Ellice's next amendments batch, all built + verified on branch `claude/busy-cerf
   one size", and the invoice→booking sync line.
 - **No version bump** (standing rule).
 
+### Follow-on (same 24th-wave session — build-invoice-from-menu + quote document mirrors the invoice)
+Two more amendments, built + verified on branch `claude/busy-cerf-3k7klg` (**merge to `main` to deploy**). `npm run build`
+clean (**85 modules**). Verified Playwright (demo Elite) **13/13**, zero JS/console errors.
+- **"Build an invoice from this menu" button** on a booking's Menu card, **next to** "Build a quote from this menu"
+  (`BookingDetail.jsx MenuBuilder`, gated `canInvoice` = owner + Pro+). Both now use a shared **`menulines.jsx menuToLines(menu)`**
+  (one line per dish or per priced size, carries course/name). New **`prefillItems`** prop on `InvoiceEditorModal` seeds a new
+  invoice's lines in the "no initial" branch (so it still fetches the next number). The menu-built invoice is linked to the
+  booking → the invoice→booking sync is a no-op re-add (no dupes). `buildQuote` also switched to `menuToLines` (now expands
+  sizes + uses the `|` separator).
+- **Quote document now mirrors the invoice** (Ellice: "quote format should mimic invoice format"). Rewrote
+  **`PublicQuote.jsx`** from the old dark card to the **white, print-perfect invoice layout** — business logo/name/contact
+  header, **"QUOTE"** in the business accent, **Prepared for** (client + company + email), the same Description/Qty/Unit/Amount
+  table (handles section rows), Subtotal/Discount/Tax/**Total** in accent, notes `whitespace-pre-line`, plus the
+  **Approve/Decline** step below (self-contained neutral+accent styling, no theme tokens, so it's white regardless of theme).
+  Backend **`public.py view_quote`** now returns the richer `business` object (name/email/phone/logo/accent) + a `client`
+  bill-to (same shape as the invoice endpoint; `client_name` kept for back-compat). No payment bar/deposit on a quote (it's a
+  proposal). Verified: white doc + QUOTE + prepared-for + item columns + Total + multi-line notes + Approve/Decline; screenshot
+  confirms it matches the invoice look.
+- FAQ (rule #3) updated: the quote FAQ now notes both build buttons + that the quote shares the invoice's branded layout.
+- **No version bump** (standing rule).
+
 ## Previous session (2026-06-25, twenty-third wave — on-the-go amendments: tasks ordering, shopping/checklist UX, drag-to-reorder, phone notifications)
 - Branch `claude/optimistic-meitner-yqvl2l` — **merge to `main` to deploy.** Ellice's third feedback batch
   (backlog 17–25, above), from using the live app on her phone. `npm run build` clean (**84 modules**).

@@ -9,7 +9,7 @@ import { MenuItemsMenu, fetchMenuItems } from '../menulines'
 import { GripHandle, SortableList } from '../sortable'
 
 /* ------------------------------ invoice editor ------------------------------ */
-export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, bookingId = null, clientId = null, currency = 'GBP' }) {
+export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, bookingId = null, clientId = null, prefillItems = null, currency = 'GBP' }) {
   const { user } = useAuth()
   const blank = {
     number: '', status: 'draft', issue_date: todayISO(), due_date: '', paid_date: '',
@@ -28,9 +28,11 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
     fetchMenuItems(initial?.booking_id ?? bookingId).then(setMenuItems).catch(() => {})
     if (initial) setForm({ ...blank, ...initial, items: (initial.items || []).map((it) => ({ ...it, id: it.id || uid() })) })
     else {
-      // Seed a new invoice with the chef's saved defaults (notes + deposit) from Settings → Invoices.
+      // Seed a new invoice with the chef's saved defaults (notes + deposit) from Settings → Invoices,
+      // plus any prefilled line items (e.g. "Build an invoice from this menu").
       const seeded = {
         ...blank, client_id: clientId,
+        items: prefillItems || [],
         notes: user?.invoice_notes_default || '',
         deposit_type: user?.invoice_deposit_percent ? 'percent' : '',
         deposit_value: user?.invoice_deposit_percent || 0,

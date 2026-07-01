@@ -67,11 +67,22 @@ def _public_quote(db: Session, token: str) -> tuple[Quote, User]:
 def view_quote(token: str, db: Session = Depends(get_db)):
     quote, owner = _public_quote(db, token)
     client = db.get(Client, quote.client_id) if quote.client_id else None
+    bill_to = {}
+    if client and client.user_id == owner.id:
+        bill_to = {"name": client.name, "company": client.company or "", "email": client.email or "", "phone": client.phone or ""}
     return {
         "quote": {k: v for k, v in to_dict(quote).items() if k in QUOTE_PUBLIC_FIELDS},
-        "business": owner.business_name or owner.name,
+        # Same shape as the public invoice so the quote document can mirror the invoice look.
+        "business": {
+            "name": owner.business_name or owner.name,
+            "email": owner.business_email or owner.email or "",
+            "phone": owner.phone or "",
+            "logo": owner.avatar_url or "",
+            "accent": owner.invoice_accent or "#BFA987",
+        },
         "currency": owner.currency,
-        "client_name": client.name if client and client.user_id == owner.id else "",
+        "client": bill_to,
+        "client_name": bill_to.get("name", ""),  # kept for backward-compat
     }
 
 
