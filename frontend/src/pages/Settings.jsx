@@ -16,6 +16,7 @@ import { CURRENT, VERSIONS, VersionNotes, versionRef } from '../version'
 const SETTINGS_NAV = [
   { to: '/app/settings', end: true, icon: 'users', label: 'Profile' },
   { to: '/app/settings/business', icon: 'flame', label: 'Business', ownerOnly: true },
+  { to: '/app/settings/invoices', icon: 'doc', label: 'Invoices', ownerOnly: true },
   { to: '/app/settings/security', icon: 'lock', label: 'Security' },
   { to: '/app/settings/appearance', icon: 'moon', label: 'Appearance' },
   { to: '/app/settings/membership', icon: 'coins', label: 'Membership' },
@@ -107,8 +108,7 @@ const FEATURE_STATUS = {
 
 export function SettingsBusiness() {
   const { user, setUser } = useAuth()
-  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '', feature_publicly: false, testimonial: '', testimonial_rating: 0, invoice_format: 'INV-{YYYY}-{nnn}', quote_format: 'Q-{YYYY}-{nnn}', service_charges: [], invoice_app_url: '', invoice_accent: BRAND_GOLD, invoice_payment_details: '', invoice_footer: '' })
-  const [seqs, setSeqs] = useState({ invoice: 1, quote: 1 })
+  const [form, setForm] = useState({ business_description: '', business_email: '', services: [], socials: {}, contact_channel: 'both', contact_template: '', feature_publicly: false, testimonial: '', testimonial_rating: 0 })
   const [gallery, setGallery] = useState([])
   const [logo, setLogo] = useState('')
   const [svc, setSvc] = useState('')
@@ -129,22 +129,10 @@ export function SettingsBusiness() {
       feature_publicly: !!user.feature_publicly,
       testimonial: user.testimonial || '',
       testimonial_rating: user.testimonial_rating || 0,
-      invoice_format: user.invoice_format || `${(user.invoice_prefix || 'INV').trim() || 'INV'}-{YYYY}-{nnn}`,
-      quote_format: user.quote_format || `${(user.quote_prefix || 'Q').trim() || 'Q'}-{YYYY}-{nnn}`,
-      service_charges: user.service_charges || [],
-      invoice_app_url: user.invoice_app_url || '',
-      invoice_accent: user.invoice_accent || BRAND_GOLD,
-      invoice_payment_details: user.invoice_payment_details || '',
-      invoice_footer: user.invoice_footer || '',
     })
     setGallery(user.gallery || [])
     setLogo(user.avatar_url || '')
   }, [user])
-  // Current sequence numbers, so the numbering preview shows your real next number.
-  useEffect(() => {
-    api.get('/finance/next-invoice-number').then((r) => setSeqs((s) => ({ ...s, invoice: r.seq || 1 }))).catch(() => {})
-    api.get('/quotes/meta/next-number').then((r) => setSeqs((s) => ({ ...s, quote: r.seq || 1 }))).catch(() => {})
-  }, [])
 
   if (user?.is_staff) {
     return <Card title="Business profile"><p className="text-sm text-fg/55">Your business owner sets up the business profile.</p></Card>
@@ -215,55 +203,6 @@ export function SettingsBusiness() {
         </div>
       </Card>
 
-      <Card title="Invoice branding">
-        <p className="mb-3 text-sm text-fg/60">
-          Your brand colour for the invoices &amp; quotes your clients see — it colours the heading, the total
-          and the table line. Your logo and business name (above) appear on them too.
-        </p>
-        <div className="flex flex-wrap items-center gap-3">
-          <input type="color" value={isHex(form.invoice_accent) ? form.invoice_accent : BRAND_GOLD}
-            onChange={(e) => setForm({ ...form, invoice_accent: e.target.value })}
-            aria-label="Invoice colour" className="h-10 w-12 cursor-pointer rounded-lg border border-line bg-transparent p-0.5" />
-          <Input value={form.invoice_accent} onChange={(e) => setForm({ ...form, invoice_accent: e.target.value })}
-            className="w-28 font-mono uppercase" placeholder="#BFA987" />
-          <div className="flex flex-wrap gap-1.5">
-            {ACCENT_PRESETS.map((c) => (
-              <button key={c} type="button" onClick={() => setForm({ ...form, invoice_accent: c })} style={{ background: c }} aria-label={c}
-                className={cls('h-7 w-7 rounded-full border transition-transform hover:scale-110',
-                  (form.invoice_accent || '').toLowerCase() === c.toLowerCase() ? 'ring-2 ring-offset-2 ring-offset-base ring-fg/50' : 'border-line')} />
-            ))}
-          </div>
-        </div>
-        {/* Live preview — how your invoice document will look */}
-        <div className="mt-4 rounded-xl border border-neutral-200 bg-white p-4 text-neutral-800 shadow-sm">
-          <div className="flex items-center justify-between border-b border-neutral-200 pb-2">
-            <span className="font-display text-sm font-bold">{user?.business_name || user?.name || 'Your business'}</span>
-            <span className="font-display text-lg font-bold tracking-wide" style={{ color: isHex(form.invoice_accent) ? form.invoice_accent : BRAND_GOLD }}>INVOICE</span>
-          </div>
-          <div className="mt-2 flex justify-between text-xs text-neutral-500"><span>2 × Sample dish</span><span>£120</span></div>
-          <div className="mt-2 flex items-center justify-between border-t pt-2 font-display text-sm font-bold" style={{ borderColor: isHex(form.invoice_accent) ? form.invoice_accent : BRAND_GOLD }}>
-            <span>Total</span><span style={{ color: isHex(form.invoice_accent) ? form.invoice_accent : BRAND_GOLD }}>£120</span>
-          </div>
-        </div>
-        <button type="button" onClick={() => setForm({ ...form, invoice_accent: BRAND_GOLD })} className="mt-2 text-xs font-medium text-copper hover:underline">Reset to brand gold</button>
-      </Card>
-
-      <Card title="Payment details & invoice footer">
-        <p className="mb-3 text-sm text-fg/60">
-          Add how you’d like to be paid and a closing line — both appear on every invoice your clients see.
-        </p>
-        <div className="space-y-4">
-          <Field label="Payment details" hint="Bank name, account name, sort code &amp; account number, or a payment link — however clients should pay you.">
-            <Textarea rows={4} value={form.invoice_payment_details} onChange={(e) => setForm({ ...form, invoice_payment_details: e.target.value })}
-              placeholder={'Bank: The Creatiste Catering\nSort code: 00-00-00\nAccount no: 12345678\nReference: your invoice number'} />
-          </Field>
-          <Field label="Footer / thank-you line" hint="Shown at the very bottom of the invoice. Leave blank to use “Thank you for your business.”">
-            <Input value={form.invoice_footer} maxLength={300} onChange={(e) => setForm({ ...form, invoice_footer: e.target.value })}
-              placeholder="Thank you for your business." />
-          </Field>
-        </div>
-      </Card>
-
       <Card title="Services you offer">
         <p className="mb-3 text-sm text-fg/60">These appear as a dropdown when you create a booking, so your event types stay consistent.</p>
         <div className="flex gap-2">
@@ -316,73 +255,6 @@ export function SettingsBusiness() {
               placeholder={DEFAULT_CONTACT_TEMPLATE} />
           </Field>
         </div>
-      </Card>
-
-      <Card title="Invoice & quote numbering">
-        <p className="mb-2 text-sm text-fg/60">Set the format for new numbers. Build it from these tokens — anything else (letters, dashes) stays exactly as you type it:</p>
-        <ul className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-fg/55 sm:grid-cols-3">
-          <li><code className="rounded bg-fg/5 px-1">{'{n}'}</code> number (23)</li>
-          <li><code className="rounded bg-fg/5 px-1">{'{nn}'}</code>/<code className="rounded bg-fg/5 px-1">{'{nnn}'}</code> padded (07 / 007)</li>
-          <li><code className="rounded bg-fg/5 px-1">{'{DD}'}</code> day · <code className="rounded bg-fg/5 px-1">{'{MM}'}</code> month</li>
-          <li><code className="rounded bg-fg/5 px-1">{'{YY}'}</code> year (26)</li>
-          <li><code className="rounded bg-fg/5 px-1">{'{YYYY}'}</code> full year (2026)</li>
-        </ul>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <Field label="Invoice number format">
-              <Input value={form.invoice_format} maxLength={40} onChange={(e) => setForm({ ...form, invoice_format: e.target.value })} placeholder="INV-{YYYY}-{nnn}" />
-            </Field>
-            <p className="mt-1.5 text-xs text-fg/50">Next invoice: <span className="font-semibold text-copper">{renderDocNumber(form.invoice_format, seqs.invoice)}</span></p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {[['INV-{YYYY}-{nnn}', 'INV-2026-001'], ['{nn}{DD}{MM}{YY}', '23200626'], ['{YYYY}{MM}{DD}-{nn}', '20260620-23']].map(([f, ex]) => (
-                <button type="button" key={f} onClick={() => setForm({ ...form, invoice_format: f })}
-                  className={cls('rounded-full border px-2.5 py-1 text-xs transition-colors', form.invoice_format === f ? 'border-copper bg-copper/10 text-copper' : 'border-line text-fg/55 hover:border-copper hover:text-copper')}>{ex}</button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <Field label="Quote number format">
-              <Input value={form.quote_format} maxLength={40} onChange={(e) => setForm({ ...form, quote_format: e.target.value })} placeholder="Q-{YYYY}-{nnn}" />
-            </Field>
-            <p className="mt-1.5 text-xs text-fg/50">Next quote: <span className="font-semibold text-copper">{renderDocNumber(form.quote_format, seqs.quote)}</span></p>
-          </div>
-        </div>
-      </Card>
-
-      <Card title="Service charges">
-        <p className="mb-3 text-sm text-fg/60">Save the extras you add to quotes &amp; invoices — delivery, mileage, service fee — so they’re one tap. For a per-unit charge (e.g. per mile) set the rate here, then enter the miles on the line.</p>
-        <div className="space-y-2">
-          {(form.service_charges || []).map((c, i) => {
-            const upd = (k, v) => setForm({ ...form, service_charges: form.service_charges.map((x, idx) => idx === i ? { ...x, [k]: v } : x) })
-            return (
-              <div key={c.id || i} className="grid grid-cols-12 items-center gap-2 rounded-lg border border-line bg-parchment/30 p-2">
-                <Input className="col-span-12 sm:col-span-5" placeholder="Delivery" value={c.label || ''} onChange={(e) => upd('label', e.target.value)} />
-                <div className="col-span-7 flex items-center gap-1 sm:col-span-4">
-                  <span className="shrink-0 text-sm text-fg/50">{SYMBOLS[user?.currency] || '£'}</span>
-                  <Input type="number" min="0" step="0.01" className="min-w-0 flex-1 px-2" placeholder="0.00" value={c.rate ?? ''} onChange={(e) => upd('rate', e.target.value)} />
-                  <span className="shrink-0 text-sm text-fg/40">/</span>
-                  <Input className="w-16 px-2" placeholder="mile" value={c.per || ''} onChange={(e) => upd('per', e.target.value)} aria-label="per unit (optional)" />
-                </div>
-                <IconButton icon="trash" label="Remove charge" className="col-span-5 justify-self-end sm:col-span-3"
-                  onClick={() => setForm({ ...form, service_charges: form.service_charges.filter((_, idx) => idx !== i) })} />
-              </div>
-            )
-          })}
-        </div>
-        <Button type="button" size="sm" variant="secondary" icon="plus" className="mt-2"
-          onClick={() => setForm({ ...form, service_charges: [...(form.service_charges || []), { id: `c${Date.now()}`, label: '', rate: 0, per: '' }] })}>Add a charge</Button>
-        <p className="mt-1 text-xs text-fg/45">Leave “/ unit” blank for a flat fee (e.g. a £50 service charge); use it for per-mile or per-hour rates.</p>
-      </Card>
-
-      <Card title="Your invoice app (optional)">
-        <p className="mb-3 text-sm text-fg/60">
-          Prefer to build invoices in your own app? Paste its link and a shortcut appears on every booking’s Money tab.
-          (Invoice apps can’t be embedded inside Creatiste Command for security, so this opens it in a new tab — then
-          you can <span className="font-medium text-fg">Upload</span> the finished PDF back onto the booking.)
-        </p>
-        <Field label="Invoice app link">
-          <Input type="url" value={form.invoice_app_url} onChange={(e) => setForm({ ...form, invoice_app_url: e.target.value })} placeholder="https://…" />
-        </Field>
       </Card>
 
       <Card title="Gallery">
@@ -485,6 +357,207 @@ export function SettingsSecurity() {
 const BRAND_GOLD = '#BFA987'
 const ACCENT_PRESETS = ['#BFA987', '#0C0A08', '#1F6F54', '#7A2E2E', '#2E4A7A', '#6B7D68', '#9C5B8B', '#C77D34']
 const isHex = (v) => /^#[0-9a-fA-F]{6}$/.test(v || '')
+
+/* ------------------------- Invoice set-up (own tab) ------------------------ */
+// Everything about how invoices look, number, get paid and read — kept together,
+// away from the general business profile. Owner-only (staff never touch finance).
+export function SettingsInvoices() {
+  const { user, setUser } = useAuth()
+  const [form, setForm] = useState({
+    invoice_accent: BRAND_GOLD, invoice_footer: '',
+    invoice_format: 'INV-{YYYY}-{nnn}', quote_format: 'Q-{YYYY}-{nnn}',
+    bank_account_name: '', bank_name: '', bank_sort_code: '', bank_account_number: '',
+    invoice_payment_link: '', invoice_payment_link_label: '', invoice_payment_details: '',
+    invoice_notes_default: '', invoice_deposit_percent: 0, service_charges: [], invoice_app_url: '',
+  })
+  const [seqs, setSeqs] = useState({ invoice: 1, quote: 1 })
+  const [busy, setBusy] = useState(false)
+  const inited = useRef(false)
+  useEffect(() => {
+    if (!user || inited.current) return
+    inited.current = true
+    setForm({
+      invoice_accent: user.invoice_accent || BRAND_GOLD,
+      invoice_footer: user.invoice_footer || '',
+      invoice_format: user.invoice_format || `${(user.invoice_prefix || 'INV').trim() || 'INV'}-{YYYY}-{nnn}`,
+      quote_format: user.quote_format || `${(user.quote_prefix || 'Q').trim() || 'Q'}-{YYYY}-{nnn}`,
+      bank_account_name: user.bank_account_name || '', bank_name: user.bank_name || '',
+      bank_sort_code: user.bank_sort_code || '', bank_account_number: user.bank_account_number || '',
+      invoice_payment_link: user.invoice_payment_link || '', invoice_payment_link_label: user.invoice_payment_link_label || '',
+      invoice_payment_details: user.invoice_payment_details || '',
+      invoice_notes_default: user.invoice_notes_default || '',
+      invoice_deposit_percent: user.invoice_deposit_percent || 0,
+      service_charges: user.service_charges || [], invoice_app_url: user.invoice_app_url || '',
+    })
+  }, [user])
+  useEffect(() => {
+    api.get('/finance/next-invoice-number').then((r) => setSeqs((s) => ({ ...s, invoice: r.seq || 1 }))).catch(() => {})
+    api.get('/quotes/meta/next-number').then((r) => setSeqs((s) => ({ ...s, quote: r.seq || 1 }))).catch(() => {})
+  }, [])
+
+  if (user?.is_staff) {
+    return <Card title="Invoices"><p className="text-sm text-fg/55">Your business owner sets up invoicing.</p></Card>
+  }
+  const upd = (k) => (e) => setForm({ ...form, [k]: e.target.value })
+  const accent = isHex(form.invoice_accent) ? form.invoice_accent : BRAND_GOLD
+  const save = () => {
+    setBusy(true)
+    api.put('/auth/me', { ...form, invoice_deposit_percent: Number(form.invoice_deposit_percent) || 0 })
+      .then((u) => { setUser(u); toast('Invoice settings saved', 'sage') }).catch(toastErr).finally(() => setBusy(false))
+  }
+  const bankParts = [form.bank_account_name, form.bank_name,
+    form.bank_sort_code && `Sort code ${form.bank_sort_code}`,
+    form.bank_account_number && `Acc ${form.bank_account_number}`].filter(Boolean)
+
+  return (
+    <div className="space-y-5">
+      <Card title="Invoice branding">
+        <p className="mb-3 text-sm text-fg/60">
+          Your brand colour for the invoices &amp; quotes your clients see — it colours the heading, the total
+          and the table line. Your logo and business name appear on them too (set those under Business).
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <input type="color" value={accent} onChange={upd('invoice_accent')}
+            aria-label="Invoice colour" className="h-10 w-12 cursor-pointer rounded-lg border border-line bg-transparent p-0.5" />
+          <Input value={form.invoice_accent} onChange={upd('invoice_accent')} className="w-28 font-mono uppercase" placeholder="#BFA987" />
+          <div className="flex flex-wrap gap-1.5">
+            {ACCENT_PRESETS.map((c) => (
+              <button key={c} type="button" onClick={() => setForm({ ...form, invoice_accent: c })} style={{ background: c }} aria-label={c}
+                className={cls('h-7 w-7 rounded-full border transition-transform hover:scale-110',
+                  (form.invoice_accent || '').toLowerCase() === c.toLowerCase() ? 'ring-2 ring-offset-2 ring-offset-base ring-fg/50' : 'border-line')} />
+            ))}
+          </div>
+        </div>
+        <div className="mt-4 rounded-xl border border-neutral-200 bg-white p-4 text-neutral-800 shadow-sm">
+          <div className="flex items-center justify-between border-b border-neutral-200 pb-2">
+            <span className="font-display text-sm font-bold">{user?.business_name || user?.name || 'Your business'}</span>
+            <span className="font-display text-lg font-bold tracking-wide" style={{ color: accent }}>INVOICE</span>
+          </div>
+          <div className="mt-2 flex justify-between text-xs text-neutral-500"><span>2 × Sample dish</span><span>£120</span></div>
+          <div className="mt-2 flex items-center justify-between border-t pt-2 font-display text-sm font-bold" style={{ borderColor: accent }}>
+            <span>Total</span><span style={{ color: accent }}>£120</span>
+          </div>
+        </div>
+        <button type="button" onClick={() => setForm({ ...form, invoice_accent: BRAND_GOLD })} className="mt-2 text-xs font-medium text-copper hover:underline">Reset to brand gold</button>
+      </Card>
+
+      <Card title="How clients pay you">
+        <p className="mb-3 text-sm text-fg/60">Shown as a single payment line on every invoice. Fill in your bank details and/or add a payment link so clients can choose how to pay.</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Account name"><Input value={form.bank_account_name} onChange={upd('bank_account_name')} placeholder="The Creatiste Catering" /></Field>
+          <Field label="Bank"><Input value={form.bank_name} onChange={upd('bank_name')} placeholder="e.g. Monzo" /></Field>
+          <Field label="Sort code"><Input value={form.bank_sort_code} onChange={upd('bank_sort_code')} placeholder="00-00-00" /></Field>
+          <Field label="Account number"><Input value={form.bank_account_number} onChange={upd('bank_account_number')} placeholder="12345678" /></Field>
+        </div>
+        <div className="mt-4 border-t border-line pt-4">
+          <p className="mb-2 text-sm font-medium text-fg/80">Alternative — let clients pay online</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Payment link" hint="A Stripe / PayPal / SumUp / Monzo.me link — clients tap to pay by card.">
+              <Input type="url" value={form.invoice_payment_link} onChange={upd('invoice_payment_link')} placeholder="https://…" />
+            </Field>
+            <Field label="Button label"><Input value={form.invoice_payment_link_label} maxLength={80} onChange={upd('invoice_payment_link_label')} placeholder="Pay by card" /></Field>
+          </div>
+        </div>
+        <Field label="Anything else (optional)" hint="Extra instructions — shown as small print under the payment line." className="mt-3">
+          <Textarea rows={2} value={form.invoice_payment_details} onChange={upd('invoice_payment_details')} placeholder="Payment due within 7 days. Please use your invoice number as the reference." />
+        </Field>
+        {(bankParts.length > 0 || form.invoice_payment_link) && (
+          <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1 rounded-lg border px-4 py-2.5 text-sm" style={{ borderColor: accent, background: `${accent}10` }}>
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: accent }}>Payment</span>
+            {bankParts.length > 0 && <span className="text-fg/80">{bankParts.join('  ·  ')}</span>}
+            {form.invoice_payment_link && <span className="font-semibold underline" style={{ color: accent }}>{form.invoice_payment_link_label || 'Pay online'}</span>}
+          </div>
+        )}
+      </Card>
+
+      <Card title="Invoice defaults">
+        <p className="mb-3 text-sm text-fg/60">Pre-fill every new invoice — you can still change these on any individual invoice.</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Default deposit %" hint="0 = clients pay in full. e.g. 50 asks for half up front.">
+            <Input type="number" min="0" max="100" value={form.invoice_deposit_percent} onChange={upd('invoice_deposit_percent')} />
+          </Field>
+          <Field label="Footer / thank-you line" hint="At the very bottom of the invoice. Blank uses “Thank you for your business.”">
+            <Input value={form.invoice_footer} maxLength={300} onChange={upd('invoice_footer')} placeholder="Thank you for your business." />
+          </Field>
+        </div>
+        <Field label="Default notes" hint="Appear on every new invoice — press Enter for new lines (they stay as separate lines)." className="mt-3">
+          <Textarea rows={3} value={form.invoice_notes_default} onChange={upd('invoice_notes_default')} placeholder={'Payment due within 7 days.\nAllergen information available on request.'} />
+        </Field>
+      </Card>
+
+      <Card title="Invoice & quote numbering">
+        <p className="mb-2 text-sm text-fg/60">Set the format for new numbers. Build it from these tokens — anything else (letters, dashes) stays exactly as you type it:</p>
+        <ul className="mb-3 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-fg/55 sm:grid-cols-3">
+          <li><code className="rounded bg-fg/5 px-1">{'{n}'}</code> number (23)</li>
+          <li><code className="rounded bg-fg/5 px-1">{'{nn}'}</code>/<code className="rounded bg-fg/5 px-1">{'{nnn}'}</code> padded (07 / 007)</li>
+          <li><code className="rounded bg-fg/5 px-1">{'{DD}'}</code> day · <code className="rounded bg-fg/5 px-1">{'{MM}'}</code> month</li>
+          <li><code className="rounded bg-fg/5 px-1">{'{YY}'}</code> year (26)</li>
+          <li><code className="rounded bg-fg/5 px-1">{'{YYYY}'}</code> full year (2026)</li>
+        </ul>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <Field label="Invoice number format">
+              <Input value={form.invoice_format} maxLength={40} onChange={upd('invoice_format')} placeholder="INV-{YYYY}-{nnn}" />
+            </Field>
+            <p className="mt-1.5 text-xs text-fg/50">Next invoice: <span className="font-semibold text-copper">{renderDocNumber(form.invoice_format, seqs.invoice)}</span></p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {[['INV-{YYYY}-{nnn}', 'INV-2026-001'], ['{nn}{DD}{MM}{YY}', '23200626'], ['{YYYY}{MM}{DD}-{nn}', '20260620-23']].map(([f, ex]) => (
+                <button type="button" key={f} onClick={() => setForm({ ...form, invoice_format: f })}
+                  className={cls('rounded-full border px-2.5 py-1 text-xs transition-colors', form.invoice_format === f ? 'border-copper bg-copper/10 text-copper' : 'border-line text-fg/55 hover:border-copper hover:text-copper')}>{ex}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <Field label="Quote number format">
+              <Input value={form.quote_format} maxLength={40} onChange={upd('quote_format')} placeholder="Q-{YYYY}-{nnn}" />
+            </Field>
+            <p className="mt-1.5 text-xs text-fg/50">Next quote: <span className="font-semibold text-copper">{renderDocNumber(form.quote_format, seqs.quote)}</span></p>
+          </div>
+        </div>
+      </Card>
+
+      <Card title="Service charges">
+        <p className="mb-3 text-sm text-fg/60">Save the extras you add to quotes &amp; invoices — delivery, mileage, service fee — so they’re one tap. For a per-unit charge (e.g. per mile) set the rate here, then enter the miles on the line.</p>
+        <div className="space-y-2">
+          {(form.service_charges || []).map((c, i) => {
+            const updc = (k, v) => setForm({ ...form, service_charges: form.service_charges.map((x, idx) => idx === i ? { ...x, [k]: v } : x) })
+            return (
+              <div key={c.id || i} className="grid grid-cols-12 items-center gap-2 rounded-lg border border-line bg-parchment/30 p-2">
+                <Input className="col-span-12 sm:col-span-5" placeholder="Delivery" value={c.label || ''} onChange={(e) => updc('label', e.target.value)} />
+                <div className="col-span-7 flex items-center gap-1 sm:col-span-4">
+                  <span className="shrink-0 text-sm text-fg/50">{SYMBOLS[user?.currency] || '£'}</span>
+                  <Input type="number" min="0" step="0.01" className="min-w-0 flex-1 px-2" placeholder="0.00" value={c.rate ?? ''} onChange={(e) => updc('rate', e.target.value)} />
+                  <span className="shrink-0 text-sm text-fg/40">/</span>
+                  <Input className="w-16 px-2" placeholder="mile" value={c.per || ''} onChange={(e) => updc('per', e.target.value)} aria-label="per unit (optional)" />
+                </div>
+                <IconButton icon="trash" label="Remove charge" className="col-span-5 justify-self-end sm:col-span-3"
+                  onClick={() => setForm({ ...form, service_charges: form.service_charges.filter((_, idx) => idx !== i) })} />
+              </div>
+            )
+          })}
+        </div>
+        <Button type="button" size="sm" variant="secondary" icon="plus" className="mt-2"
+          onClick={() => setForm({ ...form, service_charges: [...(form.service_charges || []), { id: `c${Date.now()}`, label: '', rate: 0, per: '' }] })}>Add a charge</Button>
+        <p className="mt-1 text-xs text-fg/45">Leave “/ unit” blank for a flat fee (e.g. a £50 service charge); use it for per-mile or per-hour rates.</p>
+      </Card>
+
+      <Card title="Your invoice app (optional)">
+        <p className="mb-3 text-sm text-fg/60">
+          Prefer to build invoices in your own app? Paste its link and a shortcut appears on every booking’s Money tab.
+          (Invoice apps can’t be embedded inside Creatiste Command for security, so this opens it in a new tab — then
+          you can <span className="font-medium text-fg">Upload</span> the finished PDF back onto the booking.)
+        </p>
+        <Field label="Invoice app link">
+          <Input type="url" value={form.invoice_app_url} onChange={upd('invoice_app_url')} placeholder="https://…" />
+        </Field>
+      </Card>
+
+      <div className="flex justify-end">
+        <Button onClick={save} disabled={busy}>{busy ? 'Saving…' : 'Save invoice settings'}</Button>
+      </div>
+    </div>
+  )
+}
 
 export function SettingsAppearance() {
   const [theme, setThemeState] = useState(() => localStorage.getItem('cc_theme') || 'dark')

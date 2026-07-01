@@ -13,7 +13,7 @@ from ..utils import EMAIL_RE, to_dict
 router = APIRouter(prefix="/public", tags=["public"])
 
 QUOTE_PUBLIC_FIELDS = ("id", "number", "title", "items", "tax_rate", "discount", "notes", "status", "valid_until")
-INVOICE_PUBLIC_FIELDS = ("id", "number", "items", "tax_rate", "discount", "notes", "status", "issue_date", "due_date", "paid_date")
+INVOICE_PUBLIC_FIELDS = ("id", "number", "items", "tax_rate", "discount", "notes", "status", "issue_date", "due_date", "paid_date", "deposit_type", "deposit_value")
 
 
 @router.get("/invoice/{token}")
@@ -39,6 +39,14 @@ def view_invoice(token: str, db: Session = Depends(get_db)):
             "accent": owner.invoice_accent or "#BFA987",
             "payment_details": owner.invoice_payment_details or "",
             "footer": owner.invoice_footer or "",
+            "bank": {
+                "account_name": owner.bank_account_name or "",
+                "bank_name": owner.bank_name or "",
+                "sort_code": owner.bank_sort_code or "",
+                "account_number": owner.bank_account_number or "",
+            },
+            "payment_link": owner.invoice_payment_link or "",
+            "payment_link_label": owner.invoice_payment_link_label or "",
         },
         "currency": owner.currency,
         "client": bill_to,

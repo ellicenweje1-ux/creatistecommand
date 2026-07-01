@@ -152,6 +152,45 @@ All built + verified this wave (branch `claude/optimistic-meitner-yqvl2l`) — *
   the scratchpad — nothing left in the tree.
 - **No version bump** (standing rule — awaiting Ellice's word + her biblical reference).
 
+### Follow-on (same 24th-wave session — invoice amendments batch, from live use)
+Ellice's next batch of invoice pointers, all built + verified on branch `claude/busy-cerf-3k7klg` (**merge to `main`
+to deploy**). `npm run build` clean (**85 modules**). **Backend: 8 additive `users` cols + 2 additive `invoices` cols**
+via `ensure_columns` + one new endpoint; no new env/deps.
+- **Invoice set-up is now its OWN Settings tab** (`/app/settings/invoices`, `SettingsInvoices`, `doc` icon, owner-only) —
+  moved every invoice card out of Settings → Business (branding, numbering, service charges, invoice-app) and added the
+  new payment/deposit/notes cards here. `SettingsBusiness` trimmed to logo/description/services/contact/socials/gallery/
+  feature (its invoice fields + the seqs effect removed).
+- **Structured bank presets, not a freeform box** — new `users.bank_account_name/bank_name/bank_sort_code/
+  bank_account_number` + an **alternative "pay online" link** (`invoice_payment_link` + `invoice_payment_link_label`, for
+  a Stripe/PayPal/SumUp/Monzo link). On the doc they render as a **single payment BAR** (inline `· `-separated, accent
+  border) — replacing the earlier stacked "Payment details" box. Legacy `invoice_payment_details` kept as optional
+  small-print "anything else". (Full payment-processor integration stays the Stripe-Connect roadmap item; a link is the
+  now-solution.)
+- **Deposit / pay-in-full** — new per-invoice `invoices.deposit_type` (''=pay in full | 'percent' | 'amount') +
+  `deposit_value`; editor "Payment terms" select shows live Deposit·Balance; the doc shows **Deposit due + Balance due**
+  under Total. A **default deposit %** (`users.invoice_deposit_percent`) + **default notes** (`users.invoice_notes_default`)
+  seed every new invoice from Settings → Invoices.
+- **Editor amendments (`Finance.jsx` `InvoiceEditorModal`):** **Duplicate invoice** (footer button → `POST
+  /invoices/{id}/duplicate`, fresh draft/number, copies items+deposit, clears sent/paid) · **Duplicate line** (copy icon
+  per row) · **Add break** — a section/heading row with no qty/price (stored as `{section:true}` in the items JSON; the
+  screenshot's "DAY 1"/"DAY 2" grouping on one invoice) · **notes** bumped to a multi-line box (render `whitespace-pre-line`
+  so lines stay separate, not bunched).
+- **Confirm-before-send** (replaces the earlier "revoke" idea): "Send to client" now opens a **Preview & send** modal with
+  a real `<iframe>` of the invoice + the recipient email + a deliberate **Confirm & send**. Nothing emails on the first click.
+- **Menu-item separator** — `menulines.jsx itemLabel` now joins course|item with ` | ` (was ` — `): "Rice | Jollof Rice".
+- **Public doc (`PublicInvoice.jsx`):** section rows render as spanning accent headers (skipped from the subtotal); payment
+  bar; deposit/balance rows; notes `whitespace-pre-line`. Endpoint returns `business.bank/{payment_link,label}` +
+  invoice `deposit_type/value`.
+- **Verified:** backend TestClient **19/19** (structured payment + defaults save/round-trip, deposit clamp 0–100, section
+  item persists, public returns bank/link/footer + deposit, duplicate = fresh draft copying section+deposit). Playwright
+  (system chromium, demo Elite) **23/23** — Invoices tab renders+saves+persists, Business no longer shows the invoice
+  cards, pipe separator in the dropdown, add-break/add-line/duplicate-line, deposit Deposit·Balance box (50% of £200 = £100),
+  Duplicate button, **Send→Preview modal with the invoice iframe + recipient email**, and the public doc (DAY 1/DAY 2
+  headers, payment bar with account no, deposit due + balance due, multi-line notes, pipe). Zero uncaught JS / app console
+  errors (only the known blocked-font noise). Screenshot of the finished invoice confirmed the look. FAQ (rule #3) updated:
+  reworded "Can I brand my invoices?" (→ Settings → Invoices), added deposit/bank/payment-link + duplicate/break/preview Q&As.
+- **No version bump** (standing rule).
+
 ## Previous session (2026-06-25, twenty-third wave — on-the-go amendments: tasks ordering, shopping/checklist UX, drag-to-reorder, phone notifications)
 - Branch `claude/optimistic-meitner-yqvl2l` — **merge to `main` to deploy.** Ellice's third feedback batch
   (backlog 17–25, above), from using the live app on her phone. `npm run build` clean (**84 modules**).

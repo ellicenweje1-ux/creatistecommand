@@ -31,6 +31,19 @@ export default function PublicInvoice() {
   const total = invoiceTotal(invoice)
   const taxAmt = total - (subtotal - (Number(invoice.discount) || 0))
   const statusColor = { paid: '#2e7d32', overdue: '#c62828', sent: accent, draft: '#888', void: '#999' }[invoice.status] || '#888'
+  // Deposit terms (per invoice): show deposit due + balance when set.
+  const dep = invoice.deposit_type === 'percent'
+    ? Math.max(0, total * (Number(invoice.deposit_value) || 0) / 100)
+    : invoice.deposit_type === 'amount' ? Math.min(Number(invoice.deposit_value) || 0, total) : 0
+  // Payment bar: the chef's bank presets on one line, plus an optional "pay online" link.
+  const bank = business.bank || {}
+  const bankParts = [bank.account_name, bank.bank_name,
+    bank.sort_code && `Sort code ${bank.sort_code}`,
+    bank.account_number && `Acc ${bank.account_number}`].filter(Boolean)
+  const payLink = business.payment_link
+    ? (/^https?:\/\//i.test(business.payment_link) ? business.payment_link : `https://${business.payment_link}`)
+    : ''
+  const hasPay = bankParts.length > 0 || payLink || business.payment_details
 
   return (
     <Wrap>
@@ -79,14 +92,18 @@ export default function PublicInvoice() {
             </tr>
           </thead>
           <tbody>
-            {items.map((it, i) => (
+            {items.map((it, i) => (it.section ? (
+              <tr key={i}>
+                <td colSpan={4} className="pt-4 pb-1 font-display text-sm font-bold uppercase tracking-wide" style={{ color: accent }}>{it.description}</td>
+              </tr>
+            ) : (
               <tr key={i} className="border-b border-neutral-100">
                 <td className="py-2.5 pr-2">{it.description}</td>
                 <td className="py-2.5 text-right text-neutral-500">{it.qty}</td>
                 <td className="py-2.5 text-right text-neutral-500">{fmtMoney(it.unit_price, currency)}</td>
                 <td className="py-2.5 text-right font-medium">{fmtMoney((Number(it.qty) || 0) * (Number(it.unit_price) || 0), currency)}</td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
 
@@ -98,18 +115,29 @@ export default function PublicInvoice() {
             <div className="mt-1 flex justify-between border-t pt-2 font-display text-lg font-bold" style={{ borderColor: accent }}>
               <span>Total</span><span style={{ color: accent }}>{fmtMoney(total, currency)}</span>
             </div>
+            {dep > 0 && (
+              <div className="mt-2 border-t border-neutral-100 pt-2">
+                <Row label={`Deposit due${invoice.deposit_type === 'percent' ? ` (${Number(invoice.deposit_value)}%)` : ''}`} value={fmtMoney(dep, currency)} />
+                <div className="flex justify-between py-0.5 font-semibold text-neutral-800"><span>Balance due</span><span>{fmtMoney(total - dep, currency)}</span></div>
+              </div>
+            )}
           </div>
         </div>
 
-        {business.payment_details && (
-          <div className="mt-6 rounded-lg border border-neutral-200 p-4" style={{ borderLeft: `3px solid ${accent}` }}>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider" style={{ color: accent }}>Payment details</p>
-            <p className="whitespace-pre-line text-sm text-neutral-700">{business.payment_details}</p>
+        {hasPay && (
+          <div className="mt-6 rounded-lg border px-4 py-2.5 text-sm" style={{ borderColor: accent, background: `${accent}10` }}>
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: accent }}>Payment</span>
+              {bankParts.length > 0 && <span className="text-neutral-700">{bankParts.join('  ·  ')}</span>}
+              {payLink && <a href={payLink} target="_blank" rel="noreferrer" className="font-semibold underline" style={{ color: accent }}>{business.payment_link_label || 'Pay online'}</a>}
+            </div>
+            {business.payment_details && <p className="mt-1 whitespace-pre-line text-xs text-neutral-500">{business.payment_details}</p>}
           </div>
         )}
         {invoice.notes && (
           <div className="mt-6 border-t border-neutral-200 pt-3 text-xs text-neutral-500">
-            <p className="mb-1 font-semibold text-neutral-600">Notes</p>{invoice.notes}
+            <p className="mb-1 font-semibold text-neutral-600">Notes</p>
+            <p className="whitespace-pre-line">{invoice.notes}</p>
           </div>
         )}
         <p className="mt-8 whitespace-pre-line text-center text-[10px] text-neutral-400">{business.footer || 'Thank you for your business.'}</p>

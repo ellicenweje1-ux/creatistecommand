@@ -161,6 +161,18 @@ def update_me(payload: dict = Body(...), db: Session = Depends(get_db), user: Us
         user.invoice_payment_details = str(payload["invoice_payment_details"] or "").strip()[:1000]
     if "invoice_footer" in payload:
         user.invoice_footer = str(payload["invoice_footer"] or "").strip()[:300]
+    # Structured bank presets + an alternative "pay online" link, and per-invoice defaults.
+    for field in ("bank_account_name", "bank_name", "bank_sort_code", "bank_account_number",
+                  "invoice_payment_link", "invoice_payment_link_label"):
+        if field in payload:
+            setattr(user, field, str(payload[field] or "").strip()[:500])
+    if "invoice_notes_default" in payload:
+        user.invoice_notes_default = str(payload["invoice_notes_default"] or "").strip()[:2000]
+    if "invoice_deposit_percent" in payload:
+        try:
+            user.invoice_deposit_percent = max(0, min(100, int(payload["invoice_deposit_percent"] or 0)))
+        except (TypeError, ValueError):
+            user.invoice_deposit_percent = 0
     # Reusable service charges (delivery/mileage/service fee) for quotes & invoices.
     if isinstance(payload.get("service_charges"), list):
         cleaned = []

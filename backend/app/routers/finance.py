@@ -112,6 +112,29 @@ def share_invoice(invoice_id: int, send: bool = False, db: Session = Depends(get
     return {**to_dict(inv), "public_url": link, "emailed": emailed}
 
 
+@invoices.post("/{invoice_id}/duplicate")
+def duplicate_invoice(invoice_id: int, db: Session = Depends(get_db), user=Depends(require_active)):
+    """Copy an invoice into a fresh draft (new number, no sent-link/paid state) — the
+    quickest way to raise the next similar invoice."""
+    src = get_owned(db, Invoice, invoice_id, ws_id(user))
+    owner = db.get(User, ws_id(user))
+    seq = next_doc_seq(db, Invoice, ws_id(user))
+    fmt = effective_doc_format(owner, "invoice") if owner else "INV-{YYYY}-{nnn}"
+    dup = Invoice(
+        user_id=ws_id(user), booking_id=src.booking_id, client_id=src.client_id,
+        number=render_doc_number(fmt, seq), status="draft",
+        issue_date=date.today().isoformat(), due_date="", paid_date="",
+        items=[dict(i) for i in (src.items or [])],
+        tax_rate=src.tax_rate, discount=src.discount,
+        deposit_type=src.deposit_type, deposit_value=src.deposit_value, notes=src.notes,
+    )
+    db.add(dup)
+    db.commit()
+    db.refresh(dup)
+    log_activity(db, user, "created", dup, summary=f"Duplicated invoice {src.number or src.id}")
+    return to_dict(dup)
+
+
 @router.get("/next-invoice-number")
 def next_invoice_number(db: Session = Depends(get_db), user=Depends(require_active)):
     owner = db.get(User, ws_id(user))  # staff use their owner's format

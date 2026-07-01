@@ -49,7 +49,18 @@ class User(Base):
     # Invoice branding — accent colour for the in-app invoice document (defaults to brand gold).
     invoice_accent: Mapped[str] = mapped_column(String(20), default="")
     # Payment details (bank / how-to-pay) printed on every invoice the client sees.
-    invoice_payment_details: Mapped[str] = mapped_column(Text, default="")
+    invoice_payment_details: Mapped[str] = mapped_column(Text, default="")  # legacy / "other" notes
+    # Structured bank-transfer presets — rendered as a single payment bar on invoices.
+    bank_account_name: Mapped[str] = mapped_column(String(160), default="")
+    bank_name: Mapped[str] = mapped_column(String(120), default="")
+    bank_sort_code: Mapped[str] = mapped_column(String(20), default="")
+    bank_account_number: Mapped[str] = mapped_column(String(40), default="")
+    # Alternative "pay online" option — a Stripe / PayPal / SumUp / Monzo payment link.
+    invoice_payment_link: Mapped[str] = mapped_column(String(500), default="")
+    invoice_payment_link_label: Mapped[str] = mapped_column(String(80), default="")
+    # Defaults pre-filled onto every new invoice.
+    invoice_notes_default: Mapped[str] = mapped_column(Text, default="")
+    invoice_deposit_percent: Mapped[int] = mapped_column(Integer, default=0)  # 0 = pay in full
     # Customisable footer / thank-you line at the base of the invoice document.
     invoice_footer: Mapped[str] = mapped_column(String(300), default="")
     role: Mapped[str] = mapped_column(String(20), default="chef")  # chef | admin | staff
@@ -288,9 +299,12 @@ class Invoice(OwnedMixin, Base):
     issue_date: Mapped[str] = mapped_column(String(10), default="")
     due_date: Mapped[str] = mapped_column(String(10), default="")
     paid_date: Mapped[str] = mapped_column(String(10), default="")
-    items: Mapped[list] = mapped_column(JSON, default=list)  # [{id,description,qty,unit_price}]
+    items: Mapped[list] = mapped_column(JSON, default=list)  # [{id,description,qty,unit_price,section?}]
     tax_rate: Mapped[float] = mapped_column(Float, default=0)  # percent
     discount: Mapped[float] = mapped_column(Float, default=0)  # absolute
+    # Deposit terms: '' = pay in full; 'percent' (deposit_value = %); 'amount' (deposit_value = fixed).
+    deposit_type: Mapped[str] = mapped_column(String(10), default="")
+    deposit_value: Mapped[float] = mapped_column(Float, default=0)
     notes: Mapped[str] = mapped_column(Text, default="")
     # An invoice generated in another app and uploaded here (PDF) instead of built from items.
     file_url: Mapped[str] = mapped_column(String(500), default="")

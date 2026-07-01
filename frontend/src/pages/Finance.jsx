@@ -12,11 +12,12 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
   const { user } = useAuth()
   const blank = {
     number: '', status: 'draft', issue_date: todayISO(), due_date: '', paid_date: '',
-    items: [], tax_rate: 0, discount: 0, notes: '',
+    items: [], tax_rate: 0, discount: 0, deposit_type: '', deposit_value: 0, notes: '',
   }
   const [form, setForm] = useState(blank)
   const [clients, setClients] = useState([])
   const [menuItems, setMenuItems] = useState([])
+  const [sendPreview, setSendPreview] = useState(null)  // { url, email, invoiceId } — confirm before sending
 
   useEffect(() => {
     if (!open) return
@@ -24,22 +25,38 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
     fetchMenuItems(initial?.booking_id ?? bookingId).then(setMenuItems).catch(() => {})
     if (initial) setForm({ ...blank, ...initial })
     else {
+      // Seed a new invoice with the chef's saved defaults (notes + deposit) from Settings → Invoices.
+      const seeded = {
+        ...blank, client_id: clientId,
+        notes: user?.invoice_notes_default || '',
+        deposit_type: user?.invoice_deposit_percent ? 'percent' : '',
+        deposit_value: user?.invoice_deposit_percent || 0,
+      }
       api.get('/finance/next-invoice-number')
-        .then(({ number }) => setForm({ ...blank, number, client_id: clientId }))
-        .catch(() => setForm({ ...blank, client_id: clientId }))
+        .then(({ number }) => setForm({ ...seeded, number }))
+        .catch(() => setForm(seeded))
     }
   }, [open, initial]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
   const items = form.items || []
   const setItem = (i, key, value) => setForm({ ...form, items: items.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)) })
+  const addItem = (line) => setForm({ ...form, items: [...items, line] })
+  const dupItem = (i) => setForm({ ...form, items: [...items.slice(0, i + 1), { ...items[i], id: uid() }, ...items.slice(i + 1)] })
+  const removeItem = (i) => setForm({ ...form, items: items.filter((_, idx) => idx !== i) })
   const total = invoiceTotal(form)
+  const depositDue = form.deposit_type === 'percent'
+    ? Math.max(0, total * (Number(form.deposit_value) || 0) / 100)
+    : form.deposit_type === 'amount' ? Math.min(Number(form.deposit_value) || 0, total) : 0
 
   const buildPayload = () => ({
     ...form, tax_rate: Number(form.tax_rate) || 0, discount: Number(form.discount) || 0,
+    deposit_type: form.deposit_type || '', deposit_value: Number(form.deposit_value) || 0,
     client_id: form.client_id ? Number(form.client_id) : null,
     booking_id: initial?.booking_id ?? bookingId,
-    items: items.map((it) => ({ ...it, qty: Number(it.qty) || 0, unit_price: Number(it.unit_price) || 0 })),
+    items: items.map((it) => (it.section
+      ? { id: it.id, description: it.description, section: true }             // a break/heading — no qty/price
+      : { ...it, qty: Number(it.qty) || 0, unit_price: Number(it.unit_price) || 0 })),
   })
   const persist = () => (initial?.id ? api.patch(`/invoices/${initial.id}`, buildPayload()) : api.post('/invoices', buildPayload()))
   const save = (e) => { e.preventDefault(); persist().then(onSaved).catch(toastErr) }
@@ -50,22 +67,35 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
       .then((r) => window.open(r.public_url, '_blank'))
       .catch(toastErr)
   }
-  // Save + share the read-only link with the client (emails them if their address is on file).
-  const sendToClient = () => {
+  // Sending now goes through a confirm-with-preview step so nothing goes out too soon.
+  const openSendPreview = () => {
     persist()
-      .then((inv) => api.post(`/invoices/${inv.id}/share?send=true`))
+      .then((inv) => api.post(`/invoices/${inv.id}/share`).then((r) => {
+        const client = clients.find((c) => String(c.id) === String(form.client_id))
+        setSendPreview({ url: r.public_url, email: client?.email || '', invoiceId: inv.id })
+      }))
+      .catch(toastErr)
+  }
+  const confirmSend = () => {
+    api.post(`/invoices/${sendPreview.invoiceId}/share?send=true`)
       .then((r) => {
         navigator.clipboard?.writeText(r.public_url)
         toast(r.emailed ? 'Invoice emailed to your client — link copied too' : 'Invoice link copied to share', 'sage')
+        setSendPreview(null)
         onSaved()
       })
       .catch(toastErr)
+  }
+  const duplicate = () => {
+    if (initial?.id) api.post(`/invoices/${initial.id}/duplicate`)
+      .then(() => { toast('Invoice duplicated — new draft added to your list', 'sage'); onSaved() }).catch(toastErr)
   }
   const remove = () => {
     if (initial?.id && window.confirm('Delete this invoice?')) api.del(`/invoices/${initial.id}`).then(onSaved).catch(toastErr)
   }
 
   return (
+    <>
     <Modal open={open} onClose={onClose} title={initial?.id ? `Edit ${initial.number || 'invoice'}` : 'New invoice'} wide>
       <form onSubmit={save} className="space-y-4">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -91,25 +121,28 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
         <div>
           <p className="label">Line items</p>
           <div className="space-y-1.5">
-            {items.map((it, i) => (
+            {items.map((it, i) => (it.section ? (
+              <div key={it.id || i} className="grid grid-cols-12 items-center gap-1.5 rounded-lg bg-parchment/40 px-1 py-0.5">
+                <Input className="col-span-10 font-display font-semibold" placeholder="Section heading — e.g. DAY 1 (no price)"
+                  value={it.description} onChange={(e) => setItem(i, 'description', e.target.value)} />
+                <IconButton icon="copy" label="Duplicate line" className="col-span-1 justify-self-center self-center" onClick={() => dupItem(i)} />
+                <IconButton icon="trash" label="Remove line" className="col-span-1 justify-self-center self-center" onClick={() => removeItem(i)} />
+              </div>
+            ) : (
               <div key={it.id || i} className="grid grid-cols-12 gap-1.5">
-                <Input className="col-span-6" placeholder="Description" value={it.description} onChange={(e) => setItem(i, 'description', e.target.value)} />
+                <Input className="col-span-5" placeholder="Description" value={it.description} onChange={(e) => setItem(i, 'description', e.target.value)} />
                 <Input className="col-span-2" type="number" step="any" placeholder="Qty" value={it.qty} onChange={(e) => setItem(i, 'qty', e.target.value)} />
                 <Input className="col-span-3" type="number" step="0.01" placeholder="Unit price" value={it.unit_price} onChange={(e) => setItem(i, 'unit_price', e.target.value)} />
-                <IconButton icon="trash" label="Remove line" className="col-span-1 justify-self-center self-center"
-                  onClick={() => setForm({ ...form, items: items.filter((_, idx) => idx !== i) })} />
+                <IconButton icon="copy" label="Duplicate line" className="col-span-1 justify-self-center self-center" onClick={() => dupItem(i)} />
+                <IconButton icon="trash" label="Remove line" className="col-span-1 justify-self-center self-center" onClick={() => removeItem(i)} />
               </div>
-            ))}
+            )))}
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <Button type="button" size="sm" variant="secondary" icon="plus"
-              onClick={() => setForm({ ...form, items: [...items, { id: uid(), description: '', qty: 1, unit_price: 0 }] })}>
-              Add line
-            </Button>
-            <MenuItemsMenu items={menuItems} currency={currency} className="w-auto"
-              onAdd={(line) => setForm({ ...form, items: [...items, line] })} />
-            <ChargesMenu saved={user?.service_charges || []} className="w-auto"
-              onAdd={(line) => setForm({ ...form, items: [...items, line] })} />
+            <Button type="button" size="sm" variant="secondary" icon="plus" onClick={() => addItem({ id: uid(), description: '', qty: 1, unit_price: 0 })}>Add line</Button>
+            <Button type="button" size="sm" variant="ghost" icon="menu" onClick={() => addItem({ id: uid(), description: '', section: true })}>Add break</Button>
+            <MenuItemsMenu items={menuItems} currency={currency} className="w-auto" onAdd={addItem} />
+            <ChargesMenu saved={user?.service_charges || []} className="w-auto" onAdd={addItem} />
           </div>
         </div>
 
@@ -121,18 +154,63 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
             <p className="font-display text-lg font-semibold">{fmtMoney(total, currency)}</p>
           </div>
         </div>
-        <Field label="Notes"><Textarea rows={2} value={form.notes} onChange={set('notes')} placeholder="Payment terms, bank details…" /></Field>
-        <div className="flex flex-wrap justify-between gap-2">
-          {initial?.id ? <Button type="button" variant="danger" icon="trash" onClick={remove}>Delete</Button> : <span />}
+        <div className="grid grid-cols-3 gap-3">
+          <Field label="Payment terms">
+            <Select value={form.deposit_type} onChange={set('deposit_type')}>
+              <option value="">Pay in full</option>
+              <option value="percent">Deposit (%)</option>
+              <option value="amount">Deposit (fixed)</option>
+            </Select>
+          </Field>
+          {form.deposit_type
+            ? <Field label={form.deposit_type === 'percent' ? 'Deposit %' : 'Deposit amount'}>
+                <Input type="number" step={form.deposit_type === 'percent' ? '1' : '0.01'} min="0" value={form.deposit_value} onChange={set('deposit_value')} />
+              </Field>
+            : <div />}
+          {form.deposit_type
+            ? <div className="self-end rounded-lg border border-line bg-parchment/40 px-3 py-2 text-right text-sm">
+                <p className="text-[10px] uppercase tracking-wider text-fg/45">Deposit · Balance</p>
+                <p className="font-semibold">{fmtMoney(depositDue, currency)} · {fmtMoney(total - depositDue, currency)}</p>
+              </div>
+            : <div />}
+        </div>
+        <Field label="Notes" hint="Press Enter for a new line — it shows as a new line on the invoice."><Textarea rows={3} value={form.notes} onChange={set('notes')} placeholder="Payment terms, delivery details, anything the client should know…" /></Field>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            {initial?.id && <Button type="button" variant="danger" icon="trash" onClick={remove}>Delete</Button>}
+            {initial?.id && <Button type="button" variant="ghost" icon="copy" onClick={duplicate}>Duplicate</Button>}
+          </div>
           <div className="flex flex-wrap gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
             <Button type="button" variant="ghost" icon="external" onClick={preview}>Preview / print</Button>
-            <Button type="button" variant="secondary" icon="mail" onClick={sendToClient}>Send to client</Button>
+            <Button type="button" variant="secondary" icon="mail" onClick={openSendPreview}>Send to client</Button>
             <Button>{initial?.id ? 'Save invoice' : 'Create invoice'}</Button>
           </div>
         </div>
       </form>
     </Modal>
+
+    {/* Confirm-before-send: a real preview of the invoice, then one deliberate click to send. */}
+    <Modal open={!!sendPreview} onClose={() => setSendPreview(null)} title="Preview & send" wide>
+      {sendPreview && (
+        <div className="space-y-3">
+          <p className="text-sm text-fg/70">
+            {sendPreview.email
+              ? <>This will email the invoice to <span className="font-semibold text-fg">{sendPreview.email}</span> from your business address, and copy the link.</>
+              : <>This client has no email on file — confirming marks the invoice sent and copies the link for you to share.</>}
+          </p>
+          <div className="overflow-hidden rounded-lg border border-line bg-white">
+            <iframe title="Invoice preview" src={sendPreview.url} className="h-[60vh] w-full" />
+          </div>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={() => setSendPreview(null)}>Cancel</Button>
+            <Button type="button" variant="ghost" icon="external" onClick={() => window.open(sendPreview.url, '_blank')}>Open in new tab</Button>
+            <Button type="button" icon="mail" onClick={confirmSend}>{sendPreview.email ? 'Confirm & send' : 'Confirm & mark sent'}</Button>
+          </div>
+        </div>
+      )}
+    </Modal>
+    </>
   )
 }
 

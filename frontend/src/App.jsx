@@ -30,7 +30,7 @@ import PublicInvoice from './pages/PublicInvoice'
 import PublicQuote from './pages/PublicQuote'
 import Recipes from './pages/Recipes'
 import RoutesPage from './pages/RoutesPage'
-import Settings, { SettingsAbout, SettingsAppearance, SettingsBusiness, SettingsIntegrations, SettingsMembership, SettingsProfile, SettingsRecycle, SettingsSecurity } from './pages/Settings'
+import Settings, { SettingsAbout, SettingsAppearance, SettingsBusiness, SettingsIntegrations, SettingsInvoices, SettingsMembership, SettingsProfile, SettingsRecycle, SettingsSecurity } from './pages/Settings'
 import Support from './pages/Support'
 import Shopping from './pages/Shopping'
 import Suppliers from './pages/Suppliers'
@@ -319,6 +319,7 @@ export default function App() {
         <Route path="settings" element={<Settings />}>
           <Route index element={<SettingsProfile />} />
           <Route path="business" element={<SettingsBusiness />} />
+          <Route path="invoices" element={<SettingsInvoices />} />
           <Route path="security" element={<SettingsSecurity />} />
           <Route path="appearance" element={<SettingsAppearance />} />
           <Route path="membership" element={<SettingsMembership />} />

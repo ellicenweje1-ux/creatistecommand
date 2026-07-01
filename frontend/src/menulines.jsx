@@ -2,7 +2,7 @@ import { api } from './api'
 import { SYMBOLS, uid } from './format'
 import { Select } from './ui'
 
-const itemLabel = (m) => [m.course, m.name].filter(Boolean).join(' — ') || m.name || 'Item'
+const itemLabel = (m) => [m.course, m.name].filter(Boolean).join(' | ') || m.name || 'Item'
 
 /* Gather priced dishes the chef can pull straight onto a quote/invoice line: the booking's
    own menu (when there is one) + every saved menu. Returns [{group, label, price}]. */
