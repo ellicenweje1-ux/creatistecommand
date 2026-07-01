@@ -202,6 +202,11 @@ via `ensure_columns` + one new endpoint; no new env/deps.
   `deposit_type=''` (pay in full); migration idempotent on re-run. **LESSON: additive-migration tests must exercise an
   EXISTING table missing the new column (drop-column then `ensure_columns`), not just a fresh `create_all` DB — and never
   duplicate a table key in `wanted`.**
+- **Drag-to-reorder invoice line items (follow-on ask):** wired the existing `sortable.jsx` `DragList` + `GripHandle`
+  (the same touch-friendly reorder used on Shopping/Packing) into the `InvoiceEditorModal` line items — a grip per row,
+  reorders the flat `items` array (sections + normal lines alike). Loaded items get an `id` backfilled (`it.id || uid()`)
+  so drag keys stay stable. Frontend-only. Verified 7/7 (Playwright real pointer-drag: 3rd line → top = [CCC,AAA,BBB],
+  order persists after save via the API, zero JS errors). FAQ (rule #3) updated with the reorder note.
 
 ## Previous session (2026-06-25, twenty-third wave — on-the-go amendments: tasks ordering, shopping/checklist UX, drag-to-reorder, phone notifications)
 - Branch `claude/optimistic-meitner-yqvl2l` — **merge to `main` to deploy.** Ellice's third feedback batch

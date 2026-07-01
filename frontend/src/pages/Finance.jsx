@@ -6,6 +6,7 @@ import { Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageH
 import { QuotesPanel } from './Quotes'
 import { ChargesMenu } from '../charges'
 import { MenuItemsMenu, fetchMenuItems } from '../menulines'
+import { DragList, GripHandle } from '../sortable'
 
 /* ------------------------------ invoice editor ------------------------------ */
 export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, bookingId = null, clientId = null, currency = 'GBP' }) {
@@ -23,7 +24,7 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
     if (!open) return
     api.get('/clients').then(setClients).catch(() => {})
     fetchMenuItems(initial?.booking_id ?? bookingId).then(setMenuItems).catch(() => {})
-    if (initial) setForm({ ...blank, ...initial })
+    if (initial) setForm({ ...blank, ...initial, items: (initial.items || []).map((it) => ({ ...it, id: it.id || uid() })) })
     else {
       // Seed a new invoice with the chef's saved defaults (notes + deposit) from Settings → Invoices.
       const seeded = {
@@ -120,24 +121,33 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
 
         <div>
           <p className="label">Line items</p>
-          <div className="space-y-1.5">
-            {items.map((it, i) => (it.section ? (
-              <div key={it.id || i} className="grid grid-cols-12 items-center gap-1.5 rounded-lg bg-parchment/40 px-1 py-0.5">
-                <Input className="col-span-10 font-display font-semibold" placeholder="Section heading — e.g. DAY 1 (no price)"
-                  value={it.description} onChange={(e) => setItem(i, 'description', e.target.value)} />
-                <IconButton icon="copy" label="Duplicate line" className="col-span-1 justify-self-center self-center" onClick={() => dupItem(i)} />
-                <IconButton icon="trash" label="Remove line" className="col-span-1 justify-self-center self-center" onClick={() => removeItem(i)} />
-              </div>
-            ) : (
-              <div key={it.id || i} className="grid grid-cols-12 gap-1.5">
-                <Input className="col-span-5" placeholder="Description" value={it.description} onChange={(e) => setItem(i, 'description', e.target.value)} />
-                <Input className="col-span-2" type="number" step="any" placeholder="Qty" value={it.qty} onChange={(e) => setItem(i, 'qty', e.target.value)} />
-                <Input className="col-span-3" type="number" step="0.01" placeholder="Unit price" value={it.unit_price} onChange={(e) => setItem(i, 'unit_price', e.target.value)} />
-                <IconButton icon="copy" label="Duplicate line" className="col-span-1 justify-self-center self-center" onClick={() => dupItem(i)} />
-                <IconButton icon="trash" label="Remove line" className="col-span-1 justify-self-center self-center" onClick={() => removeItem(i)} />
-              </div>
-            )))}
-          </div>
+          <p className="mb-1.5 text-xs text-fg/45">Drag the ⠿ handle to reorder lines up or down.</p>
+          <DragList items={items} onReorder={(next) => setForm({ ...form, items: next })} className="space-y-1.5">
+            {(it, handle, dragging) => {
+              const i = items.indexOf(it)
+              return (
+                <li key={it.id} {...handle.row} className={cls('flex items-center gap-1', dragging && 'opacity-60')}>
+                  <GripHandle handle={handle.grip} />
+                  {it.section ? (
+                    <div className="grid flex-1 grid-cols-12 items-center gap-1.5 rounded-lg bg-parchment/40 px-1 py-0.5">
+                      <Input className="col-span-10 font-display font-semibold" placeholder="Section heading — e.g. DAY 1 (no price)"
+                        value={it.description} onChange={(e) => setItem(i, 'description', e.target.value)} />
+                      <IconButton icon="copy" label="Duplicate line" className="col-span-1 justify-self-center self-center" onClick={() => dupItem(i)} />
+                      <IconButton icon="trash" label="Remove line" className="col-span-1 justify-self-center self-center" onClick={() => removeItem(i)} />
+                    </div>
+                  ) : (
+                    <div className="grid flex-1 grid-cols-12 gap-1.5">
+                      <Input className="col-span-5" placeholder="Description" value={it.description} onChange={(e) => setItem(i, 'description', e.target.value)} />
+                      <Input className="col-span-2" type="number" step="any" placeholder="Qty" value={it.qty} onChange={(e) => setItem(i, 'qty', e.target.value)} />
+                      <Input className="col-span-3" type="number" step="0.01" placeholder="Unit price" value={it.unit_price} onChange={(e) => setItem(i, 'unit_price', e.target.value)} />
+                      <IconButton icon="copy" label="Duplicate line" className="col-span-1 justify-self-center self-center" onClick={() => dupItem(i)} />
+                      <IconButton icon="trash" label="Remove line" className="col-span-1 justify-self-center self-center" onClick={() => removeItem(i)} />
+                    </div>
+                  )}
+                </li>
+              )
+            }}
+          </DragList>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Button type="button" size="sm" variant="secondary" icon="plus" onClick={() => addItem({ id: uid(), description: '', qty: 1, unit_price: 0 })}>Add line</Button>
             <Button type="button" size="sm" variant="ghost" icon="menu" onClick={() => addItem({ id: uid(), description: '', section: true })}>Add break</Button>
