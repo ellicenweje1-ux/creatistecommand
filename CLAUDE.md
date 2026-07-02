@@ -123,10 +123,24 @@ All built + verified this wave (branch `claude/optimistic-meitner-yqvl2l`) — *
     groups untouched). NOT added to Tasks — those auto-order by date/time per #17–19 (would conflict).
 24. ✅ **Supplier price book: amend a logged price inline** (pencil → row becomes an edit form; saving stamps
     `last_checked`=today) **and it's listed A–Z** (backend already ordered by item_name; also sorted client-side).
-25. ✅ **Tasks: phone notification before a task times out** — full **Web Push**, *inert until VAPID keys are set*
-    (house pattern). See the wave notes below for the env vars + the iOS "add to Home Screen" caveat.
+25. ✅ **Tasks: phone notification before a task times out** — full **Web Push**. **LIVE & WORKING (Ellice set the
+    VAPID keys; confirmed working perfectly from real use, 2026-07-02).** See the wave notes below for the env vars +
+    the iOS "add to Home Screen" caveat.
 
-## Latest session (2026-07-01, twenty-fourth wave — invoice payment details + customisable footer line)
+## Latest session (2026-07-02 — status updates ahead of the first comp trial call, no code changes)
+- Branch `claude/aunty-trial-setup-n0mxcb` — **CLAUDE.md only** (safe to merge anytime; nothing to deploy).
+- **Phone notifications (Web Push, backlog #25) are LIVE & WORKING** — Ellice set the `VAPID_*` vars and
+  confirmed from real use that push delivery works perfectly. Status updated everywhere in this file.
+- **First comp trial (Ellice's aunt) is happening now:** steps re-confirmed against the code — aunt registers
+  normally → Ellice ticks **Admin → Chefs → "Complimentary account"** (`admin.py` sets active + Elite +
+  onboarded, never billed, MRR-excluded, bypasses the onboarding-call gate) → aunt refreshes and is in.
+- **Onboarding-call software (screenshare):** the booking system already mints a **Jitsi Meet** room per
+  session by default (`routers/onboarding.py` → `meet.jit.si/creatiste-…`) — free, no account, browser-based,
+  **screen sharing built in**, no time limit. `MEETING_URL` env can override with a fixed personal room
+  (e.g. Google Meet — free 1:1 has no practical limit; **Zoom free caps at 40 min < the 45-min slots**, so
+  Zoom needs Pro — which is also the prerequisite for the dormant auto-record/transcribe pipeline).
+
+## Previous session (2026-07-01, twenty-fourth wave — invoice payment details + customisable footer line)
 - Branch `claude/busy-cerf-3k7klg` — **merge to `main` to deploy.** Ellice's ask: (a) a fill-in **payment
   details** option that shows on invoices, and (b) a **customisable footer/thank-you line** on invoices.
   Both are **business-level defaults** (set once, apply to every invoice) — the natural fit alongside the
@@ -310,8 +324,9 @@ clean (**85 modules**). Verified Playwright (demo Elite) **10/10**, zero JS/cons
 - **Packing (#22–23):** same bigger tick boxes + drag-to-reorder within category groups.
 - **Suppliers (#24, `pages/Suppliers.jsx`):** price-book rows get an inline **edit** form (pencil → save
   stamps `last_checked`=today); list is sorted **A–Z** (label says so) on top of the backend's order.
-- **Phone notifications (#25 — the big one): Web Push, INERT until configured** (same pattern as Zoom/Stripe/
-  email). `app/push.py` (`push_enabled()`, `notify_user()` with dead-subscription pruning, + a `--gen` CLI for
+- **Phone notifications (#25 — the big one): Web Push — NOW LIVE (VAPID keys set; Ellice confirmed real-device
+  delivery working perfectly, 2026-07-02).** Built same-inert-until-configured pattern as Zoom/Stripe/
+  email. `app/push.py` (`push_enabled()`, `notify_user()` with dead-subscription pruning, + a `--gen` CLI for
   the keypair); `routers/push.py` (`GET /push/config`, `POST /push/{subscribe,unsubscribe,test}`); the SW
   (`sw.template.js`) gained `push` + `notificationclick` handlers; `src/push.js` does subscribe/permission;
   **Settings → App & integrations → "Phone notifications"** card has the per-device toggle + "Send a test" +
@@ -320,14 +335,13 @@ clean (**85 modules**). Verified Playwright (demo Elite) **10/10**, zero JS/cons
   `tasks.due_reminder_for` (stores the deadline it reminded for, so rescheduling re-arms). Times read in
   `ONBOARDING_TZ` (Europe/London). **Granularity = the scheduler interval (6h default)** — fine for a day-ahead
   nudge; lower `SCHEDULER_INTERVAL_HOURS` for snappier.
-  - **⚠️ ACTION for Ellice to turn it on (no code, like the other integrations):** run **`python -m app.push
-    --gen`** once (locally or in Render → Shell — it prints the three vars), then set **`VAPID_PUBLIC_KEY`**,
-    **`VAPID_PRIVATE_KEY`** and **`VAPID_SUBJECT`** (a `mailto:` — defaults to `SUPPORT_EMAIL`) on Render and
-    redeploy. Until then the card shows "not configured" and nothing sends. **iOS rule (not a bug):** web push
-    only reaches the app once it's **added to the Home Screen** (installed PWA) — the card spells this out.
-  - **What couldn't be verified in-sandbox:** the actual end-to-end *delivery* of a push (needs a real device +
-    a push service like FCM). Everything around it was tested (gating, subscribe/unsubscribe de-dupe, the
-    reminder selection/idempotency/re-arm, the card states, the SW handlers compiled into `dist/sw.js`).
+  - ✅ **DONE — Ellice turned it on (confirmed 2026-07-02):** the three **`VAPID_*`** vars are set on Render
+    (generated via `python -m app.push --gen`) and she reports notifications **working perfectly** in real use.
+    **iOS rule (not a bug):** web push only reaches the app once it's **added to the Home Screen** (installed
+    PWA) — the card spells this out.
+  - **End-to-end delivery is now confirmed on a real device** (couldn't be verified in-sandbox at build time;
+    everything around it — gating, subscribe/unsubscribe de-dupe, reminder selection/idempotency/re-arm, the
+    card states, the SW handlers in `dist/sw.js` — was tested then, and Ellice's live use closes the loop).
 - **FAQ kept current (rule #3):** Support FAQ — extended the mobile FAQ (bigger tick boxes + drag), added
   "Can I get a reminder before a task is due?", "How are my tasks ordered… leave priority blank?", "Can I edit
   or reorder items on a shopping list?", and a price-book-edit note on the routes/suppliers FAQ. (Public
@@ -1497,8 +1511,8 @@ bridge between sessions.
   (default 1), `SCHEDULER_INTERVAL_HOURS` (6), `ENABLE_SCHEDULER` (1). Backup/recovery
   (22nd-wave amendments, safe defaults): `BACKUP_INTERVAL_DAYS` (7), `BACKUP_EMAIL`
   (defaults to `SUPPORT_EMAIL`), `ENABLE_BACKUP` (1), `RECYCLE_RETENTION_DAYS` (30).
-  Phone notifications / Web Push (23rd wave — **off until set**): `VAPID_PUBLIC_KEY`,
-  `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (a `mailto:`; defaults to `SUPPORT_EMAIL`) — generate
+  Phone notifications / Web Push (23rd wave — **LIVE, set & working since 2026-07-02**): `VAPID_PUBLIC_KEY`,
+  `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (a `mailto:`; defaults to `SUPPORT_EMAIL`) — generated
   with `python -m app.push --gen`. Tuning (safe defaults): `TASK_REMINDER_LEAD_HOURS` (24),
   `ENABLE_TASK_REMINDERS` (1). Needs the `pywebpush` dependency (now in requirements.txt).
 
