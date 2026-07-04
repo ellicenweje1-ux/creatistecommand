@@ -6,7 +6,7 @@ const CONFIG = {
   // POST target for applications. Leave empty to run in preview mode
   // (the form completes locally). Wire to Formspree, a serverless
   // function or your own API — the payload is a flat JSON object.
-  endpoint: "",
+  endpoint: "https://formspree.io/f/xbdvqaoq",
   // Optional server-side Instagram existence check. Should accept
   // ?username=<name> and return JSON { exists: true|false }.
   // Browsers cannot query instagram.com directly (CORS), so without
@@ -180,6 +180,7 @@ form.addEventListener("submit", async (e) => {
   btn.firstElementChild.textContent = "One moment…";
 
   const payload = {
+    _subject: "New Ascension application",
     first_name: form.first_name.value.trim(),
     surname: form.surname.value.trim(),
     email: form.email.value.trim(),
