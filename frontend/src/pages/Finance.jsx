@@ -6,6 +6,7 @@ import { Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageH
 import { QuotesPanel } from './Quotes'
 import { ChargesMenu } from '../charges'
 import { MenuItemsMenu, fetchMenuItems } from '../menulines'
+import { PriceBookSearch } from '../pricebook'
 import { GripHandle, SortableList } from '../sortable'
 
 /* ------------------------------ invoice editor ------------------------------ */
@@ -265,7 +266,6 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
 
 /* ------------------------------ expense modal ------------------------------- */
 const EXPENSE_CATS = ['Ingredients', 'Equipment', 'Travel', 'Staff', 'Kitchen', 'Marketing', 'Insurance', 'Other']
-const priceQtyUnit = (r) => [Number(r?.quantity) > 0 ? +Number(r.quantity) : '', r?.unit || ''].filter(Boolean).join(' ')
 
 export function ExpenseFormModal({ open, onClose, onSaved, initial = null, bookingId = null }) {
   const { user } = useAuth()
@@ -274,20 +274,11 @@ export function ExpenseFormModal({ open, onClose, onSaved, initial = null, booki
   const blank = { category: 'Ingredients', description: '', amount: '', date: todayISO(), supplier: '', receipt_url: '', items: [], booking_id: null }
   const [form, setForm] = useState(blank)
   const [bookings, setBookings] = useState([])
-  const [q, setQ] = useState('')
-  const [results, setResults] = useState([])
   useEffect(() => {
     if (!open) return
     setForm(initial ? { ...blank, ...initial, items: initial.items || [] } : { ...blank, booking_id: bookingId })
-    setQ(''); setResults([])
     if (!bookingId) api.get('/bookings').then(setBookings).catch(() => {})
   }, [open, initial]) // eslint-disable-line react-hooks/exhaustive-deps
-  // Live price-book search → Enter (or click) adds the item as an expense line.
-  useEffect(() => {
-    if (!q.trim()) { setResults([]); return }
-    const t = setTimeout(() => api.get(`/suppliers/prices/search?q=${encodeURIComponent(q)}`).then((r) => setResults(r.slice(0, 6))).catch(() => {}), 200)
-    return () => clearTimeout(t)
-  }, [q])
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
   const items = form.items || []
@@ -297,8 +288,7 @@ export function ExpenseFormModal({ open, onClose, onSaved, initial = null, booki
   const setItem = (i, k, v) => setForm({ ...form, items: items.map((it, idx) => (idx === i ? { ...it, [k]: v } : it)) })
   const addItem = (line) => setForm({ ...form, items: [...items, line] })
   const removeItem = (i) => setForm({ ...form, items: items.filter((_, idx) => idx !== i) })
-  const addFromPrice = (p) => { addItem({ id: uid(), name: p.item_name, qty: p.quantity || '', unit: p.unit || '', cost: p.price || 0 }); setQ(''); setResults([]) }
-  const onSearchKey = (e) => { if (e.key === 'Enter') { e.preventDefault(); if (results[0]) addFromPrice(results[0]) } }
+  const addFromPrice = (p) => addItem({ id: uid(), name: p.item_name, qty: p.quantity || '', unit: p.unit || '', cost: p.price || 0 })
   const pickBooking = (e) => {
     const id = e.target.value ? Number(e.target.value) : null
     const bk = bookings.find((b) => b.id === id)
@@ -343,21 +333,8 @@ export function ExpenseFormModal({ open, onClose, onSaved, initial = null, booki
 
         <div>
           <p className="label">Items (optional) — build it from your price book</p>
-          <div className="relative">
-            <Input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onSearchKey}
-              placeholder="Search your price book (e.g. cream) then press Enter to add" />
-            {results.length > 0 && (
-              <div className="absolute z-30 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-line bg-card shadow-pop">
-                {results.map((r, idx) => (
-                  <button type="button" key={r.id} onClick={() => addFromPrice(r)}
-                    className={cls('flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-parchment/50', idx === 0 && 'bg-parchment/30')}>
-                    <span>{r.item_name} <span className="text-fg/45">{priceQtyUnit(r)}</span> <span className="text-fg/35">· {r.supplier_name}</span></span>
-                    <span className="shrink-0 font-medium">{fmtMoney(r.price, cur)}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <PriceBookSearch onPick={addFromPrice} currency={cur}
+            placeholder="Search your price book (e.g. cream) then press Enter to add" />
           {items.length > 0 && (
             <div className="mt-2 space-y-1.5">
               {items.map((it, i) => (it.section ? (

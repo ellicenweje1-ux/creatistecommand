@@ -41,6 +41,8 @@ const FAQS = [
    'Yes. The “Shop” on each shopping-list item is steered from your Suppliers (add them under Suppliers, with addresses). On Routes, open a route and choose “Add stops from a shopping list” — each shop on that list becomes a stop, with its address filled in from your Suppliers, ready to open in Google Maps. No more zig-zagging across town. (In each supplier’s price book, prices are listed A–Z; record each item’s pack size and unit — e.g. 2 l — tap the pencil to amend, or the copy icon to duplicate a line.)'],
   ['Can I build an expense from my price book?',
    'Yes. When you log an expense (Finance → Expense), pick a booking to title it automatically, then search your price book and press Enter to drop items straight in. Use “Add a break” to separate stores (e.g. Tesco, then the fishmonger), and the amount totals itself from the items. Prefer a single figure? Just leave the items empty and type the amount.'],
+  ['Can I pull price-book items into online orders and my inventory?',
+   'Yes — the same price-book search is on both. When you track an online order, search above the “What’s in it” box: each pick joins the item summary, adds its price to the cost and fills in the supplier if it’s empty. When you add a stock item to Inventory, the search fills the whole form — item, quantity, unit, cost per unit (worked out from the pack price) and supplier — ready to adjust before you save.'],
   ['Can a menu dish be offered in more than one size?',
    'Yes. On any dish (Menus, or a booking’s Menu tab) tap “Offer multiple sizes” and add each size with its own price — e.g. 32oz £9, 58oz £15. Each size then appears as its own option when you pull the dish onto an invoice or quote.'],
   ['Can I add my bookings to my phone calendar?',

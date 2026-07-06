@@ -126,7 +126,35 @@ All built + verified this wave (branch `claude/optimistic-meitner-yqvl2l`) — *
 25. ✅ **Tasks: phone notification before a task times out** — full **Web Push**, *inert until VAPID keys are set*
     (house pattern). See the wave notes below for the env vars + the iOS "add to Home Screen" caveat.
 
-## Latest session (2026-07-01, twenty-fourth wave — invoice payment details + customisable footer line)
+## Latest session (2026-07-06, twenty-fifth wave — price book pulls into Online orders + Inventory, shared search extracted)
+- Branch `claude/price-book-search-okmf6i` — **merge to `main` to deploy.** Ellice's ask: "for Online orders
+  and Inventory list, allow items to be easily searched and pulled in from price book." **Frontend only —
+  no backend/schema/env changes** (reuses `GET /suppliers/prices/search`). `npm run build` clean (**86 modules**).
+- **New shared `frontend/src/pricebook.jsx`** — `PriceBookSearch` (the debounced type→dropdown→Enter-or-click
+  search used everywhere) + `priceQtyUnit(r)` (pack-size text, "2 l"). This was about to be the 3rd and 4th
+  copy of the same widget, so **Shopping (`ListEditor`) and Finance (`ExpenseFormModal`) were refactored onto
+  it too** — identical markup/behaviour, local q/results state and Finance's local `priceQtyUnit` removed.
+- **Online orders (`Orders.jsx OrderFormModal`):** a price-book search above "What's in it" — each pick
+  **joins the item summary** ("Zanzibar cream (2 l)", comma-separated), **adds its price to the Cost**
+  (rounded 2dp) and **fills Supplier from the price book if empty** (never overwrites a typed one). Also
+  benefits the booking Orders tab (same modal via BookingDetail).
+- **Inventory (`Inventory.jsx ItemModal`):** a "Pull in from your price book" search at the top of the
+  add/edit form — fills item name, quantity, unit, supplier, and **cost per unit = pack price ÷ pack
+  quantity** (e.g. 2 l @ £3.50 → £1.75/l — inventory's stock value is qty × cost_per_unit, so dividing is
+  the correct semantics; falls back to the raw price when the pack has no quantity). All fields stay
+  editable before saving.
+- **FAQ kept current (rule #3):** new Support FAQ "Can I pull price-book items into online orders and my
+  inventory?". (In-app operational flow — public pre-sign-up FAQ untouched, per prior-wave precedent.)
+- **Verified:** Playwright (system chromium, demo Elite chef) **20/20** — orders: search box, result row
+  (pack + supplier + price), pick fills summary/cost/supplier, Enter adds top match + appends + sums, typed
+  supplier not overwritten, saved order row; inventory: fills name/qty/unit/supplier + per-unit division
+  (£1.75), saved stock row; **regressions on the refactored shared component** — shopping list add (qty +
+  price + supplier-as-shop group) and expense item line + auto-summed amount both still work; zero uncaught
+  JS / app-origin console errors. NB `fmtMoney(3.5)` renders "£3.5" (min 0 fraction digits) — that's the
+  app-wide house format, not a bug (a test first asserted "£3.50" and was wrong).
+- **No version bump** (standing rule — awaiting Ellice's word + her biblical reference).
+
+## Previous session (2026-07-01, twenty-fourth wave — invoice payment details + customisable footer line)
 - Branch `claude/busy-cerf-3k7klg` — **merge to `main` to deploy.** Ellice's ask: (a) a fill-in **payment
   details** option that shows on invoices, and (b) a **customisable footer/thank-you line** on invoices.
   Both are **business-level defaults** (set once, apply to every invoice) — the natural fit alongside the
