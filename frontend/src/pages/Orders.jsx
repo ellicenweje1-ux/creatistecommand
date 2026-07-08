@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls, fmtDate, fmtMoney, label, ORDER_STATUSES, ORDER_TONES, relDays, todayISO } from '../format'
+import { PriceBookSearch, priceQtyUnit } from '../pricebook'
 import { Badge, Button, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, Select, Spinner, Textarea, toastErr } from '../ui'
 
 /* -------------------------------- form modal -------------------------------- */
 export function OrderFormModal({ open, onClose, onSaved, initial = null, bookingId = null }) {
+  const { user } = useAuth()
   const blank = {
     supplier: '', website: '', order_ref: '', items_summary: '', order_date: todayISO(),
     expected_date: '', status: 'to_order', tracking_url: '', cost: '', notes: '',
@@ -13,6 +15,18 @@ export function OrderFormModal({ open, onClose, onSaved, initial = null, booking
   const [form, setForm] = useState(blank)
   useEffect(() => { if (open) setForm(initial ? { ...blank, ...initial } : blank) }, [open, initial]) // eslint-disable-line react-hooks/exhaustive-deps
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
+  // Pull a price-book item in: it joins the item summary, its price adds to the
+  // cost, and the supplier fills in from the price book when not already set.
+  const pullFromPrice = (p) => setForm((f) => {
+    const pack = priceQtyUnit(p)
+    const line = `${p.item_name}${pack ? ` (${pack})` : ''}`
+    return {
+      ...f,
+      items_summary: f.items_summary?.trim() ? `${f.items_summary.trim().replace(/,$/, '')}, ${line}` : line,
+      cost: String(Math.round(((Number(f.cost) || 0) + (Number(p.price) || 0)) * 100) / 100),
+      supplier: f.supplier?.trim() ? f.supplier : (p.supplier_name || ''),
+    }
+  })
 
   const save = (e) => {
     e.preventDefault()
@@ -28,7 +42,13 @@ export function OrderFormModal({ open, onClose, onSaved, initial = null, booking
           <Field label="Supplier"><Input value={form.supplier} onChange={set('supplier')} placeholder="Sous Chef" required /></Field>
           <Field label="Order ref"><Input value={form.order_ref} onChange={set('order_ref')} placeholder="SC-118245" /></Field>
         </div>
-        <Field label="What's in it"><Textarea rows={2} value={form.items_summary} onChange={set('items_summary')} placeholder="Banana leaves x30, smoked salt…" /></Field>
+        <div>
+          <p className="label">What's in it</p>
+          <PriceBookSearch onPick={pullFromPrice} currency={user?.currency}
+            placeholder="Add from your price book — search (e.g. cream), press Enter" />
+          <Textarea rows={2} className="mt-1.5" value={form.items_summary} onChange={set('items_summary')} placeholder="Banana leaves x30, smoked salt…" />
+          <p className="mt-1 text-xs text-fg/40">Each price-book pick joins the summary, adds its price to the cost and fills the supplier if empty.</p>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Ordered on"><Input type="date" value={form.order_date} onChange={set('order_date')} /></Field>
           <Field label="Expected by"><Input type="date" value={form.expected_date} onChange={set('expected_date')} /></Field>

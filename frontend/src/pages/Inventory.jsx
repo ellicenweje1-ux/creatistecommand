@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls, daysUntil, fmtDate, fmtMoney, relDays, todayISO } from '../format'
+import { PriceBookSearch } from '../pricebook'
 import { Badge, Button, EmptyState, Field, IconButton, Input, Modal, PageHeader, SearchInput, Select, Spinner, Textarea, toastErr } from '../ui'
 
 const STORAGE = ['pantry', 'fridge', 'freezer', 'dry', 'other']
 const CATEGORIES = ['Produce', 'Protein', 'Fish', 'Dairy', 'Dry goods', 'Spices', 'Condiments', 'Bakery', 'Drinks', 'Equipment consumables', 'Other']
 
 function ItemModal({ open, onClose, onSaved, initial = null }) {
+  const { user } = useAuth()
   const blank = {
     name: '', category: 'Produce', quantity: '', unit: '', low_stock_threshold: '',
     storage: 'pantry', purchase_date: todayISO(), expiry_date: '', cost_per_unit: '', supplier: '', notes: '',
@@ -15,6 +17,20 @@ function ItemModal({ open, onClose, onSaved, initial = null }) {
   const [form, setForm] = useState(blank)
   useEffect(() => { if (open) setForm(initial ? { ...blank, ...initial } : blank) }, [open, initial]) // eslint-disable-line react-hooks/exhaustive-deps
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
+  // Pull a price-book item in: name/qty/unit/supplier fill from the row, and the
+  // pack price is divided by the pack quantity to give the true cost per unit.
+  const pullFromPrice = (p) => setForm((f) => {
+    const qty = Number(p.quantity) || 0
+    const price = Number(p.price) || 0
+    return {
+      ...f,
+      name: p.item_name || f.name,
+      quantity: qty > 0 ? String(qty) : f.quantity,
+      unit: p.unit || f.unit,
+      cost_per_unit: price > 0 ? String(qty > 0 ? Math.round((price / qty) * 100) / 100 : price) : f.cost_per_unit,
+      supplier: p.supplier_name || f.supplier,
+    }
+  })
   const save = (e) => {
     e.preventDefault()
     const payload = {
@@ -29,6 +45,12 @@ function ItemModal({ open, onClose, onSaved, initial = null }) {
   return (
     <Modal open={open} onClose={onClose} title={initial?.id ? 'Edit stock item' : 'Add stock item'}>
       <form onSubmit={save} className="space-y-4">
+        <div>
+          <p className="label">Pull in from your price book</p>
+          <PriceBookSearch onPick={pullFromPrice} currency={user?.currency}
+            placeholder="Search your price book (e.g. cream), press Enter to fill the form" />
+          <p className="mt-1 text-xs text-fg/40">Fills the item, quantity, unit, cost per unit and supplier — then adjust anything before saving.</p>
+        </div>
         <Field label="Item"><Input value={form.name} onChange={set('name')} placeholder="White miso paste" required /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Category">
