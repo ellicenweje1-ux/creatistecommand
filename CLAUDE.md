@@ -147,14 +147,19 @@ All built + verified this wave (branch `claude/optimistic-meitner-yqvl2l`) — *
      `PriceBookSearch` now returns null below `plan_level` 2.
   5. **Stale FAQ (rule #3):** numbering FAQ said Settings → Business; it moved to **Settings → Invoices** in the
      24th wave. Also added the order↔booking link line to the orders/inventory FAQ.
-- **Icon submark (Ellice's ask — AWAITING HER FILE):** her actual icon isn't in the repo and the sandbox can't
-  fetch her sites (egress blocked). Pipeline readied instead: `scripts/make_icons.py` now uses
-  **`brand/submark.(svg|png|webp|jpg)`** when present — renders all PWA icons + a `favicon-64.png` from it,
-  centered on near-black (data:-URI embed; NB file:// subresources are blocked from set_content pages) — and
-  falls back to the drawn flame **byte-identically** otherwise (both paths verified with a test image).
-  `brand/README.md` documents the drop-in. **Remaining once she supplies the file:** save as
-  `brand/submark.png`, run the script, swap the inline SVG favicon in `frontend/index.html` for
-  `/icons/favicon-64.png`, and consider `make_og.py` + the `Flame` glyph in `ui.jsx`.
+- **Icon submark — ✅ DONE (her actual icon is now the brand mark everywhere).** Ellice attached her real
+  icon in chat (gold flame + ivory leaf on black — the refined version of the flame concept). The attachment
+  arrives as an inline image only (no bytes on disk), so it was **recreated as a vector trace** — iterated in
+  Playwright against her original until matching — and committed as **`brand/submark.svg`** (the source of
+  truth, brand gold `#BFA987` + ivory `#FFFBF5`, viewBox `316 10 414 888` crops to the mark). It now drives:
+  (a) **all PWA icons + apple-touch** via `scripts/make_icons.py` (which prefers `brand/submark.(svg|png|webp|jpg)`
+  and falls back to the old drawn flame byte-identically — data:-URI embed, NB file:// subresources are blocked
+  from set_content pages); (b) a real **`/icons/favicon-64.png`** replacing the inline data-URI SVG favicon in
+  `frontend/index.html`; (c) the **in-app `Flame` component** in `ui.jsx` (sidebar Brand lockup + intro film) —
+  same paths, 1000-space with the cropping viewBox; (d) the **social card** (`make_og.py` + regenerated
+  `og-image.png`). The small stroke-style `flame` glyph in the `Icon` PATHS set was left as generic decoration.
+  If the mark ever changes: update `brand/submark.svg`, re-run both scripts, and mirror the paths in `ui.jsx`
+  (documented in `brand/README.md`). Verified: favicon 200s, sidebar lockup renders her mark, zero JS errors.
 - **Rollout readiness (unchanged known items, not blockers):** VAPID keys unset (phone notifications stay
   dormant until `python -m app.push --gen` + the 3 env vars); Zoom recording dormant until `ZOOM_*` set; weekly
   backup still emails (cloud-storage destination is the planned upgrade); OG/canonical URLs point at
