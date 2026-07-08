@@ -126,7 +126,42 @@ All built + verified this wave (branch `claude/optimistic-meitner-yqvl2l`) — *
 25. ✅ **Tasks: phone notification before a task times out** — full **Web Push**, *inert until VAPID keys are set*
     (house pattern). See the wave notes below for the env vars + the iOS "add to Home Screen" caveat.
 
-## Latest session (2026-07-06, twenty-fifth wave — price book pulls into Online orders + Inventory, shared search extracted)
+## Latest session (2026-07-08, twenty-sixth wave — final pre-rollout scan: 5 flow-gap fixes + icon pipeline readied)
+- Branch `claude/creative-platform-scan-03hsi4` — **merge to `main` to deploy.** Ellice asked for a final
+  platform scan for flow gaps before the **initial rollout**, plus the logo submark updated to her actual icon.
+- **Scan method:** `npm run build` clean (86 modules); migration dict audited (no dup-key trap); Playwright
+  full-page sweep — **all 47 page loads (38 routes + 8 booking-detail tabs + login) with ZERO uncaught JS
+  errors** (only the known Google-Fonts sandbox noise, confirmed via requestfailed URLs); static review of all
+  shared-widget seams (PriceBookSearch/MenuItemsMenu/ChargesMenu/BookingPicker/SortableList wiring consistent).
+- **5 gaps found & fixed (frontend only, no schema/env changes), all Playwright-verified (13/13 + FAQ render check):**
+  1. **Standalone Orders page couldn't link an order to a booking** — `OrderFormModal` now has the same
+     `BookingPicker` as New List/Route/Packing (hidden when opened from a booking's Orders tab).
+  2. **Invoice editor didn't refresh "Add a menu item" when the linked booking changed mid-edit** (quote editor
+     did) — now refetches on `form.booking_id` change.
+  3. **Sized dishes duplicated into the booking menu on invoice save** — picker entries carried "Name (32oz)" as
+     the sync name, so the course+name match failed and size-suffixed copies were added. `dishEntries` now
+     carries the BASE dish name; `syncMenuToBooking` also grows its `have` set while filtering so 32oz+58oz
+     lines add the dish once. (Matters for Ellice's meal-prep containers.)
+  4. **Solo chefs saw a dead price-book search box** on Shopping/Inventory (all-plan pages) — the suppliers
+     router is `min_plan=2` so `/suppliers/prices/search` 403s on Solo and the widget swallowed it.
+     `PriceBookSearch` now returns null below `plan_level` 2.
+  5. **Stale FAQ (rule #3):** numbering FAQ said Settings → Business; it moved to **Settings → Invoices** in the
+     24th wave. Also added the order↔booking link line to the orders/inventory FAQ.
+- **Icon submark (Ellice's ask — AWAITING HER FILE):** her actual icon isn't in the repo and the sandbox can't
+  fetch her sites (egress blocked). Pipeline readied instead: `scripts/make_icons.py` now uses
+  **`brand/submark.(svg|png|webp|jpg)`** when present — renders all PWA icons + a `favicon-64.png` from it,
+  centered on near-black (data:-URI embed; NB file:// subresources are blocked from set_content pages) — and
+  falls back to the drawn flame **byte-identically** otherwise (both paths verified with a test image).
+  `brand/README.md` documents the drop-in. **Remaining once she supplies the file:** save as
+  `brand/submark.png`, run the script, swap the inline SVG favicon in `frontend/index.html` for
+  `/icons/favicon-64.png`, and consider `make_og.py` + the `Flame` glyph in `ui.jsx`.
+- **Rollout readiness (unchanged known items, not blockers):** VAPID keys unset (phone notifications stay
+  dormant until `python -m app.push --gen` + the 3 env vars); Zoom recording dormant until `ZOOM_*` set; weekly
+  backup still emails (cloud-storage destination is the planned upgrade); OG/canonical URLs point at
+  `creatistecommand.onrender.com` (update on a custom domain); solicitor review of Terms/Privacy still advised.
+- **No version bump** (standing rule — awaiting Ellice's word + her biblical reference).
+
+## Previous session (2026-07-06, twenty-fifth wave — price book pulls into Online orders + Inventory, shared search extracted)
 - Branch `claude/price-book-search-okmf6i` — **merge to `main` to deploy.** Ellice's ask: "for Online orders
   and Inventory list, allow items to be easily searched and pulled in from price book." **Frontend only —
   no backend/schema/env changes** (reuses `GET /suppliers/prices/search`). `npm run build` clean (**86 modules**).
