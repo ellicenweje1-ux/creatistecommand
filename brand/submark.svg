@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1024" height="1024">
+  <!-- gold flame: slim flowing ribbon — needle tip top, bulge right ~y30%, S-sweep down-left tail -->
+  <path fill="#BFA987" d="
+    M545 20
+    C558 120 602 208 608 292
+    C612 385 558 462 505 542
+    C455 618 418 692 402 778
+    C355 700 326 628 344 552
+    C364 466 480 368 508 284
+    C531 205 542 112 545 20 Z"/>
+  <!-- ivory leaf: slender willow leaf lower right, pointed both ends -->
+  <path fill="#FFFBF5" d="
+    M688 462
+    C720 560 698 668 625 762
+    C590 810 570 848 563 888
+    C546 810 558 722 602 652
+    C652 578 681 518 688 462 Z"/>
+</svg>

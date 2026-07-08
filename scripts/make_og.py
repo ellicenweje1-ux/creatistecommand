@@ -28,9 +28,10 @@ HTML = f"""
       font-family:Georgia,'Times New Roman',serif;color:#FFFBF5;position:relative;">
     <div style="position:absolute;inset:28px;border:1px solid rgba(191,169,135,0.30);border-radius:24px;"></div>
 
-    <svg width="118" height="118" viewBox="0 0 24 24" fill="none" style="margin-bottom:18px">
-      <path d="M11.2 21.6c-3.7-1.2-5.5-4.4-4.4-7.8.7-2.1 2.5-3.5 3.1-5.7.4-1.4.3-2.8-.2-4.3 2.9 1.4 4.6 3.7 4.7 6.3.1 2-1 3.5-1.1 5.2-.1 1.6.7 3 2.2 4.3-1.4.4-2.9.4-4.3 0Z" fill="#BFA987"/>
-      <path d="M16.8 20.9c2-1 3-3 2.3-5-.4-1.3-1.4-2.2-1.7-3.7-1.3 1.1-1.9 2.4-1.7 3.8.2 1 .9 1.8.8 2.8-.1.8-.7 1.5-1.6 2 .7.2 1.3.2 1.9.1Z" fill="#FFFBF5"/>
+    <!-- Ellice's actual submark (vector trace — source: brand/submark.svg) -->
+    <svg width="118" height="118" viewBox="316 10 414 888" fill="none" style="margin-bottom:18px">
+      <path d="M545 20C558 120 602 208 608 292 612 385 558 462 505 542 455 618 418 692 402 778 355 700 326 628 344 552 364 466 480 368 508 284 531 205 542 112 545 20Z" fill="#BFA987"/>
+      <path d="M688 462C720 560 698 668 625 762 590 810 570 848 563 888 546 810 558 722 602 652 652 578 681 518 688 462Z" fill="#FFFBF5"/>
     </svg>
 
     <div style="font-size:46px;font-weight:700;letter-spacing:18px;color:#BFA987;
