@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls, fmtDate, fmtMoney, label, ORDER_STATUSES, ORDER_TONES, relDays, todayISO } from '../format'
+import { BookingPicker } from '../prep'
 import { PriceBookSearch, priceQtyUnit } from '../pricebook'
 import { Badge, Button, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, Select, Spinner, Textarea, toastErr } from '../ui'
 
 /* -------------------------------- form modal -------------------------------- */
-export function OrderFormModal({ open, onClose, onSaved, initial = null, bookingId = null }) {
+export function OrderFormModal({ open, onClose, onSaved, initial = null, bookingId = null, bookings = [] }) {
   const { user } = useAuth()
   const blank = {
     supplier: '', website: '', order_ref: '', items_summary: '', order_date: todayISO(),
-    expected_date: '', status: 'to_order', tracking_url: '', cost: '', notes: '',
+    expected_date: '', status: 'to_order', tracking_url: '', cost: '', notes: '', booking_id: '',
   }
   const [form, setForm] = useState(blank)
   useEffect(() => { if (open) setForm(initial ? { ...blank, ...initial } : blank) }, [open, initial]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -30,7 +31,7 @@ export function OrderFormModal({ open, onClose, onSaved, initial = null, booking
 
   const save = (e) => {
     e.preventDefault()
-    const payload = { ...form, cost: Number(form.cost) || 0, booking_id: initial?.booking_id ?? bookingId }
+    const payload = { ...form, cost: Number(form.cost) || 0, booking_id: bookingId ?? (form.booking_id ? Number(form.booking_id) : null) }
     const req = initial?.id ? api.patch(`/orders/${initial.id}`, payload) : api.post('/orders', payload)
     req.then(onSaved).catch(toastErr)
   }
@@ -38,6 +39,12 @@ export function OrderFormModal({ open, onClose, onSaved, initial = null, booking
   return (
     <Modal open={open} onClose={onClose} title={initial?.id ? 'Edit order' : 'Track an online order'}>
       <form onSubmit={save} className="space-y-4">
+        {/* Hidden when opened from a booking's own Orders tab — the event is already fixed. */}
+        {bookingId == null && (
+          <BookingPicker bookings={bookings} value={form.booking_id || ''}
+            onChange={(id) => setForm((f) => ({ ...f, booking_id: id }))}
+            hint="Pick the event this order is for — it shows on that booking's Orders tab." />
+        )}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Supplier"><Input value={form.supplier} onChange={set('supplier')} placeholder="Sous Chef" required /></Field>
           <Field label="Order ref"><Input value={form.order_ref} onChange={set('order_ref')} placeholder="SC-118245" /></Field>
@@ -142,7 +149,7 @@ export default function Orders() {
           ))}
         </div>
       )}
-      <OrderFormModal open={modal.open} initial={modal.initial} onClose={() => setModal({ open: false, initial: null })}
+      <OrderFormModal open={modal.open} initial={modal.initial} bookings={bookings} onClose={() => setModal({ open: false, initial: null })}
         onSaved={() => { setModal({ open: false, initial: null }); load() }} />
     </div>
   )

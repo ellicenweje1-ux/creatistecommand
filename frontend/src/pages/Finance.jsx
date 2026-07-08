@@ -26,7 +26,6 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
     if (!open) return
     api.get('/clients').then(setClients).catch(() => {})
     if (!bookingId) api.get('/bookings').then(setBookings).catch(() => {})
-    fetchMenuItems(initial?.booking_id ?? bookingId).then(setMenuItems).catch(() => {})
     if (initial) setForm({ ...blank, ...initial, items: (initial.items || []).map((it) => ({ ...it, id: it.id || uid() })) })
     else {
       // Seed a new invoice with the chef's saved defaults (notes + deposit) from Settings → Invoices,
@@ -43,6 +42,13 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
         .catch(() => setForm(seeded))
     }
   }, [open, initial]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Priced dishes to pull onto a line — refreshed when the linked booking changes
+  // (same as the quote editor), so picking a booking mid-edit surfaces its menu.
+  useEffect(() => {
+    if (!open) return
+    fetchMenuItems(bookingId ?? form.booking_id ?? null).then(setMenuItems).catch(() => {})
+  }, [open, form.booking_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
   const items = form.items || []
@@ -85,7 +91,9 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
       const menu = bk.menu || []
       const key = (d) => `${(d.course || '').toLowerCase()}|${(d.name || '').toLowerCase()}`
       const have = new Set(menu.map(key))
-      const additions = dishes.filter((d) => !have.has(key(d)))
+      // Grow `have` as we add so two lines of the same dish (e.g. its 32oz and 58oz
+      // sizes, which share the base dish name) only add it once.
+      const additions = dishes.filter((d) => !have.has(key(d)) && have.add(key(d)))
         .map((d) => ({ id: uid(), course: d.course, name: d.name, recipe_id: null, serves: '', price: d.price, notes: '' }))
       if (additions.length) await api.patch(`/bookings/${bkId}`, { menu: [...menu, ...additions] })
     } catch { /* best-effort — never block the invoice save */ }

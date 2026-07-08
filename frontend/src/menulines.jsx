@@ -6,7 +6,9 @@ const itemLabel = (m) => [m.course, m.name].filter(Boolean).join(' | ') || m.nam
 
 /* One dish → one or more picker entries. A dish with serving sizes (e.g. 32oz / 58oz) yields
    one entry per priced size ("Course | Name (32oz)"); otherwise a single entry at its price.
-   Each entry carries course/name so a saved invoice can sync back into the booking's menu. */
+   Each entry carries course/name so a saved invoice can sync back into the booking's menu —
+   sized entries carry the BASE dish name (no size suffix) so the sync matches the one menu
+   dish they came from instead of adding "(32oz)"/"(58oz)" duplicates to the booking menu. */
 function dishEntries(group, m) {
   const base = itemLabel(m)
   if (Array.isArray(m.sizes) && m.sizes.length > 0) {
@@ -15,7 +17,7 @@ function dishEntries(group, m) {
       .map((s) => ({
         group, price: Number(s.price),
         label: s.label ? `${base} (${s.label})` : base,
-        course: m.course || '', name: [m.name, s.label && `(${s.label})`].filter(Boolean).join(' '),
+        course: m.course || '', name: m.name || '',
       }))
   }
   if (Number(m.price) > 0) return [{ group, label: base, price: Number(m.price), course: m.course || '', name: m.name || '' }]
