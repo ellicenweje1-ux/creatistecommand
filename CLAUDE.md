@@ -165,6 +165,22 @@ All built + verified this wave (branch `claude/optimistic-meitner-yqvl2l`) — *
   backup still emails (cloud-storage destination is the planned upgrade); OG/canonical URLs point at
   `creatistecommand.onrender.com` (update on a custom domain); solicitor review of Terms/Privacy still advised.
 - **No version bump** (standing rule — awaiting Ellice's word + her biblical reference).
+- **Everything above was MERGED to `main` on Ellice's word (deployed).** Follow-on amend on the same branch:
+
+### Follow-on (same 26th-wave session — invoice-first: pull the booking menu in FROM an invoice)
+Ellice: "as I usually do invoices initially for my clients, I need the menu under client booking to be pulled
+in from invoice option." The existing invoice→menu sync only catches picker/`Course | Name` lines on SAVE —
+her free-typed, made-first invoices never fed the menu. Built + verified on the branch (**merge to `main` to deploy**):
+- **`BookingDetail.jsx MenuBuilder`**: a **"Pull the menu in from an invoice…"** dropdown (gated `canInvoice`,
+  shown under the saved-menu picker) — this event's invoices listed first (marked "· this event"), then the
+  rest newest-first, each labelled number + total. Picking one turns its lines into dish rows: **section
+  headings skipped**, **charge lines skipped** (matched against the chef's saved `service_charges` labels +
+  `CHARGE_PRESETS`, both raw and `chargeToLine` description forms), `Course | Name` lines keep their course,
+  plain lines become uncoursed dishes at their unit price, already-present dishes (course+name) aren't re-added.
+  Rows land **unsaved (dirty)** so she reviews/tweaks before "Save menu"; re-pull → friendly "nothing new" toast.
+- FAQ (rule #3): extended the invoice-branding FAQ's sync line with the reverse direction.
+- **Verified:** Playwright **10/10** (dropdown + this-event marker, 2 dishes pulled with course/price, DAY-1
+  section + Service-charge line excluded, saved menu exact, re-pull no-op, zero JS errors). Build clean (86 modules).
 
 ## Previous session (2026-07-06, twenty-fifth wave — price book pulls into Online orders + Inventory, shared search extracted)
 - Branch `claude/price-book-search-okmf6i` — **merge to `main` to deploy.** Ellice's ask: "for Online orders

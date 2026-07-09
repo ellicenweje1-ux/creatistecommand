@@ -5,6 +5,7 @@ import { useAuth } from '../auth'
 import { BOOKING_STATUSES, BOOKING_TONES, fmtDateLong, fmtMoney, invoiceTotal, label, menuPriceTotal, miseReady, relDays, todayISO, uid } from '../format'
 import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, ProgressBar, Select, Spinner, Tabs, Textarea, toast, toastErr } from '../ui'
 import { BookingForm } from './Bookings'
+import { CHARGE_PRESETS, chargeToLine } from '../charges'
 import { ContactClient } from '../contact'
 import { DishRowsEditor, dishFromCourse } from '../dishrows'
 import { menuToLines } from '../menulines'
@@ -87,13 +88,16 @@ function AIModal({ state, onClose, onApply }) {
 
 /* -------------------------------- menu builder --------------------------------- */
 function MenuBuilder({ booking, recipes, currency, canQuote, canInvoice, onSaved }) {
+  const { user } = useAuth()
   const [menu, setMenu] = useState(booking.menu || [])
   const [dirty, setDirty] = useState(false)
   const [menus, setMenus] = useState([])
+  const [invoices, setInvoices] = useState([])
   const [quote, setQuote] = useState(null)  // prefilled draft for the QuoteEditor, or null
   const [invoiceItems, setInvoiceItems] = useState(null)  // prefilled lines for the InvoiceEditorModal, or null
   useEffect(() => { setMenu(booking.menu || []); setDirty(false) }, [booking])
   useEffect(() => { api.get('/menus').then(setMenus).catch(() => {}) }, [])
+  useEffect(() => { if (canInvoice) api.get('/invoices').then(setInvoices).catch(() => {}) }, [canInvoice])
 
   const change = (rows) => { setMenu(rows); setDirty(true) }
   const importFrom = (menuId) => {
@@ -104,6 +108,42 @@ function MenuBuilder({ booking, recipes, currency, canQuote, canInvoice, onSaved
     setMenu([...menu, ...rows]); setDirty(true)
     toast(`Added ${rows.length} dish${rows.length === 1 ? '' : 'es'} from "${m.title}"`, 'sage')
   }
+  // Invoice-first flow (Ellice's usual order): turn an existing invoice's lines into this
+  // booking's menu. Section headings and charge lines are left out; "Course | Name" lines
+  // keep their course; dishes already on the menu aren't re-added. Rows land unsaved so
+  // they can be reviewed/tweaked before "Save menu".
+  const importFromInvoice = (invId) => {
+    const inv = invoices.find((x) => String(x.id) === String(invId))
+    if (!inv) return
+    const chargey = new Set()
+    ;[...(user?.service_charges || []), ...CHARGE_PRESETS].forEach((c) => {
+      chargey.add((c.label || '').trim().toLowerCase())
+      chargey.add((chargeToLine(c).description || '').trim().toLowerCase())
+    })
+    const have = new Set(menu.map((d) => `${(d.course || '').toLowerCase()}|${(d.name || '').toLowerCase()}`))
+    const rows = []
+    ;(inv.items || []).forEach((it) => {
+      if (it.section) return
+      let { course, name } = it
+      if (course == null && name == null) {
+        const parts = String(it.description || '').split(' | ')
+        if (parts.length >= 2) { course = parts[0]; name = parts.slice(1).join(' | ') }
+        else name = it.description
+      }
+      course = (course || '').trim(); name = (name || '').trim()
+      if (!name || chargey.has(name.toLowerCase())) return
+      const key = `${course.toLowerCase()}|${name.toLowerCase()}`
+      if (have.has(key)) return
+      have.add(key)
+      rows.push({ id: uid(), course, name, recipe_id: null, serves: '', price: Number(it.unit_price) || '', sizes: [], notes: '' })
+    })
+    if (!rows.length) { toast(`Nothing new to pull in from ${inv.number || 'that invoice'}`, 'amber'); return }
+    setMenu([...menu, ...rows]); setDirty(true)
+    toast(`Added ${rows.length} dish${rows.length === 1 ? '' : 'es'} from ${inv.number || 'the invoice'} — check them over and save`, 'sage')
+  }
+  // This event's invoices first, then the rest (newest first).
+  const invoiceOptions = [...invoices].sort((a, b) =>
+    (b.booking_id === booking.id) - (a.booking_id === booking.id) || (b.id || 0) - (a.id || 0))
   const save = () => api.patch(`/bookings/${booking.id}`, { menu }).then((b) => { onSaved(b); setDirty(false); toast('Menu saved', 'sage') }).catch(toastErr)
   const liveMenus = menus.filter((m) => m.active !== false)
   const total = menuPriceTotal(menu)   // straight sum of the line prices — no calculation
@@ -129,6 +169,19 @@ function MenuBuilder({ booking, recipes, currency, canQuote, canInvoice, onSaved
             {liveMenus.map((m) => <option key={m.id} value={m.id}>{m.title}{m.menu_type ? ` · ${m.menu_type}` : ''}</option>)}
           </Select>
           <p className="mt-1 text-xs text-fg/45">Adds that menu’s dishes to this booking — then tweak them here. Build set menus under <span className="font-medium">Menus</span>.</p>
+        </div>
+      )}
+      {canInvoice && invoiceOptions.length > 0 && (
+        <div className="mb-3">
+          <Select value="" onChange={(e) => { importFromInvoice(e.target.value); e.target.value = '' }} aria-label="Pull the menu in from an invoice">
+            <option value="">Pull the menu in from an invoice…</option>
+            {invoiceOptions.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.number || `Invoice #${i.id}`} · {fmtMoney(invoiceTotal(i), currency)}{i.booking_id === booking.id ? ' · this event' : ''}
+              </option>
+            ))}
+          </Select>
+          <p className="mt-1 text-xs text-fg/45">Invoice first, menu after? This turns the invoice’s lines into dishes here — headings and charges are left out.</p>
         </div>
       )}
       <DishRowsEditor rows={menu} recipes={recipes} currency={currency} onChange={change} />
