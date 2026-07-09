@@ -181,6 +181,15 @@ her free-typed, made-first invoices never fed the menu. Built + verified on the 
 - FAQ (rule #3): extended the invoice-branding FAQ's sync line with the reverse direction.
 - **Verified:** Playwright **10/10** (dropdown + this-event marker, 2 dishes pulled with course/price, DAY-1
   section + Service-charge line excluded, saved menu exact, re-pull no-op, zero JS errors). Build clean (86 modules).
+- **⚠️ Live feedback fix (same session, merged):** Ellice tested on live — "not pulling in the full complete
+  menu breakdown." Her real invoices are **multi-day** (DAY 1/DAY 2 headings) with the **same dish repeated per
+  day** and **qty>1 lines**; the first cut deduped repeats, dropped headings, and lost quantities. Reworked:
+  **section headings become each dish's `notes`**, **qty folds into the price** (line total, `serves` shows
+  `×N`), **repeated typed dishes under different sections stay separate rows** (dedupe key is now
+  section|course|name; picker/size lines still collapse to one base dish). Verified 9/9 with a DAY 1/DAY 2 +
+  qty-2 + charge invoice: 4 dishes, £64/×2, notes carry days, menu total = food subtotal, re-pull no-op.
+  NB rows saved from the FIRST buggy pull carry no day note, so a re-pull re-adds day-tagged copies — delete
+  the old rows then re-pull.
 
 ## Previous session (2026-07-06, twenty-fifth wave — price book pulls into Online orders + Inventory, shared search extracted)
 - Branch `claude/price-book-search-okmf6i` — **merge to `main` to deploy.** Ellice's ask: "for Online orders
