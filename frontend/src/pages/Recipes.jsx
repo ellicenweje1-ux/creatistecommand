@@ -3,6 +3,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls, fmtMoney, miseReady, uid } from '../format'
 import { Badge, Button, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, SearchInput, Select, Spinner, Textarea, toast, toastErr } from '../ui'
+import ExampleCard from '../examples'
 
 const CATEGORIES = ['Canapé', 'Starter', 'Main', 'Side', 'Dessert', 'Sauce', 'Bread', 'Drink', 'Other']
 
@@ -233,6 +234,7 @@ export default function Recipes() {
     <div>
       <PageHeader title="Recipe master sheets" sub="Your repertoire — costed, tagged, allergen-flagged."
         actions={<Button icon="plus" onClick={() => setEditor({ open: true, initial: null })}>New recipe</Button>} />
+      <ExampleCard k="recipes" />
       <div className="mb-4 flex flex-wrap gap-2">
         <SearchInput value={q} onChange={setQ} className="w-full sm:w-64" />
         <div className="scrollbar-thin flex gap-1.5 overflow-x-auto">

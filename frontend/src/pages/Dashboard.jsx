@@ -4,6 +4,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { BOOKING_TONES, fmtDate, fmtMoney, label, relDays } from '../format'
 import { Badge, Card, Icon, ProgressBar, Spinner, StatCard, toastErr } from '../ui'
+import ExampleCard from '../examples'
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -20,6 +21,8 @@ export default function Dashboard() {
         <h1 className="font-display text-2xl font-semibold md:text-3xl">{greeting}, {user?.name?.split(' ')[0] || 'chef'}.</h1>
         <p className="mt-1 text-sm text-fg/55">Here's the state of the kitchen today.</p>
       </div>
+
+      <ExampleCard k="dashboard" />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatCard label="Open tasks" value={data.tasks.open} hint={`${data.tasks.overdue} overdue · ${data.tasks.due_today} due today`} tone={data.tasks.overdue ? 'red' : 'ink'} icon="checks" />

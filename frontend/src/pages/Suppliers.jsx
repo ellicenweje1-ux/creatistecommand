@@ -3,6 +3,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls, fmtDate, fmtMoney, todayISO } from '../format'
 import { Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, SearchInput, Spinner, Textarea, toastErr } from '../ui'
+import ExampleCard from '../examples'
 
 function SupplierModal({ open, onClose, onSaved, initial = null }) {
   const blank = { name: '', category: '', contact_name: '', phone: '', email: '', website: '', address: '', account_ref: '', notes: '' }
@@ -150,6 +151,7 @@ export default function Suppliers() {
     <div>
       <PageHeader title="Supplier price book" sub="Every supplier, every price — and who sells it cheapest."
         actions={<Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>New supplier</Button>} />
+      <ExampleCard k="suppliers" />
       <SearchInput value={q} onChange={setQ} placeholder="Who sells… (e.g. cream, cod loin)" className="mb-4 w-full sm:w-96" />
       {results && (
         <Card title={`Cheapest first — “${q}”`} pad={false} className="mb-5">

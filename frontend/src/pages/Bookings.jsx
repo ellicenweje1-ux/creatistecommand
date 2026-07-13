@@ -4,6 +4,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { BOOKING_STATUSES, BOOKING_TONES, cls, fmtDate, fmtMoney, label, relDays, todayISO } from '../format'
 import { Badge, Button, EmptyState, Field, Icon, Input, Modal, PageHeader, Select, Spinner, Textarea, toast, toastErr } from '../ui'
+import ExampleCard from '../examples'
 
 export function BookingForm({ initial = {}, onSaved, onClose }) {
   const [form, setForm] = useState({
@@ -259,6 +260,7 @@ export default function Bookings() {
           </>
         }
       />
+      <ExampleCard k="bookings" />
 
       {view === 'calendar' && <CalendarView bookings={bookings} />}
 

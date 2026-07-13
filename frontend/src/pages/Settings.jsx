@@ -568,6 +568,7 @@ export function SettingsAppearance() {
   }
 
   return (
+    <>
     <Card title="Appearance">
       <p className="mb-3 text-sm text-fg/60">
         The signature Creatiste look is dark & sultry — switch to the brighter mode whenever it
@@ -583,6 +584,30 @@ export function SettingsAppearance() {
           </button>
         ))}
       </div>
+    </Card>
+      <ExamplesCard />
+    </>
+  )
+}
+
+/* Bring back the dismissed worked-example cards shown at the top of each module. */
+function ExamplesCard() {
+  const { user, setUser } = useAuth()
+  const hiddenCount = (user?.examples_hidden || []).length
+  const restore = () => {
+    api.put('/auth/me', { examples_hidden: [] })
+      .then((u) => { setUser(u); toast('Examples restored — you\u2019ll see them at the top of each module again', 'sage') })
+      .catch(toastErr)
+  }
+  return (
+    <Card title="Worked examples">
+      <p className="mb-3 text-sm text-fg/60">
+        Each module starts with a worked example (Jane Doe&rsquo;s booking, a filled-in shopping list&hellip;)
+        so you can see how to use it. Remove them one by one as you get confident &mdash; or bring them all back here.
+      </p>
+      <Button variant="secondary" icon="replay" onClick={restore} disabled={hiddenCount === 0}>
+        {hiddenCount === 0 ? 'All examples are showing' : 'Show the examples again'}
+      </Button>
     </Card>
   )
 }

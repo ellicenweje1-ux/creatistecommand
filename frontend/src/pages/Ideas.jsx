@@ -3,6 +3,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls, miseReady } from '../format'
 import { Badge, Button, EmptyState, Icon, IconButton, Input, PageHeader, SearchInput, Spinner, Textarea, toast, toastErr } from '../ui'
+import ExampleCard from '../examples'
 
 function IdeaCard({ idea, onChanged }) {
   const { user } = useAuth()
@@ -85,6 +86,7 @@ export default function Ideas() {
   return (
     <div>
       <PageHeader title="My Brain" sub="Offload new ideas, things to remember, things to keep in mind — captured before they’re clouded by a million things." />
+      <ExampleCard k="ideas" />
       <form onSubmit={capture} className="mb-4 rounded-xl border border-line bg-card p-3 shadow-card">
         <Textarea rows={2} placeholder="Offload it here… (first line becomes the title)" value={quick} onChange={(e) => setQuick(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) capture(e) }} />

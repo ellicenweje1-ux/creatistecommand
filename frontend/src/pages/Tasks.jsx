@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { addDaysISO, cls, fmtDate, PRIORITY_TONES, todayISO } from '../format'
 import { Badge, Button, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, Select, Spinner, Textarea, toastErr } from '../ui'
+import ExampleCard from '../examples'
 
 const CATEGORIES = ['prep', 'shopping', 'admin', 'service', 'logistics', 'other']
 const PRIORITIES = ['low', 'medium', 'high']
@@ -155,6 +156,7 @@ export default function Tasks() {
   return (
     <div>
       <PageHeader title="Tasks" sub="Prep, shopping, admin, logistics — everything with a deadline, in date and time order." />
+      <ExampleCard k="tasks" />
       <TaskComposer onCreated={load} />
       <div className="mt-4 flex flex-wrap gap-1.5">
         {['open', 'done', 'all'].map((f) => (

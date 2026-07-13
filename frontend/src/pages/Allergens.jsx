@@ -3,6 +3,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls } from '../format'
 import { Button, Card, EmptyState, Field, PageHeader, Select, Spinner, toastErr } from '../ui'
+import ExampleCard from '../examples'
 
 /* UK FSA's 14 regulated allergens, with fuzzy matching against recipe tags */
 const ALLERGENS = [
@@ -79,6 +80,7 @@ export default function Allergens() {
             {rows.length > 0 && <Button variant="secondary" icon="doc" onClick={() => window.print()}>Print / PDF</Button>}
           </>
         } />
+      <ExampleCard k="allergens" />
       <div className="mb-4 flex flex-wrap items-end gap-3 print:hidden">
         <Field label="Menu source" className="max-w-sm flex-1">
           <Select value={bookingId} onChange={(e) => setBookingId(e.target.value)}>

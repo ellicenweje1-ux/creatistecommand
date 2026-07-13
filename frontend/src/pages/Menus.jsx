@@ -4,6 +4,7 @@ import { useAuth } from '../auth'
 import { cls, fmtMoney } from '../format'
 import { DishRowsEditor } from '../dishrows'
 import { Badge, Button, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, SearchInput, Select, Spinner, Textarea, toast, toastErr } from '../ui'
+import ExampleCard from '../examples'
 
 const MENU_TYPES = ['Tasting menu', 'Set menu', 'Canapé selection', 'Sharing feast', 'Buffet', 'Bowl food', 'BBQ', 'Brunch', 'Drinks & cocktails']
 
@@ -132,6 +133,7 @@ export default function Menus() {
     <div>
       <PageHeader title="Menus" sub="Your set menus, kept live — build them from your recipes and attach the PDF you share with clients."
         actions={<Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>New menu</Button>} />
+      <ExampleCard k="menus" />
       {menus.length > 0 && <SearchInput value={q} onChange={setQ} className="mb-4 w-full sm:w-72" />}
       {visible.length === 0 ? (
         <EmptyState icon="doc" title="No menus yet"

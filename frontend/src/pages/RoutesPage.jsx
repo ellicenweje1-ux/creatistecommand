@@ -4,6 +4,7 @@ import { api } from '../api'
 import { cls, fmtDate, todayISO, uid } from '../format'
 import { BookingPicker, listShops, stopsFromLists } from '../prep'
 import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, Select, Spinner, toast, toastErr } from '../ui'
+import ExampleCard from '../examples'
 
 export function gmapsUrl(route) {
   const points = [route.start_location, ...(route.stops || []).map((s) => s.address || s.name)].filter(Boolean)
@@ -165,6 +166,7 @@ export default function RoutesPage() {
     <div>
       <PageHeader title="Route planner" sub="Which stops, in which order — market runs without the zigzag."
         actions={<Button icon="plus" onClick={() => setCreating(true)}>New route</Button>} />
+      <ExampleCard k="routes" />
       {routes.length === 0 ? (
         <EmptyState icon="map" title="No routes planned" hint="Plan prep-day and service-day runs: every stop ordered, timed, and openable in Google Maps."
           action={<Button icon="plus" onClick={() => setCreating(true)}>New route</Button>} />

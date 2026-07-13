@@ -27,6 +27,8 @@ const FAQS = [
    'Yes. In Settings → Business, add your logo, a link to your website or socials, a star rating and an optional testimonial, then tap “Submit for review”. We check every listing before it goes live (to catch typos and keep the site tidy) — once approved, your logo appears in the scrolling bar on our landing page and your testimonial on the wall. It’s opt-in, you can remove it any time, and founding members get a “Founding member” badge.'],
   ['How does the allergen matrix work?',
    'It reads the allergen tags on your recipe sheets and builds a dish-by-allergen table (the UK’s 14 regulated allergens) for any booking’s menu. Tap “Print / PDF” and it lays out as a tidy A4 card for the dining table — with the FSA “speak to a member of staff” allergy statement and a Natasha’s Law note built in — or download it as CSV. Always double-check against actual labels; cross-contamination isn’t represented.'],
+  ['What are the “Example” cards at the top of each page?',
+   'Worked examples — each module opens with a sample entry (Jane Doe’s booking, a filled-in shopping list…) showing what a well-filled entry looks like, plus quick tips on using the page. They’re just illustrations, not real data in your account. Once you’re confident, tap “Got it — remove” to clear one, or “Hide all examples” to clear the lot; bring them back any time from Settings → Appearance.'],
   ['I deleted something by accident — can I get it back?',
    'Yes. Go to Settings → Recently deleted. Anything you delete (a recipe, menu, client, list, supplier, task and more) is kept there for 30 days — tap Restore and it comes straight back exactly as it was. After 30 days it clears automatically. So a mis-tap is never the end of your work.'],
   ['Can I use it on my phone?',

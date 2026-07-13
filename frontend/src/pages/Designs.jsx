@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { cls, uid } from '../format'
 import { Button, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, Spinner, toast, toastErr } from '../ui'
+import ExampleCard from '../examples'
 
 const ITEM_TYPES = {
   round_table: { label: 'Round table', w: 110, h: 110, color: '#5C6F5A' },
@@ -367,6 +368,7 @@ export default function Designs() {
     <div>
       <PageHeader title="Design studio" sub="Floor plans plus free drawing — tables, stations, pens, lines, shapes and colour."
         actions={<Button icon="plus" onClick={() => setModal({ open: true, design: { title: 'New layout', canvas: { width: 1000, height: 700, items: [] } } })}>New design</Button>} />
+      <ExampleCard k="designs" />
       {designs.length === 0 ? (
         <EmptyState icon="layout" title="No designs yet" hint="Sketch your first event layout — drag in tables and stations, then draw over the top with the pen tools."
           action={<Button icon="plus" onClick={() => setModal({ open: true, design: { title: 'New layout', canvas: { width: 1000, height: 700, items: [] } } })}>New design</Button>} />

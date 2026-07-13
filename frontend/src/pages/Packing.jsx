@@ -5,6 +5,7 @@ import { cls, uid } from '../format'
 import { BookingPicker } from '../prep'
 import { DragList, GripHandle } from '../sortable'
 import { Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, ProgressBar, Spinner, toastErr } from '../ui'
+import ExampleCard from '../examples'
 
 const STANDARD_KIT = [
   ['Chef knives roll', 'Equipment'], ['Probe thermometer + wipes', 'Safety'], ['First aid + burns kit', 'Safety'],
@@ -134,6 +135,7 @@ export default function Packing() {
     <div>
       <PageHeader title="Packing checklists" sub="Everything in the van before it matters — equipment, crockery, signage, safety."
         actions={<Button icon="plus" onClick={() => setCreating(true)}>New list</Button>} />
+      <ExampleCard k="packing" />
       {lists.length === 0 ? (
         <EmptyState icon="clipboard" title="No packing lists yet" hint="Create one per booking and tick off as the van fills up. The standard kit button covers the essentials."
           action={<Button icon="plus" onClick={() => setCreating(true)}>New list</Button>} />

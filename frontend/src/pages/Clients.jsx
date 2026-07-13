@@ -4,6 +4,7 @@ import { api } from '../api'
 import { BOOKING_TONES, cls, fmtDate, label, todayISO } from '../format'
 import { ContactClient } from '../contact'
 import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, SearchInput, Spinner, Stars, Textarea, toastErr } from '../ui'
+import ExampleCard from '../examples'
 
 function ClientModal({ open, onClose, onSaved, initial = null }) {
   const blank = { name: '', email: '', phone: '', company: '', address: '', dietary: [], allergies: '', likes: '', dislikes: '', tags: [], notes: '' }
@@ -177,6 +178,7 @@ export default function Clients() {
             <Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>New client</Button>
           </>
         } />
+      <ExampleCard k="clients" />
       {clients.length === 0 ? (
         <EmptyState icon="users" title="No clients yet" hint="Add clients to track their tastes, allergies and reviews across bookings."
           action={<Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>New client</Button>} />

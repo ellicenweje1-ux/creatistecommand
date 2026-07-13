@@ -4,6 +4,7 @@ import { useAuth } from '../auth'
 import { cls, daysUntil, fmtDate, fmtMoney, relDays, todayISO } from '../format'
 import { PriceBookSearch } from '../pricebook'
 import { Badge, Button, EmptyState, Field, IconButton, Input, Modal, PageHeader, SearchInput, Select, Spinner, Textarea, toastErr } from '../ui'
+import ExampleCard from '../examples'
 
 const STORAGE = ['pantry', 'fridge', 'freezer', 'dry', 'other']
 const CATEGORIES = ['Produce', 'Protein', 'Fish', 'Dairy', 'Dry goods', 'Spices', 'Condiments', 'Bakery', 'Drinks', 'Equipment consumables', 'Other']
@@ -119,6 +120,7 @@ export default function Inventory() {
     <div>
       <PageHeader title="Inventory" sub={`${items.length} items · approx ${fmtMoney(stockValue, user?.currency)} on the shelf`}
         actions={<Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>Add item</Button>} />
+      <ExampleCard k="inventory" />
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <SearchInput value={q} onChange={setQ} className="w-full sm:w-64" />
         {[['all', 'All'], ['expiring', 'Expiring'], ['low', 'Low stock']].map(([v, lbl]) => (

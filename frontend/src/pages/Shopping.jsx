@@ -7,6 +7,7 @@ import { BookingPicker } from '../prep'
 import { PriceBookSearch } from '../pricebook'
 import { DragList, GripHandle } from '../sortable'
 import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, ProgressBar, Spinner, toast, toastErr } from '../ui'
+import ExampleCard from '../examples'
 
 /* ------------------------------ new list modal ------------------------------ */
 // `bookings` (optional) shows a "Link to a booking" dropdown so a list and an event merge
@@ -268,6 +269,7 @@ export default function Shopping() {
     <div>
       <PageHeader title="Shopping" sub="Lists per booking, grouped by shop — check off as you go."
         actions={<Button icon="plus" onClick={() => setCreating({})}>New list</Button>} />
+      <ExampleCard k="shopping" />
 
       <ActiveBookingsStrip bookings={bookings} onStartList={startListFor} />
 

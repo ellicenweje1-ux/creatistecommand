@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { cls, fmtDate, label, todayISO } from '../format'
 import { Badge, Button, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, Select, Spinner, Textarea, toastErr } from '../ui'
+import ExampleCard from '../examples'
 
 const KINDS = ['tasting', 'consultation', 'site_visit', 'call']
 const KIND_TONES = { tasting: 'copper', consultation: 'sage', site_visit: 'amber', call: 'ink' }
@@ -111,6 +112,7 @@ export default function Tastings() {
     <div>
       <PageHeader title="Tastings & consultations" sub="The pre-booking diary: tastings, consultations, site visits and calls."
         actions={<Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>New appointment</Button>} />
+      <ExampleCard k="tastings" />
       {appts.length === 0 ? (
         <EmptyState icon="fork" title="No appointments in the diary" hint="Log tastings and consultations here — link them to clients and bookings so nothing slips."
           action={<Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>New appointment</Button>} />

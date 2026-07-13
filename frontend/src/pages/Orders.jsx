@@ -5,6 +5,7 @@ import { cls, fmtDate, fmtMoney, label, ORDER_STATUSES, ORDER_TONES, relDays, to
 import { BookingPicker } from '../prep'
 import { PriceBookSearch, priceQtyUnit } from '../pricebook'
 import { Badge, Button, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, Select, Spinner, Textarea, toastErr } from '../ui'
+import ExampleCard from '../examples'
 
 /* -------------------------------- form modal -------------------------------- */
 export function OrderFormModal({ open, onClose, onSaved, initial = null, bookingId = null, bookings = [] }) {
@@ -132,6 +133,7 @@ export default function Orders() {
     <div>
       <PageHeader title="Online orders" sub="Speciality ingredients and kit — tracked so they arrive in time."
         actions={<Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>Track an order</Button>} />
+      <ExampleCard k="orders" />
       <div className="mb-4 flex gap-1.5">
         {['active', 'done', 'all'].map((f) => (
           <button key={f} onClick={() => setFilter(f)}

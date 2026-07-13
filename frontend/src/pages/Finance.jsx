@@ -3,6 +3,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls, fmtDate, fmtMoney, INVOICE_STATUSES, INVOICE_TONES, invoiceTotal, SYMBOLS, todayISO, uid } from '../format'
 import { Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, Select, Spinner, StatCard, Tabs, Textarea, toast, toastErr } from '../ui'
+import ExampleCard from '../examples'
 import { QuotesPanel } from './Quotes'
 import { ChargesMenu } from '../charges'
 import { MenuItemsMenu, fetchMenuItems } from '../menulines'
@@ -448,6 +449,7 @@ export default function Finance() {
             <Button icon="plus" onClick={() => setInvoiceModal({ open: true, initial: null })}>Invoice</Button>
           </>
         } />
+      <ExampleCard k="finance" />
 
       <Tabs value={tab} onChange={setTab} tabs={[
         { id: 'overview', label: 'Overview' },

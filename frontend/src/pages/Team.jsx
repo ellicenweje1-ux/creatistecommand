@@ -3,6 +3,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls, fmtDate, label, todayISO } from '../format'
 import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, Select, Spinner, Tabs, Textarea, toast, toastErr, Toggle } from '../ui'
+import ExampleCard from '../examples'
 
 const ACTION_TONES = { created: 'sage', updated: 'amber', completed: 'copper', deleted: 'red', approved: 'sage', declined: 'red' }
 
@@ -186,6 +187,7 @@ export default function Team() {
   return (
     <div>
       <PageHeader title="Team" sub="Staff logins, the rota, assignments — and a full trail of every change they make." />
+      <ExampleCard k="team" />
       <Tabs value={tab} onChange={setTab} tabs={[
         { id: 'rota', label: 'Rota', count: upcomingShifts.length },
         { id: 'staff', label: 'Staff', count: staff.length },

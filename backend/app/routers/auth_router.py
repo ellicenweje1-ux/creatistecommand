@@ -187,6 +187,10 @@ def update_me(payload: dict = Body(...), db: Session = Depends(get_db), user: Us
                 "per": str(c.get("per") or "").strip()[:20],
             })
         user.service_charges = cleaned[:30]
+    # Worked-example cards the user has dismissed (page keys; "all" hides everything).
+    # Assign a fresh list so SQLAlchemy detects the JSON change.
+    if isinstance(payload.get("examples_hidden"), list):
+        user.examples_hidden = [str(k).strip()[:30] for k in payload["examples_hidden"] if str(k).strip()][:60]
     # Changing the logo on a live public listing sends it back for re-approval.
     if user.feature_publicly and user.feature_status == "approved" and user.avatar_url != old_avatar:
         user.feature_status = "pending"

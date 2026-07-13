@@ -87,6 +87,9 @@ class User(Base):
     founder_number: Mapped[int] = mapped_column(Integer, nullable=True)
     founder_since: Mapped[str] = mapped_column(String(10), default="")  # YYYY-MM-DD
     tour_done: Mapped[bool] = mapped_column(Boolean, default=False)  # welcome walkthrough finished
+    # Worked-example cards shown at the top of each module for new chefs — page keys the
+    # user has dismissed ("all" hides every card). NB existing rows migrate as NULL.
+    examples_hidden: Mapped[list] = mapped_column(JSON, default=list)
     admin_notes: Mapped[str] = mapped_column(Text, default="")
     # Password reset: a short-lived token emailed to the user (see routers/auth_router.py)
     reset_token: Mapped[str] = mapped_column(String(64), default="")

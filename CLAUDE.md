@@ -126,7 +126,46 @@ All built + verified this wave (branch `claude/optimistic-meitner-yqvl2l`) — *
 25. ✅ **Tasks: phone notification before a task times out** — full **Web Push**, *inert until VAPID keys are set*
     (house pattern). See the wave notes below for the env vars + the iOS "add to Home Screen" caveat.
 
-## Latest session (2026-07-08, twenty-sixth wave — final pre-rollout scan: 5 flow-gap fixes + icon pipeline readied)
+## Latest session (2026-07-13, twenty-seventh wave — worked-example cards on every module, from the aunt-trial feedback)
+- Branch `claude/claude-md-status-rollout-bjd18z` — **merge to `main` to deploy.** Context from Ellice's first
+  real onboarding trial (her aunt, comped account): Jitsi was hard for the client (she manually made a Zoom),
+  and the walkthrough forced bouncing between modules (Bookings → back to Clients to show the link). Her ask
+  this wave: **a simulated example at the top of every chef-facing module** — realistic but generic aliases
+  (Jane Doe, 07700 900123 — the Ofcom drama range, example.com emails) — as a reference for how to fill each
+  page, dismissible per page once confident. **Phone notifications are now ON** (Ellice set the VAPID vars —
+  update the rollout-readiness list accordingly).
+- **Built: `frontend/src/examples.jsx`** — an `EXAMPLES` registry (18 modules) + default-export `ExampleCard`
+  (`<ExampleCard k="bookings" />`). The card = dashed-copper "EXAMPLE" section under the PageHeader: a mock
+  entry styled like a real row, 2–3 usage tips, "nothing here is saved in your account" note, **Got it —
+  remove** (per page), **Hide all examples**, and an X. **Purely visual — no DB rows are created**, so
+  dashboards/exports/finance totals are never polluted (deliberate design choice over seeding demo rows).
+- **Persistence: new additive `users.examples_hidden` JSON column** (list of dismissed page keys; `"all"` =
+  everything) — in the `User` model AND `ensure_columns` (single-key entry, no dup-key trap), whitelisted in
+  `PUT /auth/me` (fresh-list assign, blanks dropped, 30-char/60-key caps; non-list payloads ignored). Survives
+  devices/reinstalls. NB migrated rows read NULL → frontend always `user.examples_hidden || []`.
+- **Wired into all 18 module pages** (Dashboard, Bookings, Clients, Tastings, Tasks, Routes, Team(owner view),
+  Menus, Recipes, Allergens, Inventory, Shopping, Orders, Suppliers, Packing, Finance, Designs, Ideas) right
+  after each `PageHeader` (Dashboard: after the greeting). **Settings → Appearance** gains a **"Worked
+  examples"** card — "Show the examples again" clears the list (button disabled-labelled when nothing hidden).
+- **FAQ kept current (rule #3):** Support FAQ "What are the 'Example' cards at the top of each page?" (dismiss/
+  hide-all/restore path). Public FAQ untouched (in-app operational, per precedent).
+- **Verified:** backend TestClient **13/13** (round-trip, hide-all, restore-clears, sanitisation, non-list
+  ignored, unrelated saves don't touch it, **existing-table migration drill** — drop column → `ensure_columns`
+  → NULL-safe read + write, idempotent re-run). Playwright (system chromium, demo Elite chef) **26/26** — card
+  on all 18 pages, per-page dismiss survives reload, others untouched, hide-all, Settings restore round-trip,
+  **zero uncaught JS errors**. `npm run build` clean (**87 modules** — examples.jsx added). Temp scripts in the
+  scratchpad only.
+- **Advice given in-chat (not built, candidates for next wave):** (a) **Zoom instead of Jitsi** — quickest fix
+  is setting `MEETING_URL` to her personal Zoom room (zero code, kills the Jitsi pain; Zoom's built-in Request
+  remote control gives the "Apple support" experience on desktop — **iOS can only be screen-VIEWED, never
+  controlled, by anyone**); full fix = the dormant `ZOOM_*` creds (auto-meetings + recording→transcript→Mise
+  summary). (b) **Flow suggestions:** add "+ New client" inline in the New Booking form (the exact backtrack
+  she hit — client dropdown is pick-only today), a "New booking" button on each client card, demo-script =
+  walk one booking's tabs not the sidebar, and a "Your first event" guided checklist as the bigger follow-up.
+  Recommended NOT merging modules — the gap is missing links, not overlap.
+- **No version bump** (standing rule — awaiting Ellice's word + her biblical reference).
+
+## Previous session (2026-07-08, twenty-sixth wave — final pre-rollout scan: 5 flow-gap fixes + icon pipeline readied)
 - Branch `claude/creative-platform-scan-03hsi4` — **merge to `main` to deploy.** Ellice asked for a final
   platform scan for flow gaps before the **initial rollout**, plus the logo submark updated to her actual icon.
 - **Scan method:** `npm run build` clean (86 modules); migration dict audited (no dup-key trap); Playwright
@@ -160,8 +199,8 @@ All built + verified this wave (branch `claude/optimistic-meitner-yqvl2l`) — *
   `og-image.png`). The small stroke-style `flame` glyph in the `Icon` PATHS set was left as generic decoration.
   If the mark ever changes: update `brand/submark.svg`, re-run both scripts, and mirror the paths in `ui.jsx`
   (documented in `brand/README.md`). Verified: favicon 200s, sidebar lockup renders her mark, zero JS errors.
-- **Rollout readiness (unchanged known items, not blockers):** VAPID keys unset (phone notifications stay
-  dormant until `python -m app.push --gen` + the 3 env vars); Zoom recording dormant until `ZOOM_*` set; weekly
+- **Rollout readiness (unchanged known items, not blockers):** ~~VAPID keys unset~~ **→ SET (27th wave,
+  Ellice): phone notifications are LIVE**; Zoom recording dormant until `ZOOM_*` set; weekly
   backup still emails (cloud-storage destination is the planned upgrade); OG/canonical URLs point at
   `creatistecommand.onrender.com` (update on a custom domain); solicitor review of Terms/Privacy still advised.
 - **No version bump** (standing rule — awaiting Ellice's word + her biblical reference).
