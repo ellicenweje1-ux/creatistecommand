@@ -17,8 +17,14 @@ export function QuoteEditor({ open, onClose, onSaved, initial = null, currency }
   const [bookings, setBookings] = useState([])
   const [menuItems, setMenuItems] = useState([])
   const withIds = (arr) => (arr || []).map((it) => ({ ...it, id: it.id || uid() }))
+  // Once any save has happened (Save draft included), the quote exists — later saves
+  // PATCH it (no accidental duplicates) and closing refreshes the parent list.
+  const [savedId, setSavedId] = useState(null)
+  const [savedMidEdit, setSavedMidEdit] = useState(false)
   useEffect(() => {
     if (!open) return
+    setSavedId(initial?.id || null)
+    setSavedMidEdit(false)
     api.get('/clients').then(setClients).catch(() => {})
     api.get('/bookings').then(setBookings).catch(() => {})
     if (initial?.id) setForm({ ...blank, ...initial, items: withIds(initial.items) })
@@ -47,8 +53,14 @@ export function QuoteEditor({ open, onClose, onSaved, initial = null, currency }
       ? { id: it.id, description: it.description, section: true }
       : { ...it, qty: Number(it.qty) || 0, unit_price: Number(it.unit_price) || 0 })),
   })
-  const persist = () => (initial?.id ? api.patch(`/quotes/${initial.id}`, buildPayload()) : api.post('/quotes', buildPayload()))
+  const persist = () => (savedId ? api.patch(`/quotes/${savedId}`, buildPayload()) : api.post('/quotes', buildPayload()))
+    .then((q) => { setSavedId(q.id); setSavedMidEdit(true); return q })
   const save = (e) => { e.preventDefault(); persist().then(onSaved).catch(toastErr) }
+  // Save where you are and keep editing — for quotes built up over several sittings.
+  const saveDraft = () => persist()
+    .then(() => toast('Draft saved — pick it up any time from your quotes list', 'sage'))
+    .catch(toastErr)
+  const close = () => (savedMidEdit ? onSaved() : onClose())
   // Quote → invoice in one step: save the quote (with its service lines), then create the invoice.
   const saveAndInvoice = () => {
     persist()
@@ -56,10 +68,10 @@ export function QuoteEditor({ open, onClose, onSaved, initial = null, currency }
       .then((inv) => { toast(`Invoice ${inv.number} created — see Finance → Invoices`, 'sage'); onSaved() })
       .catch(toastErr)
   }
-  const remove = () => { if (initial?.id && window.confirm('Delete this quote?')) api.del(`/quotes/${initial.id}`).then(onSaved).catch(toastErr) }
+  const remove = () => { if (savedId && window.confirm('Delete this quote?')) api.del(`/quotes/${savedId}`).then(onSaved).catch(toastErr) }
 
   return (
-    <Modal open={open} onClose={onClose} title={initial?.id ? `Edit ${initial.number}` : 'New quote'} wide>
+    <Modal open={open} onClose={close} title={savedId ? `Edit ${form.number || 'quote'}` : 'New quote'} wide>
       <form onSubmit={save} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <Field label="Number"><Input value={form.number} onChange={set('number')} /></Field>
@@ -124,11 +136,12 @@ export function QuoteEditor({ open, onClose, onSaved, initial = null, currency }
         </div>
         <Field label="Notes for the client" hint="Press Enter for a new line — it shows as a new line on the quote."><Textarea rows={3} value={form.notes} onChange={set('notes')} placeholder="Deposit terms, what's included…" /></Field>
         <div className="flex flex-wrap justify-between gap-2">
-          {initial?.id ? <Button type="button" variant="danger" icon="trash" onClick={remove}>Delete</Button> : <span />}
+          {savedId ? <Button type="button" variant="danger" icon="trash" onClick={remove}>Delete</Button> : <span />}
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={close}>Cancel</Button>
+            <Button type="button" variant="secondary" icon="doc" onClick={saveDraft}>Save draft</Button>
             <Button type="button" variant="secondary" icon="coins" onClick={saveAndInvoice}>Save &amp; create invoice</Button>
-            <Button>{initial?.id ? 'Save quote' : 'Create quote'}</Button>
+            <Button>{savedId ? 'Save quote' : 'Create quote'}</Button>
           </div>
         </div>
       </form>

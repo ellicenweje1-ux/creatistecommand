@@ -22,9 +22,15 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
   const [bookings, setBookings] = useState([])
   const [menuItems, setMenuItems] = useState([])
   const [sendPreview, setSendPreview] = useState(null)  // { url, email, invoiceId } — confirm before sending
+  // Once any save has happened (Save draft / Preview / Send), the invoice exists — later
+  // saves PATCH it (no accidental duplicates) and closing refreshes the parent list.
+  const [savedId, setSavedId] = useState(null)
+  const [savedMidEdit, setSavedMidEdit] = useState(false)
 
   useEffect(() => {
     if (!open) return
+    setSavedId(initial?.id || null)
+    setSavedMidEdit(false)
     api.get('/clients').then(setClients).catch(() => {})
     if (!bookingId) api.get('/bookings').then(setBookings).catch(() => {})
     if (initial) setForm({ ...blank, ...initial, items: (initial.items || []).map((it) => ({ ...it, id: it.id || uid() })) })
@@ -99,9 +105,15 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
       if (additions.length) await api.patch(`/bookings/${bkId}`, { menu: [...menu, ...additions] })
     } catch { /* best-effort — never block the invoice save */ }
   }
-  const persist = () => (initial?.id ? api.patch(`/invoices/${initial.id}`, buildPayload()) : api.post('/invoices', buildPayload()))
-    .then(async (inv) => { await syncMenuToBooking(inv); return inv })
+  const persist = () => (savedId ? api.patch(`/invoices/${savedId}`, buildPayload()) : api.post('/invoices', buildPayload()))
+    .then(async (inv) => { setSavedId(inv.id); setSavedMidEdit(true); await syncMenuToBooking(inv); return inv })
   const save = (e) => { e.preventDefault(); persist().then(onSaved).catch(toastErr) }
+  // Save where you are and keep editing — for long invoices filled in over several sittings.
+  const saveDraft = () => persist()
+    .then(() => toast('Draft saved — pick it up any time from your invoices list', 'sage'))
+    .catch(toastErr)
+  // If anything was saved mid-edit, closing must refresh the parent list (onSaved closes too).
+  const close = () => (savedMidEdit ? onSaved() : onClose())
   // Preview the polished invoice document (saving first), in a new tab — also the print/PDF view.
   const preview = () => {
     persist()
@@ -129,16 +141,16 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
       .catch(toastErr)
   }
   const duplicate = () => {
-    if (initial?.id) api.post(`/invoices/${initial.id}/duplicate`)
+    if (savedId) api.post(`/invoices/${savedId}/duplicate`)
       .then(() => { toast('Invoice duplicated — new draft added to your list', 'sage'); onSaved() }).catch(toastErr)
   }
   const remove = () => {
-    if (initial?.id && window.confirm('Delete this invoice?')) api.del(`/invoices/${initial.id}`).then(onSaved).catch(toastErr)
+    if (savedId && window.confirm('Delete this invoice?')) api.del(`/invoices/${savedId}`).then(onSaved).catch(toastErr)
   }
 
   return (
     <>
-    <Modal open={open} onClose={onClose} title={initial?.id ? `Edit ${initial.number || 'invoice'}` : 'New invoice'} wide>
+    <Modal open={open} onClose={close} title={savedId ? `Edit ${form.number || 'invoice'}` : 'New invoice'} wide>
       <form onSubmit={save} className="space-y-4">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Field label="Number"><Input value={form.number} onChange={set('number')} /></Field>
@@ -236,14 +248,15 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
         <Field label="Notes" hint="Press Enter for a new line — it shows as a new line on the invoice."><Textarea rows={3} value={form.notes} onChange={set('notes')} placeholder="Payment terms, delivery details, anything the client should know…" /></Field>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap gap-2">
-            {initial?.id && <Button type="button" variant="danger" icon="trash" onClick={remove}>Delete</Button>}
-            {initial?.id && <Button type="button" variant="ghost" icon="copy" onClick={duplicate}>Duplicate</Button>}
+            {savedId && <Button type="button" variant="danger" icon="trash" onClick={remove}>Delete</Button>}
+            {savedId && <Button type="button" variant="ghost" icon="copy" onClick={duplicate}>Duplicate</Button>}
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={close}>Cancel</Button>
+            <Button type="button" variant="secondary" icon="doc" onClick={saveDraft}>{!form.status || form.status === 'draft' ? 'Save draft' : 'Save & continue'}</Button>
             <Button type="button" variant="ghost" icon="external" onClick={preview}>Preview / print</Button>
             <Button type="button" variant="secondary" icon="mail" onClick={openSendPreview}>Send to client</Button>
-            <Button>{initial?.id ? 'Save invoice' : 'Create invoice'}</Button>
+            <Button>{savedId ? 'Save invoice' : 'Create invoice'}</Button>
           </div>
         </div>
       </form>

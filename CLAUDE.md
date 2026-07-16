@@ -165,6 +165,29 @@ All built + verified this wave (branch `claude/optimistic-meitner-yqvl2l`) — *
   Recommended NOT merging modules — the gap is missing links, not overlap.
 - **No version bump** (standing rule — awaiting Ellice's word + her biblical reference).
 
+### Follow-on (same 27th-wave session — "Save draft" on the invoice & quote editors)
+Ellice: "for invoices or similar forms add save draft button." Built on the same branch (**merge to `main` to
+deploy**). Scope = the two document editors (`InvoiceEditorModal` in `Finance.jsx`, `QuoteEditor` in
+`Quotes.jsx`) — the long forms built up over sittings; the small quick forms (expenses/bookings/etc.) don't
+carry a draft concept. Frontend only.
+- **"Save draft" button** in both editors' footers: persists the document exactly as it stands and **keeps the
+  modal open** (toast "Draft saved — pick it up any time…"), so a half-built invoice survives an interruption
+  without losing your place. On an invoice whose status isn't draft the label reads **"Save & continue"** (it
+  never force-reverts a paid/sent status). Quotes' button is always "Save draft" (status isn't edited there).
+- **Mechanics: new `savedId` + `savedMidEdit` state** (reset on modal open). Every `persist()` records the id
+  → the first save POSTs, **every later save PATCHes the same record**. This also **fixed a latent dupe bug**:
+  Preview/Send on a NEW invoice persisted it, but "Create invoice" then POSTed AGAIN → two invoices. Now the
+  editor remembers the created id (title flips to "Edit <number>", Delete/Duplicate appear, submit label flips
+  to "Save"). **Closing after any mid-edit save calls `onSaved()` instead of `onClose()`** so the parent list
+  refreshes (all parents' `onSaved` closes + reloads; plain cancel with nothing saved is unchanged).
+- FAQ (rule #3): extended the duplicate/reorder/breaks invoice FAQ with the Save-draft line (covers quotes too).
+- **Verified:** Playwright (demo Elite chef) **14/14** — modal stays open + title flips + ONE invoice created,
+  second save PATCHes (no dupe) with both lines + status draft, Delete appears, close→list shows the draft,
+  **preview-then-save creates ONE invoice (dupe regression)**, quote editor same flow, zero JS errors. Build
+  clean (87 modules). NB two test-harness false-fails on the way: Finance defaults to the **Overview tab** (the
+  invoice rows aren't on screen until the Invoices tab is clicked), and `get_by_text("Invoices")` matches the
+  save-draft TOAST text — click the tab via `locator("button", has_text=...)`.
+
 ## Previous session (2026-07-08, twenty-sixth wave — final pre-rollout scan: 5 flow-gap fixes + icon pipeline readied)
 - Branch `claude/creative-platform-scan-03hsi4` — **merge to `main` to deploy.** Ellice asked for a final
   platform scan for flow gaps before the **initial rollout**, plus the logo submark updated to her actual icon.
