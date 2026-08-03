@@ -165,6 +165,16 @@ All built + verified this wave (branch `claude/optimistic-meitner-yqvl2l`) — *
   Recommended NOT merging modules — the gap is missing links, not overlap.
 - **No version bump** (standing rule — awaiting Ellice's word + her biblical reference).
 
+### Follow-on (same 27th-wave session — rollout begins: founders invite page links to the main site)
+Ellice started the **founders rollout** (contacting hand-picked caterers via Instagram DM, email fallback —
+outreach copy written in-chat). Her ask: the founders invite page should link to the main site "to read all
+the info and watch the video". Added to `pages/Founders.jsx` (offer state, under the hero tagline): a bordered
+ghost-style link — play icon + "New here? Read all about the platform & watch the 1-minute intro" → `/` (a
+plain `<a>`, full reload; the landing hero carries its own "Watch the intro" button so no fragile `#film` hash
+scroll). Verified (Playwright, real invite code from the seeded DB): renders, href `/`, click lands on the
+landing with the intro button, zero JS errors. Build clean. **Merged to `main`** (she's mid-rollout — the
+button is for the links she's sending now).
+
 ### Follow-on (same 27th-wave session — "Save draft" on the invoice & quote editors)
 Ellice: "for invoices or similar forms add save draft button." Built on the same branch (**merge to `main` to
 deploy**). Scope = the two document editors (`InvoiceEditorModal` in `Finance.jsx`, `QuoteEditor` in

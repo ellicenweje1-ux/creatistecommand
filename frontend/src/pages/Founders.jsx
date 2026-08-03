@@ -50,6 +50,11 @@ export default function FoundersInvite() {
               The <em className="italic text-copper">Founders</em> Membership.
             </h1>
             <p className="mt-4 text-lg leading-relaxed text-cream/60">{offer.tagline}</p>
+            {/* Full pitch lives on the main site — point invitees at the info + the intro film. */}
+            <a href="/" className="mt-6 inline-flex items-center gap-2 rounded-lg border border-white/15 px-4 py-2.5 text-sm font-medium text-cream/70 transition-colors hover:border-copper/50 hover:text-copper">
+              <Icon name="play" size={15} className="text-copper" />
+              New here? Read all about the platform &amp; watch the 1-minute intro
+            </a>
           </div>
 
           {/* Founder privilege badges */}
