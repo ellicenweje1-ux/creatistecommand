@@ -175,6 +175,16 @@ scroll). Verified (Playwright, real invite code from the seeded DB): renders, hr
 landing with the intro button, zero JS errors. Build clean. **Merged to `main`** (she's mid-rollout — the
 button is for the links she's sending now).
 
+### Follow-on (same 27th-wave session — Zoom is now the onboarding call room: `MEETING_URL` SET & VERIFIED)
+Ellice set **`MEETING_URL`** on Render to her **personal Zoom room** (PMI link with embedded `?pwd=`) and
+**verified it live**: test sign-up → booked a slot → "Join the video call" opened her Zoom room. So the
+Jitsi pain from the aunt trial is gone — every onboarding/check-in call booked from now on uses her Zoom room
+(sessions booked BEFORE the change keep their stored Jitsi link). Her Zoom **Remote control** setting was to be
+enabled (zoom.us → Settings → In Meeting Basic) for the request-control support experience — desktop only;
+iOS can only be viewed, never controlled. ⚠️ **Her Zoom is the FREE tier → all meetings cap at 40 min**
+(sessions are billed as 45) — keep calls brisk / rejoin, or upgrade to Zoom Pro (~£12/mo), which is also the
+prerequisite for the dormant `ZOOM_*` auto-record→transcript→Mise pipeline (still unset). No code changed.
+
 ### Follow-on (same 27th-wave session — "Save draft" on the invoice & quote editors)
 Ellice: "for invoices or similar forms add save draft button." Built on the same branch (**merge to `main` to
 deploy**). Scope = the two document editors (`InvoiceEditorModal` in `Finance.jsx`, `QuoteEditor` in
