@@ -205,6 +205,18 @@ invoice/quote tax line** (Tax → VAT/BTW/TVA…). Both verified + **merged to `
   fields ("Jansen, Maria"; escaped `""` kept), 3 created, re-import skips all, **semicolon+Dutch-header file
   parsed** (1 new + 1 dupe), Settings field, public doc shows "BTW (21%)", zero JS errors. Build clean (87 modules).
 
+### Follow-on (same 27th-wave session — shop reselect fix: datalists can't reselect; new `ComboInput`)
+Ellice (live use): with a shop name already in a shopping-list Shop box, the dropdown arrow wouldn't offer the
+other shops. Root cause: native `<datalist>` filters its options by the current text — a full value matches
+only itself, so "reselect" is impossible without clearing the box first (worse on mobile). **Fix: new
+`ComboInput` in `ui.jsx`** — free-text input + a chevron button that opens a real dropdown of ALL options
+(synthetic `{target:{value}}` onChange = drop-in for `Input`; outside-click close; current value highlighted).
+Swapped in for BOTH Shop fields in `Shopping.jsx` (add-item row + Edit-item modal, datalists removed;
+"Anywhere" now an explicit option). Verified Playwright **7/7** (filled box → arrow lists all + Anywhere,
+pick swaps value, item groups under the picked shop, edit-modal same, zero JS errors). Build clean.
+**LESSON: don't use `<input list=…>`/datalist where reselecting matters — use `ComboInput`.** (Other datalists
+remain: menus type, event type, units, tax label — fine for type-ahead, but candidates if the same complaint lands.)
+
 ### Follow-on (same 27th-wave session — "Save draft" on the invoice & quote editors)
 Ellice: "for invoices or similar forms add save draft button." Built on the same branch (**merge to `main` to
 deploy**). Scope = the two document editors (`InvoiceEditorModal` in `Finance.jsx`, `QuoteEditor` in

@@ -6,7 +6,7 @@ import { cls, fmtDate, fmtMoney, relDays, todayISO, uid } from '../format'
 import { BookingPicker } from '../prep'
 import { PriceBookSearch } from '../pricebook'
 import { DragList, GripHandle } from '../sortable'
-import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, ProgressBar, Spinner, toast, toastErr } from '../ui'
+import { ComboInput, Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, ProgressBar, Spinner, toast, toastErr } from '../ui'
 import ExampleCard from '../examples'
 
 /* ------------------------------ new list modal ------------------------------ */
@@ -80,8 +80,7 @@ function EditItemModal({ open, item, shopOptions, listId, onClose, onSave }) {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Shop">
-            <Input value={form.shop || ''} onChange={set('shop')} list={`edit-shops-${listId}`} placeholder="Anywhere" />
-            <datalist id={`edit-shops-${listId}`}>{shopOptions.map((s) => <option key={s} value={s} />)}</datalist>
+            <ComboInput value={form.shop || ''} onChange={set('shop')} placeholder="Anywhere" options={['Anywhere', ...shopOptions]} />
           </Field>
           <Field label="Est. cost"><Input value={form.est_cost ?? ''} onChange={set('est_cost')} placeholder="£" /></Field>
         </div>
@@ -191,12 +190,10 @@ export function ListEditor({ list, onChanged, onDeleted, currency = 'GBP', start
             <Input className="col-span-12 sm:col-span-4" placeholder="Add item…" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
             <Input className="col-span-3 sm:col-span-1" placeholder="Qty" value={draft.qty} onChange={(e) => setDraft({ ...draft, qty: e.target.value })} />
             <Input className="col-span-3 sm:col-span-1" placeholder="Unit" value={draft.unit} onChange={(e) => setDraft({ ...draft, unit: e.target.value })} />
-            <Input className="col-span-4 sm:col-span-3" placeholder="Shop" list={`shops-${list.id}`} value={draft.shop} onChange={(e) => setDraft({ ...draft, shop: e.target.value })} />
+            <ComboInput className="col-span-4 sm:col-span-3" placeholder="Shop" options={['Anywhere', ...(shopOptions.length ? shopOptions : GENERIC_SHOPS)]}
+              value={draft.shop} onChange={(e) => setDraft({ ...draft, shop: e.target.value })} />
             <Input className="col-span-2 sm:col-span-1" placeholder="£" value={draft.est_cost} onChange={(e) => setDraft({ ...draft, est_cost: e.target.value })} />
             <Button className="col-span-12 sm:col-span-2" size="sm" icon="plus">Add</Button>
-            <datalist id={`shops-${list.id}`}>
-              {(shopOptions.length ? shopOptions : GENERIC_SHOPS).map((s) => <option key={s} value={s} />)}
-            </datalist>
           </form>
           <p className="mt-1.5 text-[11px] text-fg/40">
             {shopOptions.length

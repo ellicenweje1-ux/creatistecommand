@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { cls } from './format'
 
 /* ---------------------------------- icons ---------------------------------- */
@@ -192,6 +192,43 @@ export function Field({ label: fieldLabel, children, hint, className = '' }) {
 }
 
 export const Input = (props) => <input {...props} className={cls('input', props.className)} />
+
+/* Free-text input with a real dropdown of ALL options. Unlike a native <datalist>,
+   the arrow always lists everything — a filled-in value doesn't hide the other
+   choices, so reselecting works (the datalist filters by the current text and
+   shows nothing once a full value is in the box). onChange receives a synthetic
+   { target: { value } } so it drops in wherever an Input was. */
+export function ComboInput({ value, onChange, options = [], placeholder, className = '', ...props }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    const away = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('pointerdown', away)
+    return () => document.removeEventListener('pointerdown', away)
+  }, [open])
+  const pick = (o) => { onChange({ target: { value: o } }); setOpen(false) }
+  return (
+    <div ref={ref} className={cls('relative', className)}>
+      <input {...props} value={value} onChange={onChange} placeholder={placeholder} className="input w-full pr-8" />
+      <button type="button" aria-label="Choose from the list" tabIndex={-1} onClick={() => setOpen((o) => !o)}
+        className="absolute inset-y-0 right-0 flex w-8 items-center justify-center text-fg/40 hover:text-fg">
+        <Icon name="chevronDown" size={14} />
+      </button>
+      {open && options.length > 0 && (
+        <div className="absolute left-0 top-full z-30 mt-1 max-h-52 w-full min-w-[11rem] overflow-y-auto rounded-lg border border-line bg-card py-1 shadow-lg">
+          {options.map((o) => (
+            <button key={o} type="button" onClick={() => pick(o)}
+              className={cls('block w-full px-3 py-1.5 text-left text-sm hover:bg-fg/5',
+                o === value ? 'font-medium text-copper' : 'text-fg/80')}>
+              {o}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 // Password field with a show/hide eye toggle. Drop-in replacement for <Input type="password" />.
 export function PasswordInput({ className = '', ...props }) {
   const [show, setShow] = useState(false)
