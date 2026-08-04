@@ -184,17 +184,21 @@ function parseCsv(text) {
   return rows
 }
 
-// Recognised header names per client field (English + Dutch, case-insensitive).
+// Recognised header names per client field, case-insensitive. Covers English plus the
+// common European spreadsheet headers (Dutch, German, French, Spanish, Italian,
+// Portuguese) so exports from any locale's Excel/Sheets map without renaming columns.
 const IMPORT_FIELDS = [
-  ['name', ['name', 'client', 'client name', 'full name', 'contact', 'naam']],
-  ['email', ['email', 'e-mail', 'mail', 'email address', 'e-mailadres']],
-  ['phone', ['phone', 'mobile', 'tel', 'telephone', 'phone number', 'number', 'telefoon', 'mobiel']],
-  ['company', ['company', 'business', 'organisation', 'organization', 'bedrijf']],
-  ['address', ['address', 'location', 'adres']],
-  ['allergies', ['allergies', 'allergy', 'allergens', 'allergieën', 'allergenen']],
+  ['name', ['name', 'client', 'client name', 'full name', 'contact', 'naam', 'nom', 'nombre', 'nome', 'kunde', 'cliente']],
+  ['email', ['email', 'e-mail', 'mail', 'email address', 'e-mailadres', 'correo', 'courriel']],
+  ['phone', ['phone', 'mobile', 'tel', 'telephone', 'phone number', 'number', 'telefoon', 'mobiel',
+    'telefon', 'téléphone', 'telephone', 'teléfono', 'telefono', 'portable', 'handy', 'celular']],
+  ['company', ['company', 'business', 'organisation', 'organization', 'bedrijf', 'firma',
+    'entreprise', 'société', 'societe', 'empresa', 'azienda']],
+  ['address', ['address', 'location', 'adres', 'adresse', 'dirección', 'direccion', 'indirizzo', 'endereço', 'endereco']],
+  ['allergies', ['allergies', 'allergy', 'allergens', 'allergieën', 'allergenen', 'allergien', 'allergie', 'alergias']],
   ['likes', ['likes', 'preferences', 'favourites', 'favorites']],
   ['dislikes', ['dislikes', 'avoid']],
-  ['notes', ['notes', 'note', 'comments', 'remarks', 'opmerkingen']],
+  ['notes', ['notes', 'note', 'comments', 'remarks', 'opmerkingen', 'notizen', 'remarques', 'notas']],
 ]
 
 function ImportClientsModal({ open, onClose, existing, onDone }) {
