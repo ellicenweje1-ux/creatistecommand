@@ -63,6 +63,8 @@ class User(Base):
     invoice_deposit_percent: Mapped[int] = mapped_column(Integer, default=0)  # 0 = pay in full
     # Customisable footer / thank-you line at the base of the invoice document.
     invoice_footer: Mapped[str] = mapped_column(String(300), default="")
+    # What the tax line is called on quotes/invoices — "Tax" (default), "VAT", "BTW", "TVA"…
+    invoice_tax_label: Mapped[str] = mapped_column(String(20), default="")
     role: Mapped[str] = mapped_column(String(20), default="chef")  # chef | admin | staff
     owner_id: Mapped[int] = mapped_column(Integer, nullable=True)  # staff accounts belong to an owner
     job_title: Mapped[str] = mapped_column(String(120), default="")

@@ -110,7 +110,7 @@ export default function PublicQuote() {
           <div className="w-56 text-sm">
             <Row label="Subtotal" value={fmtMoney(subtotal, currency)} />
             {Number(quote.discount) > 0 && <Row label="Discount" value={`−${fmtMoney(quote.discount, currency)}`} />}
-            {Number(quote.tax_rate) > 0 && <Row label={`Tax (${quote.tax_rate}%)`} value={fmtMoney(taxAmt, currency)} />}
+            {Number(quote.tax_rate) > 0 && <Row label={`${business.tax_label || 'Tax'} (${quote.tax_rate}%)`} value={fmtMoney(taxAmt, currency)} />}
             <div className="mt-1 flex justify-between border-t pt-2 font-display text-lg font-bold" style={{ borderColor: accent }}>
               <span>Total</span><span style={{ color: accent }}>{fmtMoney(total, currency)}</span>
             </div>

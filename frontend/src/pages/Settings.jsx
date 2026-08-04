@@ -369,6 +369,7 @@ export function SettingsInvoices() {
     bank_account_name: '', bank_name: '', bank_sort_code: '', bank_account_number: '',
     invoice_payment_link: '', invoice_payment_link_label: '', invoice_payment_details: '',
     invoice_notes_default: '', invoice_deposit_percent: 0, service_charges: [], invoice_app_url: '',
+    invoice_tax_label: '',
   })
   const [seqs, setSeqs] = useState({ invoice: 1, quote: 1 })
   const [busy, setBusy] = useState(false)
@@ -388,6 +389,7 @@ export function SettingsInvoices() {
       invoice_notes_default: user.invoice_notes_default || '',
       invoice_deposit_percent: user.invoice_deposit_percent || 0,
       service_charges: user.service_charges || [], invoice_app_url: user.invoice_app_url || '',
+      invoice_tax_label: user.invoice_tax_label || '',
     })
   }, [user])
   useEffect(() => {
@@ -479,7 +481,11 @@ export function SettingsInvoices() {
           <Field label="Footer / thank-you line" hint="At the very bottom of the invoice. Blank uses “Thank you for your business.”">
             <Input value={form.invoice_footer} maxLength={300} onChange={upd('invoice_footer')} placeholder="Thank you for your business." />
           </Field>
+          <Field label="Tax label" hint="What the tax line is called on quotes & invoices. Blank uses “Tax” — set VAT, BTW, TVA…">
+            <Input value={form.invoice_tax_label} maxLength={20} onChange={upd('invoice_tax_label')} placeholder="Tax" list="tax-labels" />
+          </Field>
         </div>
+        <datalist id="tax-labels">{['VAT', 'BTW', 'TVA', 'MwSt', 'GST', 'Sales tax'].map((t) => <option key={t} value={t} />)}</datalist>
         <Field label="Default notes" hint="Appear on every new invoice — press Enter for new lines (they stay as separate lines)." className="mt-3">
           <Textarea rows={3} value={form.invoice_notes_default} onChange={upd('invoice_notes_default')} placeholder={'Payment due within 7 days.\nAllergen information available on request.'} />
         </Field>

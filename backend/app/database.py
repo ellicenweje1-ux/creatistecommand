@@ -53,6 +53,7 @@ def ensure_columns():
             "invoice_notes_default": "TEXT DEFAULT ''", "invoice_deposit_percent": "INTEGER DEFAULT 0",
             "is_comp": "BOOLEAN DEFAULT 0",
             "examples_hidden": "JSON",
+            "invoice_tax_label": "VARCHAR(20) DEFAULT ''",
         },
         "platform_settings": {"founders": "JSON"},
         "tasks": {"assignee_id": "INTEGER", "due_reminder_for": "VARCHAR(20) DEFAULT ''"},

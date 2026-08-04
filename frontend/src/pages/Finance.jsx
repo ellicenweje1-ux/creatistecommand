@@ -218,7 +218,7 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          <Field label="Tax rate %"><Input type="number" step="0.1" value={form.tax_rate} onChange={set('tax_rate')} /></Field>
+          <Field label={`${user?.invoice_tax_label || 'Tax'} rate %`}><Input type="number" step="0.1" value={form.tax_rate} onChange={set('tax_rate')} /></Field>
           <Field label="Discount"><Input type="number" step="0.01" value={form.discount} onChange={set('discount')} /></Field>
           <div className="self-end rounded-lg bg-ink px-4 py-2 text-right text-cream">
             <p className="text-[10px] uppercase tracking-wider text-cream/50">Total</p>

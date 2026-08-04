@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { api } from '../api'
 import { BOOKING_TONES, cls, fmtDate, label, todayISO } from '../format'
 import { ContactClient } from '../contact'
-import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, SearchInput, Spinner, Stars, Textarea, toastErr } from '../ui'
+import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal, PageHeader, SearchInput, Spinner, Stars, Textarea, toast, toastErr } from '../ui'
 import ExampleCard from '../examples'
 
 function ClientModal({ open, onClose, onSaved, initial = null }) {
@@ -156,11 +156,160 @@ function ClientDetail({ client, onEdit, onChanged }) {
   )
 }
 
+/* ------------------------------- CSV import -------------------------------- */
+/* Tiny CSV parser: quoted fields, "" escapes, CRLF. Auto-detects the delimiter —
+   European Excel exports use ; instead of , (e.g. Dutch locales). */
+function parseCsv(text) {
+  const firstLine = text.slice(0, text.indexOf('\n') + 1 || text.length)
+  const delim = (firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length ? ';' : ','
+  const rows = []
+  let row = [], field = '', inQuotes = false
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i]
+    if (inQuotes) {
+      if (ch === '"' && text[i + 1] === '"') { field += '"'; i++ }
+      else if (ch === '"') inQuotes = false
+      else field += ch
+    } else if (ch === '"') inQuotes = true
+    else if (ch === delim) { row.push(field); field = '' }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++
+      row.push(field); field = ''
+      if (row.some((f) => f.trim() !== '')) rows.push(row)
+      row = []
+    } else field += ch
+  }
+  row.push(field)
+  if (row.some((f) => f.trim() !== '')) rows.push(row)
+  return rows
+}
+
+// Recognised header names per client field (English + Dutch, case-insensitive).
+const IMPORT_FIELDS = [
+  ['name', ['name', 'client', 'client name', 'full name', 'contact', 'naam']],
+  ['email', ['email', 'e-mail', 'mail', 'email address', 'e-mailadres']],
+  ['phone', ['phone', 'mobile', 'tel', 'telephone', 'phone number', 'number', 'telefoon', 'mobiel']],
+  ['company', ['company', 'business', 'organisation', 'organization', 'bedrijf']],
+  ['address', ['address', 'location', 'adres']],
+  ['allergies', ['allergies', 'allergy', 'allergens', 'allergieën', 'allergenen']],
+  ['likes', ['likes', 'preferences', 'favourites', 'favorites']],
+  ['dislikes', ['dislikes', 'avoid']],
+  ['notes', ['notes', 'note', 'comments', 'remarks', 'opmerkingen']],
+]
+
+function ImportClientsModal({ open, onClose, existing, onDone }) {
+  const [rows, setRows] = useState(null)       // [{name, email, …}] parsed + mapped
+  const [mapped, setMapped] = useState([])     // which of our fields were found
+  const [error, setError] = useState('')
+  const [progress, setProgress] = useState(null) // {done, total} while importing
+  const reset = () => { setRows(null); setMapped([]); setError(''); setProgress(null) }
+
+  const onFile = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const parsed = parseCsv(String(reader.result || ''))
+      if (parsed.length < 2) { setError('That file looks empty — it needs a header row plus at least one client.'); return }
+      const headers = parsed[0].map((h) => h.trim().toLowerCase())
+      const colFor = {}
+      IMPORT_FIELDS.forEach(([field, names]) => {
+        const idx = headers.findIndex((h) => names.includes(h))
+        if (idx !== -1) colFor[field] = idx
+      })
+      if (colFor.name === undefined) {
+        setError('Couldn’t find a name column. Make sure the first row is headers and one of them is called “Name” (or “Client”).')
+        return
+      }
+      setError('')
+      setMapped(Object.keys(colFor))
+      setRows(parsed.slice(1).map((r) => {
+        const rec = {}
+        Object.entries(colFor).forEach(([field, idx]) => { rec[field] = (r[idx] || '').trim() })
+        return rec
+      }).filter((r) => r.name))
+    }
+    reader.readAsText(file)
+    e.target.value = '' // same file can be re-picked
+  }
+
+  const doImport = async () => {
+    const have = new Set(existing.flatMap((c) => [
+      c.name.trim().toLowerCase(),
+      ...(c.email ? [c.email.trim().toLowerCase()] : []),
+    ]))
+    let imported = 0, skipped = 0
+    setProgress({ done: 0, total: rows.length })
+    for (const [i, r] of rows.entries()) {
+      const dup = have.has(r.name.toLowerCase()) || (r.email && have.has(r.email.toLowerCase()))
+      if (dup) skipped++
+      else {
+        try {
+          await api.post('/clients', r)
+          have.add(r.name.toLowerCase()); if (r.email) have.add(r.email.toLowerCase())
+          imported++
+        } catch { skipped++ }
+      }
+      setProgress({ done: i + 1, total: rows.length })
+    }
+    toast(`Imported ${imported} client${imported === 1 ? '' : 's'}${skipped ? ` · ${skipped} skipped (already in your list)` : ''}`, 'sage')
+    reset(); onDone()
+  }
+
+  return (
+    <Modal open={open} onClose={() => { reset(); onClose() }} title="Import clients from a spreadsheet">
+      <div className="space-y-4">
+        <p className="text-sm text-fg/60">
+          Upload a CSV file — from Excel or Google Sheets use <span className="font-medium">File → Download → CSV</span>.
+          The first row should be headers; a <span className="font-medium">Name</span> column is required, and
+          Email, Phone, Company, Address, Allergies and Notes come along when present. Clients already in your
+          list (same name or email) are skipped, never duplicated.
+        </p>
+        {!rows && (
+          <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-line p-8 text-sm text-fg/55 transition-colors hover:border-copper/50 hover:text-copper">
+            <Icon name="up" size={22} />
+            Choose a .csv file
+            <input type="file" accept=".csv,text/csv" className="hidden" onChange={onFile} />
+          </label>
+        )}
+        {error && <p className="rounded-lg border border-red-300/50 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-300">{error}</p>}
+        {rows && (
+          <div>
+            <p className="text-sm font-medium">{rows.length} client{rows.length === 1 ? '' : 's'} found</p>
+            <p className="mt-0.5 text-xs text-fg/50">Columns matched: {mapped.join(' · ')}</p>
+            <div className="mt-2 max-h-44 overflow-y-auto rounded-lg border border-line">
+              <table className="w-full text-xs">
+                <tbody className="divide-y divide-line/60">
+                  {rows.slice(0, 8).map((r, i) => (
+                    <tr key={i}>
+                      <td className="px-3 py-1.5 font-medium">{r.name}</td>
+                      <td className="px-3 py-1.5 text-fg/55">{r.email || r.phone || '—'}</td>
+                      <td className="px-3 py-1.5 text-fg/55">{r.company || r.allergies || ''}</td>
+                    </tr>
+                  ))}
+                  {rows.length > 8 && <tr><td colSpan={3} className="px-3 py-1.5 text-fg/45">…and {rows.length - 8} more</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-4 flex items-center justify-between gap-2">
+              <button type="button" className="text-xs text-fg/45 hover:text-fg/70" onClick={reset}>← Pick a different file</button>
+              <Button icon="up" disabled={!!progress} onClick={doImport}>
+                {progress ? `Importing ${progress.done}/${progress.total}…` : `Import ${rows.length} client${rows.length === 1 ? '' : 's'}`}
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </Modal>
+  )
+}
+
 export default function Clients() {
   const [clients, setClients] = useState(null)
   const [q, setQ] = useState('')
   const [selectedId, setSelectedId] = useState(null)
   const [modal, setModal] = useState({ open: false, initial: null })
+  const [importOpen, setImportOpen] = useState(false)
 
   const load = () => api.get('/clients').then(setClients).catch(toastErr)
   useEffect(load, [])
@@ -175,13 +324,19 @@ export default function Clients() {
         actions={
           <>
             {clients.length > 0 && <Button variant="secondary" icon="down" onClick={() => api.download('/exports/clients.csv', 'creatiste-clients.csv').catch(toastErr)}>Export</Button>}
+            <Button variant="secondary" icon="up" onClick={() => setImportOpen(true)}>Import</Button>
             <Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>New client</Button>
           </>
         } />
       <ExampleCard k="clients" />
       {clients.length === 0 ? (
-        <EmptyState icon="users" title="No clients yet" hint="Add clients to track their tastes, allergies and reviews across bookings."
-          action={<Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>New client</Button>} />
+        <EmptyState icon="users" title="No clients yet" hint="Add clients to track their tastes, allergies and reviews across bookings — or import your existing list from a spreadsheet."
+          action={
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button icon="plus" onClick={() => setModal({ open: true, initial: null })}>New client</Button>
+              <Button variant="secondary" icon="up" onClick={() => setImportOpen(true)}>Import a CSV</Button>
+            </div>
+          } />
       ) : (
         <div className="grid gap-5 lg:grid-cols-3">
           <div>
@@ -212,6 +367,8 @@ export default function Clients() {
       )}
       <ClientModal open={modal.open} initial={modal.initial} onClose={() => setModal({ open: false, initial: null })}
         onSaved={(c) => { setModal({ open: false, initial: null }); setSelectedId(c?.id || selectedId); load() }} />
+      <ImportClientsModal open={importOpen} existing={clients} onClose={() => setImportOpen(false)}
+        onDone={() => { setImportOpen(false); load() }} />
     </div>
   )
 }

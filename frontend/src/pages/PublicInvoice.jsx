@@ -111,7 +111,7 @@ export default function PublicInvoice() {
           <div className="w-56 text-sm">
             <Row label="Subtotal" value={fmtMoney(subtotal, currency)} />
             {Number(invoice.discount) > 0 && <Row label="Discount" value={`−${fmtMoney(invoice.discount, currency)}`} />}
-            {Number(invoice.tax_rate) > 0 && <Row label={`Tax (${invoice.tax_rate}%)`} value={fmtMoney(taxAmt, currency)} />}
+            {Number(invoice.tax_rate) > 0 && <Row label={`${business.tax_label || 'Tax'} (${invoice.tax_rate}%)`} value={fmtMoney(taxAmt, currency)} />}
             <div className="mt-1 flex justify-between border-t pt-2 font-display text-lg font-bold" style={{ borderColor: accent }}>
               <span>Total</span><span style={{ color: accent }}>{fmtMoney(total, currency)}</span>
             </div>

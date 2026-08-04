@@ -37,6 +37,7 @@ def view_invoice(token: str, db: Session = Depends(get_db)):
             "phone": owner.phone or "",
             "logo": owner.avatar_url or "",
             "accent": owner.invoice_accent or "#BFA987",
+            "tax_label": owner.invoice_tax_label or "Tax",
             "payment_details": owner.invoice_payment_details or "",
             "footer": owner.invoice_footer or "",
             "bank": {
@@ -79,6 +80,7 @@ def view_quote(token: str, db: Session = Depends(get_db)):
             "phone": owner.phone or "",
             "logo": owner.avatar_url or "",
             "accent": owner.invoice_accent or "#BFA987",
+            "tax_label": owner.invoice_tax_label or "Tax",
         },
         "currency": owner.currency,
         "client": bill_to,

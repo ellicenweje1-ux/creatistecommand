@@ -185,6 +185,26 @@ iOS can only be viewed, never controlled. ⚠️ **Her Zoom is the FREE tier →
 (sessions are billed as 45) — keep calls brisk / rejoin, or upgrade to Zoom Pro (~£12/mo), which is also the
 prerequisite for the dormant `ZOOM_*` auto-record→transcript→Mise pipeline (still unset). No code changed.
 
+### Follow-on (same 27th-wave session — client CSV import + configurable tax label, from a Dutch prospect's questions)
+A prospective founder (Daavis Cuisine, Netherlands) sent 12 questions (reply written in-chat); the two honest
+gaps became builds on Ellice's "lets just make those builds now": **(a) client CSV import**, **(b) rename the
+invoice/quote tax line** (Tax → VAT/BTW/TVA…). Both verified + **merged to `main`** (she's mid-outreach).
+- **Import (frontend-only, `Clients.jsx`):** an **Import** button (header + empty state) → `ImportClientsModal`:
+  upload a `.csv` → tiny in-file `parseCsv` (quoted fields, `""` escapes, CRLF, **auto-detects `,` vs `;`** —
+  European/Dutch Excel exports use `;`) → headers auto-map via `IMPORT_FIELDS` (EN + NL names: naam/telefoon/
+  bedrijf/opmerkingen…; **Name required**, else friendly error) → preview (count, matched columns, first 8) →
+  sequential `POST /clients` with **dedupe** (existing name OR email, case-insensitive; the set grows during the
+  run so an in-file dupe also skips) → progress + summary toast. Re-running an import is safe (all skipped).
+- **Tax label (additive `users.invoice_tax_label`, VARCHAR(20)):** model + `ensure_columns` + `PUT /auth/me`
+  (capped 20). **Settings → Invoices → Invoice defaults** gains a "Tax label" input (datalist: VAT/BTW/TVA/
+  MwSt/GST/Sales tax; blank = "Tax"). Public invoice + quote endpoints return `business.tax_label`;
+  `PublicInvoice`/`PublicQuote` render it (`BTW (21%)`), and both editors' "Tax rate %" field label reads it.
+- FAQ (rule #3): new "Can I import my existing clients?" + tax-label line in the invoice-branding FAQ.
+- **Verified:** backend TestClient **5/5** (save/round-trip, public invoice + quote carry it, blank→"Tax";
+  bootstrap on the existing scratch DB = the migration drill). Playwright **10/10** — comma CSV with quoted
+  fields ("Jansen, Maria"; escaped `""` kept), 3 created, re-import skips all, **semicolon+Dutch-header file
+  parsed** (1 new + 1 dupe), Settings field, public doc shows "BTW (21%)", zero JS errors. Build clean (87 modules).
+
 ### Follow-on (same 27th-wave session — "Save draft" on the invoice & quote editors)
 Ellice: "for invoices or similar forms add save draft button." Built on the same branch (**merge to `main` to
 deploy**). Scope = the two document editors (`InvoiceEditorModal` in `Finance.jsx`, `QuoteEditor` in
