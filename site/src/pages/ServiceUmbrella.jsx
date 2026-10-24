@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { HOME_EDIT_PACKAGES, SETTINGS } from '../content/site.js'
+import { HOME_EDIT_PACKAGES, LOADED_BAR, SETTINGS } from '../content/site.js'
 import { TableMenuCard } from './TableMenu.jsx'
 import { Arrow, Button, Eyebrow, Frame, Heading, Reveal, Section, asset } from '../ui.jsx'
 import { EnquireBand } from './Home.jsx'
@@ -31,7 +31,7 @@ export default function ServiceUmbrella({ u, lane }) {
               <Reveal delay={2}><p className="lede mt-6 max-w-xl text-ink/75">{u.howServed.body}</p></Reveal>
               <Reveal delay={3} className="mt-7"><Button to={u.howServed.link} variant="ink">Explore The Loaded Bar</Button></Reveal>
             </div>
-            <Reveal delay={2} className="lg:col-span-5"><Frame src="/photos/loaded-bar.jpg" alt="The Loaded Bar station" ratio="4/5" className="lg:ml-auto lg:w-[80%]" /></Reveal>
+            <Reveal delay={2} className="lg:col-span-5"><Frame src={LOADED_BAR.photo} alt="The Loaded Bar station" ratio="4/5" fit="contain" className="lg:ml-auto lg:w-[80%]" /></Reveal>
           </div>
         </Section>
       ) : null}
@@ -55,6 +55,7 @@ export default function ServiceUmbrella({ u, lane }) {
                   </Reveal>
                 ) : null}
                 {s.note ? <Reveal delay={3}><p className="mt-6 font-body text-[13px] italic text-stone">{s.note}</p></Reveal> : null}
+                {s.docUrl ? <Reveal delay={3} className="mt-6"><Button href={asset(s.docUrl)} variant="ghost-ink" target="_blank" rel="noreferrer">{s.docLabel || 'Download the PDF'}</Button></Reveal> : null}
                 {s.menuNote ? <Reveal delay={3}><p className="mt-6 font-body text-[13px] italic text-stone">{s.menuNote}</p></Reveal> : null}
                 {SETTINGS.showFromPrices && s.from ? <Reveal delay={3}><p className="mt-6 font-body text-[12px] uppercase tracking-wide text-gold-deep">From {s.from} · subject to consultation</p></Reveal> : null}
                 <Reveal delay={3} className="mt-8 flex flex-wrap gap-3">

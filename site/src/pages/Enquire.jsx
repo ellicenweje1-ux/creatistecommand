@@ -24,7 +24,7 @@ const LANE_FIELDS = {
     { k: 'area', label: 'Postcode', type: 'text', half: true, placeholder: 'e.g. W5 2AB' },
     { k: 'focus', label: 'Food focuses & dietary needs', type: 'textarea', placeholder: 'High protein, halal, no shellfish, Nigerian & Caribbean favourites…' },
     { k: 'budget_per', label: 'This budget is', type: 'select', options: ['Weekly', 'Monthly', 'Per visit'], half: true },
-    { k: 'budget', label: 'Rough budget', type: 'text', half: true, placeholder: 'Your figure', hint: (a) => { const r = RECOMMENDED_BUDGET[a.service]?.[a.budget_per || 'Weekly']; return r ? `We recommend a budget starting at £${r} ${(a.budget_per || 'Weekly').toLowerCase()} for ${a.service}.` : 'Pick a service and a frequency to see our recommended starting budget.' } },
+    { k: 'budget', label: 'Rough budget', type: 'text', half: true, placeholder: 'Your figure', hint: (a) => { if (!a.service) return 'Pick a service to see our recommended starting budget.'; const r = RECOMMENDED_BUDGET[a.service]?.[a.budget_per || 'Weekly']; return r ? `For ${a.service} we recommend a budget of ${r}.` : `We’ll advise a starting budget for ${a.service} at consultation.` } },
   ],
   'private-catering': [
     { k: 'service', label: 'Which service?', type: 'radio', options: CAT_SERVICES, req: true },

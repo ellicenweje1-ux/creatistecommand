@@ -140,6 +140,11 @@ export default function CleanDream() {
   const [stage, setStage] = useState('build') // build | checkout
   const [f, setF] = useState({ name: '', email: '', phone: '', allergies: '', date: '', fulfilment: 'collection', slot_id: '', delivery_address: '', note: '', company: '' })
   const [state, setState] = useState({ status: 'idle', error: '' })
+  const [showBank, setShowBank] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const bank = CLEAN_DREAM.bank
+  const bankText = () => `${bank.name}\n${bank.bank}\nAccount number ${bank.account}\nSort code ${bank.sort}\nReference ${f.name || 'your name'}\nAmount ${money(total)}`
+  const copyBank = async () => { try { await navigator.clipboard.writeText(bankText()); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {} }
   const setK = (k, v) => setF((p) => ({ ...p, [k]: v }))
   const checkoutRef = useRef(null)
 
@@ -161,7 +166,7 @@ export default function CleanDream() {
   const waText = () => {
     const where = f.fulfilment === 'delivery' ? `Delivery to ${f.delivery_address}` : slot ? `${slot.label}, ${slot.place} @ ${slot.time}` : ''
     const lines = boxes.map((b) => `• ${b.for}: ${b.item} (${b.summary})${b.note ? ` [${b.note}]` : ''} ${money(b.price)}`)
-    return [`${menu.title || 'Clean Dream'} order for ${f.date}`, `Name: ${f.name} · ${f.phone} · ${f.email}`, where, ...lines, `Total ${money(total)}`, f.allergies ? `Allergies: ${f.allergies}` : '', f.note ? `Note: ${f.note}` : ''].filter(Boolean).join('\n')
+    return [`${menu.title || 'Clean Dream'} order for ${f.date}`, `Name: ${f.name} · ${f.phone} · ${f.email}`, where, ...lines, `Total ${money(total)}`, !(API && payments) ? `Payment: bank transfer${showBank ? ' sent' : ''}, reference ${f.name}` : '', f.allergies ? `Allergies: ${f.allergies}` : '', f.note ? `Note: ${f.note}` : ''].filter(Boolean).join('\n')
   }
 
   async function submit(e) {
@@ -309,10 +314,39 @@ export default function CleanDream() {
                 <div className="mt-3 flex items-baseline justify-between"><p className="font-body text-[12px] uppercase tracking-wide text-ink/70">Total</p><p className="font-display text-[28px]">{money(total)}</p></div>
                 <p className="mt-2 font-body text-[13px] text-stone">{f.date ? dates.find((d) => d.date === f.date)?.label : ''}{f.fulfilment === 'delivery' ? ' · Delivery' : slot ? ` · ${slot.place} @ ${slot.time}` : ''}</p>
                 {state.error ? <p className="mt-4 font-body text-[13px] text-red-600">{state.error}</p> : null}
-                <Button type="submit" variant="ink" disabled={!ready || state.status === 'sending'} className="mt-6 w-full disabled:cursor-not-allowed disabled:opacity-40">
-                  {state.status === 'sending' ? 'Taking you to payment…' : API && payments ? `Pay ${money(total)} & place order` : 'Send order by message'} <Arrow />
-                </Button>
-                <p className="mt-3 font-body text-[12px] text-stone">{API && payments ? 'Card payment by Stripe. Your order is confirmed once payment goes through.' : 'Card payment is coming online. For now your order goes to us by message and we confirm by reply.'}</p>
+                {API && payments ? (
+                  <>
+                    <Button type="submit" variant="ink" disabled={!ready || state.status === 'sending'} className="mt-6 w-full disabled:cursor-not-allowed disabled:opacity-40">
+                      {state.status === 'sending' ? 'Taking you to payment…' : `Pay ${money(total)} & place order`} <Arrow />
+                    </Button>
+                    <p className="mt-3 font-body text-[12px] text-stone">Card payment by Stripe. Your order is confirmed once payment goes through.</p>
+                  </>
+                ) : (
+                  <>
+                    {/* Paying by bank transfer: the details sit behind a button, then the order goes to us on WhatsApp. */}
+                    {!showBank ? (
+                      <Button type="button" variant="ink" onClick={() => setShowBank(true)} className="mt-6 w-full" data-pay-bank>Pay {money(total)} by bank transfer <Arrow /></Button>
+                    ) : (
+                      <div className="mt-6 border border-gold bg-linen p-5" data-bank-details>
+                        <p className="font-body text-[11px] uppercase tracking-eyebrow text-gold-deep">Pay by bank transfer</p>
+                        <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-5 gap-y-1.5 font-body text-[14px]">
+                          <dt className="text-stone">Name</dt><dd className="font-medium">{bank.name}</dd>
+                          <dt className="text-stone">Bank</dt><dd>{bank.bank}</dd>
+                          <dt className="text-stone">Account number</dt><dd className="tabular-nums">{bank.account}</dd>
+                          <dt className="text-stone">Sort code</dt><dd className="tabular-nums">{bank.sort}</dd>
+                          <dt className="text-stone">Reference</dt><dd>{f.name || 'Your name'}</dd>
+                          <dt className="text-stone">Amount</dt><dd className="font-medium">{money(total)}</dd>
+                        </dl>
+                        <button type="button" onClick={copyBank} className="mt-4 font-body text-[11px] uppercase tracking-wide text-gold-deep link-under">{copied ? 'Copied' : 'Copy the details'}</button>
+                        <p className="mt-4 font-body text-[12px] leading-relaxed text-ink/70">{CLEAN_DREAM.confirm}</p>
+                      </div>
+                    )}
+                    <Button type="submit" variant={showBank ? 'gold' : 'ghost-ink'} disabled={!ready} className="mt-4 w-full disabled:cursor-not-allowed disabled:opacity-40">
+                      {showBank ? 'I’ve paid, send my order' : CONTACT.whatsapp ? 'Send order on WhatsApp' : 'Send order by email'} <Arrow />
+                    </Button>
+                    <p className="mt-3 font-body text-[12px] text-stone">{CONTACT.whatsapp ? 'Your order opens in WhatsApp for you to send. ' : 'Your order opens in your email app for you to send. '}{CLEAN_DREAM.confirm}</p>
+                  </>
+                )}
                 <button type="button" onClick={() => setStage('build')} className="mt-4 font-body text-[11px] uppercase tracking-wide text-stone hover:text-ink">Back to the basket</button>
               </div>
             </div>

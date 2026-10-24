@@ -86,9 +86,9 @@ export const HOME_EDIT_PACKAGES = {
 /* Recommended starting budgets shown on the enquiry form, by service and billing frequency.
    TODO Ellice: confirm these figures. Home Edit figures follow the lightest package (The Prep Day). */
 export const RECOMMENDED_BUDGET = {
-  'Batchfully Made': { Weekly: 120, Monthly: 480, 'Per visit': 120 },
-  'The Home Edit': { Weekly: 184, Monthly: 736, 'Per visit': 184 },
-  'Sorted & Served': { Weekly: 90, Monthly: 360, 'Per visit': 90 },
+  'Batchfully Made': { Weekly: '£55 to £70 a week', Monthly: 'around £220 to £280 a month', 'Per visit': '£55 to £70 per batch' },
+  'The Home Edit': { Weekly: 'from £70 per visit', Monthly: 'around £280 to £360 a month', 'Per visit': 'from £70 per visit' },
+  // Sorted & Served: no figure yet; the form says we advise at consultation. TODO Ellice
 }
 
 export const PERSONAL_CHEF = {
@@ -108,7 +108,8 @@ export const PERSONAL_CHEF = {
         'Delivered chilled and labelled, ready to dish up through the week',
         'Weekly or ad hoc, with no subscription and no commitment beyond the batch',
       ],
-      note: 'A set price list for the 32oz and 58oz containers is available on request.',
+      note: 'Component-based batch prep in 32oz and 58oz containers, built around your preferences. Not on the menu? Let us know, we’ll make it and add it.',
+      docUrl: '/docs/batchfully-made-price-list.pdf', docLabel: 'Download the price list',
       photo: '/photos/batch-containers.jpg',
     },
     {
@@ -211,7 +212,7 @@ export const LOADED_BAR = {
   sub: 'Experience a live hot food station at your next event.',
   body: 'Customisable loaded bowls, endless combinations, and a premium catering experience.',
   from: '£21 per head',
-  photo: '/photos/loaded-bar.jpg',
+  photo: '/photos/loaded-bar.png', // the station itself, cut out on a transparent ground
   included: {
     title: 'What’s included',
     intro: 'Bring the excitement of a live, chef-curated hot food station to your celebration. The Loaded Bar serves customisable loaded bowls so every guest can build something they love.',
@@ -310,6 +311,10 @@ export const CLEAN_DREAM = {
     ],
     delivery: { enabled: true, per_mile: 0.65, note: 'Deliveries available between the collection locations upon request, at an additional £0.65 per mile. We confirm delivery by WhatsApp after you order and the delivery fee is charged separately.' },
   },
+  /* Paying today is by bank transfer: the Pay step reveals these details behind a button, and the order
+     comes to Ellice by WhatsApp. Card payment (Stripe via Command) takes over automatically once its key is set. */
+  bank: { name: 'Ellice Nweje', bank: 'Monzo Bank', account: '22278287', sort: '04-00-06' },
+  confirm: 'Your order will be confirmed once I send a receipt of payment and final collection/delivery details via WhatsApp.',
   title: 'Clean Dream',
   sub: 'Clean, whole-food lunch bowls, cooked fresh and served hot. Comforting, home-cooked and beautiful, built to keep you going.',
   photo: '/photos/clean-dream-boxes.jpg',
@@ -317,7 +322,7 @@ export const CLEAN_DREAM = {
     ['Order by 11am', 'Orders in by 11:00am are made the same day, Monday to Friday. After 11am, your order rolls to the next weekday.'],
     ['Collect at 1pm or 2:30pm', 'Two collection points each day. Pick the one that suits you at checkout.'],
     ['Or have it delivered', 'Deliveries between the two locations by request, at +£0.65 per mile. We confirm by WhatsApp after you order and the delivery fee is charged separately.'],
-    ['Paid is confirmed', 'Your order is confirmed once payment goes through. Every box is named so each person’s food is labelled correctly.'],
+    ['Confirmed by WhatsApp', 'Your order will be confirmed once I send a receipt of payment and final collection/delivery details via WhatsApp. Every box is named so each person’s food is labelled correctly.'],
   ],
 }
 
@@ -377,7 +382,8 @@ export const PORTFOLIO = {
   intro: 'A few of the tables, teams and rooms we’ve fed. More to come as the diary fills.',
   clients: [
     // TODO Ellice: a logo file in /photos/clients/ for any you have one for
-    { name: 'Alicia’s Charity Sports Day', kind: 'Corporate Curations · Live food station', logo: '' },
+    { name: 'Alicia’s Charity Sports Day', kind: 'Corporate Curations · Official vendor', logo: '' },
+    { name: 'Ra’ees Bangura-Williams', kind: 'Batchfully Made · Professional footballer', logo: '' },
     { name: '15 Under 30 × Kasa', kind: 'The Creatiste Table · Seated dinner', logo: '' },
     { name: 'G4 Boys', kind: 'Private chef · International artists · May 2026', logo: '' },
     { name: 'Indigo Kxd', kind: 'Personal chef · Producer & label owner', logo: '' },
@@ -385,12 +391,14 @@ export const PORTFOLIO = {
   /* Selected work. Each entry: the photo of the person or booking sits beside its highlight header
      (`kind`), with the name and the details of the event below. */
   features: [
-    { kind: 'Corporate Curations', title: 'Alicia’s Charity Sports Day', meta: 'Live food station · In advocation for Sickle Cell Disease', photo: '/photos/serving-bowl.jpg', // TODO Ellice: swap for a photo from the day if you have one
-      body: 'We brought our live food station concept to Alicia’s Charity Sports Day, held in advocation for Sickle Cell Disease: bowls built to order and served hot from The Loaded Bar, keeping players and supporters fed through the day.' },
+    { kind: 'Corporate Curations', title: 'Alicia’s Charity Sports Day', meta: 'Official vendor · Live food station · In advocation for Sickle Cell Disease', photo: '/photos/serving-bowl.jpg', // TODO Ellice: swap for a photo from the day if you have one
+      body: 'The official vendor for Alicia’s Charity Sports Day, held in advocation for Sickle Cell Disease. We brought our live food station concept to the day: bowls built to order and served hot from The Loaded Bar, keeping players and supporters fed from first whistle to last.' },
     { kind: 'The Creatiste Table', title: '15 Under 30 × Kasa', meta: 'Seated dinner collaboration', photo: '/photos/kasa-dinner.jpg',
       body: 'A four-stage set menu, served sharing style: marinated olives and glazed sausage bites on arrival, burrata and roasted aubergine dip with rosemary focaccia, spiced fruit braised duck on butter bean orzo, and a cardamom and orange tiramisu to finish.' },
     { kind: 'Private & Personal', title: 'G4 Boys', meta: 'Private chef · International artists · May 2026', photo: '/photos/g4-buffet.jpg',
       body: 'A private chef booking for international artists on a London stay: a full spread cooked in-house and set out against the skyline, with every course on the table before the room sat down.' },
+    { kind: 'Batchfully Made', title: 'Ra’ees Bangura-Williams', meta: 'Personal chef service · Professional footballer', photo: '/photos/batch-black-spread.jpg',
+      body: 'Batchfully Made personal chef service for a professional footballer: proteins, sides and vegetables batch-cooked in 32oz and 58oz containers around his training week, delivered chilled, labelled and ready to plate.' },
     { kind: 'Personal Chef', title: 'Indigo Kxd', meta: 'Producer & label owner', photo: '/photos/batch-lidded.jpg',
       body: 'A personal chef service for a producer and label owner with a packed studio diary: the week batch-cooked, portioned and labelled so the food keeps pace with the schedule.' },
   ],
@@ -428,10 +436,22 @@ export const GALLERY = {
     { src: '/photos/juice-boxes.jpg', alt: 'Pressed juice and glass meal boxes', w: 3, h: 4 },
     { src: '/photos/batch-kitchen.jpg', alt: 'Batch meals cooling in the kitchen', w: 9, h: 16 },
     { src: '/photos/trays-mac.jpg', alt: 'Jollof, chicken and mac and cheese, tray style', w: 9, h: 16 },
+    { src: '/photos/clean-dream-box.jpg', alt: 'A Clean Dream bowl: beef mince, bulgur, avocado and pickled slaw', w: 4, h: 5 },
+    { src: '/photos/plated-steak.jpg', alt: 'Steak on mash with tenderstem and vine tomatoes, and a lemon pasta', w: 3, h: 4 },
+    { src: '/photos/batch-black-spread.jpg', alt: 'A Batchfully Made week: corn, peppers, salad, rice, pasta and salmon', w: 3, h: 4 },
+    { src: '/photos/steak-bulgur-bowl.jpg', alt: 'Steak and bulgur bowl with coriander', w: 3, h: 4 },
+    { src: '/photos/trays-prawns.jpg', alt: 'Jollof, curry, breaded prawns and mac and cheese for a party', w: 3, h: 4 },
+    { src: '/photos/salad-plates.jpg', alt: 'Chicken caesar and a watermelon, feta and cucumber salad', w: 3, h: 4 },
+    { src: '/photos/trays-metal.jpg', alt: 'Trays of corn, rice, wings, chicken stew and jerk chicken', w: 3, h: 4 },
+    { src: '/photos/batch-stacked.jpg', alt: 'Stacked, labelled batch containers ready to go', w: 3, h: 4 },
   ],
   /* Social mirror: paste Instagram post or reel links here (public posts). They render as
      official Instagram embeds, pictures and videos alike. TODO Ellice: your best 6 to 9 posts. */
   instagram: [],
+  /* A live, auto-updating grid of the latest posts: paste the embed URL from a free feed widget here
+     (LightWidget, SnapWidget or Elfsight give one after you connect the Instagram account once). Leave
+     blank and the site shows Instagram's own profile embed of the latest posts instead. */
+  feedEmbedUrl: '',
 }
 
 export const MENUS_PAGE = {
@@ -441,7 +461,7 @@ export const MENUS_PAGE = {
   items: [
     { title: 'The Loaded Bar', kind: 'Brochure', body: 'What’s included, the bowl menu, requirements and terms for the live hot food station.', file: '/docs/the-loaded-bar.pdf', to: '/the-loaded-bar' },
     { title: 'The Creatiste Table', kind: 'Seasonal menu', body: 'The current set menu, £43 per head. Travel fee and staffing may be charged, subject to final consultation.', file: '/docs/the-creatiste-table-menu.pdf', to: '/private-catering#the-creatiste-table' },
-    { title: 'Batchfully Made', kind: 'Price list', body: 'Batch-cooked meals in 32oz and 58oz containers, portioned for the week. The standard price list is shared on request.', file: '', to: '/personal-chef#batchfully-made', request: '/enquire?lane=personal-chef&service=batchfully-made' }, // TODO Ellice: add the price list PDF to /docs when ready
+    { title: 'Batchfully Made', kind: 'Price list', body: 'Proteins, pastas, sides, vegetables and sauces, individually priced in 32oz and 58oz containers. Not on the menu? Ask and we’ll add it.', file: '/docs/batchfully-made-price-list.pdf', to: '/personal-chef#batchfully-made' },
     { title: 'The Home Edit', kind: 'Package options', body: 'Six packages for the in-home personal chef service, how each week looks, and the pricing basis.', file: '/docs/the-home-edit-packages.pdf', to: '/personal-chef#the-home-edit' },
     { title: 'Clean Dream', kind: 'Lunch menu', body: 'Build your own bowl: bases, proteins, toppings and extras for the weekday lunch service.', file: '/docs/clean-dream-menu.pdf', to: '/clean-dream' },
     // TODO Ellice: Corporate Curations and Private & Personal menu offerings when ready

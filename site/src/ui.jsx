@@ -70,9 +70,9 @@ export function Button({ to, href, variant = 'gold', className = '', children, .
 }
 
 /* A photo slot. With `src` it shows the image; without, an intentional dark frame. */
-export function Frame({ src, alt = '', ratio = '4/5', className = '', caption }) {
+export function Frame({ src, alt = '', ratio = '4/5', className = '', caption, fit = 'cover' }) {
   return (
-    <figure className={`frame ${src ? '' : 'frame-empty'} ${className}`} style={{ aspectRatio: ratio }}>
+    <figure className={`frame ${src ? '' : 'frame-empty'} ${fit === 'contain' ? 'frame-contain' : ''} ${className}`} style={{ aspectRatio: ratio }}>
       {src ? <img src={asset(src)} alt={alt} loading="lazy" /> : null}
       {caption ? <figcaption className="absolute bottom-3 left-4 font-body text-[11px] uppercase tracking-wide text-smoke">{caption}</figcaption> : null}
     </figure>

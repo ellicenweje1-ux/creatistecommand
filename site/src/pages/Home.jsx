@@ -131,7 +131,7 @@ function LoadedBarFeature() {
             <Button to="/enquire?lane=private-catering" variant="ghost-ink">Book the bar</Button>
           </Reveal>
         </div>
-        <Reveal delay={1} className="lg:col-span-6"><Frame src={LOADED_BAR.photo} alt="The Loaded Bar station" ratio="4/5" className="lg:ml-auto lg:w-[86%]" /></Reveal>
+        <Reveal delay={1} className="lg:col-span-6"><Frame src={LOADED_BAR.photo} alt="The Loaded Bar station" ratio="4/5" fit="contain" className="lg:ml-auto lg:w-[86%]" /></Reveal>
       </div>
     </Section>
   )

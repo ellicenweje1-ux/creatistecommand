@@ -341,6 +341,39 @@ preview artifact republished (Version 4).
   Batchfully Made price list PDF, certificates, a Sports Day photo, Instagram post links, catering Stripe keys, go-ahead
   to deploy + merge.
 
+### Follow-on (same 28th-wave session — fourth batch: bank-transfer pay step, Loaded Bar image + "brochure", Ra'ees, budgets, price list, 8 more photos)
+All built + verified (Playwright **70/70**, `scratchpad/verify_v5.py`; build clean), branch pushed, NOT merged; preview artifact Version 5.
+- **Clean Dream pays by BANK TRANSFER for now** (Ellice: "right now I want people to bank transfer"). Step 3 · Pay shows a
+  **"Pay £x by bank transfer"** button that reveals her details (`CLEAN_DREAM.bank` in content: Ellice Nweje · Monzo Bank ·
+  22278287 · 04-00-06, plus Reference = the customer's name and the Amount) with a **Copy the details** button; the submit
+  then reads **"I’ve paid, send my order"** and opens WhatsApp with the order + `Payment: bank transfer sent, reference <name>`.
+  The Stripe card path is untouched and takes over automatically when Command's `PREORDER_STRIPE_SECRET_KEY` is set.
+  **Confirmation wording is hers:** "Your order will be confirmed once I send a receipt of payment and final collection/delivery
+  details via WhatsApp." (`CLEAN_DREAM.confirm`, also the 4th how-step, now titled "Confirmed by WhatsApp"). NB the bank
+  details are deliberately public on the site (her instruction) — they're receive-only details.
+- **Loaded Bar:** her cut-out station image (transparent PNG, `site/public/photos/loaded-bar.png`) replaces the blurry
+  recording still, rendered in a new **`<Frame fit="contain">`** mode (`.frame-contain`: gold radial glow on ink, object-contain)
+  on the Loaded Bar hero, the Home feature and the Private Catering "How it’s served" block. "Grab the deck" → **"Grab the
+  brochure"**. The brochure PDF she re-sent is byte-identical to the hosted one.
+- **Portfolio:** **Ra’ees Bangura-Williams** (header "Batchfully Made", meta "Personal chef service · Professional footballer",
+  photo = the black-container spread) added; **Alicia** reworded as **official vendor** for the Sports Day. Clients chips updated.
+- **Budgets (her figures, `RECOMMENDED_BUDGET` now strings):** Batchfully Made £55 to £70 a week / around £220 to £280 a month;
+  The Home Edit from £70 per visit / around £280 to £360 a month; Sorted & Served has no figure → the form says we advise at
+  consultation. (No en dashes in copy either.)
+- **Batchfully Made price list** PDF hosted at `site/public/docs/batchfully-made-price-list.pdf` (32oz/58oz prices per
+  component): "Download the price list" button on the Personal Chef page (new generic `s.docUrl`/`s.docLabel` on umbrella
+  services) + The Menus card (5 PDFs now). NB this is public pricing by her choice, like the Home Edit guide.
+- **8 more photos** into `GALLERY.photos` (35 total): clean-dream-box, plated-steak, batch-black-spread, steak-bulgur-bowl,
+  trays-prawns, salad-plates, trays-metal, batch-stacked.
+- **Instagram live feed (her ask again):** the site ALREADY shows a live feed of her latest posts — Instagram's own public
+  profile embed (`instagram.com/thecreatistecatering/embed/`), no account connection needed, now 720×640. It only looks
+  "missing" in the preview because that host blocks third-party frames; it will show on the real domain. For the styled
+  grid other sites use, added **`GALLERY.feedEmbedUrl`**: she connects her Instagram once at a free widget (LightWidget /
+  SnapWidget / Elfsight), pastes the widget's embed URL there, and `social.jsx` renders it instead. A fully native feed =
+  Instagram Graph API via Command (Business account + token), later.
+- **Still TODO from Ellice:** a Sports Day photo, Sorted & Served budget, corporate/private menu offerings, certificates,
+  Instagram post links or a widget URL, catering Stripe keys (when she wants card payment), go-ahead to deploy + merge.
+
 ## Latest session (2026-07-13, twenty-seventh wave — worked-example cards on every module, from the aunt-trial feedback)
 - Branch `claude/claude-md-status-rollout-bjd18z` — **merge to `main` to deploy.** Context from Ellice's first
   real onboarding trial (her aunt, comped account): Jitsi was hard for the client (she manually made a Zoom),

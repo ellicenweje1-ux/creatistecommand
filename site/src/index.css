@@ -52,6 +52,8 @@
 .frame { @apply relative overflow-hidden bg-ink-2; }
 .frame img { @apply h-full w-full object-cover transition-transform duration-[1200ms] ease-silk; }
 .frame:hover img { transform: scale(1.03); }
+.frame-contain { background: radial-gradient(ellipse at 50% 60%, rgba(188,164,123,.22) 0%, rgba(188,164,123,.06) 45%, #0B0A08 75%); }
+.frame-contain img { @apply object-contain p-6 sm:p-8; }
 .frame-empty { background: linear-gradient(135deg, #15120E 0%, #1E1A15 50%, #15120E 100%); }
 .frame-empty::before { content: ''; position: absolute; inset: 14px; border: 1px solid rgba(188,164,123,.25); }
 
