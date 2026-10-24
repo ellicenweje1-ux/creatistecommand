@@ -21,7 +21,7 @@ export default function Menus() {
               <p className="mt-3 font-display text-[28px]">{m.title}</p>
               <p className="mt-3 flex-1 font-body text-[14px] font-light leading-relaxed text-ink/75">{m.body}</p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Button href={asset(m.file)} variant="ink" target="_blank" rel="noreferrer">Download PDF</Button>
+                {m.file ? <Button href={asset(m.file)} variant="ink" target="_blank" rel="noreferrer">Download PDF</Button> : <Button to={m.request || '/enquire'} variant="ink">Request the price list</Button>}
                 <Link to={m.to} className="inline-flex items-center gap-2 px-2 py-3 font-body text-[12px] uppercase tracking-wide text-ink/70 hover:text-gold-deep">Read more <Arrow /></Link>
               </div>
             </Reveal>

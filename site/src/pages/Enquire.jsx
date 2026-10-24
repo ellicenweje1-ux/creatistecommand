@@ -1,12 +1,18 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { CONTACT, ENQUIRE, HOME_EDIT_PACKAGES, PERSONAL_CHEF, PRIVATE_CATERING, RECOMMENDED_BUDGET, SETTINGS } from '../content/site.js'
+import { CONTACT, ENQUIRE, HOME_EDIT_PACKAGES, HOURS, LOADED_BAR, PERSONAL_CHEF, PRIVATE_CATERING, RECOMMENDED_BUDGET, SETTINGS, TABLE_MENU } from '../content/site.js'
 import { Arrow, Button, Eyebrow, Heading, Reveal, Section } from '../ui.jsx'
 
 /* ── Questions per lane ─────────────────────────────────────────────────────
    Each field: { k, label, type: text|email|tel|date|time|number|select|radio|textarea|check, options?, req?, half?, hint? } */
 const PC_SERVICES = [...PERSONAL_CHEF.services.map((s) => s.name), 'Not sure yet, advise me']
 const CAT_SERVICES = [...PRIVATE_CATERING.services.filter((s) => s.slug !== 'the-creatiste-table').map((s) => s.name), 'The Loaded Bar for another occasion', 'Not sure yet, advise me']
+
+/* The Loaded Bar's guest numbers, read from its own page so the two can never disagree. */
+const LB_GUESTS = ((LOADED_BAR.requirements.items || []).find(([k]) => /guest count/i.test(k)) || [])[1] || ''
+const LB_GUEST_NOTE = LB_GUESTS ? `The Loaded Bar serves a ${LB_GUESTS.replace(/\.$/, '')}.` : ''
+const TABLE_GUEST_NOTE = 'Tables are 5 to 12 guests max. Anything outside this may be discussed as a special request at consultation.'
+const TABLE_BUDGET_NOTE = `Please be advised this service starts at ${TABLE_MENU.perHead} per head.`
 
 const LANE_FIELDS = {
   'personal-chef': [
@@ -23,7 +29,7 @@ const LANE_FIELDS = {
   'private-catering': [
     { k: 'service', label: 'Which service?', type: 'radio', options: CAT_SERVICES, req: true },
     { k: 'date', label: 'Event date', type: 'date', half: true, req: true },
-    { k: 'guests', label: 'Guest capacity', type: 'number', half: true, placeholder: 'Approximate headcount', req: true },
+    { k: 'guests', label: 'Guest capacity', type: 'number', half: true, placeholder: 'Approximate headcount', req: true, hint: LB_GUEST_NOTE },
     { k: 'start', label: 'Event start time', type: 'time', half: true },
     { k: 'end', label: 'Event end time', type: 'time', half: true },
     { k: 'event_type', label: 'Type of event', type: 'select', options: ['Corporate / office', 'Product launch', 'Birthday', 'Anniversary', 'Private dinner', 'Baby shower', 'Wedding-adjacent', 'Other'], half: true },
@@ -32,16 +38,11 @@ const LANE_FIELDS = {
   ],
   'creatiste-table': [
     { k: 'date', label: 'Date', type: 'date', half: true, req: true },
-    { k: 'guests', label: 'Number of guests', type: 'number', half: true, req: true },
+    { k: 'guests', label: 'Number of guests', type: 'number', half: true, req: true, hint: TABLE_GUEST_NOTE },
     { k: 'occasion', label: 'The occasion', type: 'text', placeholder: 'An anniversary dinner for eight, a supper for friends…' },
     { k: 'venue', label: 'Venue & postcode', type: 'text', half: true },
-    { k: 'budget', label: 'Budget per head, if you have one', type: 'text', half: true, placeholder: 'Optional' },
+    { k: 'budget', label: 'Budget per head, if you have one', type: 'text', half: true, placeholder: 'Optional', hint: TABLE_BUDGET_NOTE },
     { k: 'dietary', label: 'Dietary requirements & dislikes', type: 'textarea' },
-  ],
-  'pricing-guide': [
-    { k: 'interest', label: 'What are you weighing up?', type: 'radio', options: ['Personal chef services', 'Private catering / The Loaded Bar', 'The Creatiste Table', 'Not sure yet'], req: true },
-    { k: 'timing', label: 'When might you need us?', type: 'select', options: ['This month', 'Next 1–3 months', 'Later this year', 'Just exploring'], half: true },
-    { k: 'guests', label: 'Roughly how many people?', type: 'text', half: true },
   ],
   events: [
     { k: 'interest', label: 'What would you like?', type: 'radio', options: ['Keep me posted on pop-ups & events', 'Collaborate on a pop-up or activation', 'Something else'], req: true },
@@ -128,12 +129,12 @@ export default function Enquire() {
   const lane = params.get('lane') || ''
   const [answers, setAnswers] = useState({})
   const [contact, setContact] = useState({ name: '', email: '', phone: '', contact_pref: '', consult_date: '', consult_time: '', message: '', company: '' })
-  const needsConsult = !['pricing-guide', 'events'].includes(lane)
+  const needsConsult = lane !== 'events'
   const consultWeekend = contact.consult_date && [0, 6].includes(new Date(contact.consult_date + 'T12:00:00').getDay())
   const [state, setState] = useState({ status: 'idle', error: '' })
   const fields = LANE_FIELDS[lane]
 
-  // Deep links can pre-answer the service (e.g. ?service=the-loaded-bar&deck=1).
+  // Deep links can pre-answer the service (e.g. ?service=the-loaded-bar).
   useEffect(() => {
     const svc = params.get('service')
     const all = [...PERSONAL_CHEF.services, ...PRIVATE_CATERING.services]
@@ -142,7 +143,16 @@ export default function Enquire() {
     setAnswers((prev) => ({ ...prev, ...(name ? { service: name } : {}) }))
   }, [params])
 
-  const setLane = (id) => { setParams(id ? { lane: id } : {}); setState({ status: 'idle', error: '' }) }
+  const formRef = useRef(null)
+  const jump = useRef(false)
+  const setLane = (id) => { jump.current = !!id; setParams(id ? { lane: id } : {}); setState({ status: 'idle', error: '' }) }
+  useEffect(() => {
+    if (!lane || !jump.current || !formRef.current) return
+    jump.current = false
+    formRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    const first = formRef.current.querySelector('input:not([type=radio]):not([type=hidden]), select, textarea')
+    if (first && window.matchMedia('(min-width: 1024px)').matches) setTimeout(() => first.focus({ preventScroll: true }), 450)
+  }, [lane])
   const setA = (k, v) => setAnswers((p) => ({ ...p, [k]: v }))
   const setC = (k, v) => setContact((p) => ({ ...p, [k]: v }))
 
@@ -193,10 +203,22 @@ export default function Enquire() {
   return (
     <>
       <section className="hero-field grain relative pt-40 pb-12">
-        <div className="mx-auto w-full max-w-page px-5 sm:px-8 lg:px-12">
-          <Reveal><Eyebrow>{ENQUIRE.eyebrow}</Eyebrow></Reveal>
-          <Reveal delay={1}><Heading as="h1" size="xl" className="mt-5 max-w-3xl">{ENQUIRE.title}</Heading></Reveal>
-          <Reveal delay={2}><p className="lede mt-8 max-w-xl text-ivory/75">{ENQUIRE.sub}</p></Reveal>
+        <div className="mx-auto grid w-full max-w-page gap-10 px-5 sm:px-8 lg:grid-cols-12 lg:px-12">
+          <div className="lg:col-span-8">
+            <Reveal><Eyebrow>{ENQUIRE.eyebrow}</Eyebrow></Reveal>
+            <Reveal delay={1}><Heading as="h1" size="xl" className="mt-5 max-w-3xl">{ENQUIRE.title}</Heading></Reveal>
+            <Reveal delay={2}><p className="lede mt-8 max-w-xl text-ivory/75">{ENQUIRE.sub}</p></Reveal>
+          </div>
+          <Reveal delay={1} as="address" className="not-italic font-body text-[13px] leading-relaxed text-smoke lg:col-span-4 lg:pt-1 lg:text-right" data-contact-card>
+            <p className="font-body text-[11px] uppercase tracking-eyebrow text-gold">Get in touch</p>
+            <p className="mt-3 font-display text-[18px] text-ivory">The Creatiste Catering</p>
+            <p className="mt-1 max-w-xs lg:ml-auto">{CONTACT.area}</p>
+            <p className="mt-4"><a href={`mailto:${CONTACT.email}`} className="link-under text-ivory/90">{CONTACT.email}</a></p>
+            <p><a href={`tel:${CONTACT.phone.replace(/\s+/g, '')}`} className="link-under text-ivory/90">{CONTACT.phone}</a></p>
+            <p className="mt-4">Instagram · <a href={`https://instagram.com/${CONTACT.instagram}`} target="_blank" rel="noreferrer" className="link-under text-ivory/85">@{CONTACT.instagram}</a></p>
+            <p>TikTok · <a href={`https://tiktok.com/@${CONTACT.tiktok}`} target="_blank" rel="noreferrer" className="link-under text-ivory/85">@{CONTACT.tiktok}</a></p>
+            <ul className="mt-4 space-y-0.5 text-[12px] text-smoke/80">{HOURS.map((h) => <li key={h.label}>{h.label} · {h.value}</li>)}</ul>
+          </Reveal>
         </div>
       </section>
 
@@ -215,14 +237,9 @@ export default function Enquire() {
                 </li>
               ))}
             </ul>
-            <div className="mt-10 space-y-2 font-body text-[13px] text-smoke">
-              <p><a href={`mailto:${CONTACT.email}`} className="link-under text-ivory/85">{CONTACT.email}</a></p>
-              <p>Instagram · <a href={`https://instagram.com/${CONTACT.instagram}`} target="_blank" rel="noreferrer" className="link-under text-ivory/85">@{CONTACT.instagram}</a></p>
-              <p>TikTok · <a href={`https://tiktok.com/@${CONTACT.tiktok}`} target="_blank" rel="noreferrer" className="link-under text-ivory/85">@{CONTACT.tiktok}</a></p>
-            </div>
           </aside>
 
-          <div className="lg:col-span-8">
+          <div ref={formRef} className="scroll-mt-28 lg:col-span-8">
             {!lane ? (
               <div className="flex h-full min-h-[320px] items-center border border-dashed border-ink-3 p-8">
                 <p className="font-display text-[22px] italic text-smoke">Pick an enquiry type to begin.</p>

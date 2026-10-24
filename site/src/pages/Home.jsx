@@ -222,7 +222,7 @@ export function EnquireBand({ ground = 'ink' }) {
         </div>
         <Reveal delay={2} className="flex flex-wrap gap-3">
           <Button to="/enquire">Start an enquiry</Button>
-          <Button to="/enquire?lane=pricing-guide" variant={dark ? 'ghost' : 'ghost-ink'}>Request the pricing guide</Button>
+          <Button to="/clean-dream" variant={dark ? 'ghost' : 'ghost-ink'}>Order Clean Dream</Button>
         </Reveal>
       </div>
     </Section>

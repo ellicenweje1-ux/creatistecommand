@@ -28,14 +28,19 @@ export default function Portfolio() {
         <Reveal><Eyebrow className="text-gold-deep">Selected work</Eyebrow></Reveal>
         <div className="mt-8 space-y-16">
           {PORTFOLIO.features.map((f, i) => (
-            <div key={f.title} className="grid items-center gap-10 lg:grid-cols-12">
-              <Reveal className={`lg:col-span-5 ${i % 2 ? 'lg:order-2' : ''}`}><Frame src={f.photo} alt={f.title} ratio="4/5" /></Reveal>
-              <div className={`lg:col-span-6 ${i % 2 ? 'lg:order-1 lg:col-start-1' : 'lg:col-start-7'}`}>
-                <Reveal><p className="font-body text-[11px] uppercase tracking-eyebrow text-gold-deep">{f.kind}</p></Reveal>
-                <Reveal delay={1}><Heading size="md" className="mt-4">{f.title}</Heading></Reveal>
-                <Reveal delay={2}><p className="lede mt-5 max-w-lg text-ink/75">{f.body}</p></Reveal>
+            <article key={f.title} className="grid gap-8 border-t border-sand pt-10 lg:grid-cols-12 lg:gap-12" data-work={f.title}>
+              {/* The booking's photo sits beside its highlight header; the name and the event details follow below. */}
+              <Reveal className={`lg:col-span-5 ${i % 2 ? 'lg:order-2' : ''}`}><Frame src={f.photo} alt={`${f.title}, ${f.kind}`} ratio="4/5" /></Reveal>
+              <div className={`flex flex-col lg:col-span-7 ${i % 2 ? 'lg:order-1' : ''}`}>
+                <Reveal><p className="font-body text-[11px] uppercase tracking-eyebrow text-gold-deep">Selected work · {String(i + 1).padStart(2, '0')}</p></Reveal>
+                <Reveal delay={1}><Heading size="lg" className="mt-4 text-gold-deep">{f.kind}</Heading></Reveal>
+                <div className="mt-8 border-t border-sand pt-6 lg:mt-auto">
+                  <Reveal delay={1}><p className="font-display text-[26px] leading-tight sm:text-[30px]">{f.title}</p></Reveal>
+                  {f.meta ? <Reveal delay={2}><p className="mt-2 font-body text-[11px] uppercase tracking-eyebrow text-stone">{f.meta}</p></Reveal> : null}
+                  <Reveal delay={2}><p className="lede mt-5 max-w-xl text-ink/75">{f.body}</p></Reveal>
+                </div>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       </Section>

@@ -21,6 +21,18 @@ export default function Chef() {
         </div>
       </section>
 
+      <Section ground="linen" tight>
+        <div className="grid gap-10 lg:grid-cols-12">
+          <div className="lg:col-span-4">
+            <Reveal><Eyebrow className="text-gold-deep">About me</Eyebrow></Reveal>
+            <Reveal delay={1}><Heading className="mt-5">In her words.</Heading></Reveal>
+          </div>
+          <div className="space-y-5 lg:col-span-8" data-about>
+            {CHEF.about.map((para, i) => <Reveal key={i} delay={Math.min(i + 1, 3)}><p className="lede max-w-2xl text-ink/80">{para}</p></Reveal>)}
+          </div>
+        </div>
+      </Section>
+
       <Section ground="ivory">
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">

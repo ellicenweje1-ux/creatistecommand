@@ -312,7 +312,7 @@ export const CLEAN_DREAM = {
   },
   title: 'Clean Dream',
   sub: 'Clean, whole-food lunch bowls, cooked fresh and served hot. Comforting, home-cooked and beautiful, built to keep you going.',
-  photo: '/photos/bowls-table.jpg',
+  photo: '/photos/clean-dream-boxes.jpg',
   how: [
     ['Order by 11am', 'Orders in by 11:00am are made the same day, Monday to Friday. After 11am, your order rolls to the next weekday.'],
     ['Collect at 1pm or 2:30pm', 'Two collection points each day. Pick the one that suits you at checkout.'],
@@ -341,24 +341,31 @@ export const CHEF = {
   facts: [
     'Born & raised in London',
     'Self-taught, an avid home cook since age 11',
-    'Over 9 years of food service & industry experience',
+    '8 plus years of food service & FMCG industry experience',
     'BSc Food Science with Business',
     'Currently studying MSc Food Business Management',
-    'Experience in food technical & new product development in industry',
+    'Former Food Product Developer in industry',
   ],
   story: 'Ellice launched The Creatiste [kree·ay·teest] Catering in September 2025, a concept aimed to serve those who are committed to their ambitious lifestyles, but not always to their food.',
-  specialisms: ['Flavour-forward home cooking', 'Batch & meal-prep systems', 'Live-service catering', 'Allergen-aware menus'], // TODO Ellice: your real specialisms
+  /* About me, in her words (from the profile she supplied). */
+  about: [
+    'Hi, I’m Ellice. A self-taught chef with 8 plus years working in food service and experience at large FMCG industry companies, including time as a Food Product Developer. I bring a wealth of academic and practical knowledge with a BSc in Food Science with Business, and am currently studying an MSc in Food Business Management.',
+    'I operate primarily through my business, The Creatiste Catering, offering personal chef and private catering services specialising in batch meal preps, in-home cooking and corporate and private catering.',
+    'I focus on creating delicious, hearty meals that are nourishing, and aim to make life that little bit easier by covering the planning, shopping, prepping, cooking, storing and cleaning. All my clients need to do is eat and relax.',
+  ],
+  specialisms: ['Batch meal preps', 'In-home personal chef', 'Corporate & private catering', 'Live-service catering', 'Allergen-aware menus'],
   dietary: 'Vegan, vegetarian and gluten-free diets catered for, adhering to food safety and hygiene standards throughout.',
   profile: [
-    // TODO Ellice: the profile details from your attachment, as [label, value]
-    ['Based', 'Slough, serving West London, Surrey and Berkshire'],
-    ['Launched', 'September 2025'],
+    ['Certified', 'CPD Level 2 Food Hygiene and Safety for Catering'],
+    ['Travel', 'Travels and comfortably covers most surrounding areas'],
+    ['Standards', 'Reputable, reliable and conscientious'],
     ['Education', 'BSc Food Science with Business; MSc Food Business Management (in progress)'],
-    ['Experience', 'Over 9 years in food service and industry, including food technical and new product development'],
+    ['Experience', '8 plus years in food service and at large FMCG companies, including time as a Food Product Developer'],
+    ['Based', 'Slough, serving West London, Surrey and Berkshire'],
   ],
   accreditations: [
     // TODO Ellice: add each certificate as { name, issuer, year, file: '/docs/….pdf' }
-    { name: 'Level 2 Food Safety & Hygiene', issuer: 'Issuer to confirm', year: '' },
+    { name: 'CPD Level 2 Food Hygiene and Safety for Catering', issuer: 'CPD accredited', year: '' },
     { name: 'Allergen awareness', issuer: 'Issuer to confirm', year: '' },
     { name: 'Food hygiene rating', issuer: 'Local authority', year: '' },
   ],
@@ -369,15 +376,23 @@ export const PORTFOLIO = {
   title: 'Who we’ve worked with',
   intro: 'A few of the tables, teams and rooms we’ve fed. More to come as the diary fills.',
   clients: [
-    // TODO Ellice: the businesses and hosts you can name, with a logo file in /photos/clients/ if you have one
-    { name: '15 Under 30 × Kasa', kind: 'Seated dinner collaboration', logo: '' },
+    // TODO Ellice: a logo file in /photos/clients/ for any you have one for
+    { name: 'Alicia’s Charity Sports Day', kind: 'Corporate Curations · Live food station', logo: '' },
+    { name: '15 Under 30 × Kasa', kind: 'The Creatiste Table · Seated dinner', logo: '' },
     { name: 'G4 Boys', kind: 'Private chef · International artists · May 2026', logo: '' },
     { name: 'Indigo Kxd', kind: 'Personal chef · Producer & label owner', logo: '' },
   ],
+  /* Selected work. Each entry: the photo of the person or booking sits beside its highlight header
+     (`kind`), with the name and the details of the event below. */
   features: [
-    { title: 'A seated dinner for 15 Under 30 × Kasa', kind: 'The Creatiste Table', photo: '/photos/duck-salad.jpg', body: 'A four-stage set menu, served sharing style: marinated olives and glazed sausage bites on arrival, burrata and roasted aubergine dip with rosemary focaccia, spiced fruit braised duck on butter bean orzo, and a cardamom and orange tiramisu to finish.' },
-    { title: 'Office lunch, served live', kind: 'Corporate Curations', photo: '/photos/bowls-table.jpg', body: 'Build-your-own bowls for a team lunch, served hot from The Loaded Bar and cleared away without a trace.' },
-    { title: 'A week of meals, fridge-ready', kind: 'The Home Edit', photo: '/photos/prep-labelled.jpg', body: 'Labelled, portioned and stored: the week handled in a single visit.' },
+    { kind: 'Corporate Curations', title: 'Alicia’s Charity Sports Day', meta: 'Live food station · In advocation for Sickle Cell Disease', photo: '/photos/serving-bowl.jpg', // TODO Ellice: swap for a photo from the day if you have one
+      body: 'We brought our live food station concept to Alicia’s Charity Sports Day, held in advocation for Sickle Cell Disease: bowls built to order and served hot from The Loaded Bar, keeping players and supporters fed through the day.' },
+    { kind: 'The Creatiste Table', title: '15 Under 30 × Kasa', meta: 'Seated dinner collaboration', photo: '/photos/kasa-dinner.jpg',
+      body: 'A four-stage set menu, served sharing style: marinated olives and glazed sausage bites on arrival, burrata and roasted aubergine dip with rosemary focaccia, spiced fruit braised duck on butter bean orzo, and a cardamom and orange tiramisu to finish.' },
+    { kind: 'Private & Personal', title: 'G4 Boys', meta: 'Private chef · International artists · May 2026', photo: '/photos/g4-buffet.jpg',
+      body: 'A private chef booking for international artists on a London stay: a full spread cooked in-house and set out against the skyline, with every course on the table before the room sat down.' },
+    { kind: 'Personal Chef', title: 'Indigo Kxd', meta: 'Producer & label owner', photo: '/photos/batch-lidded.jpg',
+      body: 'A personal chef service for a producer and label owner with a packed studio diary: the week batch-cooked, portioned and labelled so the food keeps pace with the schedule.' },
   ],
 }
 
@@ -398,6 +413,21 @@ export const GALLERY = {
     { src: '/photos/lamb-plate.jpg', alt: 'Lamb chops, mac and cheese and wings', w: 3, h: 4 },
     { src: '/photos/batch-containers.jpg', alt: 'A week of batch cooking', w: 3, h: 4 },
     { src: '/photos/chafing-hall.jpg', alt: 'Chafing dishes at a hall', w: 3, h: 4 },
+    { src: '/photos/clean-dream-boxes.jpg', alt: 'Clean Dream lunch boxes', w: 3, h: 4 },
+    { src: '/photos/kasa-dinner.jpg', alt: 'A seated dinner for 15 Under 30 × Kasa', w: 4, h: 3 },
+    { src: '/photos/soup-pour.jpg', alt: 'Chilli oil poured over a roasted pepper soup', w: 3, h: 4 },
+    { src: '/photos/canapes-terrazzo.jpg', alt: 'Canapés on a terrazzo table', w: 4, h: 3 },
+    { src: '/photos/g4-buffet.jpg', alt: 'A private menu set out against the London skyline', w: 9, h: 16 },
+    { src: '/photos/dessert-dusting.jpg', alt: 'Ellice dusting a dessert to finish', w: 3, h: 4 },
+    { src: '/photos/batch-steak.jpg', alt: 'A week of batch meals: steak, salmon and stuffed peppers', w: 3, h: 4 },
+    { src: '/photos/soup-table.jpg', alt: 'Soup served at the table', w: 4, h: 3 },
+    { src: '/photos/guests-canapes.jpg', alt: 'Guests enjoying canapés', w: 1, h: 1 },
+    { src: '/photos/batch-lidded.jpg', alt: 'Labelled meal prep containers', w: 9, h: 16 },
+    { src: '/photos/island-spread.jpg', alt: 'Ellice setting out a spread at the kitchen island', w: 3, h: 4 },
+    { src: '/photos/trays-jollof.jpg', alt: 'Jollof rice, rice and peas and wings, tray style', w: 3, h: 4 },
+    { src: '/photos/juice-boxes.jpg', alt: 'Pressed juice and glass meal boxes', w: 3, h: 4 },
+    { src: '/photos/batch-kitchen.jpg', alt: 'Batch meals cooling in the kitchen', w: 9, h: 16 },
+    { src: '/photos/trays-mac.jpg', alt: 'Jollof, chicken and mac and cheese, tray style', w: 9, h: 16 },
   ],
   /* Social mirror: paste Instagram post or reel links here (public posts). They render as
      official Instagram embeds, pictures and videos alike. TODO Ellice: your best 6 to 9 posts. */
@@ -411,6 +441,7 @@ export const MENUS_PAGE = {
   items: [
     { title: 'The Loaded Bar', kind: 'Brochure', body: 'What’s included, the bowl menu, requirements and terms for the live hot food station.', file: '/docs/the-loaded-bar.pdf', to: '/the-loaded-bar' },
     { title: 'The Creatiste Table', kind: 'Seasonal menu', body: 'The current set menu, £43 per head. Travel fee and staffing may be charged, subject to final consultation.', file: '/docs/the-creatiste-table-menu.pdf', to: '/private-catering#the-creatiste-table' },
+    { title: 'Batchfully Made', kind: 'Price list', body: 'Batch-cooked meals in 32oz and 58oz containers, portioned for the week. The standard price list is shared on request.', file: '', to: '/personal-chef#batchfully-made', request: '/enquire?lane=personal-chef&service=batchfully-made' }, // TODO Ellice: add the price list PDF to /docs when ready
     { title: 'The Home Edit', kind: 'Package options', body: 'Six packages for the in-home personal chef service, how each week looks, and the pricing basis.', file: '/docs/the-home-edit-packages.pdf', to: '/personal-chef#the-home-edit' },
     { title: 'Clean Dream', kind: 'Lunch menu', body: 'Build your own bowl: bases, proteins, toppings and extras for the weekday lunch service.', file: '/docs/clean-dream-menu.pdf', to: '/clean-dream' },
     // TODO Ellice: Corporate Curations and Private & Personal menu offerings when ready
@@ -434,7 +465,6 @@ export const ENQUIRE = {
     { id: 'personal-chef', label: 'Personal Chef Services', hint: 'Batchfully Made · The Home Edit · Sorted & Served' },
     { id: 'private-catering', label: 'Private Catering', hint: 'Corporate Curations · Private & Personal · The Loaded Bar' },
     { id: 'creatiste-table', label: 'The Creatiste Table', hint: 'Private chef dinner, by special request' },
-    { id: 'pricing-guide', label: 'Request the Pricing Guide', hint: 'A guide to how we price, sent to your inbox' },
     { id: 'events', label: 'Pop-ups & Events', hint: 'Keep me posted, or let’s collaborate' },
   ],
   followUp: 'After we receive your enquiry, we’ll contact you to arrange a consultation and finalise menu and service details, including a fuller discussion of dietary requirements, in which you will then receive a full quotation breakdown.',

@@ -111,7 +111,7 @@ function Builder({ item, onAdd, boxCount }) {
               <p className="mt-2 font-body text-[11px] text-smoke">So each person’s food is labelled correctly.</p>
             </div>
             <div>
-              <label htmlFor="box-note" className="font-body text-[11px] uppercase tracking-eyebrow text-ivory/70">Note for this bowl</label>
+              <label htmlFor="box-note" className="font-body text-[11px] uppercase tracking-eyebrow text-ivory/70">Any notes for the kitchen</label>
               <input id="box-note" className="field mt-1" placeholder="No onions, sauce on the side…" value={note} onChange={(e) => setNote(e.target.value)} />
             </div>
           </div>

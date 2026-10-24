@@ -307,6 +307,40 @@ order to WhatsApp/email). **The customer never sees Command.**
 - **Still TODO from Ellice:** the About-the-Chef attachment (profile details), more photos, Instagram links, budget figures,
   corporate/private menu offerings, certificates, catering Stripe keys, go-ahead to deploy + merge.
 
+### Follow-on (same 28th-wave session — third feedback batch: 16 photos, portfolio layout, enquiry page, About the Chef profile)
+Ellice's third list, all built + verified (Playwright **68/68**, `scratchpad/verify_v4.py`; build clean), branch pushed, NOT merged;
+preview artifact republished (Version 4).
+- **Photos:** 15 new real photos added to `site/public/photos/` (same pipeline: EXIF-transposed, ≤1800px, q82) and to
+  `GALLERY.photos` (now 27). Her 16th upload was the **About-the-Chef profile screenshot** (text only, not a photo).
+  **Clean Dream now uses the four-white-boxes photo** (`clean-dream-boxes.jpg`, her explicit call) on `/clean-dream`.
+- **Portfolio restructured per her layout:** each selected work is an `<article>`: the **booking's photo beside its highlight
+  header** (the service, e.g. "Corporate Curations", as a large gold heading) and the **name + details below** (title,
+  `meta` line, body). Entries: **Alicia's Charity Sports Day** (Corporate Curations, live food station, "in advocation for
+  Sickle Cell Disease"; photo = the live-station serving shot, TODO swap for one from the day), 15 Under 30 × Kasa (the
+  long seated-dinner photo), G4 Boys (the skyline buffet), Indigo Kxd (labelled containers). The placeholder "office
+  lunch"/"week of meals" features are gone. Clients chips include Alicia's.
+- **Enquire page:** the **"Request the Pricing Guide" lane is removed entirely** (lane, fields, consult exemption, the
+  EnquireBand button → now **"Order Clean Dream"**). **Choosing a lane smooth-scrolls to the form** (`formRef`,
+  `scroll-mt-28`; only on a click, not on a deep link; focuses the first field on desktop). **Contact details moved to the
+  top right of the hero**, letter-address style (`<address data-contact-card>`: business name, area, email, phone, IG/TikTok,
+  the standard hours) and removed from the lanes aside. **Notes:** Creatiste Table guests → "Tables are 5 to 12 guests max.
+  Anything outside this may be discussed as a special request at consultation."; Table budget → "Please be advised this
+  service starts at £43 per head." (reads `TABLE_MENU.perHead`); Private Catering guests → pulled live from
+  `LOADED_BAR.requirements.items` "Guest count" ("minimum 15 guests, maximum 50 (larger events considered on request)").
+- **Clean Dream:** the per-bowl note label → **"Any notes for the kitchen"** (the order-level "Anything else" kept).
+- **The Menus:** **Batchfully Made** added (kind "Price list", no PDF yet → **"Request the price list"** button deep-links
+  to the personal-chef lane with Batchfully Made preselected; `Menus.jsx` renders Download PDF only when `file` is set).
+- **About the Chef:** new **"About me · In her words"** linen section (`CHEF.about`, three paragraphs from her screenshot,
+  lightly tidied, no em dashes); `CHEF.profile` filled (CPD Level 2 Food Hygiene and Safety for Catering · travels/covers
+  surrounding areas · reputable, reliable and conscientious · education · experience · based); specialisms set to her real
+  ones; first accreditation renamed to the CPD Level 2 certificate (file still to follow). **⚠️ Her screenshot says "8 plus
+  years"; the old site said "over 9 years" — the page now reads 8 plus throughout for consistency; confirm with her.**
+- **Instagram:** she sent the profile URL only (handle already `thecreatistecatering`, which the profile-embed fallback
+  uses) — curated post embeds still await post links.
+- **Still TODO from Ellice:** budget suggestions per enquiry type (she'll supply), corporate/private menu offerings, the
+  Batchfully Made price list PDF, certificates, a Sports Day photo, Instagram post links, catering Stripe keys, go-ahead
+  to deploy + merge.
+
 ## Latest session (2026-07-13, twenty-seventh wave — worked-example cards on every module, from the aunt-trial feedback)
 - Branch `claude/claude-md-status-rollout-bjd18z` — **merge to `main` to deploy.** Context from Ellice's first
   real onboarding trial (her aunt, comped account): Jitsi was hard for the client (she manually made a Zoom),
