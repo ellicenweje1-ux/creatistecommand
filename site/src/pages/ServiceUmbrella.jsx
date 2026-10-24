@@ -11,8 +11,8 @@ export default function ServiceUmbrella({ u, lane }) {
     <>
       <section className="hero-field grain relative pt-40 pb-20 sm:pb-28">
         <div className="mx-auto w-full max-w-page px-5 sm:px-8 lg:px-12">
-          <Reveal><Eyebrow>{u.name}</Eyebrow></Reveal>
-          <Reveal delay={1}><Heading as="h1" size="xl" className="mt-5 max-w-3xl">{u.strap}</Heading></Reveal>
+          <Reveal><Eyebrow>Services</Eyebrow></Reveal>
+          <Reveal delay={1}><Heading as="h1" size="xl" className="mt-5 max-w-3xl">{u.name}</Heading></Reveal>
           <Reveal delay={2}><p className="lede mt-8 max-w-xl text-ivory/75">{u.intro}</p></Reveal>
           <Reveal delay={3} className="mt-10 flex flex-wrap gap-x-8 gap-y-3 border-t border-ink-3 pt-6">
             {u.services.map((s) => (

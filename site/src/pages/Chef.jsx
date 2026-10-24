@@ -29,6 +29,11 @@ export default function Chef() {
             <Reveal as="ul" delay={2} className="mt-8 flex flex-wrap gap-2">
               {CHEF.specialisms.map((s) => <li key={s} className="border border-sand px-4 py-2 font-body text-[12px] uppercase tracking-wide text-ink/80">{s}</li>)}
             </Reveal>
+            <Reveal delay={3}><p className="lede mt-6 max-w-md text-ink/75">{CHEF.dietary}</p></Reveal>
+            <Reveal delay={3}><p className="mt-8 font-body text-[11px] uppercase tracking-eyebrow text-gold-deep">Profile</p></Reveal>
+            <Reveal as="dl" delay={3} className="mt-3 divide-y divide-sand border-y border-sand">
+              {CHEF.profile.map(([k, v]) => <div key={k} className="grid gap-1 py-3 sm:grid-cols-[120px_1fr]"><dt className="font-body text-[11px] uppercase tracking-wide text-stone">{k}</dt><dd className="font-body text-[14px] text-ink/85">{v}</dd></div>)}
+            </Reveal>
           </div>
           <div className="lg:col-span-7">
             <Reveal><Eyebrow className="text-gold-deep">Accreditations & certificates</Eyebrow></Reveal>

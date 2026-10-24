@@ -19,6 +19,7 @@ export default {
       fontFamily: {
         display: ['"Playfair Display"', 'Georgia', 'serif'],
         body: ['Jost', 'system-ui', 'sans-serif'],
+        accent: ['Lora', 'Georgia', 'serif'],
       },
       letterSpacing: { eyebrow: '0.28em', wide: '0.14em' },
       maxWidth: { page: '1240px' },

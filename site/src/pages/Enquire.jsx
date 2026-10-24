@@ -29,7 +29,6 @@ const LANE_FIELDS = {
     { k: 'event_type', label: 'Type of event', type: 'select', options: ['Corporate / office', 'Product launch', 'Birthday', 'Anniversary', 'Private dinner', 'Baby shower', 'Wedding-adjacent', 'Other'], half: true },
     { k: 'venue', label: 'Venue & postcode', type: 'text', half: true, placeholder: 'Office, home, hired space…' },
     { k: 'dietary', label: 'Any major dietary requirements', type: 'textarea', placeholder: 'Allergies, vegetarian counts, halal / kosher needs…', hint: 'We’ll go in depth during consultation.' },
-    { k: 'deck', label: 'Send me The Loaded Bar deck', type: 'check' },
   ],
   'creatiste-table': [
     { k: 'date', label: 'Date', type: 'date', half: true, req: true },
@@ -110,6 +109,7 @@ function buildPayload(lane, a, c) {
   const lines = fields.filter((f) => (!f.showIf || f.showIf(a)) && a[f.k] !== undefined && a[f.k] !== '' && a[f.k] !== false).map((f) => `${f.label}: ${a[f.k] === true ? 'Yes' : a[f.k]}`)
   if (c.message) lines.push(`Message: ${c.message}`)
   if (c.contact_pref) lines.push(`Preferred contact: ${c.contact_pref}`)
+  if (c.consult_date) lines.push(`Consultation: ${c.consult_date}${c.consult_time ? `, ${c.consult_time}` : ''}`)
   const service = a.service || a.interest || ''
   return {
     name: c.name, email: c.email, phone: c.phone,
@@ -127,7 +127,9 @@ export default function Enquire() {
   const [params, setParams] = useSearchParams()
   const lane = params.get('lane') || ''
   const [answers, setAnswers] = useState({})
-  const [contact, setContact] = useState({ name: '', email: '', phone: '', contact_pref: '', message: '', company: '' })
+  const [contact, setContact] = useState({ name: '', email: '', phone: '', contact_pref: '', consult_date: '', consult_time: '', message: '', company: '' })
+  const needsConsult = !['pricing-guide', 'events'].includes(lane)
+  const consultWeekend = contact.consult_date && [0, 6].includes(new Date(contact.consult_date + 'T12:00:00').getDay())
   const [state, setState] = useState({ status: 'idle', error: '' })
   const fields = LANE_FIELDS[lane]
 
@@ -136,14 +138,15 @@ export default function Enquire() {
     const svc = params.get('service')
     const all = [...PERSONAL_CHEF.services, ...PRIVATE_CATERING.services]
     const found = all.find((s) => s.slug === svc)
-    setAnswers((prev) => ({ ...prev, ...(found ? { service: found.name } : {}), ...(params.get('deck') ? { deck: true } : {}) }))
+    const name = found ? found.name : svc === 'the-loaded-bar' ? 'The Loaded Bar for another occasion' : ''
+    setAnswers((prev) => ({ ...prev, ...(name ? { service: name } : {}) }))
   }, [params])
 
   const setLane = (id) => { setParams(id ? { lane: id } : {}); setState({ status: 'idle', error: '' }) }
   const setA = (k, v) => setAnswers((p) => ({ ...p, [k]: v }))
   const setC = (k, v) => setContact((p) => ({ ...p, [k]: v }))
 
-  const canSend = useMemo(() => contact.name.trim() && contact.email.trim() && (fields || []).filter((f) => !f.showIf || f.showIf(answers)).every((f) => !f.req || (answers[f.k] && answers[f.k] !== '')), [contact, answers, fields])
+  const canSend = useMemo(() => contact.name.trim() && contact.email.trim() && (!needsConsult || (contact.consult_date && !consultWeekend)) && (fields || []).filter((f) => !f.showIf || f.showIf(answers)).every((f) => !f.req || (answers[f.k] && answers[f.k] !== '')), [contact, answers, fields])
 
   async function submit(e) {
     e.preventDefault()
@@ -241,6 +244,7 @@ export default function Enquire() {
                   <div><label htmlFor="c-phone" className="font-body text-[11px] uppercase tracking-eyebrow text-ivory/70">Phone</label><input id="c-phone" type="tel" className="field mt-1" placeholder="+44 …" autoComplete="tel" value={contact.phone} onChange={(e) => setC('phone', e.target.value)} /></div>
                   <div><label htmlFor="c-email" className="font-body text-[11px] uppercase tracking-eyebrow text-ivory/70">Email <span className="text-gold">*</span></label><input id="c-email" type="email" className="field mt-1" placeholder="you@example.com" autoComplete="email" value={contact.email} onChange={(e) => setC('email', e.target.value)} required /></div>
                   <div><label htmlFor="c-pref" className="font-body text-[11px] uppercase tracking-eyebrow text-ivory/70">Preferred contact</label><select id="c-pref" className="field mt-1" value={contact.contact_pref} onChange={(e) => setC('contact_pref', e.target.value)}><option value="">No preference</option><option>Email</option><option>WhatsApp</option><option>Phone call</option></select></div>
+                  {needsConsult ? <ConsultPicker contact={contact} setC={setC} weekend={consultWeekend} /> : null}
                   <div className="sm:col-span-2"><label htmlFor="c-msg" className="font-body text-[11px] uppercase tracking-eyebrow text-ivory/70">Anything else</label><textarea id="c-msg" rows={3} className="field mt-1 resize-y" value={contact.message} onChange={(e) => setC('message', e.target.value)} /></div>
                   {/* Honeypot: real people never see this. */}
                   <div className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden" aria-hidden="true"><label htmlFor="c-company">Company</label><input id="c-company" tabIndex={-1} autoComplete="off" value={contact.company} onChange={(e) => setC('company', e.target.value)} /></div>
@@ -261,6 +265,28 @@ export default function Enquire() {
           </div>
         </div>
       </Section>
+    </>
+  )
+}
+
+
+/* The consultation date: within the next 7 days only, weekdays (consultations run Mon to Fri). */
+const isoPlus = (days) => { const d = new Date(); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10) }
+function ConsultPicker({ contact, setC, weekend }) {
+  const min = isoPlus(0), max = isoPlus(7)
+  return (
+    <>
+      <div>
+        <label htmlFor="c-cdate" className="font-body text-[11px] uppercase tracking-eyebrow text-ivory/70">Consultation date <span className="text-gold">*</span></label>
+        <input id="c-cdate" type="date" className="field mt-1" min={min} max={max} value={contact.consult_date} onChange={(e) => { const v = e.target.value; setC('consult_date', v && (v < min || v > max) ? '' : v) }} />
+        <p className={`mt-2 font-body text-[11px] ${weekend ? 'text-red-300' : 'text-smoke'}`}>{weekend ? 'Consultations run Monday to Friday. Pick a weekday.' : 'Pick a day within the next 7 days. We confirm the time by reply.'}</p>
+      </div>
+      <div>
+        <label htmlFor="c-ctime" className="font-body text-[11px] uppercase tracking-eyebrow text-ivory/70">Preferred time</label>
+        <select id="c-ctime" className="field mt-1" value={contact.consult_time} onChange={(e) => setC('consult_time', e.target.value)}>
+          <option value="">No preference</option><option>Morning (9am to 12pm)</option><option>Afternoon (12pm to 3pm)</option><option>Late afternoon (3pm to 6pm)</option>
+        </select>
+      </div>
     </>
   )
 }

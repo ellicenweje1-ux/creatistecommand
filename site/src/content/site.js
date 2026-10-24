@@ -32,6 +32,7 @@ export const HERO = {
   eyebrow: 'The Creatiste Catering',
   title: ['The Art of Premium,', 'Bespoke Catering'],
   sub: 'Providing culinary-crafted, flavour-forward, hearty meals tailored to your home, workload or your milestone moment.',
+  strip: 'Personal Chef · Private Catering Services · Brand-led Pop-ups & Food Activations',
   photo: '/photos/serving-bowl.jpg',
 }
 
@@ -41,7 +42,7 @@ export const ABOUT = {
   tagline: 'Curated for the Committed.',
   body: 'The Creatiste Catering is a new-age personal chef and private catering service. It is designed to bridge the gap between busy lifestyles and hearty, flavourful home-cooked food, all curated with premium, chef-level flair.',
   pillars: [
-    { k: 'Flavour', v: 'Hearty, flavour-forward cooking that tastes like it was made for you, because it was.' }, // TODO Ellice: your original Flavour line
+    { k: 'Flavour', v: 'Flavour-forward food curated to your exact tastes and requirements, with premium ingredients so your plates are full of vibrant colours and textures.' },
     { k: 'Freedom', v: 'Putting crucial time back into the client’s day by handling planning, shopping, prepping, cooking, and cleaning.' },
     { k: 'Finesse', v: 'Providing a seamless service where every element, from the menu to the packaging, reflects creativity and refinement.' },
   ],
@@ -94,7 +95,6 @@ export const PERSONAL_CHEF = {
   slug: 'personal-chef',
   name: 'Personal Chef Services',
   short: 'Personal Chef',
-  strap: 'Your week, cooked for you.',
   intro: 'For clients who are committed to their ambitious lifestyles, but not always to their food. Weekly, by demand, or whenever the week gets away from you.',
   services: [
     {
@@ -129,7 +129,7 @@ export const PERSONAL_CHEF = {
       slug: 'sorted-and-served',
       name: 'Sorted & Served',
       strap: 'Your ingredients, our hands. Portioned to your preference.',
-      body: 'You order and pay for the ingredients; we do the cooking. Your shop is turned into a week of batch containers, portioned to your preference and delivered back to you. A lighter, labour-only way to keep the week fed.',
+      body: 'A mid-range service to provide the perfect balance between our personal chef services: you simply provide the ingredients, we do the cooking. We prep and portion to your preference, and deliver straight to you.',
       includes: [
         'Labour-only pricing, you supply the ingredients',
         'Cooked, portioned into batch containers and delivered',
@@ -146,7 +146,6 @@ export const PRIVATE_CATERING = {
   slug: 'private-catering',
   name: 'Private Catering Services',
   short: 'Private Catering',
-  strap: 'Hot, fresh and served live.',
   intro: 'Two kinds of occasion, one way of serving. Every private catering booking is cooked and served in the room from The Loaded Bar, our portable hot food station. No foil trays dropped at the door.',
   howServed: {
     eyebrow: 'How it’s served',
@@ -159,7 +158,7 @@ export const PRIVATE_CATERING = {
       slug: 'corporate-curations',
       name: 'Corporate Curations',
       strap: 'Offices, launches and client-facing moments.',
-      body: 'Menus tailored for offices, launches, and client-facing moments, delivered hot & fresh with the brand new CC Loaded Bar station. We ensure to keep your team fuelled and focused.',
+      body: 'The CC Loaded Bar brought into your office, launch or client-facing moment, with menus tailored to the room and served hot and fresh, so your team stays fuelled and focused.',
       includes: ['Team lunches, launches and away days', 'Served live from The Loaded Bar', 'Dietary needs labelled and handled'],
       menuNote: 'Menu offerings for corporate bookings to follow.', // TODO Ellice: corporate menu offerings
       photo: '/photos/bowls-table.jpg',
@@ -168,7 +167,7 @@ export const PRIVATE_CATERING = {
       slug: 'private-and-personal',
       name: 'Private & Personal',
       strap: 'Birthdays, anniversaries and intimate gatherings.',
-      body: 'Elevate birthdays, anniversaries, and intimate gatherings with food catered hot and served beautifully with the brand new CC Loaded Bar station. We want your guests to remember the food when they think of your special day.',
+      body: 'The CC Loaded Bar for birthdays, anniversaries and intimate gatherings, with food catered hot and served beautifully, so your guests remember the food when they think of your special day.',
       includes: ['Intimate gatherings in large homes and private spaces', 'Hot, served live, never a tray drop', 'Menus built around the occasion'],
       menuNote: 'Menu offerings for private bookings to follow.', // TODO Ellice: private menu offerings
       photo: '/photos/buffet-ellice.jpg',
@@ -177,8 +176,8 @@ export const PRIVATE_CATERING = {
       slug: 'the-creatiste-table',
       name: 'The Creatiste Table',
       strap: 'A dedicated private chef experience, by special request only.',
-      body: 'A dedicated private chef experience for your bespoke event with a freshly prepared set menu, so hosts stay present while we run the kitchen with calm precision. A seasonal set menu, priced per head, for tables of five to twelve.',
-      includes: ['By special request only', 'A seasonal set menu, priced per head', 'Courses tailored to dietary requirements and preferences', 'For a minimum of 5 and a maximum of 12 guests'],
+      body: 'A highly exclusive and dedicated private chef experience for your bespoke event, with beautifully curated dishes, so hosts stay present while we run the kitchen with precision. For tables starting at 5 guests to 12 max.',
+      includes: ['By special request only', 'A seasonal menu, priced per head', 'Courses tailored to dietary requirements and preferences', 'Tables from 5 guests to 12 max'],
       special: true,
       tableMenu: true,
       photo: '/photos/duck-salad.jpg',
@@ -190,7 +189,8 @@ export const PRIVATE_CATERING = {
 export const TABLE_MENU = {
   title: 'The Creatiste Table',
   season: 'Autumn menu', // TODO Ellice: season label
-  perHead: '', // TODO Ellice: per-head price, shown only if showFromPrices is on
+  perHead: '£43',
+  perHeadNote: 'Travel fee and staffing may be charged, subject to final consultation.',
   courses: [
     { name: 'On arrival', dishes: [{ d: 'Marinated olives, stuffed mini peppers, glazed sausage bites' }] },
     { name: 'Starter', note: 'Served sharing style with warm rosemary focaccia', dishes: [
@@ -256,7 +256,7 @@ export const NOW = {
   items: [
     {
       live: true,
-      kind: 'Weekday lunch service',
+      kind: 'Weekday Lunch Service',
       name: 'Clean Dream',
       when: 'Monday to Friday',
       detail: 'Clean, whole-food lunch bowls, cooked fresh and served hot. Order by 11am for collection at 1pm or 2:30pm, or delivery between locations by arrangement.',
@@ -288,6 +288,28 @@ export const NOW = {
    (the offer is edited there), so prices are never trusted from the browser. */
 export const CLEAN_DREAM = {
   eyebrow: 'Lunch by The Creatiste Catering',
+  /* The live order menu. Mirrors the offer held in The Creatiste Command (which prices and takes
+     payment for each order); if Command is reachable its copy wins, so the two never drift. */
+  menu: {
+    title: 'Clean Dream', currency: 'GBP', cutoff: '11:00', days: [0, 1, 2, 3, 4], days_ahead: 5,
+    items: [{
+      id: 'bowl', name: 'Build your own bowl', price: 8, desc: 'Whole-food lunch bowl, cooked fresh and served hot.',
+      groups: [
+        { id: 'base', label: 'Base', pick: 'choose one', min: 1, max: 1, options: [{ name: 'Whole sweet potato' }, { name: 'Tomato & pepper bulgur' }, { name: 'Spring mix' }] },
+        { id: 'protein', label: 'Protein', pick: 'choose one', min: 1, max: 1, options: [{ name: 'Beef mince' }, { name: 'Chicken mince' }, { name: 'Tofu mince' }, { name: 'Steak', surcharge: 3 }, { name: 'Blackened prawns', surcharge: 2 }] },
+        { id: 'toppings', label: 'Toppings', pick: 'choose up to five', min: 0, max: 5, extra_price: 0.5, extra_premium_price: 1, options: [
+          { name: 'Avocado', premium: true }, { name: 'Feta', premium: true }, { name: 'Cottage cheese', premium: true }, { name: 'Boiled egg', premium: true }, { name: 'Fried egg', premium: true },
+          { name: 'Cherry tomatoes' }, { name: 'Red onion' }, { name: 'Sweetcorn' }, { name: 'Pomegranate' }, { name: 'Pickled pink slaw' }, { name: 'Sliced pickles' }, { name: 'Pickled jalapeño' },
+          { name: 'Coriander' }, { name: 'Parsley' }, { name: 'Rocket' }, { name: 'Hot honey' }, { name: 'Sriracha' }, { name: 'Balsamic glaze' }, { name: 'Raspberry balsamic glaze' }] },
+        { id: 'extra_protein', label: 'Extra protein', pick: 'optional', min: 0, max: 2, options: [{ name: 'Beef mince', surcharge: 2 }, { name: 'Chicken mince', surcharge: 2 }, { name: 'Tofu mince', surcharge: 2 }, { name: 'Steak', surcharge: 4 }, { name: 'Blackened prawns', surcharge: 3 }] },
+      ],
+    }],
+    slots: [
+      { id: 'w5', label: 'Collection point 1', place: 'Sandringham Mews Car Park, W5', time: '1:00pm' },
+      { id: 'sw15', label: 'Collection point 2', place: 'Sainsbury’s Putney Car Park, SW15', time: '2:30pm' },
+    ],
+    delivery: { enabled: true, per_mile: 0.65, note: 'Deliveries available between the collection locations upon request, at an additional £0.65 per mile. We confirm delivery by WhatsApp after you order and the delivery fee is charged separately.' },
+  },
   title: 'Clean Dream',
   sub: 'Clean, whole-food lunch bowls, cooked fresh and served hot. Comforting, home-cooked and beautiful, built to keep you going.',
   photo: '/photos/bowls-table.jpg',
@@ -326,6 +348,14 @@ export const CHEF = {
   ],
   story: 'Ellice launched The Creatiste [kree·ay·teest] Catering in September 2025, a concept aimed to serve those who are committed to their ambitious lifestyles, but not always to their food.',
   specialisms: ['Flavour-forward home cooking', 'Batch & meal-prep systems', 'Live-service catering', 'Allergen-aware menus'], // TODO Ellice: your real specialisms
+  dietary: 'Vegan, vegetarian and gluten-free diets catered for, adhering to food safety and hygiene standards throughout.',
+  profile: [
+    // TODO Ellice: the profile details from your attachment, as [label, value]
+    ['Based', 'Slough, serving West London, Surrey and Berkshire'],
+    ['Launched', 'September 2025'],
+    ['Education', 'BSc Food Science with Business; MSc Food Business Management (in progress)'],
+    ['Experience', 'Over 9 years in food service and industry, including food technical and new product development'],
+  ],
   accreditations: [
     // TODO Ellice: add each certificate as { name, issuer, year, file: '/docs/….pdf' }
     { name: 'Level 2 Food Safety & Hygiene', issuer: 'Issuer to confirm', year: '' },
@@ -341,6 +371,8 @@ export const PORTFOLIO = {
   clients: [
     // TODO Ellice: the businesses and hosts you can name, with a logo file in /photos/clients/ if you have one
     { name: '15 Under 30 × Kasa', kind: 'Seated dinner collaboration', logo: '' },
+    { name: 'G4 Boys', kind: 'Private chef · International artists · May 2026', logo: '' },
+    { name: 'Indigo Kxd', kind: 'Personal chef · Producer & label owner', logo: '' },
   ],
   features: [
     { title: 'A seated dinner for 15 Under 30 × Kasa', kind: 'The Creatiste Table', photo: '/photos/duck-salad.jpg', body: 'A four-stage set menu, served sharing style: marinated olives and glazed sausage bites on arrival, burrata and roasted aubergine dip with rosemary focaccia, spiced fruit braised duck on butter bean orzo, and a cardamom and orange tiramisu to finish.' },
@@ -370,6 +402,19 @@ export const GALLERY = {
   /* Social mirror: paste Instagram post or reel links here (public posts). They render as
      official Instagram embeds, pictures and videos alike. TODO Ellice: your best 6 to 9 posts. */
   instagram: [],
+}
+
+export const MENUS_PAGE = {
+  eyebrow: 'The Menus',
+  title: 'Every menu, in one place.',
+  intro: 'The brochures and menus from across the site, tidy and ready to download.',
+  items: [
+    { title: 'The Loaded Bar', kind: 'Brochure', body: 'What’s included, the bowl menu, requirements and terms for the live hot food station.', file: '/docs/the-loaded-bar.pdf', to: '/the-loaded-bar' },
+    { title: 'The Creatiste Table', kind: 'Seasonal menu', body: 'The current set menu, £43 per head. Travel fee and staffing may be charged, subject to final consultation.', file: '/docs/the-creatiste-table-menu.pdf', to: '/private-catering#the-creatiste-table' },
+    { title: 'The Home Edit', kind: 'Package options', body: 'Six packages for the in-home personal chef service, how each week looks, and the pricing basis.', file: '/docs/the-home-edit-packages.pdf', to: '/personal-chef#the-home-edit' },
+    { title: 'Clean Dream', kind: 'Lunch menu', body: 'Build your own bowl: bases, proteins, toppings and extras for the weekday lunch service.', file: '/docs/clean-dream-menu.pdf', to: '/clean-dream' },
+    // TODO Ellice: Corporate Curations and Private & Personal menu offerings when ready
+  ],
 }
 
 export const KIND_WORDS = {

@@ -39,10 +39,10 @@ export default function SocialMirror({ ground = 'linen' }) {
           ))}
         </div>
       ) : (
-        <Reveal delay={2} className={`mt-10 grid gap-3 sm:grid-cols-3 ${dark ? 'text-smoke' : 'text-stone'}`}>
-          {[0, 1, 2].map((i) => (
-            <a key={i} href={`https://instagram.com/${CONTACT.instagram}`} target="_blank" rel="noreferrer" className={`flex aspect-square items-center justify-center border border-dashed ${dark ? 'border-ink-3' : 'border-sand'} font-body text-[11px] uppercase tracking-eyebrow`}>Latest on Instagram</a>
-          ))}
+        <Reveal delay={2} className="mt-10">
+          {/* Instagram's public profile embed: the latest posts, no account connection needed. Shows on the live site (some hosts, like design previews, block third-party frames). */}
+          <iframe title={`@${CONTACT.instagram} on Instagram`} src={`https://www.instagram.com/${CONTACT.instagram}/embed/`} loading="lazy" className={`block h-[560px] w-full max-w-[640px] border ${dark ? 'border-ink-3 bg-ink-2' : 'border-sand bg-ivory'} mx-auto`} allowTransparency="true" />
+          <p className={`mt-4 text-center font-body text-[12px] ${dark ? 'text-smoke' : 'text-stone'}`}>If the feed doesn’t load here, <a href={`https://instagram.com/${CONTACT.instagram}`} target="_blank" rel="noreferrer" className="link-under">open @{CONTACT.instagram} on Instagram</a>.</p>
         </Reveal>
       )}
     </Section>

@@ -1,4 +1,4 @@
-import { TABLE_MENU, SETTINGS } from '../content/site.js'
+import { TABLE_MENU } from '../content/site.js'
 import { asset } from '../ui.jsx'
 
 /* The Creatiste Table set menu as a document: shown in the site and printed to the PDF in /docs.
@@ -22,7 +22,8 @@ export function TableMenuCard({ className = '' }) {
             </ul>
           </section>
         ))}
-        {SETTINGS.showFromPrices && M.perHead ? <p className="mt-10 text-center font-body text-[12px] uppercase tracking-wide text-gold">{M.perHead} per head</p> : null}
+        {M.perHead ? <p className="mt-10 text-center font-body text-[12px] uppercase tracking-wide text-gold">{M.perHead} per head</p> : null}
+        {M.perHeadNote ? <p className="mt-2 text-center font-body text-[11px] text-ivory/60">{M.perHeadNote}</p> : null}
         <div className="mx-auto mt-10 flex items-center justify-center gap-3"><span className="h-px w-16 bg-gold/60" /><span className="h-1.5 w-1.5 rotate-45 bg-gold" /><span className="h-px w-16 bg-gold/60" /></div>
         <p className="mt-8 text-center font-body text-[10px] uppercase tracking-eyebrow text-ivory/80">{M.footer}</p>
         <img src={asset('/brand/lockup-dark.png')} alt="The Creatiste Catering" className="mx-auto mt-10 h-10 w-auto" />

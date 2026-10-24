@@ -1,6 +1,7 @@
 @font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 400 900; font-display: swap; src: url('./fonts/PlayfairDisplay-var.woff2') format('woff2'); }
 @font-face { font-family: 'Playfair Display'; font-style: italic; font-weight: 400 900; font-display: swap; src: url('./fonts/PlayfairDisplay-Italic-var.woff2') format('woff2'); }
 @font-face { font-family: 'Jost'; font-style: normal; font-weight: 100 900; font-display: swap; src: url('./fonts/Jost-var.woff2') format('woff2'); }
+@font-face { font-family: 'Lora'; font-style: italic; font-weight: 400 700; font-display: swap; src: url('./fonts/Lora-Italic-var.woff2') format('woff2'); }
 @font-face { font-family: 'Jost'; font-style: italic; font-weight: 100 900; font-display: swap; src: url('./fonts/Jost-Italic-var.woff2') format('woff2'); }
 
 @tailwind base;
@@ -9,6 +10,8 @@
 
 @layer base {
   html { scroll-behavior: smooth; }
+  /* The italic voice: a cleaner, more legible italic than Playfair's for straps and taglines. */
+  .font-display.italic, .display .italic, .font-display .italic, .display.italic { font-family: 'Lora', Georgia, serif; font-weight: 400; letter-spacing: 0; }
   body { background: #0B0A08; color: #FFFBF5; }
   ::selection { background: #BCA47B; color: #0B0A08; }
   @media (prefers-reduced-motion: reduce) {

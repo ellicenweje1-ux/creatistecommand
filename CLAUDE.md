@@ -261,6 +261,52 @@ NOT merged** (the site is still pre-launch; the Command changes are additive and
   price, accreditations/certificates, Instagram post links for the mirror, confirm recommended budgets, Linktree,
   more quotes, the catering Stripe keys, and the go-ahead to deploy (Cloudflare Pages) + merge.
 
+### Follow-on (same 28th-wave session — second feedback batch: stepped Clean Dream ordering ON THE SITE, Lora italic, The Menus page, consultation date)
+Ellice's second list, all built + verified (branch pushed, not merged). Key clarification she gave: **"clean dream ordering
+to be from my website, command is separate"** — so the order flow now lives fully in the site: the menu is held in
+`CLEAN_DREAM.menu` in `site/src/content/site.js` (a mirror of Command's `DEFAULT_OFFER`), the page renders and works
+with NO backend (the preview artifact shows the whole flow), and Command is only the invisible payment/record backend
+(its copy of the offer overrides the local one when reachable so prices can't drift; without it, checkout hands the
+order to WhatsApp/email). **The customer never sees Command.**
+- **`/clean-dream` rebuilt as steps** (`site/src/pages/CleanDream.jsx`): a step rail per choice group (1 Base → 2 Protein →
+  3 Toppings → 4 Extra protein → 5 Name it) with Next/Skip/Back, running price, **"Add to basket"** → sticky basket (named
+  bowls, remove, total) → **Checkout** reveals an ivory section with Step 1 When & where (open days computed locally in
+  Europe/London honouring the 11:00 cut-off, collection points / delivery address), Step 2 Your details, Step 3 Pay
+  (order summary; "Pay £x & place order" when Command+Stripe are live, else "Send order by message").
+- **Site changes:** hero strip line → "Personal Chef · Private Catering Services · Brand-led Pop-ups & Food Activations"
+  (now visible on mobile too); live bar → pulsing dot + **"Live now"** (visible on all widths) with "Clean Dream · Weekday
+  Lunch Service"; Flavour pillar reworded (hers); **the italic voice swapped to Lora Italic** (self-hosted
+  `site/src/fonts/Lora-Italic-var.woff2`; CSS rule `.font-display.italic, .display .italic` → Lora, so every strap/tagline
+  changes without touching markup; Playfair stays for roman headings); the "Your week, cooked for you." / "Hot, fresh and
+  served live." straps removed (umbrella pages' H1 is now the service name); Sorted & Served, Corporate Curations, Private
+  & Personal (both start "The CC Loaded Bar…"), The Creatiste Table (no "freshly prepared set menu", no "calm", "5 guests
+  to 12 max") reworded per her text; **Table menu shows £43 per head + "Travel fee and staffing may be charged, subject to
+  final consultation"** (explicit from her, regardless of `showFromPrices`); **new "The Menus" page** (`/the-menus`,
+  `MENUS_PAGE`) listing all PDFs incl. the Clean Dream printed menu (`site/public/docs/clean-dream-menu.pdf`, from her
+  "To print" upload); nav renamed **"Enquire Now"** + **"About the Chef"**, 8 items now fit one line at ≥1280 (10.5px,
+  tighter tracking, `xl:` breakpoint — hamburger below); Portfolio adds **G4 Boys (private chef, international artists,
+  May 2026)** + **Indigo Kxd (personal chef, producer & label owner)**; About the Chef gets the vegan/vegetarian/
+  gluten-free + food-safety line and a **Profile** list (`CHEF.profile`, placeholder rows — her attachment didn't come
+  through this message; she'll resend); Loaded Bar page: brochure only (the "request the deck" fallback removed).
+- **Enquiry form:** **consultation date at the end, limited to the next 7 days** (`ConsultPicker`: `min`=today, `max`=+7,
+  out-of-range typed values cleared, **weekends rejected** with a Mon–Fri note, required on all lanes except pricing-guide
+  and events; + a preferred-time select; composed into the Command notes as "Consultation: date, time"). The Loaded Bar
+  deck checkbox is gone. **Bug fixed en route:** the `?service=the-loaded-bar` deep link stopped preselecting after The
+  Loaded Bar left the private-catering services list — now maps to "The Loaded Bar for another occasion".
+- **Instagram:** she "can't see the live feed" in the preview — expected: the preview host blocks third-party frames and
+  no post links are set yet. The social mirror now falls back to Instagram's **public profile embed iframe**
+  (`instagram.com/<handle>/embed/`), which shows on the live site with zero setup; curated post embeds still take over once
+  `GALLERY.instagram` links are added; a true auto-updating feed = Instagram Graph API via Command, later.
+- **Verified:** Playwright **58/58** (`scratchpad/verify_v3.py`): 11 routes zero errors desktop+mobile; strip/live bar/
+  Flavour/no straps; **Lora loaded and applied to the hero italic**; nav one line at 1440; umbrella H1s; all reworded copy;
+  Menus page 4 PDFs; chef profile; portfolio names; enquiry consultation date (min/max, >7 days cleared, weekend blocked,
+  weekday enables send, deck gone); **the stepped flow offline** (step 1 base, Next gated, 6 toppings → £11.50 with the
+  50p 6th topping, extra prawns bowl £11.00, basket £22.50, Checkout reveals steps, 5 weekdays + 2 slots, message
+  handoff) **and live** (Pay £19.00 → fake Stripe → confirmed page). Build clean (51 modules). **Test-harness note:**
+  many site elements are CSS-uppercased — compare `.lower()` (bit me three times this session).
+- **Still TODO from Ellice:** the About-the-Chef attachment (profile details), more photos, Instagram links, budget figures,
+  corporate/private menu offerings, certificates, catering Stripe keys, go-ahead to deploy + merge.
+
 ## Latest session (2026-07-13, twenty-seventh wave — worked-example cards on every module, from the aunt-trial feedback)
 - Branch `claude/claude-md-status-rollout-bjd18z` — **merge to `main` to deploy.** Context from Ellice's first
   real onboarding trial (her aunt, comped account): Jitsi was hard for the client (she manually made a Zoom),

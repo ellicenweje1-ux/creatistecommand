@@ -16,7 +16,7 @@ export default function LoadedBar() {
             <Reveal delay={3} className="mt-10 flex flex-wrap gap-3">
               <Button href="#included">What’s included</Button>
               <Button to="/enquire?lane=private-catering&service=the-loaded-bar" variant="ghost">Book the bar</Button>
-              {L.deckUrl ? <Button href={asset(L.deckUrl)} variant="ghost" target="_blank" rel="noreferrer">Grab the deck</Button> : <Button to="/enquire?lane=private-catering&service=the-loaded-bar&deck=1" variant="ghost">Request the deck</Button>}
+              {L.deckUrl ? <Button href={asset(L.deckUrl)} variant="ghost" target="_blank" rel="noreferrer">Grab the deck</Button> : null}
             </Reveal>
           </div>
           <Reveal delay={2} className="lg:col-span-5"><Frame src={L.photo} alt="The Loaded Bar station" ratio="4/5" /></Reveal>

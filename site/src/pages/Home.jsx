@@ -24,8 +24,8 @@ function Hero() {
           <Button to="/enquire">Tell us about your table</Button>
           <Button to="/personal-chef" variant="ghost">View services</Button>
         </Reveal>
-        <Reveal delay={3} className="mt-20 hidden items-center gap-4 font-body text-[11px] uppercase tracking-eyebrow text-smoke sm:flex">
-          <span className="h-px w-10 bg-gold/60" /> Personal chef · Private catering · Pop-ups
+        <Reveal delay={3} className="mt-14 flex items-center gap-4 font-body text-[10px] uppercase tracking-eyebrow text-smoke sm:mt-20 sm:text-[11px]">
+          <span className="h-px w-10 bg-gold/60" /> {HERO.strip}
         </Reveal>
       </div>
     </section>
@@ -35,15 +35,15 @@ function Hero() {
 function NowStrip() {
   const live = NOW.items.filter((i) => i.live)
   if (!live.length) return null
-  const words = live.flatMap((i) => [`${i.kind} · ${i.name}`, i.when, ...i.meta])
+  const words = live.flatMap((i) => [`${i.name} · ${i.kind}`, i.when, ...i.meta])
   return (
     <div className="border-y border-gold/30 bg-ink-2 text-ivory">
-      <div className="mx-auto flex w-full max-w-page items-stretch px-0 lg:px-12">
-        <Link to="/whats-up" className="hidden shrink-0 items-center gap-3 border-r border-gold/30 pr-8 font-body text-[11px] uppercase tracking-eyebrow text-gold lg:flex">
-          <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold opacity-60" /><span className="relative inline-flex h-2 w-2 rounded-full bg-gold" /></span>
-          Happening now
+      <div className="mx-auto flex w-full max-w-page items-stretch px-5 sm:px-8 lg:px-12">
+        <Link to="/whats-up" className="flex shrink-0 items-center gap-3 border-r border-gold/30 pr-4 font-body text-[11px] uppercase tracking-eyebrow text-gold sm:pr-8">
+          <span className="relative flex h-2.5 w-2.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold opacity-60" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-gold" /></span>
+          Live now
         </Link>
-        <div className="relative flex-1 overflow-hidden py-4">
+        <div className="relative min-w-0 flex-1 overflow-hidden py-4">
           <div className="ticker font-body text-[12px] uppercase tracking-wide text-ivory/85">
             {[...words, ...words].map((w, i) => <span key={i} className="flex items-center gap-12"><span>{w}</span><span className="h-1 w-1 rounded-full bg-gold" /></span>)}
           </div>
@@ -105,8 +105,7 @@ function Services() {
         <div key={u.slug} className="mt-16 first:mt-16">
           <Reveal className="flex flex-wrap items-end justify-between gap-4 border-b border-ink-3 pb-4">
             <div>
-              <p className="eyebrow">{u.name}</p>
-              <p className="mt-2 font-display text-[22px] italic text-ivory/90">{u.strap}</p>
+              <p className="font-display text-[26px]">{u.name}</p>
             </div>
             <Link to={`/${u.slug}`} className="inline-flex items-center gap-2 font-body text-[12px] uppercase tracking-wide text-ivory/70 hover:text-gold">All {u.short} services <Arrow /></Link>
           </Reveal>
