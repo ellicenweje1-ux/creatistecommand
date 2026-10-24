@@ -1,23 +1,24 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { CONTACT, ENQUIRE, PERSONAL_CHEF, PRIVATE_CATERING, SETTINGS } from '../content/site.js'
+import { CONTACT, ENQUIRE, HOME_EDIT_PACKAGES, PERSONAL_CHEF, PRIVATE_CATERING, RECOMMENDED_BUDGET, SETTINGS } from '../content/site.js'
 import { Arrow, Button, Eyebrow, Heading, Reveal, Section } from '../ui.jsx'
 
 /* ── Questions per lane ─────────────────────────────────────────────────────
    Each field: { k, label, type: text|email|tel|date|time|number|select|radio|textarea|check, options?, req?, half?, hint? } */
-const PC_SERVICES = [...PERSONAL_CHEF.services.map((s) => s.name), 'Not sure yet — advise me']
-const CAT_SERVICES = [...PRIVATE_CATERING.services.filter((s) => s.slug !== 'the-creatiste-table').map((s) => s.name), 'Not sure yet — advise me']
+const PC_SERVICES = [...PERSONAL_CHEF.services.map((s) => s.name), 'Not sure yet, advise me']
+const CAT_SERVICES = [...PRIVATE_CATERING.services.filter((s) => s.slug !== 'the-creatiste-table').map((s) => s.name), 'The Loaded Bar for another occasion', 'Not sure yet, advise me']
 
 const LANE_FIELDS = {
   'personal-chef': [
     { k: 'service', label: 'Which service?', type: 'radio', options: PC_SERVICES, req: true },
-    { k: 'household', label: 'How many people are we feeding?', type: 'select', options: ['1', '2', '3', '4', '5+'], half: true },
+    { k: 'package', label: 'Which Home Edit package?', type: 'select', options: [...HOME_EDIT_PACKAGES.items.map((p) => `${p.name} (${p.cover})`), 'Not sure yet, advise me'], showIf: (a) => a.service === 'The Home Edit' },
+    { k: 'household', label: 'How many people are we feeding?', type: 'select', options: ['1', '2', '3', '4+'], half: true },
     { k: 'frequency', label: 'How often?', type: 'select', options: ['Weekly', 'Fortnightly', 'One-off', 'Not sure'], half: true },
     { k: 'date', label: 'When would you like to start?', type: 'date', half: true },
-    { k: 'area', label: 'Postcode or area', type: 'text', half: true, placeholder: 'e.g. SE1 or Surrey' },
+    { k: 'area', label: 'Postcode', type: 'text', half: true, placeholder: 'e.g. W5 2AB' },
     { k: 'focus', label: 'Food focuses & dietary needs', type: 'textarea', placeholder: 'High protein, halal, no shellfish, Nigerian & Caribbean favourites…' },
-    { k: 'budget', label: 'Rough budget', type: 'text', half: true, placeholder: 'e.g. £150–£250 or your figure' },
     { k: 'budget_per', label: 'This budget is', type: 'select', options: ['Weekly', 'Monthly', 'Per visit'], half: true },
+    { k: 'budget', label: 'Rough budget', type: 'text', half: true, placeholder: 'Your figure', hint: (a) => { const r = RECOMMENDED_BUDGET[a.service]?.[a.budget_per || 'Weekly']; return r ? `We recommend a budget starting at £${r} ${(a.budget_per || 'Weekly').toLowerCase()} for ${a.service}.` : 'Pick a service and a frequency to see our recommended starting budget.' } },
   ],
   'private-catering': [
     { k: 'service', label: 'Which service?', type: 'radio', options: CAT_SERVICES, req: true },
@@ -38,14 +39,6 @@ const LANE_FIELDS = {
     { k: 'budget', label: 'Budget per head, if you have one', type: 'text', half: true, placeholder: 'Optional' },
     { k: 'dietary', label: 'Dietary requirements & dislikes', type: 'textarea' },
   ],
-  'clean-dream': [
-    { k: 'when', label: 'Which day(s)?', type: 'text', placeholder: 'e.g. Tuesday & Thursday this week, or every weekday', req: true },
-    { k: 'lunches', label: 'How many lunches per day?', type: 'select', options: ['1', '2', '3', '4', '5+'], half: true },
-    { k: 'method', label: 'Delivery or collection?', type: 'select', options: ['Delivery (1–4pm)', 'Collection'], half: true, req: true },
-    { k: 'area', label: 'Delivery postcode', type: 'text', half: true },
-    { k: 'dietary', label: 'Dietary needs', type: 'text', half: true },
-    { k: 'note', label: 'Anything else?', type: 'textarea', placeholder: 'Orders in by 11am for same-day lunch.' },
-  ],
   'pricing-guide': [
     { k: 'interest', label: 'What are you weighing up?', type: 'radio', options: ['Personal chef services', 'Private catering / The Loaded Bar', 'The Creatiste Table', 'Not sure yet'], req: true },
     { k: 'timing', label: 'When might you need us?', type: 'select', options: ['This month', 'Next 1–3 months', 'Later this year', 'Just exploring'], half: true },
@@ -59,8 +52,9 @@ const LANE_FIELDS = {
 
 const LANE_LABEL = Object.fromEntries(ENQUIRE.lanes.map((l) => [l.id, l.label]))
 
-function Field({ f, value, onChange }) {
+function Field({ f, value, onChange, answers }) {
   const id = `f-${f.k}`
+  const hint = typeof f.hint === 'function' ? f.hint(answers || {}) : f.hint
   const label = <label htmlFor={id} className="font-body text-[11px] uppercase tracking-eyebrow text-ivory/70">{f.label}{f.req ? <span className="text-gold"> *</span> : null}</label>
   if (f.type === 'radio') {
     return (
@@ -97,13 +91,14 @@ function Field({ f, value, onChange }) {
     return (
       <div className={wrap}>{label}
         <textarea id={id} rows={3} className="field mt-1 resize-y" placeholder={f.placeholder} value={value || ''} onChange={(e) => onChange(e.target.value)} required={f.req} />
-        {f.hint ? <p className="mt-2 font-body text-[11px] uppercase tracking-wide text-smoke">{f.hint}</p> : null}
+        {hint ? <p className="mt-2 font-body text-[11px] uppercase tracking-wide text-smoke">{hint}</p> : null}
       </div>
     )
   }
   return (
     <div className={wrap}>{label}
       <input id={id} type={f.type} className="field mt-1" placeholder={f.placeholder} value={value || ''} onChange={(e) => onChange(e.target.value)} required={f.req} min={f.type === 'number' ? 1 : undefined} />
+      {hint ? <p className="mt-2 font-body text-[12px] text-gold-light/90">{hint}</p> : null}
     </div>
   )
 }
@@ -112,7 +107,7 @@ function Field({ f, value, onChange }) {
    enquiry endpoint doesn't have a column for goes into `message`. */
 function buildPayload(lane, a, c) {
   const fields = LANE_FIELDS[lane] || []
-  const lines = fields.filter((f) => a[f.k] !== undefined && a[f.k] !== '' && a[f.k] !== false).map((f) => `${f.label}: ${a[f.k] === true ? 'Yes' : a[f.k]}`)
+  const lines = fields.filter((f) => (!f.showIf || f.showIf(a)) && a[f.k] !== undefined && a[f.k] !== '' && a[f.k] !== false).map((f) => `${f.label}: ${a[f.k] === true ? 'Yes' : a[f.k]}`)
   if (c.message) lines.push(`Message: ${c.message}`)
   if (c.contact_pref) lines.push(`Preferred contact: ${c.contact_pref}`)
   const service = a.service || a.interest || ''
@@ -148,7 +143,7 @@ export default function Enquire() {
   const setA = (k, v) => setAnswers((p) => ({ ...p, [k]: v }))
   const setC = (k, v) => setContact((p) => ({ ...p, [k]: v }))
 
-  const canSend = useMemo(() => contact.name.trim() && contact.email.trim() && (fields || []).every((f) => !f.req || (answers[f.k] && answers[f.k] !== '')), [contact, answers, fields])
+  const canSend = useMemo(() => contact.name.trim() && contact.email.trim() && (fields || []).filter((f) => !f.showIf || f.showIf(answers)).every((f) => !f.req || (answers[f.k] && answers[f.k] !== '')), [contact, answers, fields])
 
   async function submit(e) {
     e.preventDefault()
@@ -156,7 +151,7 @@ export default function Enquire() {
     const payload = buildPayload(lane, answers, contact)
     if (!SETTINGS.apiBase || !SETTINGS.enquiryToken) {
       // No Command token configured: hand off to email so no enquiry is ever lost.
-      const subject = encodeURIComponent(`Enquiry — ${payload.event_type}`)
+      const subject = encodeURIComponent(`Enquiry: ${payload.event_type}`)
       const body = encodeURIComponent(`${payload.message}\n\nName: ${payload.name}\nEmail: ${payload.email}\nPhone: ${payload.phone}`)
       window.location.href = `mailto:${CONTACT.email}?subject=${subject}&body=${body}`
       setState({ status: 'mailto', error: '' })
@@ -184,9 +179,9 @@ export default function Enquire() {
       <section className="hero-field grain relative flex min-h-[80vh] items-center pt-32">
         <div className="mx-auto w-full max-w-page px-5 sm:px-8 lg:px-12">
           <Reveal><Eyebrow>{state.status === 'sent' ? 'Received' : 'Almost there'}</Eyebrow></Reveal>
-          <Reveal delay={1}><Heading as="h1" size="xl" className="mt-5 max-w-3xl">{state.status === 'sent' ? 'Thank you — your table is noted.' : 'Your email app should have opened.'}</Heading></Reveal>
+          <Reveal delay={1}><Heading as="h1" size="xl" className="mt-5 max-w-3xl">{state.status === 'sent' ? 'Thank you, your table is noted.' : 'Your email app should have opened.'}</Heading></Reveal>
           <Reveal delay={2}><p className="lede mt-8 max-w-xl text-ivory/75">{state.status === 'sent' ? ENQUIRE.followUp : <>If it didn’t, email us directly at <a className="link-under text-ivory" href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a> and we’ll pick it up from there.</>}</p></Reveal>
-          <Reveal delay={3} className="mt-10 flex flex-wrap gap-3"><Button to="/">Back to the start</Button><Button to="/whats-on" variant="ghost">See what’s on</Button></Reveal>
+          <Reveal delay={3} className="mt-10 flex flex-wrap gap-3"><Button to="/">Back to the start</Button><Button to="/whats-up" variant="ghost">What’s up with Us?</Button></Reveal>
         </div>
       </section>
     )
@@ -227,17 +222,17 @@ export default function Enquire() {
           <div className="lg:col-span-8">
             {!lane ? (
               <div className="flex h-full min-h-[320px] items-center border border-dashed border-ink-3 p-8">
-                <p className="font-display text-[22px] italic text-smoke">Pick an enquiry type to begin <span className="not-italic">→</span></p>
+                <p className="font-display text-[22px] italic text-smoke">Pick an enquiry type to begin.</p>
               </div>
             ) : (
               <form onSubmit={submit} noValidate={false} className="border border-ink-3 bg-ink-2/50 p-6 sm:p-9">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-3 pb-5">
                   <p className="font-body text-[11px] uppercase tracking-eyebrow text-gold">{LANE_LABEL[lane]}</p>
-                  <button type="button" onClick={() => setLane('')} className="font-body text-[11px] uppercase tracking-wide text-smoke hover:text-ivory">← Change enquiry type</button>
+                  <button type="button" onClick={() => setLane('')} className="font-body text-[11px] uppercase tracking-wide text-smoke hover:text-ivory">Change enquiry type</button>
                 </div>
 
                 <div className="mt-8 grid gap-6 sm:grid-cols-2">
-                  {fields.map((f) => <Field key={f.k} f={f} value={answers[f.k]} onChange={(v) => setA(f.k, v)} />)}
+                  {fields.filter((f) => !f.showIf || f.showIf(answers)).map((f) => <Field key={f.k} f={f} value={answers[f.k]} onChange={(v) => setA(f.k, v)} answers={answers} />)}
                 </div>
 
                 <p className="mt-12 eyebrow">Your details</p>
@@ -256,7 +251,7 @@ export default function Enquire() {
                   <p className="mt-2 font-body text-[13px] font-light leading-relaxed text-ivory/70">{ENQUIRE.followUp}</p>
                 </div>
 
-                {state.error ? <p className="mt-6 font-body text-[13px] text-red-300">{state.error} — or email us at <a className="link-under" href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>.</p> : null}
+                {state.error ? <p className="mt-6 font-body text-[13px] text-red-300">{state.error}. Or email us at <a className="link-under" href={`mailto:${CONTACT.email}`}>{CONTACT.email}</a>.</p> : null}
                 <div className="mt-8 flex flex-wrap items-center gap-4">
                   <Button type="submit" disabled={!canSend || state.status === 'sending'} className="disabled:cursor-not-allowed disabled:opacity-40">{state.status === 'sending' ? 'Sending…' : 'Send enquiry'} <Arrow /></Button>
                   <p className="font-body text-[12px] text-smoke">We never share your details.</p>

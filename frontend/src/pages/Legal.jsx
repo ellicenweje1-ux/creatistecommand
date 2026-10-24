@@ -413,6 +413,15 @@ export function Faq() {
           protection law. The details are in our <Link to="/privacy" className="text-copper">Privacy Policy</Link>.
         </p>
       </Section>
+      <Section heading="Can my customers order and pay on my own website?">
+        <p>
+          Yes. Pre-orders (Pro and above) lets a lunch service or a pop-up take orders on your own site, paid by card
+          before they count. You set the menu, the choice groups and prices, the collection slots and the order
+          cut-off once; every order is priced from that on our side, each box is named by the customer so labelling
+          is a read-off, and paid orders land on your calendar and in your inbox. Payments go to your own Stripe
+          account, not ours.
+        </p>
+      </Section>
       <Section heading="What if I delete something by mistake?">
         <p>
           You can put it back yourself. Anything you delete goes to a “Recently deleted” area for 30 days, so a

@@ -172,6 +172,21 @@ const GROUPS = [
         tip: 'Keep a “last out the door” section: knives, chargers, the cake.',
       },
       {
+        key: 'preorders', icon: 'cart', label: 'Pre-orders', title: 'Pre-orders — paid orders from your own site', to: '/app/preorders', min: 2,
+        blurb: 'Take paid orders for a lunch service or pop-up on your own website, box by box.',
+        benefits: [
+          'Every order is priced on our side from your menu, so nothing can be changed in the browser',
+          'Each box is named by the customer, so labelling is a read-off',
+          'Paid orders roll into one booking per day on your calendar and email you both',
+        ],
+        how: [
+          'Set your offer once: menu, choice groups and prices, collection slots, delivery policy, cut-off',
+          'Point your site at your enquiry token so the order page reads the offer',
+          'Switch card payment on with your own business Stripe key; until then the site takes orders by WhatsApp or email',
+        ],
+        tip: 'Keep the cut-off honest. Orders in by 11am, made the same day, is a promise your prep list can keep.',
+      },
+      {
         key: 'orders', icon: 'truck', label: 'Orders', title: 'Orders — deliveries & tracking', to: '/app/orders', min: 2,
         blurb: 'Track speciality and online orders so nothing arrives after prep day.',
         benefits: [

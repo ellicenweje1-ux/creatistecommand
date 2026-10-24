@@ -43,6 +43,12 @@ AI_MODEL = os.getenv("AI_MODEL", "claude-opus-4-8")
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 
+# Pre-orders (pop-up / lunch-service orders taken on a chef's own site). Paid into a SEPARATE
+# Stripe account from the platform's subscriptions — the chef's business account. Inert until set:
+# the public order page shows the menu but offers WhatsApp/email ordering instead of card payment.
+PREORDER_STRIPE_SECRET_KEY = os.getenv("PREORDER_STRIPE_SECRET_KEY", "")
+PREORDER_STRIPE_WEBHOOK_SECRET = os.getenv("PREORDER_STRIPE_WEBHOOK_SECRET", "")
+
 # Bootstrap platform admin (created on first startup)
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@creatistecommand.com")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin12345")

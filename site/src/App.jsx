@@ -10,14 +10,18 @@ import WhatsOn from './pages/WhatsOn.jsx'
 import Chef from './pages/Chef.jsx'
 import Gallery from './pages/Gallery.jsx'
 import Enquire from './pages/Enquire.jsx'
+import Portfolio from './pages/Portfolio.jsx'
+import CleanDream, { CleanDreamConfirmed } from './pages/CleanDream.jsx'
+import TableMenuPrint from './pages/TableMenu.jsx'
 
 const NAV = [
-  { to: '/personal-chef', label: 'Personal chef' },
-  { to: '/private-catering', label: 'Private catering' },
+  { to: '/personal-chef', label: 'Personal Chef' },
+  { to: '/private-catering', label: 'Private Catering' },
   { to: '/the-loaded-bar', label: 'The Loaded Bar' },
-  { to: '/whats-on', label: "What's on" },
-  { to: '/the-chef', label: 'The chef' },
-  { to: '/gallery', label: 'Gallery' },
+  { to: '/whats-up', label: 'What’s Up With Us?' },
+  { to: '/portfolio', label: 'Portfolio' },
+  { to: '/the-gallery', label: 'The Gallery' },
+  { to: '/the-chef', label: 'The Chef' },
 ]
 
 function Nav() {
@@ -38,12 +42,12 @@ function Nav() {
     <header className={`fixed inset-x-0 top-0 z-40 transition-all duration-500 ease-silk ${solid || open ? 'bg-ink/90 backdrop-blur-md' : 'bg-transparent'}`}
       style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="mx-auto flex h-[76px] w-full max-w-page items-center justify-between px-5 sm:px-8 lg:px-12">
-        <Link to="/" className="flex items-center" aria-label="The Creatiste Catering — home">
+        <Link to="/" className="flex items-center" aria-label="The Creatiste Catering, home">
           <img src={asset('/brand/lockup-dark.png')} alt="The Creatiste Catering" className="h-10 w-auto sm:h-11" />
         </Link>
-        <nav className="hidden items-center gap-7 lg:flex" aria-label="Main">
+        <nav className="hidden items-center gap-6 lg:flex" aria-label="Main">
           {NAV.map((n) => (
-            <NavLink key={n.to} to={n.to} className={({ isActive }) => `font-body text-[12px] uppercase tracking-wide transition-colors ${isActive ? 'text-gold' : 'text-ivory/80 hover:text-ivory'}`}>
+            <NavLink key={n.to} to={n.to} className={({ isActive }) => `font-body text-[11px] uppercase tracking-wide transition-colors ${isActive ? 'text-gold' : 'text-ivory/80 hover:text-ivory'}`}>
               {n.label}
             </NavLink>
           ))}
@@ -60,14 +64,16 @@ function Nav() {
     </header>
       {/* Mobile sheet — a sibling of the header: backdrop-filter on the header would otherwise become its containing block. */}
       <div className={`lg:hidden fixed inset-x-0 bottom-0 top-[76px] z-30 bg-ink transition-opacity duration-300 ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
-        <nav className="flex h-full flex-col px-6 pt-6" aria-label="Mobile">
+        <nav className="flex h-full flex-col px-6 pt-4" aria-label="Mobile">
+          <p className="eyebrow pb-3">Menu</p>
           {NAV.map((n, i) => (
-            <NavLink key={n.to} to={n.to} className={({ isActive }) => `display border-b border-ink-3 py-5 text-[28px] ${isActive ? 'text-gold' : 'text-ivory'}`} style={{ transitionDelay: `${i * 40}ms` }}>
-              {n.label}
+            <NavLink key={n.to} to={n.to} className={({ isActive }) => `flex items-baseline justify-between border-t border-ink-3 py-3.5 font-display text-[19px] tracking-[0.01em] ${isActive ? 'text-gold' : 'text-ivory/90'}`}>
+              <span>{n.label}</span><span className="font-body text-[10px] tracking-eyebrow text-smoke">0{i + 1}</span>
             </NavLink>
           ))}
-          <Link to="/enquire" className="mt-8 bg-gold px-6 py-4 text-center font-body text-[12px] uppercase tracking-wide text-ink">Tell us about your table</Link>
-          <p className="mt-auto pb-10 font-body text-[13px] text-smoke" style={{ paddingBottom: 'calc(2.5rem + env(safe-area-inset-bottom))' }}>
+          <Link to="/enquire" className="mt-6 bg-gold px-6 py-3.5 text-center font-body text-[11px] uppercase tracking-wide text-ink">Tell us about your table</Link>
+          <Link to="/clean-dream" className="mt-2 border border-ivory/30 px-6 py-3.5 text-center font-body text-[11px] uppercase tracking-wide text-ivory/90">Order Clean Dream</Link>
+          <p className="mt-auto font-body text-[12px] text-smoke" style={{ paddingBottom: 'calc(2.5rem + env(safe-area-inset-bottom))' }}>
             <a href={`mailto:${CONTACT.email}`} className="link-under">{CONTACT.email}</a>
           </p>
         </nav>
@@ -155,9 +161,15 @@ export default function App() {
           <Route path="/personal-chef" element={<PersonalChef />} />
           <Route path="/private-catering" element={<PrivateCatering />} />
           <Route path="/the-loaded-bar" element={<LoadedBar />} />
+          <Route path="/whats-up" element={<WhatsOn />} />
           <Route path="/whats-on" element={<WhatsOn />} />
+          <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/the-chef" element={<Chef />} />
+          <Route path="/the-gallery" element={<Gallery />} />
           <Route path="/gallery" element={<Gallery />} />
+          <Route path="/clean-dream" element={<CleanDream />} />
+          <Route path="/clean-dream/confirmed" element={<CleanDreamConfirmed />} />
+          <Route path="/the-creatiste-table-menu" element={<TableMenuPrint />} />
           <Route path="/enquire" element={<Enquire />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

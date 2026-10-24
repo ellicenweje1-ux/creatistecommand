@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { CONTACT, GALLERY } from '../content/site.js'
 import { Eyebrow, Frame, Heading, Reveal, Section, asset } from '../ui.jsx'
 import { EnquireBand } from './Home.jsx'
+import SocialMirror from '../social.jsx'
 
 export default function Gallery() {
   const [open, setOpen] = useState(null)
@@ -17,7 +18,7 @@ export default function Gallery() {
         <div className="mx-auto w-full max-w-page px-5 sm:px-8 lg:px-12">
           <Reveal><Eyebrow>{GALLERY.eyebrow}</Eyebrow></Reveal>
           <Reveal delay={1}><Heading as="h1" size="xl" className="mt-5 max-w-3xl">{GALLERY.title}</Heading></Reveal>
-          <Reveal delay={2}><p className="mt-8 font-body text-[14px] text-smoke">{GALLERY.follow} — <a href={`https://instagram.com/${CONTACT.instagram}`} target="_blank" rel="noreferrer" className="link-under text-ivory/90">@{CONTACT.instagram}</a></p></Reveal>
+          <Reveal delay={2}><p className="mt-8 font-body text-[14px] text-smoke">{GALLERY.follow}: <a href={`https://instagram.com/${CONTACT.instagram}`} target="_blank" rel="noreferrer" className="link-under text-ivory/90">@{CONTACT.instagram}</a></p></Reveal>
         </div>
       </section>
       <Section ground="ivory" tight>
@@ -31,6 +32,7 @@ export default function Gallery() {
           ))}
         </div>
       </Section>
+      <SocialMirror ground="ink" />
       {open !== null ? (
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-ink/95 p-5" onClick={() => setOpen(null)}>
           <img src={asset(GALLERY.photos[open].src)} alt={GALLERY.photos[open].alt} className="max-h-[88vh] max-w-full object-contain" />

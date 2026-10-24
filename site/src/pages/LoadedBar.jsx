@@ -1,5 +1,5 @@
 import { LOADED_BAR, SETTINGS } from '../content/site.js'
-import { Button, Eyebrow, Frame, Heading, Reveal, Section } from '../ui.jsx'
+import { Button, Eyebrow, Frame, Heading, Reveal, Section, asset } from '../ui.jsx'
 import { EnquireBand } from './Home.jsx'
 
 export default function LoadedBar() {
@@ -16,10 +16,10 @@ export default function LoadedBar() {
             <Reveal delay={3} className="mt-10 flex flex-wrap gap-3">
               <Button href="#included">What’s included</Button>
               <Button to="/enquire?lane=private-catering&service=the-loaded-bar" variant="ghost">Book the bar</Button>
-              {L.deckUrl ? <Button href={L.deckUrl} variant="ghost" target="_blank" rel="noreferrer">Grab the deck</Button> : <Button to="/enquire?lane=private-catering&service=the-loaded-bar&deck=1" variant="ghost">Request the deck</Button>}
+              {L.deckUrl ? <Button href={asset(L.deckUrl)} variant="ghost" target="_blank" rel="noreferrer">Grab the deck</Button> : <Button to="/enquire?lane=private-catering&service=the-loaded-bar&deck=1" variant="ghost">Request the deck</Button>}
             </Reveal>
           </div>
-          <Reveal delay={2} className="lg:col-span-5"><Frame src="/photos/loaded-bar.jpg" alt="The Loaded Bar station" ratio="4/5" /></Reveal>
+          <Reveal delay={2} className="lg:col-span-5"><Frame src={L.photo} alt="The Loaded Bar station" ratio="4/5" /></Reveal>
         </div>
       </section>
 
@@ -39,6 +39,22 @@ export default function LoadedBar() {
               </li>
             ))}
           </Reveal>
+        </div>
+      </Section>
+
+      <Section ground="ink">
+        <div className="max-w-2xl">
+          <Reveal><Eyebrow>{L.menu.title}</Eyebrow></Reveal>
+          <Reveal delay={1}><Heading className="mt-5">Every guest builds their own.</Heading></Reveal>
+        </div>
+        <div className="mt-10 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          {L.menu.groups.map((g, i) => (
+            <Reveal key={g.name} delay={i % 3} className="border-t border-ink-3 pt-5">
+              <p className="font-display text-[22px]">{g.name} <span className="font-body text-[11px] uppercase tracking-wide text-gold">{g.pick}</span></p>
+              <ul className="mt-4 space-y-1.5">{g.items.map((it) => <li key={it} className="font-body text-[14px] font-light text-ivory/80">{it}</li>)}</ul>
+              {g.extra ? <p className="mt-3 font-body text-[12px] italic text-smoke">{g.extra}</p> : null}
+            </Reveal>
+          ))}
         </div>
       </Section>
 

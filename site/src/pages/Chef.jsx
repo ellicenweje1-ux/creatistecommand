@@ -17,7 +17,7 @@ export default function Chef() {
               {CHEF.facts.map((f) => <li key={f} className="flex gap-3 font-body text-[12px] uppercase tracking-wide text-ivory/80"><span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-gold" />{f}</li>)}
             </Reveal>
           </div>
-          <Reveal delay={2} className="lg:col-span-5"><Frame src="/photos/chef.jpg" alt={CHEF.name} ratio="4/5" /></Reveal>
+          <Reveal delay={2} className="lg:col-span-5"><Frame src={CHEF.photo} alt={CHEF.name} ratio="4/5" /></Reveal>
         </div>
       </section>
 

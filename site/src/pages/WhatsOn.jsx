@@ -31,7 +31,7 @@ export default function WhatsOn() {
         <div className="mx-auto w-full max-w-page px-5 sm:px-8 lg:px-12">
           <Reveal><Eyebrow>{NOW.eyebrow}</Eyebrow></Reveal>
           <Reveal delay={1}><Heading as="h1" size="xl" className="mt-5 max-w-3xl">{NOW.title}</Heading></Reveal>
-          <Reveal delay={2}><p className="lede mt-8 max-w-xl text-ivory/75">Lunch services, pop-ups and the occasional Creatiste-hosted event. This page changes — check back, or ask to be kept posted.</p></Reveal>
+          <Reveal delay={2}><p className="lede mt-8 max-w-xl text-ivory/75">{NOW.intro}</p></Reveal>
         </div>
       </section>
       <Section ground="ink" tight>

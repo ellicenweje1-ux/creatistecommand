@@ -192,6 +192,75 @@ All built + verified this wave (branch `claude/optimistic-meitner-yqvl2l`) — *
   the pricing-guide lane; Clean Dream waitlist/order flow; FAQ rule #3 is untouched (no Command feature changed).
 - **No version bump** (standing rule).
 
+### Follow-on (same 28th-wave session — Ellice's first feedback batch + real photos + CLEAN DREAM ORDERING = the "Pre-orders" Command feature)
+Ellice reviewed the preview and sent 12 real photos, 4 PDFs (Loaded Bar brochure, Home Edit package options, the
+Clean Dream printed menu, a Creatiste Table event menu) and a pointer list. **All built + verified; branch pushed,
+NOT merged** (the site is still pre-launch; the Command changes are additive and inert until keys are set).
+- **Site changes (`site/`):** "What's on" → **"What’s Up With Us?"** (`/whats-up`, old route kept); new **Portfolio**
+  page (`/portfolio`: who we've worked with + selected work + kind words); Gallery → **"The Gallery"** (`/the-gallery`)
+  with the 12 real photos + a **social mirror** (`site/src/social.jsx`: official Instagram post/reel embeds from
+  `GALLERY.instagram` links — a live auto-feed needs the Instagram Graph API + a Business token, offered as a later
+  Command-side job); **no em dashes anywhere in copy** (house rule now; verified by test); **mobile menu refined**
+  (19px Playfair, hairlines, 01–07 numbering, Title Case labels everywhere incl. desktop nav + footer); **hero now
+  carries a real photo** (serving-bowl) with a gradient; Home Edit gets the **six packages** (from her PDF, prices
+  hidden behind `showFromPrices`, guide PDF in `site/public/docs/`) and the enquiry form gets a package select, people
+  **1/2/3/4+**, **Postcode** only, and a **recommended starting budget** hint that follows the chosen frequency
+  (`RECOMMENDED_BUDGET` in content — figures are my placeholders, TODO Ellice); **The Pantry Edit → "Sorted & Served"**
+  ("Your ingredients, our hands. Portioned to your preference."); **Private Catering restructured**: a "How it’s
+  served" block (The Loaded Bar is the serving method, linking to its own page) + the two event types (Corporate
+  Curations, Private & Personal, each with a "menu offerings to follow" note) + **The Creatiste Table** ("by special
+  request only", seasonal set menu per head, **5 to 12 guests**) with the **set menu rendered as a document card**
+  (`TableMenu.jsx`, generalised from the "15 under 30 x Kasa" PDF, bottom line now "Vegan, nut-free and gluten-free
+  plates available upon request") **+ a printed PDF** `site/public/docs/the-creatiste-table-menu.pdf` (Playwright
+  print of `/the-creatiste-table-menu`, A4); Loaded Bar page gains the **full bowl menu** + the **brochure PDF**
+  ("Grab the deck"); consultation box ends "…in which you will then receive a full quotation breakdown"; footer
+  "Private catering bookings". Clean Dream is **no longer an enquiry lane** — it has its own order page.
+- **CLEAN DREAM ORDER PAGE (`/clean-dream`) = a NEW GENERIC COMMAND FEATURE, "Pre-orders"** (Ellice's roadmap "pop-up
+  pre-orders" item, built now because she asked for the order page). **Backend:** `routers/preorders.py` (public
+  `/api/public/preorder/{token}` GET offer+open dates, POST place order → Stripe Checkout URL; `/confirm` (landing
+  back, works without a webhook), `/status/{public_id}`, `/webhook`; chef `/api/preorders` list, `PATCH` status,
+  `GET/PUT /preorders/offer`), new **`preorders` table** (`create_all`) + additive **`users.preorder_offer` JSON**
+  (model + `ensure_columns`, single-key), `PreOrder` in the admin purge cascade, **`config.PREORDER_STRIPE_SECRET_KEY`
+  / `PREORDER_STRIPE_WEBHOOK_SECRET`** (the CATERING business's Stripe account, deliberately separate from the
+  platform's subscription Stripe). **Every order is priced server-side from the chef's offer** (`price_box`: base/
+  protein surcharges, toppings beyond `max` charged at `extra_price`/`extra_premium_price`, min/max enforced, unknown
+  options 422, every box must be named). Dates honour the **11:00 cut-off in Europe/London** (`open_dates`). On
+  payment (`mark_paid`, idempotent): client created/updated, **one confirmed Booking per day per offer**
+  ("Clean Dream pre-orders", event_type `Pre-order`, boxes appended to notes + menu, guest_count = boxes) so it shows
+  on calendar/dashboard/ICS without flooding the diary, and **two emails** (customer confirmation + chef) listing
+  every box by name. `DEFAULT_OFFER` = Clean Dream exactly as her printed menu (bowl £8; steak +£3 / prawns +£2;
+  5 toppings then 50p / £1 premium; extra protein +£2, steak +£4, prawns +£3; collection W5 @ 1pm & SW15 @ 2:30pm;
+  delivery +£0.65/mi confirmed by WhatsApp). **INERT until the key is set**: the offer endpoint says `payments: off`,
+  placing an order 503s, and the site's page falls back to composing the order as a **WhatsApp message**
+  (`CONTACT.whatsapp` = the number on her menu) or email. **Command UI:** new **Pre-orders** page (`/app/preorders`,
+  Operations nav after Bookings, Pro+): orders grouped by day with named boxes + allergies, Mark collected/Cancel,
+  the offer summary + a JSON editor with "Load template". FAQ (rule #3): Support FAQ + public `/faq` Q&A + a Home
+  guide bubble (`key: 'preorders'`).
+- **Site order page:** reads the offer from Command (single source of truth), bowl builder with chips honouring
+  min/max/extras, per-box **"Who is this box for?"** (her labelling need) + note, cart with total, day select (open
+  dates), collection point radios / delivery address, name/phone/email/allergies, honeypot; **Pay & place order** →
+  Stripe → `/clean-dream/confirmed?order=…&session_id=…` which calls `/confirm` and shows the paid summary.
+- **⚠️ ACTION for Ellice to switch card payment ON (no code):** create/choose the **catering business's Stripe
+  account** (not the Command one), set **`PREORDER_STRIPE_SECRET_KEY`** on Render, add a webhook to
+  `https://creatistecommand.onrender.com/api/public/preorder/webhook` (event `checkout.session.completed`) and set
+  **`PREORDER_STRIPE_WEBHOOK_SECRET`**. The site needs `VITE_API_BASE` + `VITE_ENQUIRY_TOKEN` (her token, shown on
+  the Pre-orders page). Delivery fee is still charged by her via WhatsApp (her spec).
+- **Verified:** backend TestClient **36/36** (`scratchpad/test_preorders.py`: offer/dates/cut-off, pricing rules,
+  validation incl. honeypot, checkout session, confirm-before-paid stays pending, confirm-after-paid → booking +
+  client + 2 emails, webhook replay idempotent, same-day order joins the day's booking, chef list/patch/offer save,
+  **existing-table migration drill** for `users.preorder_offer`, payments-off → 503). Playwright **45/45**
+  (`verify_v2.py`, Command booted via `app_e2e.py` with Stripe stubbed): all 10 routes zero errors desktop+mobile,
+  no em dashes in visible copy, mobile menu, packages/Sorted & Served/Table menu/no prices, enquiry form changes,
+  **full Clean Dream flow in the browser** (build 2 named bowls → £19 → collection point 2 → Pay → fake Stripe →
+  paid → confirmed page shows boxes → order paid in Command → one Pre-order booking), Command Pre-orders page
+  (list, edit offer, mark collected), Table menu PDF generated. Builds clean: site 49 modules, Command 88 modules.
+- **GOTCHA:** FastAPI matches routes in declaration order — `POST /preorder/confirm` and `/webhook` were swallowed by
+  `POST /preorder/{token}` until moved above it. And `text-transform: uppercase` changes `innerText` (match
+  case-insensitively in tests).
+- **Still TODO from Ellice:** rest of the photos (next batch), corporate + private menu offerings, Table per-head
+  price, accreditations/certificates, Instagram post links for the mirror, confirm recommended budgets, Linktree,
+  more quotes, the catering Stripe keys, and the go-ahead to deploy (Cloudflare Pages) + merge.
+
 ## Latest session (2026-07-13, twenty-seventh wave — worked-example cards on every module, from the aunt-trial feedback)
 - Branch `claude/claude-md-status-rollout-bjd18z` — **merge to `main` to deploy.** Context from Ellice's first
   real onboarding trial (her aunt, comped account): Jitsi was hard for the client (she manually made a Zoom),

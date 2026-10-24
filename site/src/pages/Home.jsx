@@ -1,11 +1,17 @@
 import { Link } from 'react-router-dom'
 import { ABOUT, CHEF, GALLERY, HERO, KIND_WORDS, MISSION, NOW, PERSONAL_CHEF, PRIVATE_CATERING, PROCESS, LOADED_BAR, SETTINGS } from '../content/site.js'
+import SocialMirror from '../social.jsx'
 import { Arrow, Button, Eyebrow, Flame, Frame, Heading, Reveal, Section, asset } from '../ui.jsx'
 
 function Hero() {
   return (
     <section className="hero-field grain relative flex min-h-[100svh] items-center overflow-hidden">
-      <Flame className="hero-glow pointer-events-none absolute -right-10 top-1/2 h-[70vh] w-auto -translate-y-1/2 opacity-[.12] sm:right-[8%]" />
+      <div className="absolute inset-0">
+        <img src={asset(HERO.photo)} alt="" className="h-full w-full object-cover object-[70%_30%] opacity-55" />
+        <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/75 to-ink/25" />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-ink to-transparent" />
+      </div>
+      <Flame className="hero-glow pointer-events-none absolute -right-10 top-1/2 hidden h-[60vh] w-auto -translate-y-1/2 opacity-[.10] sm:right-[6%] lg:block" />
       <div className="relative mx-auto w-full max-w-page px-5 pb-20 pt-32 sm:px-8 lg:px-12">
         <Reveal><Eyebrow>{HERO.eyebrow}</Eyebrow></Reveal>
         <Reveal delay={1}>
@@ -29,11 +35,11 @@ function Hero() {
 function NowStrip() {
   const live = NOW.items.filter((i) => i.live)
   if (!live.length) return null
-  const words = live.flatMap((i) => [`${i.kind} — ${i.name}`, i.when, ...i.meta])
+  const words = live.flatMap((i) => [`${i.kind} · ${i.name}`, i.when, ...i.meta])
   return (
     <div className="border-y border-gold/30 bg-ink-2 text-ivory">
       <div className="mx-auto flex w-full max-w-page items-stretch px-0 lg:px-12">
-        <Link to="/whats-on" className="hidden shrink-0 items-center gap-3 border-r border-gold/30 pr-8 font-body text-[11px] uppercase tracking-eyebrow text-gold lg:flex">
+        <Link to="/whats-up" className="hidden shrink-0 items-center gap-3 border-r border-gold/30 pr-8 font-body text-[11px] uppercase tracking-eyebrow text-gold lg:flex">
           <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold opacity-60" /><span className="relative inline-flex h-2 w-2 rounded-full bg-gold" /></span>
           Happening now
         </Link>
@@ -42,7 +48,7 @@ function NowStrip() {
             {[...words, ...words].map((w, i) => <span key={i} className="flex items-center gap-12"><span>{w}</span><span className="h-1 w-1 rounded-full bg-gold" /></span>)}
           </div>
         </div>
-        <Link to="/whats-on" className="hidden shrink-0 items-center gap-2 border-l border-gold/30 pl-8 font-body text-[11px] uppercase tracking-eyebrow text-ivory/80 hover:text-gold lg:flex">See what’s on <Arrow /></Link>
+        <Link to="/whats-up" className="hidden shrink-0 items-center gap-2 border-l border-gold/30 pl-8 font-body text-[11px] uppercase tracking-eyebrow text-ivory/80 hover:text-gold lg:flex">What’s up with Us? <Arrow /></Link>
       </div>
     </div>
   )
@@ -67,8 +73,8 @@ function About() {
           </dl>
         </div>
         <div className="relative lg:col-span-6">
-          <Reveal className="ml-auto w-[82%]"><Frame src="/photos/about-1.jpg" alt="Serving from the kitchen" ratio="4/5" /></Reveal>
-          <Reveal delay={2} className="absolute -bottom-10 left-0 w-[46%] shadow-2xl"><Frame src="/photos/about-2.jpg" alt="A long table, lit warm" ratio="4/5" /></Reveal>
+          <Reveal className="ml-auto w-[82%]"><Frame src={ABOUT.photos[0]} alt="Ellice at a buffet spread" ratio="4/5" /></Reveal>
+          <Reveal delay={2} className="absolute -bottom-10 left-0 w-[46%] shadow-2xl"><Frame src={ABOUT.photos[1]} alt="Jollof rice, puff puff and salad" ratio="4/5" /></Reveal>
         </div>
       </div>
     </Section>
@@ -120,13 +126,13 @@ function LoadedBarFeature() {
         <div className="lg:col-span-6">
           <Reveal><Eyebrow className="text-gold-deep">{LOADED_BAR.eyebrow}</Eyebrow></Reveal>
           <Reveal delay={1}><Heading className="mt-5">{LOADED_BAR.title}</Heading></Reveal>
-          <Reveal delay={2}><p className="lede mt-6 max-w-md text-ink/80">A live hot food station for your next celebration — customisable loaded bowls, endless combinations, and full service from setup to breakdown.</p></Reveal>
+          <Reveal delay={2}><p className="lede mt-6 max-w-md text-ink/80">A live hot food station for your next celebration: customisable loaded bowls, endless combinations, and full service from setup to breakdown.</p></Reveal>
           <Reveal delay={3} className="mt-8 flex flex-wrap gap-3">
             <Button to="/the-loaded-bar" variant="ink">Explore The Loaded Bar</Button>
             <Button to="/enquire?lane=private-catering" variant="ghost-ink">Book the bar</Button>
           </Reveal>
         </div>
-        <Reveal delay={1} className="lg:col-span-6"><Frame src="/photos/loaded-bar.jpg" alt="The Loaded Bar station" ratio="4/5" className="lg:ml-auto lg:w-[86%]" /></Reveal>
+        <Reveal delay={1} className="lg:col-span-6"><Frame src={LOADED_BAR.photo} alt="The Loaded Bar station" ratio="4/5" className="lg:ml-auto lg:w-[86%]" /></Reveal>
       </div>
     </Section>
   )
@@ -141,7 +147,7 @@ function GalleryTeaser() {
           <Reveal><Eyebrow className="text-gold-deep">{GALLERY.eyebrow}</Eyebrow></Reveal>
           <Reveal delay={1}><Heading className="mt-5 max-w-xl">{GALLERY.title}</Heading></Reveal>
         </div>
-        <Reveal delay={2}><Link to="/gallery" className="inline-flex items-center gap-2 font-body text-[12px] uppercase tracking-wide text-ink/70 hover:text-gold-deep">Full gallery <Arrow /></Link></Reveal>
+        <Reveal delay={2}><Link to="/the-gallery" className="inline-flex items-center gap-2 font-body text-[12px] uppercase tracking-wide text-ink/70 hover:text-gold-deep">The Gallery <Arrow /></Link></Reveal>
       </div>
       <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         <Reveal className="col-span-2 row-span-2"><Frame src={p[0]?.src} alt={p[0]?.alt} ratio="1/1" /></Reveal>
@@ -158,7 +164,7 @@ function ChefTeaser() {
   return (
     <Section ground="ink" id="chef">
       <div className="grid items-center gap-12 lg:grid-cols-12">
-        <Reveal className="lg:col-span-5"><Frame src="/photos/chef.jpg" alt={CHEF.name} ratio="4/5" /></Reveal>
+        <Reveal className="lg:col-span-5"><Frame src={CHEF.photo} alt={CHEF.name} ratio="4/5" /></Reveal>
         <div className="lg:col-span-6 lg:col-start-7">
           <Reveal><Eyebrow>{CHEF.eyebrow}</Eyebrow></Reveal>
           <Reveal delay={1}><p className="mt-5 font-display text-[26px] italic text-ivory/80">{CHEF.lead}</p></Reveal>
@@ -233,6 +239,7 @@ export default function Home() {
       <Services />
       <LoadedBarFeature />
       <GalleryTeaser />
+      <SocialMirror ground="linen" />
       <ChefTeaser />
       <Process />
       <KindWords />

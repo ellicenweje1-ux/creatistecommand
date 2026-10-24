@@ -92,6 +92,8 @@ class User(Base):
     # Worked-example cards shown at the top of each module for new chefs — page keys the
     # user has dismissed ("all" hides every card). NB existing rows migrate as NULL.
     examples_hidden: Mapped[list] = mapped_column(JSON, default=list)
+    # The chef's public pre-order offer (menu, slots, delivery policy) — see routers/preorders.py.
+    preorder_offer: Mapped[dict] = mapped_column(JSON, default=dict)
     admin_notes: Mapped[str] = mapped_column(Text, default="")
     # Password reset: a short-lived token emailed to the user (see routers/auth_router.py)
     reset_token: Mapped[str] = mapped_column(String(64), default="")
@@ -514,3 +516,31 @@ class DeletedItem(Base):
     label: Mapped[str] = mapped_column(String(200), default="")      # human label for the list
     payload: Mapped[dict] = mapped_column(JSON, default=dict)        # full row snapshot (incl. id)
     deleted_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, index=True)
+
+
+class PreOrder(OwnedMixin, Base):
+    """A customer order placed on the chef's own site (lunch service / pop-up pre-orders).
+    Priced server-side from the chef's offer; confirmed only once paid."""
+    __tablename__ = "preorders"
+    public_id: Mapped[str] = mapped_column(String(40), index=True, default="")
+    offer_slug: Mapped[str] = mapped_column(String(80), default="")
+    offer_title: Mapped[str] = mapped_column(String(120), default="")
+    status: Mapped[str] = mapped_column(String(24), default="pending_payment")  # pending_payment|paid|collected|cancelled|refunded
+    customer_name: Mapped[str] = mapped_column(String(160), default="")
+    email: Mapped[str] = mapped_column(String(255), default="")
+    phone: Mapped[str] = mapped_column(String(40), default="")
+    allergies: Mapped[str] = mapped_column(Text, default="")
+    for_date: Mapped[str] = mapped_column(String(10), default="", index=True)
+    fulfilment: Mapped[str] = mapped_column(String(20), default="collection")  # collection|delivery
+    slot_id: Mapped[str] = mapped_column(String(40), default="")
+    slot_label: Mapped[str] = mapped_column(String(200), default="")
+    delivery_address: Mapped[str] = mapped_column(String(400), default="")
+    note: Mapped[str] = mapped_column(Text, default="")
+    boxes: Mapped[list] = mapped_column(JSON, default=list)   # [{for, item, summary, choices, price}]
+    subtotal: Mapped[float] = mapped_column(Float, default=0)
+    currency: Mapped[str] = mapped_column(String(8), default="GBP")
+    stripe_session_id: Mapped[str] = mapped_column(String(120), default="")
+    stripe_payment_intent: Mapped[str] = mapped_column(String(120), default="")
+    paid_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    booking_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    client_id: Mapped[int] = mapped_column(Integer, nullable=True)
