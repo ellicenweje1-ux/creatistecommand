@@ -126,6 +126,72 @@ All built + verified this wave (branch `claude/optimistic-meitner-yqvl2l`) — *
 25. ✅ **Tasks: phone notification before a task times out** — full **Web Push**, *inert until VAPID keys are set*
     (house pattern). See the wave notes below for the env vars + the iOS "add to Home Screen" caveat.
 
+## Latest session (2026-10-24, twenty-eighth wave — THE CREATISTE CATERING public website, v1 built)
+- Branch `claude/creatiste-catering-site-bh4dsh`. Ellice's ask: finally build the **official catering business
+  website** (thecreatistecatering.com — domain owned, DNS at Cloudflare jill+quinton). A site had been made for her as
+  a gift earlier in the year on a website builder, then effectively revoked; she sent a **screen recording of it** +
+  her **logo PDF** (Canva). Brief: keep the subtext copy she liked, make it "a million and ten times better" — sleek,
+  modern, high-end; **dark/sultry black base, ivory/nude info panels with black text, gold accents**; NO public price
+  lists (consultation-led; a pricing guide on request); a **"what's happening now" highlight** area (pop-ups, the
+  **Clean Dream** Mon–Fri lunch service, events) left blank-ready; and a **diary/slot-booking** way of working for
+  her own time (phase 2 — see below).
+- **Decision: the catering site is the first real client of The Creatiste Command.** It's a separate static site in
+  **`site/`** (own Vite + React 18 + Tailwind build, mirrors `frontend/` tooling) whose live pieces use the Command
+  backend. Today: the **Enquire form posts to `POST /api/public/enquiry/{token}`** (Ellice's own enquiry token, from
+  Settings → App & integrations) → lands as an **enquiry-status Booking in her Pipeline + a Client + email**. Verified
+  end-to-end against a local Command (`site` on :4174 → API on :8000, CORS is `*`): one booking, date/guests/venue
+  mapped, lane answers composed into `notes`, client created with phone. **Without the token it falls back to a
+  `mailto:` to `enquiries@thecreatistecatering.com`** so nothing is ever lost.
+- **Structure (React Router, 8 routes):** `/` Home (hero · **"Happening now" ticker strip** fed by `NOW` · About
+  "Flavour. Freedom. Finesse." · the two service umbrellas as cards · Loaded Bar feature · gallery mosaic · chef teaser
+  · "Consultation first. Always." 4-step · kind words · enquire band · footer with the **standard operating hours** from
+  the old site), `/personal-chef` (**Batchfully Made** — 32oz/58oz batch containers, price list on request · **The Home
+  Edit** — in-home all-inclusive · **The Pantry Edit** — NEW NAME I suggested for her labour-only "client buys the
+  ingredients, I cook + deliver" service; flagged `suggested: true`, rename freely), `/private-catering` (**The Loaded
+  Bar** = primary · Corporate Curations · Private & Personal · **The Creatiste Table** = private chef dinner "by special
+  request"; explicit "no foil-tray drop-offs"), `/the-loaded-bar` (what's included + information & requirements from
+  the old site; "Grab the deck" button appears once `LOADED_BAR.deckUrl` is set, else "Request the deck"), `/whats-on`
+  (Clean Dream live card: orders by 11am, delivery 1–4pm or collection; pop-up + event cards `live:false` until she
+  flips them), `/the-chef` (bio bullets from the old site + specialisms + **accreditations list** with "certificate to
+  follow" slots), `/gallery` (masonry + lightbox), `/enquire` (**6 lanes** → lane-specific questions → contact →
+  Command: personal chef · private catering · Creatiste Table · Clean Dream · **Request the pricing guide** (lead
+  magnet that replaces public prices) · pop-ups & events; honeypot `company`; deep links `?lane=&service=&deck=1`).
+  **Dropped from the old site: "Perfectly Prepped"** (she didn't list it this time — confirm) and all "from £" figures
+  (kept on the data, hidden behind `SETTINGS.showFromPrices=false`).
+- **Every word lives in `site/src/content/site.js`** (`TODO Ellice` marks placeholders: WhatsApp number, Linktree URL,
+  area wording, Flavour pillar line, specialisms, accreditations, deck PDF, more quotes, Clean Dream collection point).
+  Design system in `site/tailwind.config.js` (ink `#0B0A08`, ivory `#FFFBF5`, linen `#F4EEE4`, **gold `#BCA47B`
+  sampled from her logo**), primitives in `site/src/ui.jsx` (`Section/Heading/Eyebrow/Button/Frame/Reveal`).
+  **Fonts self-hosted** (Playfair Display + Jost variable woff2 in `site/src/fonts/`, from google/fonts GitHub raw,
+  converted with fontTools) — no Google-Fonts request in production (and it renders in the sandbox).
+- **Brand assets from her logo PDF** (a 15.7k² CMYK raster in a Canva PDF): `site/public/brand/lockup-dark.png`
+  (transparent, for ink), `lockup-light.png` (white→ink recolour, gold kept, for ivory), `flame.png` (the mark alone),
+  favicons/apple-touch/icon-512. Recipe: `pdftoppm -scale-to 4000` → un-premultiply against black for alpha.
+- **Photos are TEMPORARY low-res stand-ins cut from the recording** (`site/public/photos/*.jpg`, ~340px) — replace with
+  her real photography, list in `GALLERY.photos`. Hero deliberately has no photo (dark field + breathing gold glow +
+  faint flame) until real imagery arrives.
+- **Deploy (not yet done — needs her yes):** Cloudflare Pages, build `cd site && npm ci && npm run build`, output
+  `site/dist`, env `VITE_API_BASE` + `VITE_ENQUIRY_TOKEN`, custom domain thecreatistecatering.com (CNAME, grey cloud).
+  `site/README.md` has the recipe. Static hosts without SPA fallback: `VITE_ROUTER=hash VITE_BASE=./`.
+- **Verified:** `npm run build` clean (45 modules). Playwright **26/26** desktop 1440 + mobile 390 (zero pageerrors /
+  console errors on all 9 routes, fonts actually loaded, ticker, mobile menu open/navigate, enquire deep-link preselects
+  lane+service+deck, submit disabled until required, lane switch, gallery lightbox) + the Command e2e above. A
+  **clickable preview was published as a Claude artifact** (hash-router build with a "design preview" banner; Google
+  Fonts link swapped in because the artifact host only trusts that font origin).
+- **LESSONS:** (1) `backdrop-filter` on a fixed header makes it the **containing block for `position:fixed`
+  descendants** — the mobile menu sheet collapsed to 0 height until moved out to a sibling. (2) Full-page Playwright
+  screenshots don't trigger `loading="lazy"` images — scroll through first. (3) `text-transform: uppercase` changes
+  `innerText`, so match case-insensitively in tests. (4) Playwright chromium here is `/opt/pw-browsers/chromium`
+  (1243), not the 1194 path in older notes; `pip install playwright` was needed.
+- **PHASE 2 (agreed direction, not built): the diary.** "Everyone books their slot" = **request-and-confirm**, not instant
+  self-booking. Build in Command: standing commitments (Clean Dream Mon–Fri as recurring blocks), per-day capacity rules
+  (max events/day, lunch-day → evening-only, buffer days), a public per-chef **availability endpoint** (open/limited/
+  full per day, no detail) read by a `/diary` page on the site, date requests landing in the Pipeline with preferred +
+  backup dates, and a Mon–Sun weekly diary view on the Command dashboard. Also: make the site's **"Now" strip editable
+  from Command** (public endpoint) so a pop-up date needs no deploy; a **pricing-guide PDF** auto-emailed via Resend on
+  the pricing-guide lane; Clean Dream waitlist/order flow; FAQ rule #3 is untouched (no Command feature changed).
+- **No version bump** (standing rule).
+
 ## Latest session (2026-07-13, twenty-seventh wave — worked-example cards on every module, from the aunt-trial feedback)
 - Branch `claude/claude-md-status-rollout-bjd18z` — **merge to `main` to deploy.** Context from Ellice's first
   real onboarding trial (her aunt, comped account): Jitsi was hard for the client (she manually made a Zoom),
