@@ -68,3 +68,9 @@
 .field-ivory { @apply w-full border-b border-sand bg-transparent px-0 py-3 font-body text-[16px] text-ink placeholder:text-stone/60 focus:border-gold-deep focus:outline-none transition-colors; }
 select.field, select.field-ivory { appearance: none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%23BCA47B' stroke-width='1.5'/></svg>"); background-repeat: no-repeat; background-position: right .25rem center; padding-right: 1.5rem; }
 select.field option { background: #141210; color: #FFFBF5; }
+
+/* Home hero slideshow: stacked images crossfade; the active one is visible */
+.hero-slide { opacity: 0; transition: opacity 1600ms ease; }
+.hero-slide.is-active { opacity: .55; }
+/* The highlights strip drifts slowly; the ticker keyframes are shared with the Now strip */
+.ticker-slow { animation-duration: 90s; }

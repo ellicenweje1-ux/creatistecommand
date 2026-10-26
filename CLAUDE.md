@@ -417,6 +417,28 @@ site review" → **merged to `main`** (Command: Pre-orders + Reviews, both addit
 - **Still TODO from Ellice:** logos/photos of the people for each portfolio entry, more quotes, Instagram widget URL or post links,
   catering Stripe keys (card payment), Cloudflare Pages deploy (steps below), then the full site review.
 
+### Follow-on (same 28th-wave session — sixth batch: glow back on black, hero slideshow, home streamlined, Our Portfolio, legal pages, 4 packages)
+All built + verified (Playwright **52/52** `scratchpad/verify_v7.py`; build clean), branch pushed, **merged to `main`**; preview Version 7.
+- **Loaded Bar image:** Ellice wants HER glow kept — the original cut-out (glow intact) now sits on the plain black `.frame-contain`
+  (my de-glow of the previous batch is reverted; `loaded-bar.png` = her PNG trimmed, nothing else).
+- **Home hero = slideshow:** `HERO.slides` (6 highlight photos with focal `pos`) crossfade every `HERO.interval` (6s) via stacked
+  `.hero-slide` imgs (`is-active` → opacity .55); a thin gold progress-dash row bottom-right; honours reduced motion; `data-hero-slide`
+  carries the active index (used by the test).
+- **Home streamlined into ONE highlights feature:** the gallery grid, the Instagram mirror and the chef teaser are gone from Home,
+  replaced by **`Highlights`**: a slow continuous strip (`.ticker.ticker-slow`, 90s) of the first 14 gallery photos, linking to The
+  Gallery and `@thecreatistecatering` (a literal live Instagram mirror still needs the Graph API or a widget URL, see `GALLERY.feedEmbedUrl`;
+  the strip is the curated stand-in). Home now: Hero · Now strip · About · Services · Loaded Bar · Highlights · Process · Testimonials · Enquire.
+- **"Our Portfolio"** is the nav label (portfolio + testimonials were already one page).
+- **Privacy notice + Terms** at `/privacy` and `/terms` (`site/src/pages/Legal.jsx`, copy in `LEGAL` in content): plain-English UK
+  notice (what's collected, Command/Render/Resend/Cloudflare/WhatsApp as processors, retention, rights, no tracking cookies) and terms
+  (consultation + quotation = contract, Loaded Bar 14 days + 50% fee, Clean Dream 11am cut-off / bank transfer / WhatsApp confirmation /
+  £0.65 per mile delivery / no refund after cut-off, allergen disclaimer, review moderation, England & Wales law). **Footer-only links**
+  (`data-legal-links`), not in the nav. TODO Ellice: a solicitor's once-over + registered address.
+- **Home Edit = four packages** (Ellice: too much choice): The Full Table £690 · The Daily Dinner £287.50 · The Half Week £276 · The
+  Prep Day £184. The Midweek Dinner and The Twice Weekly were removed from the site (the hosted package PDF still lists six — her Canva
+  file; replace `site/public/docs/the-home-edit-packages.pdf` when she updates it). The weekly budget hint now reads from £184 (The Prep
+  Day) to £690; the enquiry package select follows automatically.
+
 ### DEPLOYING THE CATERING SITE (Cloudflare Pages — Ellice does this once; ~10 minutes)
 1. Cloudflare dashboard (the **jill+quinton** account) → Workers & Pages → Create → Pages → **Connect to Git** → repo
    `ellicenweje1-ux/creatistecommand`, production branch **`main`**.

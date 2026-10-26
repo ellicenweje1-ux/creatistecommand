@@ -1,13 +1,23 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ABOUT, CHEF, GALLERY, HERO, KIND_WORDS, MISSION, NOW, PERSONAL_CHEF, PRIVATE_CATERING, PROCESS, LOADED_BAR, SETTINGS } from '../content/site.js'
-import SocialMirror from '../social.jsx'
+import { ABOUT, CONTACT, GALLERY, HERO, KIND_WORDS, MISSION, NOW, PERSONAL_CHEF, PRIVATE_CATERING, PROCESS, LOADED_BAR, SETTINGS } from '../content/site.js'
 import { Arrow, Button, Eyebrow, Flame, Frame, Heading, Reveal, Section, asset } from '../ui.jsx'
 
 function Hero() {
+  const slides = HERO.slides?.length ? HERO.slides : [{ src: HERO.photo, pos: '70% 30%' }]
+  const [i, setI] = useState(0)
+  useEffect(() => {
+    if (slides.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const t = setInterval(() => setI((n) => (n + 1) % slides.length), HERO.interval || 6000)
+    return () => clearInterval(t)
+  }, [slides.length])
   return (
-    <section className="hero-field grain relative flex min-h-[100svh] items-center overflow-hidden">
+    <section className="hero-field grain relative flex min-h-[100svh] items-center overflow-hidden" data-hero-slide={i}>
       <div className="absolute inset-0">
-        <img src={asset(HERO.photo)} alt="" className="h-full w-full object-cover object-[70%_30%] opacity-55" />
+        {slides.map((sl, n) => (
+          <img key={sl.src} src={asset(sl.src)} alt="" loading={n ? 'lazy' : 'eager'} style={{ objectPosition: sl.pos || '50% 50%' }}
+            className={`hero-slide absolute inset-0 h-full w-full object-cover ${n === i ? 'is-active' : ''}`} data-slide={n} />
+        ))}
         <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/75 to-ink/25" />
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-ink to-transparent" />
       </div>
@@ -27,6 +37,11 @@ function Hero() {
         <Reveal delay={3} className="mt-14 flex items-center gap-4 font-body text-[10px] uppercase tracking-eyebrow text-smoke sm:mt-20 sm:text-[11px]">
           <span className="h-px w-10 bg-gold/60" /> {HERO.strip}
         </Reveal>
+        {slides.length > 1 ? (
+          <div className="absolute bottom-8 right-5 flex gap-2 sm:right-8 lg:right-12" aria-hidden="true">
+            {slides.map((_, n) => <span key={n} className={`h-px transition-all duration-700 ${n === i ? 'w-8 bg-gold' : 'w-4 bg-ivory/30'}`} />)}
+          </div>
+        ) : null}
       </div>
     </section>
   )
@@ -137,40 +152,31 @@ function LoadedBarFeature() {
   )
 }
 
-function GalleryTeaser() {
-  const p = GALLERY.photos
+/* One highlights feature for the home page: a slow, continuous strip of photographs (the best of the
+   gallery and the Instagram feed), linking on to the gallery and Instagram. Replaces the separate gallery
+   grid, Instagram mirror and chef teaser that used to sit here. */
+function Highlights() {
+  const photos = GALLERY.photos.slice(0, 14)
+  const row = [...photos, ...photos] // doubled so the loop is seamless
   return (
-    <Section ground="ivory" id="gallery">
+    <Section ground="ivory" tight id="highlights" className="overflow-hidden">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div>
-          <Reveal><Eyebrow className="text-gold-deep">{GALLERY.eyebrow}</Eyebrow></Reveal>
+          <Reveal><Eyebrow className="text-gold-deep">Highlights</Eyebrow></Reveal>
           <Reveal delay={1}><Heading className="mt-5 max-w-xl">{GALLERY.title}</Heading></Reveal>
         </div>
-        <Reveal delay={2}><Link to="/the-gallery" className="inline-flex items-center gap-2 font-body text-[12px] uppercase tracking-wide text-ink/70 hover:text-gold-deep">The Gallery <Arrow /></Link></Reveal>
+        <Reveal delay={2} className="flex flex-wrap gap-6">
+          <Link to="/the-gallery" className="inline-flex items-center gap-2 font-body text-[12px] uppercase tracking-wide text-ink/70 hover:text-gold-deep">The Gallery <Arrow /></Link>
+          <a href={`https://instagram.com/${CONTACT.instagram}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 font-body text-[12px] uppercase tracking-wide text-ink/70 hover:text-gold-deep">@{CONTACT.instagram} <Arrow /></a>
+        </Reveal>
       </div>
-      <div className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-        <Reveal className="col-span-2 row-span-2"><Frame src={p[0]?.src} alt={p[0]?.alt} ratio="1/1" /></Reveal>
-        <Reveal delay={1}><Frame src={p[1]?.src} alt={p[1]?.alt} ratio="1/1" /></Reveal>
-        <Reveal delay={2}><Frame src={p[3]?.src} alt={p[3]?.alt} ratio="1/1" /></Reveal>
-        <Reveal delay={2}><Frame src={p[2]?.src} alt={p[2]?.alt} ratio="1/1" /></Reveal>
-        <Reveal delay={3}><Frame src={p[4]?.src} alt={p[4]?.alt} ratio="1/1" /></Reveal>
-      </div>
-    </Section>
-  )
-}
-
-function ChefTeaser() {
-  return (
-    <Section ground="ink" id="chef">
-      <div className="grid items-center gap-12 lg:grid-cols-12">
-        <Reveal className="lg:col-span-5"><Frame src={CHEF.photo} alt={CHEF.name} ratio="4/5" /></Reveal>
-        <div className="lg:col-span-6 lg:col-start-7">
-          <Reveal><Eyebrow>{CHEF.eyebrow}</Eyebrow></Reveal>
-          <Reveal delay={1}><p className="mt-5 font-display text-[26px] italic text-ivory/80">{CHEF.lead}</p></Reveal>
-          <Reveal delay={1}><Heading className="mt-2 uppercase tracking-[0.06em]">{CHEF.name}</Heading></Reveal>
-          <Reveal delay={2}><p className="mt-3 font-body text-[12px] uppercase tracking-eyebrow text-gold">{CHEF.role}</p></Reveal>
-          <Reveal delay={2}><p className="lede mt-8 max-w-lg text-ivory/75">{CHEF.story}</p></Reveal>
-          <Reveal delay={3}><Link to="/the-chef" className="mt-8 inline-flex items-center gap-2 font-body text-[12px] uppercase tracking-wide text-gold hover:text-gold-light">Profile & accreditations <Arrow /></Link></Reveal>
+      <div className="relative mt-10 -mx-5 sm:-mx-8 lg:-mx-12" data-highlights>
+        <div className="ticker ticker-slow items-stretch gap-3 px-3 sm:gap-4">
+          {row.map((p, n) => (
+            <Link key={`${p.src}-${n}`} to="/the-gallery" className="block w-[220px] shrink-0 sm:w-[280px]" aria-hidden={n >= photos.length ? 'true' : undefined} tabIndex={n >= photos.length ? -1 : undefined}>
+              <Frame src={p.src} alt={n >= photos.length ? '' : p.alt} ratio="4/5" />
+            </Link>
+          ))}
         </div>
       </div>
     </Section>
@@ -237,9 +243,7 @@ export default function Home() {
       <About />
       <Services />
       <LoadedBarFeature />
-      <GalleryTeaser />
-      <SocialMirror ground="linen" />
-      <ChefTeaser />
+      <Highlights />
       <Process />
       <KindWords />
       <EnquireBand />

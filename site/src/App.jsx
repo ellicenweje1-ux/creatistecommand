@@ -11,6 +11,7 @@ import Chef from './pages/Chef.jsx'
 import Gallery from './pages/Gallery.jsx'
 import Enquire from './pages/Enquire.jsx'
 import Portfolio from './pages/Portfolio.jsx'
+import { Privacy, Terms } from './pages/Legal.jsx'
 import CleanDream, { CleanDreamConfirmed } from './pages/CleanDream.jsx'
 import TableMenuPrint from './pages/TableMenu.jsx'
 import Menus from './pages/Menus.jsx'
@@ -21,7 +22,7 @@ const NAV = [
   { to: '/the-loaded-bar', label: 'The Loaded Bar' },
   { to: '/the-menus', label: 'The Menus' },
   { to: '/whats-up', label: 'What’s Up With Us?' },
-  { to: '/portfolio', label: 'Portfolio & Testimonials' },
+  { to: '/portfolio', label: 'Our Portfolio' },
   { to: '/the-gallery', label: 'The Gallery' },
   { to: '/the-chef', label: 'About the Chef' },
 ]
@@ -121,7 +122,7 @@ function Footer() {
         </div>
         <div className="mt-14 flex flex-col gap-3 border-t border-ink-3 pt-6 font-body text-[12px] text-smoke sm:flex-row sm:items-center sm:justify-between">
           <p>© {new Date().getFullYear()} The Creatiste Catering. All rights reserved.</p>
-          <p>{CONTACT.area}</p>
+          <p className="flex flex-wrap gap-x-5 gap-y-1" data-legal-links><Link to="/privacy" className="hover:text-gold">Privacy notice</Link><Link to="/terms" className="hover:text-gold">Terms</Link><span>{CONTACT.area}</span></p>
         </div>
       </div>
     </footer>
@@ -174,6 +175,8 @@ export default function App() {
           <Route path="/the-creatiste-table-menu" element={<TableMenuPrint />} />
           <Route path="/the-menus" element={<Menus />} />
           <Route path="/enquire" element={<Enquire />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/terms" element={<Terms />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

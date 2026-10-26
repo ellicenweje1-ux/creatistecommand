@@ -34,6 +34,16 @@ export const HERO = {
   sub: 'Providing culinary-crafted, flavour-forward, hearty meals tailored to your home, workload or your milestone moment.',
   strip: 'Personal Chef · Private Catering Services · Brand-led Pop-ups & Food Activations',
   photo: '/photos/serving-bowl.jpg',
+  /* The hero slideshow: highlight images that crossfade every few seconds. Order matters; the first is the poster. */
+  slides: [
+    { src: '/photos/serving-bowl.jpg', pos: '70% 30%' },
+    { src: '/photos/kasa-dinner.jpg', pos: '50% 40%' },
+    { src: '/photos/plated-steak.jpg', pos: '50% 50%' },
+    { src: '/photos/g4-buffet.jpg', pos: '50% 60%' },
+    { src: '/photos/clean-dream-boxes.jpg', pos: '50% 50%' },
+    { src: '/photos/canapes-terrazzo.jpg', pos: '50% 55%' },
+  ],
+  interval: 6000,
 }
 
 export const ABOUT = {
@@ -60,13 +70,13 @@ export const MISSION = {
 export const HOME_EDIT_PACKAGES = {
   rate: 23,
   docUrl: '/docs/the-home-edit-packages.pdf',
+  /* Four key packages (Ellice: fewer choices). The Midweek Dinner and The Twice Weekly were retired from the site;
+     anything in between is shaped at consultation. */
   items: [
     { n: '01', name: 'The Full Table', cover: 'Five days, breakfast, lunch & dinner', weekly: 690, hours: '30 hours a week, around 6 hours on site a day', body: 'Every meal handled, Monday to Friday. You never have to think about food.' },
     { n: '02', name: 'The Daily Dinner', cover: 'Five days, dinner', weekly: 287.5, hours: '12.5 hours a week, around 2.5 hours an evening', body: 'A fresh dinner every weekday evening, served hot or stored for later.' },
-    { n: '03', name: 'The Midweek Dinner', cover: 'Three days, dinner', weekly: 172.5, hours: '7.5 hours a week, around 2.5 hours an evening', body: 'Three fresh dinners spread across the week.' },
-    { n: '04', name: 'The Half Week', cover: 'Three days, lunch & dinner', weekly: 276, hours: '12 hours a week, around 4 hours on site a day', body: 'Lunch and dinner covered on three chosen days.' },
-    { n: '05', name: 'The Twice Weekly', cover: 'Two days, lunch & dinner', weekly: 184, hours: '8 hours a week, around 4 hours on site a day', body: 'Two full days of lunch and dinner each week.' },
-    { n: '06', name: 'The Prep Day', cover: 'One full day, five days of meals batch-prepped in house', weekly: 184, hours: 'One full day of around 8 hours', body: 'One full day in your kitchen preparing the week’s meals, fridge-ready and labelled, with that evening’s dinner served hot and fresh. The lowest cost per meal across all packages.' },
+    { n: '03', name: 'The Half Week', cover: 'Three days, lunch & dinner', weekly: 276, hours: '12 hours a week, around 4 hours on site a day', body: 'Lunch and dinner covered on three chosen days.' },
+    { n: '04', name: 'The Prep Day', cover: 'One full day, five days of meals batch-prepped in house', weekly: 184, hours: 'One full day of around 8 hours', body: 'One full day in your kitchen preparing the week’s meals, fridge-ready and labelled, with that evening’s dinner served hot and fresh. The lowest cost per meal across all packages.' },
   ],
   week: [
     ['Menu design', 'A fresh weekly menu curated around your tastes and dietary needs.'],
@@ -214,7 +224,7 @@ export const LOADED_BAR = {
   sub: 'Experience a live hot food station at your next event.',
   body: 'Customisable loaded bowls, endless combinations, and a premium catering experience.',
   from: '£19 per head',
-  photo: '/photos/loaded-bar.png', // the station itself, cut out on a transparent ground (glow removed)
+  photo: '/photos/loaded-bar.png', // the station exactly as Ellice supplied it (with its glow), placed on plain black
   included: {
     title: 'What’s included',
     intro: 'Bring the excitement of a live, chef-curated hot food station to your celebration. The Loaded Bar serves customisable loaded bowls so every guest can build something they love.',
@@ -500,4 +510,34 @@ export const ENQUIRE = {
 
 export const FOOTER = {
   tagline: 'A new-age personal chef & private catering service bridging the gap between busy lifestyles and hearty, flavourful home-cooked food, curated with premium, chef-level flair.',
+}
+
+/* Privacy notice and terms: linked from the footer only. Plain English, UK-oriented. TODO Ellice: have a
+   solicitor read these once before relying on them; add a registered business address if you have one. */
+export const LEGAL = {
+  updated: '26 October 2026',
+  privacy: {
+    title: 'Privacy notice',
+    intro: 'The Creatiste Catering is run by Ellice Nweje, based in Slough, England. This notice explains what we collect through this website and what we do with it.',
+    sections: [
+      ['What we collect', 'When you enquire, order from Clean Dream or leave a review, we collect what you type into the form: your name, email address, phone number, the details of your event or order (dates, guest numbers, venue, dietary needs and allergies) and any message you write. We also receive the usual technical information a browser sends, such as your IP address, which we use only to keep the forms free of spam.'],
+      ['How we use it', 'To reply to your enquiry, arrange a consultation and quote; to prepare, confirm and deliver your Clean Dream order; to label food correctly and keep you safe where you have told us about allergies; and to show your review on this site once you have left one and we have approved it. We do not sell your details or use them for advertising.'],
+      ['Where it is kept', 'Enquiries, orders and reviews are stored in The Creatiste Command, the booking system we run for the business, hosted in the cloud with Render. Confirmation emails are sent through Resend. This website is served by Cloudflare. Orders sent by WhatsApp are handled by WhatsApp under its own terms.'],
+      ['How long we keep it', 'Enquiries and orders are kept as part of our booking records for up to six years, as required for accounts and tax. Reviews stay on the site until you ask us to remove them. You can ask us to delete anything we hold about you at any time, subject to what we must keep by law.'],
+      ['Your rights', 'Under UK data protection law you can ask to see the information we hold about you, have it corrected or deleted, or object to how we use it. Email enquiries@thecreatistecatering.com and we will respond within one month. You can also complain to the Information Commissioner’s Office at ico.org.uk.'],
+      ['Cookies', 'This website sets no tracking cookies. If the Instagram feed is shown, Instagram may set its own cookies within that frame under Meta’s privacy policy.'],
+    ],
+  },
+  terms: {
+    title: 'Terms of service',
+    intro: 'The short version of how we work. A full quotation, once accepted, forms the contract for a catering booking; these terms cover everything else on this site.',
+    sections: [
+      ['Catering bookings', 'Every booking begins with a consultation. We then send a tailored quotation; nothing is confirmed until you have accepted it in writing and paid the booking fee it states. The Loaded Bar must be booked at least 14 days in advance and a 50% booking fee secures the date. Final guest numbers, dietary requirements and allergies must be confirmed by the date given on the quotation.'],
+      ['Clean Dream orders', 'Orders placed by 11:00am are made the same day, Monday to Friday; orders after 11:00am roll to the next weekday. Payment is by bank transfer using the details shown at checkout. Your order is confirmed only once we have sent a receipt of payment and the final collection or delivery details by WhatsApp. Delivery between the collection points is by request and charged separately at £0.65 per mile. Because every order is cooked fresh for you, an order cannot be cancelled or refunded after the 11:00am cut-off on its day.'],
+      ['Allergies and dietary needs', 'Tell us about every allergy and dietary requirement when you enquire or order, and again if anything changes. Our food is prepared in a kitchen that handles all fourteen major allergens, so we cannot guarantee any dish is entirely free of an allergen even where we have left it out. Every box and dish is labelled with the details you give us.'],
+      ['Cancellations and changes', 'Booking fees are non-refundable once paid, because they hold a date we then turn other work away from. Changes to a confirmed booking are by agreement and may change the price. If we have to cancel for reasons within our control, you will receive a full refund of everything paid.'],
+      ['Reviews', 'Reviews left on this site are read before they appear and may be declined or removed if they are abusive, misleading or not about our food or service. By leaving a review you let us show your first name, the event you mention and your words on this site.'],
+      ['This website', 'The photographs, menus and words on this site belong to The Creatiste Catering and may not be reused without permission. Prices shown in downloadable guides are indicative; a quotation is the final figure. These terms are governed by the law of England and Wales.'],
+    ],
+  },
 }
