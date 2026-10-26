@@ -3,6 +3,7 @@ import { HOME_EDIT_PACKAGES, LOADED_BAR, SETTINGS } from '../content/site.js'
 import { TableMenuCard } from './TableMenu.jsx'
 import { Arrow, Button, Eyebrow, Frame, Heading, Reveal, Section, asset } from '../ui.jsx'
 import { EnquireBand } from './Home.jsx'
+import BowlMenu from '../menu.jsx'
 
 /* Shared layout for the two umbrella pages: a dark hero, then each service as a
    full-width editorial block alternating ivory / linen, with an in-page index. */
@@ -67,6 +68,13 @@ export default function ServiceUmbrella({ u, lane }) {
                 <Frame src={s.photo} alt={s.name} ratio="4/5" className="lg:w-[86%]" caption={s.photo ? undefined : 'Photography to follow'} />
               </Reveal>
             </div>
+            {s.menuId ? (
+              <div className="mt-14 border-t border-sand pt-10">
+                <Reveal><p className="font-body text-[11px] uppercase tracking-eyebrow text-gold-deep">The {s.name} menu</p></Reveal>
+                <Reveal delay={1}><Heading size="md" className="mt-4">Served from The Loaded Bar.</Heading></Reveal>
+                <BowlMenu ids={[s.menuId]} ground={ground} className="mt-8" />
+              </div>
+            ) : null}
             {s.packages ? <Packages ground={ground} /> : null}
             {s.tableMenu ? (
               <div className="mt-16 grid gap-10 lg:grid-cols-12">

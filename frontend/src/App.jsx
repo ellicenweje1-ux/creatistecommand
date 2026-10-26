@@ -25,6 +25,7 @@ import Onboarding from './pages/Onboarding'
 import ResetPassword from './pages/ResetPassword'
 import Orders from './pages/Orders'
 import Preorders from './pages/Preorders'
+import Reviews from './pages/Reviews'
 import Packing from './pages/Packing'
 import PublicEnquiry from './pages/PublicEnquiry'
 import PublicInvoice from './pages/PublicInvoice'
@@ -75,6 +76,7 @@ const NAV_GROUPS = [
     label: 'Business',
     items: [
       { to: '/app/finance', icon: 'coins', label: 'Finance', min: 2, ownerOnly: true },
+      { to: '/app/reviews', icon: 'star', label: 'Reviews', min: 2 },
       { to: '/app/designs', icon: 'layout', label: 'Designs', min: 2 },
       { to: '/app/ideas', icon: 'bulb', label: 'My Brain' },
     ],
@@ -310,6 +312,7 @@ export default function App() {
         <Route path="packing" element={<Packing />} />
         <Route path="orders" element={<Orders />} />
         <Route path="preorders" element={<Preorders />} />
+        <Route path="reviews" element={<Reviews />} />
         <Route path="allergens" element={<Allergens />} />
         <Route path="suppliers" element={<Suppliers />} />
         <Route path="tasks" element={<Tasks />} />

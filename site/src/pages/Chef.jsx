@@ -37,7 +37,7 @@ export default function Chef() {
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <Reveal><Eyebrow className="text-gold-deep">Specialisms</Eyebrow></Reveal>
-            <Reveal delay={1}><Heading className="mt-5">What the kitchen does best.</Heading></Reveal>
+            <Reveal delay={1}><Heading className="mt-5">What we do best.</Heading></Reveal>
             <Reveal as="ul" delay={2} className="mt-8 flex flex-wrap gap-2">
               {CHEF.specialisms.map((s) => <li key={s} className="border border-sand px-4 py-2 font-body text-[12px] uppercase tracking-wide text-ink/80">{s}</li>)}
             </Reveal>

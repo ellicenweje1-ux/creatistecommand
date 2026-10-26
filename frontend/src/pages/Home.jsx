@@ -252,6 +252,21 @@ const GROUPS = [
         tip: 'After each event, add one line you’d want to know next year: “anniversary in June, loves lamb”.',
       },
       {
+        key: 'reviews', icon: 'star', label: 'Reviews', title: 'Reviews — testimonials from your website', to: '/app/reviews', min: 2,
+        blurb: 'Anyone can leave a star rating and a few words on your website; nothing shows until you approve it.',
+        benefits: [
+          'Social proof collected where clients already are: your own site',
+          'You approve every review before it appears, so the wall stays yours',
+          'Reviews you type in on a client’s card can be shown on the site too',
+        ],
+        how: [
+          'Point your website’s review form at your enquiry token (the same one as the enquiry form)',
+          'New reviews arrive here as “Awaiting approval” and by email',
+          'Approve, hide or delete; approved reviews appear on your site straight away',
+        ],
+        tip: 'Ask for the review the day after the event, while the dessert is still being talked about.',
+      },
+      {
         key: 'quotes', icon: 'doc', label: 'Quotes', title: 'Quotes — client approval links', to: '/app/finance', min: 3, ownerOnly: true, cta: 'Open Finance → Quotes',
         blurb: 'Build proper quotes and send a link your client approves from their phone — no login, no chasing.',
         benefits: [

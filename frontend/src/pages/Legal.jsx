@@ -413,6 +413,13 @@ export function Faq() {
           protection law. The details are in our <Link to="/privacy" className="text-copper">Privacy Policy</Link>.
         </p>
       </Section>
+      <Section heading="Can visitors leave reviews on my website?">
+        <p>
+          Yes. Add a review form to your own site (Pro and above) and reviews arrive in your Command inbox as
+          awaiting approval. Nothing shows publicly until you approve it, so the testimonial wall on your site
+          stays yours.
+        </p>
+      </Section>
       <Section heading="Can my customers order and pay on my own website?">
         <p>
           Yes. Pre-orders (Pro and above) lets a lunch service or a pop-up take orders on your own site, paid by card

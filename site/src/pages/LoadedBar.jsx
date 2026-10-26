@@ -1,6 +1,7 @@
 import { LOADED_BAR, SETTINGS } from '../content/site.js'
 import { Button, Eyebrow, Frame, Heading, Reveal, Section, asset } from '../ui.jsx'
 import { EnquireBand } from './Home.jsx'
+import BowlMenu from '../menu.jsx'
 
 export default function LoadedBar() {
   const L = LOADED_BAR
@@ -45,17 +46,10 @@ export default function LoadedBar() {
       <Section ground="ink">
         <div className="max-w-2xl">
           <Reveal><Eyebrow>{L.menu.title}</Eyebrow></Reveal>
-          <Reveal delay={1}><Heading className="mt-5">Every guest builds their own.</Heading></Reveal>
+          <Reveal delay={1}><Heading className="mt-5">Every guest builds their own.</Heading>
+          <p className="mt-5 font-body text-[14px] font-light text-ivory/70">One menu for corporate bookings, one for private occasions. Switch between them below.</p></Reveal>
         </div>
-        <div className="mt-10 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {L.menu.groups.map((g, i) => (
-            <Reveal key={g.name} delay={i % 3} className="border-t border-ink-3 pt-5">
-              <p className="font-display text-[22px]">{g.name} <span className="font-body text-[11px] uppercase tracking-wide text-gold">{g.pick}</span></p>
-              <ul className="mt-4 space-y-1.5">{g.items.map((it) => <li key={it} className="font-body text-[14px] font-light text-ivory/80">{it}</li>)}</ul>
-              {g.extra ? <p className="mt-3 font-body text-[12px] italic text-smoke">{g.extra}</p> : null}
-            </Reveal>
-          ))}
-        </div>
+        <BowlMenu ground="ink" className="mt-10" />
       </Section>
 
       <Section ground="linen">

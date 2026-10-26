@@ -60,6 +60,10 @@ def ensure_columns():
         "tasks": {"assignee_id": "INTEGER", "due_reminder_for": "VARCHAR(20) DEFAULT ''"},
         "bookings": {"menu_type": "VARCHAR(80) DEFAULT ''"},
         "supplier_prices": {"quantity": "FLOAT DEFAULT 0"},
+        "client_reviews": {
+            "source": "VARCHAR(16) DEFAULT 'chef'", "status": "VARCHAR(16) DEFAULT ''",
+            "reviewer_name": "VARCHAR(160) DEFAULT ''", "event_name": "VARCHAR(200) DEFAULT ''", "email": "VARCHAR(255) DEFAULT ''",
+        },
         "expenses": {"items": "JSON"},
         "onboarding_sessions": {
             "meeting_id": "VARCHAR(40) DEFAULT ''", "recording_url": "VARCHAR(500) DEFAULT ''",

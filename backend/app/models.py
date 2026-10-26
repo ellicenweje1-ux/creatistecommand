@@ -153,6 +153,13 @@ class ClientReview(OwnedMixin, Base):
     rating: Mapped[int] = mapped_column(Integer, default=5)  # 1..5
     comment: Mapped[str] = mapped_column(Text, default="")
     date: Mapped[str] = mapped_column(String(10), default="")
+    # Public reviews (left by anyone on the chef's own website) land here too, pending until the
+    # chef approves them. Chef-entered reviews stay private unless the chef chooses to show them.
+    source: Mapped[str] = mapped_column(String(16), default="chef")      # chef | public
+    status: Mapped[str] = mapped_column(String(16), default="")          # '' private | pending | approved | hidden
+    reviewer_name: Mapped[str] = mapped_column(String(160), default="")
+    event_name: Mapped[str] = mapped_column(String(200), default="")
+    email: Mapped[str] = mapped_column(String(255), default="")
 
 
 class Recipe(OwnedMixin, Base):

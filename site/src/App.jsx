@@ -21,7 +21,7 @@ const NAV = [
   { to: '/the-loaded-bar', label: 'The Loaded Bar' },
   { to: '/the-menus', label: 'The Menus' },
   { to: '/whats-up', label: 'What’s Up With Us?' },
-  { to: '/portfolio', label: 'Portfolio' },
+  { to: '/portfolio', label: 'Portfolio & Testimonials' },
   { to: '/the-gallery', label: 'The Gallery' },
   { to: '/the-chef', label: 'About the Chef' },
 ]
@@ -47,9 +47,9 @@ function Nav() {
         <Link to="/" className="flex items-center" aria-label="The Creatiste Catering, home">
           <img src={asset('/brand/lockup-dark.png')} alt="The Creatiste Catering" className="h-9 w-auto sm:h-10" />
         </Link>
-        <nav className="hidden flex-nowrap items-center gap-4 xl:flex" aria-label="Main">
+        <nav className="hidden flex-nowrap items-center gap-3 xl:flex 2xl:gap-4" aria-label="Main">
           {NAV.map((n) => (
-            <NavLink key={n.to} to={n.to} className={({ isActive }) => `whitespace-nowrap font-body text-[10.5px] uppercase tracking-[0.1em] transition-colors ${isActive ? 'text-gold' : 'text-ivory/80 hover:text-ivory'}`}>
+            <NavLink key={n.to} to={n.to} className={({ isActive }) => `whitespace-nowrap font-body text-[10px] uppercase tracking-[0.08em] transition-colors 2xl:text-[10.5px] 2xl:tracking-[0.1em] ${isActive ? 'text-gold' : 'text-ivory/80 hover:text-ivory'}`}>
               {n.label}
             </NavLink>
           ))}

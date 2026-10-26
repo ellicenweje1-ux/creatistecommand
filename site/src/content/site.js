@@ -85,10 +85,12 @@ export const HOME_EDIT_PACKAGES = {
 
 /* Recommended starting budgets shown on the enquiry form, by service and billing frequency.
    TODO Ellice: confirm these figures. Home Edit figures follow the lightest package (The Prep Day). */
+/* All budgets are weekly (Ellice: more standardised). The Home Edit figure is read from the packages
+   so it can never disagree with the package guide. */
 export const RECOMMENDED_BUDGET = {
-  'Batchfully Made': { Weekly: '£55 to £70 a week', Monthly: 'around £220 to £280 a month', 'Per visit': '£55 to £70 per batch' },
-  'The Home Edit': { Weekly: 'from £70 per visit', Monthly: 'around £280 to £360 a month', 'Per visit': 'from £70 per visit' },
-  // Sorted & Served: no figure yet; the form says we advise at consultation. TODO Ellice
+  'Batchfully Made': '£55 to £70 a week',
+  'The Home Edit': `from £${Math.min(...HOME_EDIT_PACKAGES.items.map((p) => p.weekly)).toLocaleString('en-GB')} a week for the lightest package (${HOME_EDIT_PACKAGES.items.reduce((a, b) => (a.weekly <= b.weekly ? a : b)).name}) to £${Math.max(...HOME_EDIT_PACKAGES.items.map((p) => p.weekly)).toLocaleString('en-GB')} for ${HOME_EDIT_PACKAGES.items.reduce((a, b) => (a.weekly >= b.weekly ? a : b)).name}`,
+  'Sorted & Served': 'from £46 per order (two hours of labour; you order the ingredients to us, we cook and deliver)',
 }
 
 export const PERSONAL_CHEF = {
@@ -116,7 +118,7 @@ export const PERSONAL_CHEF = {
       slug: 'the-home-edit',
       name: 'The Home Edit',
       strap: 'In-home personal chef service.',
-      body: 'In-house personal chef service where all meals are cooked and served fresh in the comfort of your home, covering breakfast, lunch, dinner and even the snacks in between, enough to fulfil your week and store what you need for later.',
+      body: 'In-house personal chef service where all meals are cooked and served fresh in the comfort of your home, covering breakfast, lunch, dinner and even the snacks in between, enough to fuel your day and perfectly store the rest to fulfil your week ahead.',
       includes: [
         'All-inclusive: planning, shopping, travel, cooking, packaging and cleaning',
         'Fresh meals served hot on the day, the rest packaged for the week ahead',
@@ -135,7 +137,7 @@ export const PERSONAL_CHEF = {
         'Labour-only pricing, you supply the ingredients',
         'Cooked, portioned into batch containers and delivered',
         'Ideal for regular weekly clients who like to do their own shop',
-        'The same chef-level standard, a simpler bill',
+        'The same chef-level standard, a simpler process',
       ],
       photo: '/photos/prep-labelled.jpg',
     },
@@ -161,7 +163,7 @@ export const PRIVATE_CATERING = {
       strap: 'Offices, launches and client-facing moments.',
       body: 'The CC Loaded Bar brought into your office, launch or client-facing moment, with menus tailored to the room and served hot and fresh, so your team stays fuelled and focused.',
       includes: ['Team lunches, launches and away days', 'Served live from The Loaded Bar', 'Dietary needs labelled and handled'],
-      menuNote: 'Menu offerings for corporate bookings to follow.', // TODO Ellice: corporate menu offerings
+      menuId: 'corporate',
       photo: '/photos/bowls-table.jpg',
     },
     {
@@ -170,7 +172,7 @@ export const PRIVATE_CATERING = {
       strap: 'Birthdays, anniversaries and intimate gatherings.',
       body: 'The CC Loaded Bar for birthdays, anniversaries and intimate gatherings, with food catered hot and served beautifully, so your guests remember the food when they think of your special day.',
       includes: ['Intimate gatherings in large homes and private spaces', 'Hot, served live, never a tray drop', 'Menus built around the occasion'],
-      menuNote: 'Menu offerings for private bookings to follow.', // TODO Ellice: private menu offerings
+      menuId: 'personal',
       photo: '/photos/buffet-ellice.jpg',
     },
     {
@@ -181,7 +183,7 @@ export const PRIVATE_CATERING = {
       includes: ['By special request only', 'A seasonal menu, priced per head', 'Courses tailored to dietary requirements and preferences', 'Tables from 5 guests to 12 max'],
       special: true,
       tableMenu: true,
-      photo: '/photos/duck-salad.jpg',
+      photo: '/photos/kasa-dinner.jpg',
     },
   ],
 }
@@ -211,8 +213,8 @@ export const LOADED_BAR = {
   title: 'The Loaded Bar',
   sub: 'Experience a live hot food station at your next event.',
   body: 'Customisable loaded bowls, endless combinations, and a premium catering experience.',
-  from: '£21 per head',
-  photo: '/photos/loaded-bar.png', // the station itself, cut out on a transparent ground
+  from: '£19 per head',
+  photo: '/photos/loaded-bar.png', // the station itself, cut out on a transparent ground (glow removed)
   included: {
     title: 'What’s included',
     intro: 'Bring the excitement of a live, chef-curated hot food station to your celebration. The Loaded Bar serves customisable loaded bowls so every guest can build something they love.',
@@ -226,14 +228,24 @@ export const LOADED_BAR = {
       ['Upgrades', 'personalised bowl branding, and cart branding tailored to your event.'],
     ],
   },
+  /* Two bowl menus from the brochure: one for corporate bookings, one for private. The Loaded Bar page
+     toggles between them; each Private Catering service shows its own. */
   menu: {
-    title: 'The bowl menu',
-    groups: [
-      { name: 'Base', pick: 'choose one', items: ['Seasoned rice', 'Sweet potato mash', 'Salad mix', 'Creamy mac & cheese (+£1.50 per head)', 'Herby coconut bulgur', 'Cubed roasted red potatoes', 'Tortilla nacho chips'], extra: 'Add one additional base: +£2.50 per head' },
-      { name: 'Protein', pick: 'choose two', items: ['Sweet chilli BBQ or suya chicken thigh', 'Pepper steak', 'Baked sweet chilli BBQ salmon bites', 'Asian marinated prawns', 'Roasted Mediterranean vegetables with grilled halloumi (V)', 'Honey harissa roasted chickpeas & sweet potato (VG)', 'Fried tofu bites (VG)'], extra: 'Add one additional protein: +£4 per head' },
-      { name: 'Toppings', pick: 'choose six', items: ['Crispy onions', 'Red onion', 'Sweetcorn', 'Cucumber', 'Tomato', 'Pickled pink slaw', 'Sliced jalapeños', 'Fresh coriander', 'Fresh parsley', 'Grated Padano cheese', 'Pomegranate', 'Crumbled feta (+£0.50 per head)', 'Smashed avocado (+£0.80 per head)'] },
-      { name: 'Sauce & seasoning', pick: 'choose three', items: ['Garlic white sauce', 'Sweet chilli BBQ', 'Hot honey', 'Balsamic glaze', 'Sriracha', 'Cholula hot sauce', 'Olive oil', 'Salt & pepper', 'Chilli flakes', 'Peri peri salt', 'Lemon wedges', 'Lime wedges'] },
-      { name: 'Side', pick: 'choose one', items: ['Pitta chips', 'Tortilla nacho chips', 'Fried plantain', 'Mini naan breads'] },
+    title: 'The bowl menus',
+    menus: [
+      { id: 'corporate', name: 'Corporate Curations', groups: [
+        { name: 'Base', pick: 'choose one', items: ['Seasoned rice', 'Sweet potato mash', 'Spring mix', 'Creamy mac & cheese (+£1.50 per head)', 'Roasted tomato & red pepper bulgur', 'Cubed roasted red potatoes'], extra: 'Add one additional base: +£2.50 per head' },
+        { name: 'Protein', pick: 'choose two', items: ['Sweet chilli chicken thigh', 'Stewed pepper steak', 'Baked teriyaki salmon bites', 'Blackened Cajun prawns', 'Roasted Med vegetables with grilled halloumi (V)', 'Honey harissa roasted chickpeas & sweet potato (VG)', 'Fried tofu bites (VG)'], extra: 'Add one additional protein: +£4 per head' },
+        { name: 'Toppings', pick: 'choose six', items: ['Crispy onions', 'Red onion', 'Sweetcorn', 'Cucumber', 'Tomato', 'Pickled pink slaw', 'Sliced jalapeños', 'Fresh coriander', 'Fresh parsley', 'Grated Padano cheese', 'Pomegranate', 'Crumbled feta (+£0.50 per head)', 'Smashed avocado (+£0.80 per head)'] },
+        { name: 'Sauce & seasoning', pick: 'choose three', items: ['Garlic white sauce', 'Sweet chilli BBQ', 'Hot honey', 'Balsamic glaze', 'Sriracha', 'Cholula hot sauce', 'Olive oil', 'Salt & pepper', 'Chilli flakes', 'Peri peri salt', 'Lemon wedges', 'Lime wedges'] },
+        { name: 'Side', pick: 'choose one', items: ['Pitta chips', 'Tortilla nacho chips', 'Mini naan breads'] },
+      ] },
+      { id: 'personal', name: 'Private & Personal', groups: [
+        { name: 'Base', pick: 'choose one', items: ['Steamed coconut rice', 'Jollof rice', 'Creamy mac & cheese (+£1.50 per head)', 'Cubed roasted sweet potatoes'], extra: 'Add one additional base: +£2.50 per head' },
+        { name: 'Protein', pick: 'choose two', items: ['Baked smothered chicken', 'Stewed pepper steak', 'Baked teriyaki salmon bites', 'Blackened Cajun prawns', 'Roasted Med vegetables with grilled halloumi (V)', 'Honey harissa roasted chickpeas & sweet potato (VG)', 'Fried tofu bites (VG)'], extra: 'Add one additional protein: +£4 per head' },
+        { name: 'Sides & toppings', pick: 'choose six', items: ['Steamed veg', 'Garlic sweetcorn cobs', 'Fried plantain', 'Pitta chips', 'Crispy onions', 'Red onion', 'Tomato & cucumber', 'Pickled pink slaw', 'Sliced jalapeños', 'Fresh coriander / parsley', 'Grated Padano cheese', 'Pomegranate'] },
+        { name: 'Sauce & seasoning', pick: 'choose three', items: ['Garlic white sauce', 'Sweet chilli BBQ', 'Hot honey', 'Sriracha', 'Cholula hot sauce', 'Salt & pepper', 'Chilli flakes', 'Lemon wedges', 'Lime wedges'] },
+      ] },
     ],
   },
   requirements: {
@@ -251,9 +263,9 @@ export const LOADED_BAR = {
 
 /* "What's up with Us?" What is happening in real time. Items with `live: false` do not render on the home strip. */
 export const NOW = {
-  eyebrow: 'Happening now',
+  eyebrow: 'Find out what’s happening now',
   title: 'What’s up with Us?',
-  intro: 'Lunch services, pop-ups and the occasional Creatiste-hosted event. This page changes, so check back or ask to be kept posted.',
+  intro: 'Lunch services, pop-ups and the occasional private hosted event. This page will be kept updated, so check back or ask to be kept posted.',
   items: [
     {
       live: true,
@@ -328,12 +340,12 @@ export const CLEAN_DREAM = {
 
 export const PROCESS = {
   eyebrow: 'How it works',
-  title: 'Consultation first. Always.',
+  title: 'Consultation first.',
   steps: [
     ['Tell us about your table', 'A short enquiry: who it’s for, when, and roughly what you have in mind.'],
-    ['A conversation', 'We reply personally, usually within one business day, and arrange a consultation to understand your tastes, needs and dates.'],
-    ['Your proposal', 'A tailored menu and a full quotation breakdown, written for you, not pulled from a price board.'],
-    ['The day itself', 'We shop, cook, serve and clear. You stay present.'],
+    ['A conversation', 'We reply personally, usually within one business day, and arrange a consultation to understand your tastes, requirements and budget.'],
+    ['Your proposal', 'A tailored breakdown, designed around your consultation, and amended until you are 100% happy to lock it in.'],
+    ['Delivery day', 'We prep, cook, serve and everything in between. You stay happy, and remain present.'],
   ],
 }
 
@@ -370,7 +382,7 @@ export const CHEF = {
   ],
   accreditations: [
     // TODO Ellice: add each certificate as { name, issuer, year, file: '/docs/….pdf' }
-    { name: 'CPD Level 2 Food Hygiene and Safety for Catering', issuer: 'CPD accredited', year: '' },
+    { name: 'Level 2 Food Hygiene and Safety for Catering', issuer: 'High Speed Training · issued 11 March 2025, renewal due March 2028', year: '2025', file: '/docs/level-2-food-hygiene-and-safety-for-catering.pdf' },
     { name: 'Allergen awareness', issuer: 'Issuer to confirm', year: '' },
     { name: 'Food hygiene rating', issuer: 'Local authority', year: '' },
   ],
@@ -380,26 +392,22 @@ export const PORTFOLIO = {
   eyebrow: 'Our portfolio',
   title: 'Who we’ve worked with',
   intro: 'A few of the tables, teams and rooms we’ve fed. More to come as the diary fills.',
-  clients: [
-    // TODO Ellice: a logo file in /photos/clients/ for any you have one for
-    { name: 'Alicia’s Charity Sports Day', kind: 'Corporate Curations · Official vendor', logo: '' },
-    { name: 'Ra’ees Bangura-Williams', kind: 'Batchfully Made · Professional footballer', logo: '' },
-    { name: '15 Under 30 × Kasa', kind: 'The Creatiste Table · Seated dinner', logo: '' },
-    { name: 'G4 Boys', kind: 'Private chef · International artists · May 2026', logo: '' },
-    { name: 'Indigo Kxd', kind: 'Personal chef · Producer & label owner', logo: '' },
-  ],
+  /* The chips at the top are built from `features` below and jump to each entry. Each entry can carry a
+     `logo` (the person or business, a photo or logo file in /photos/clients/) shown beside the name. */
   /* Selected work. Each entry: the photo of the person or booking sits beside its highlight header
      (`kind`), with the name and the details of the event below. */
   features: [
-    { kind: 'Corporate Curations', title: 'Alicia’s Charity Sports Day', meta: 'Official vendor · Live food station · In advocation for Sickle Cell Disease', photo: '/photos/serving-bowl.jpg', // TODO Ellice: swap for a photo from the day if you have one
+    { kind: 'Corporate Curations', title: 'Forte Network', meta: 'Autumn Apex Fitness Event 2025 · Live food station', photo: '/photos/serving-bowl.jpg', logo: '',
+      body: 'Cooking for Forte Network at the Autumn Apex Fitness Event 2025: bowls built to order and served hot from The Loaded Bar, fuelling a full day of training and talks.' },
+    { kind: 'Corporate Curations', title: 'Alicia’s Charity Sports Day', meta: 'Official vendor · Live food station · In advocation for Sickle Cell Disease', photo: '/photos/loaded-bar.png', fit: 'contain', logo: '', // TODO Ellice: a photo from the day, or Alicia's logo
       body: 'The official vendor for Alicia’s Charity Sports Day, held in advocation for Sickle Cell Disease. We brought our live food station concept to the day: bowls built to order and served hot from The Loaded Bar, keeping players and supporters fed from first whistle to last.' },
-    { kind: 'The Creatiste Table', title: '15 Under 30 × Kasa', meta: 'Seated dinner collaboration', photo: '/photos/kasa-dinner.jpg',
+    { kind: 'The Creatiste Table', title: '15 Under 30 × Kasa', meta: 'Seated dinner collaboration', photo: '/photos/kasa-dinner.jpg', logo: '',
       body: 'A four-stage set menu, served sharing style: marinated olives and glazed sausage bites on arrival, burrata and roasted aubergine dip with rosemary focaccia, spiced fruit braised duck on butter bean orzo, and a cardamom and orange tiramisu to finish.' },
-    { kind: 'Private & Personal', title: 'G4 Boys', meta: 'Private chef · International artists · May 2026', photo: '/photos/g4-buffet.jpg',
+    { kind: 'Private & Personal', title: 'G4 Boys', meta: 'Private chef · International artists · May 2026', photo: '/photos/g4-buffet.jpg', logo: '',
       body: 'A private chef booking for international artists on a London stay: a full spread cooked in-house and set out against the skyline, with every course on the table before the room sat down.' },
-    { kind: 'Batchfully Made', title: 'Ra’ees Bangura-Williams', meta: 'Personal chef service · Professional footballer', photo: '/photos/batch-black-spread.jpg',
+    { kind: 'Batchfully Made', title: 'Ra’ees Bangura-Williams', meta: 'Personal chef service · Professional footballer', photo: '/photos/batch-black-spread.jpg', logo: '',
       body: 'Batchfully Made personal chef service for a professional footballer: proteins, sides and vegetables batch-cooked in 32oz and 58oz containers around his training week, delivered chilled, labelled and ready to plate.' },
-    { kind: 'Personal Chef', title: 'Indigo Kxd', meta: 'Producer & label owner', photo: '/photos/batch-lidded.jpg',
+    { kind: 'Personal Chef', title: 'Indigo Kxd', meta: 'Producer & label owner', photo: '/photos/batch-lidded.jpg', logo: '',
       body: 'A personal chef service for a producer and label owner with a packed studio diary: the week batch-cooked, portioned and labelled so the food keeps pace with the schedule.' },
   ],
 }
@@ -459,8 +467,8 @@ export const MENUS_PAGE = {
   title: 'Every menu, in one place.',
   intro: 'The brochures and menus from across the site, tidy and ready to download.',
   items: [
-    { title: 'The Loaded Bar', kind: 'Brochure', body: 'What’s included, the bowl menu, requirements and terms for the live hot food station.', file: '/docs/the-loaded-bar.pdf', to: '/the-loaded-bar' },
-    { title: 'The Creatiste Table', kind: 'Seasonal menu', body: 'The current set menu, £43 per head. Travel fee and staffing may be charged, subject to final consultation.', file: '/docs/the-creatiste-table-menu.pdf', to: '/private-catering#the-creatiste-table' },
+    { title: 'The Loaded Bar', kind: 'Brochure', body: 'What’s included, the corporate and private bowl menus, requirements and terms for the live hot food station.', file: '/docs/the-loaded-bar.pdf', to: '/the-loaded-bar' },
+    { title: 'The Creatiste Table', kind: 'Seasonal menu', body: 'The current set menu, from £43* per head. *Subject to final consultation. Travel fee and staffing may be charged.', file: '/docs/the-creatiste-table-menu.pdf', to: '/private-catering#the-creatiste-table' },
     { title: 'Batchfully Made', kind: 'Price list', body: 'Proteins, pastas, sides, vegetables and sauces, individually priced in 32oz and 58oz containers. Not on the menu? Ask and we’ll add it.', file: '/docs/batchfully-made-price-list.pdf', to: '/personal-chef#batchfully-made' },
     { title: 'The Home Edit', kind: 'Package options', body: 'Six packages for the in-home personal chef service, how each week looks, and the pricing basis.', file: '/docs/the-home-edit-packages.pdf', to: '/personal-chef#the-home-edit' },
     { title: 'Clean Dream', kind: 'Lunch menu', body: 'Build your own bowl: bases, proteins, toppings and extras for the weekday lunch service.', file: '/docs/clean-dream-menu.pdf', to: '/clean-dream' },
@@ -469,7 +477,7 @@ export const MENUS_PAGE = {
 }
 
 export const KIND_WORDS = {
-  eyebrow: 'Kind words',
+  eyebrow: 'Client testimonials',
   title: 'What clients remember',
   quotes: [
     { text: 'They listened to dietary needs without compromising joy on the plate. Guests are still texting about dessert.', who: 'Host, milestone celebration' },

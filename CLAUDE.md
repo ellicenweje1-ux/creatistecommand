@@ -374,6 +374,61 @@ All built + verified (Playwright **70/70**, `scratchpad/verify_v5.py`; build cle
 - **Still TODO from Ellice:** a Sports Day photo, Sorted & Served budget, corporate/private menu offerings, certificates,
   Instagram post links or a widget URL, catering Stripe keys (when she wants card payment), go-ahead to deploy + merge.
 
+### Follow-on (same 28th-wave session — fifth batch: brochure menus with a toggle, bank-free wording, REVIEWS (new Command feature), weekly budgets, certificate; THEN DEPLOY)
+All built + verified (backend TestClient **23/23** `scratchpad/test_reviews.py`; Playwright **83/83** `scratchpad/verify_v6.py`
+incl. the live review flow site → Command → site; both builds clean). Ellice: "lets deploy after this last batch and then do a full
+site review" → **merged to `main`** (Command: Pre-orders + Reviews, both additive/inert) and the Cloudflare Pages steps given.
+- **REVIEWS = new generic Command feature (Pro+).** Extends the existing `ClientReview` model (per-client reviews on the Clients page)
+  with additive `client_reviews` columns `source` (chef|public), `status` ('' private | pending | approved | hidden), `reviewer_name`,
+  `event_name`, `email` (model + `ensure_columns`, ONE table key). New `routers/reviews.py`: public `POST /api/public/review/{token}`
+  (the chef's enquiry token; honeypot `company`; per-IP cap shared with the enquiry limits, counted only once a submission validates;
+  rating 1–5, name + comment required; creates/matches a Client by email with tag `review`; lands `pending`; emails the chef) and
+  `GET /api/public/reviews/{token}` (approved only, safe fields: id/rating/comment/date/reviewer_name/event_name/created_at); chef
+  `GET /api/reviews` (+client_name), `PATCH /api/reviews/{id}` {status}, `DELETE`. Chef-entered reviews default to '' (private) and can
+  be shown on the site with one tap. **Command UI:** new **Reviews** page (`/app/reviews`, Business nav after Finance, `star` icon) with
+  three lanes (Awaiting approval / Showing on your site / Private & hidden), Approve · Hide · Show on site · Delete, live-average badge.
+  FAQ (rule #3): Support FAQ "Can visitors leave reviews on my website?", public `/faq` Q&A, Home guide bubble `reviews`.
+  **Migration drilled** as a fresh-process boot on an existing table missing the 5 columns.
+- **Site "Leave us a review"** (`Portfolio.jsx ReviewForm`, under Client testimonials): 5 clickable stars, name, email (never shown),
+  what we cooked for, date, review, honeypot → Command for approval (mailto fallback without a token). Approved reviews are fetched
+  from Command and shown FIRST in the testimonials grid with stars, name · event · month, then the static `KIND_WORDS.quotes`.
+  Google reviews can be plugged in beside this later (her note).
+- **The Loaded Bar:** the NEW 5-page brochure (`site/public/docs/the-loaded-bar.pdf`, from £19) carries two bowl menus →
+  `LOADED_BAR.menu.menus` (corporate / personal, transcribed from pages 4–5) + new shared **`site/src/menu.jsx BowlMenu`**: a
+  **Corporate ↔ Private & Personal toggle** on the Loaded Bar page, and each Private Catering service (`menuId`) shows its own menu
+  under its section (the "menu offerings to follow" notes are gone). **Station image: glow removed** (bright semi-transparent pixels
+  of her cut-out zeroed; `loaded-bar.png` re-cut) on a **plain black** `.frame-contain`.
+- **Copy:** PROCESS → "Consultation first." (no Always); step 2 "tastes, requirements and budget"; step 3 "A tailored breakdown,
+  designed around your consultation, and amended until you are 100% happy to lock it in."; step 4 "Delivery day · We prep, cook,
+  serve and everything in between. You stay happy, and remain present."; "Kind words" → **"Client testimonials"**; Home Edit "enough
+  to fuel your day and perfectly store the rest to fulfil your week ahead."; Sorted & Served last bullet "a simpler process"; The
+  Creatiste Table service photo = the seated Kasa dinner; Menus card "from £43* per head. *Subject to final consultation."; What's Up
+  eyebrow "Find out what’s happening now" + "the occasional private hosted event. This page will be kept updated"; chef heading "What we
+  do best."; nav **"Portfolio & Testimonials"** (desktop nav tightened to 10px/0.08em below 2xl so 8 items still fit one line at 1280).
+- **Portfolio:** chips at the top are now built from the entries and **jump (smooth-scroll) to each**; every entry has a `logo` slot
+  (the person/business photo or logo beside the name; an initial-letter badge until she supplies them, TODO Ellice); **Forte Network ·
+  Autumn Apex Fitness Event 2025** added (the live-station photo was theirs); Alicia now shows the station image.
+- **Budgets are WEEKLY only** (`RECOMMENDED_BUDGET` is a string per service; the frequency select is gone; payload sends "<figure> per
+  week"): Batchfully Made £55 to £70 a week; **The Home Edit is derived from the packages** (from £172.5 a week for The Midweek Dinner to
+  £690 for The Full Table — her point that it isn't £70/week); Sorted & Served from £46 per order (two hours' labour, client orders the
+  ingredients to her, she delivers).
+- **Certificate hosted:** `site/public/docs/level-2-food-hygiene-and-safety-for-catering.pdf` (High Speed Training, issued 11 Mar 2025,
+  renewal Mar 2028) linked from the accreditations list ("View").
+- **Still TODO from Ellice:** logos/photos of the people for each portfolio entry, more quotes, Instagram widget URL or post links,
+  catering Stripe keys (card payment), Cloudflare Pages deploy (steps below), then the full site review.
+
+### DEPLOYING THE CATERING SITE (Cloudflare Pages — Ellice does this once; ~10 minutes)
+1. Cloudflare dashboard (the **jill+quinton** account) → Workers & Pages → Create → Pages → **Connect to Git** → repo
+   `ellicenweje1-ux/creatistecommand`, production branch **`main`**.
+2. Build settings: framework **None**; **build command** `cd site && npm ci && npm run build`; **build output directory** `site/dist`;
+   root directory `/` (leave). Environment variables (Production): **`VITE_API_BASE`** = `https://creatistecommand.onrender.com`,
+   **`VITE_ENQUIRY_TOKEN`** = her enquiry token (Command → Settings → App & integrations → the last part of the public enquiry link, or
+   shown on the Pre-orders page), `NODE_VERSION` = `20`.
+3. Deploy, then **Custom domains → add `thecreatistecatering.com`** (+ `www`): Cloudflare adds the CNAME itself (it's the same account).
+   Enquiries land in her Pipeline, reviews under Reviews, Clean Dream orders arrive on WhatsApp.
+4. Every later merge to `main` redeploys the site automatically (Render redeploys Command from the same push).
+   NB a SPA fallback is built in on Pages (`/enquire` reloads work); no `VITE_ROUTER=hash` needed there.
+
 ## Latest session (2026-07-13, twenty-seventh wave — worked-example cards on every module, from the aunt-trial feedback)
 - Branch `claude/claude-md-status-rollout-bjd18z` — **merge to `main` to deploy.** Context from Ellice's first
   real onboarding trial (her aunt, comped account): Jitsi was hard for the client (she manually made a Zoom),
