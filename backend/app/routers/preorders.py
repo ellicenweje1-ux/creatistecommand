@@ -36,7 +36,7 @@ DEFAULT_OFFER = {
     "title": "Clean Dream",
     "intro": "Clean, whole-food lunch bowls, cooked fresh and served hot.",
     "currency": "GBP",
-    "cutoff": "11:00",
+    "cutoff": "10:00",
     "days": [0, 1, 2, 3, 4],
     "days_ahead": 5,
     "items": [
@@ -90,7 +90,7 @@ def offer_for(user: User) -> dict:
 def open_dates(offer: dict, now: datetime | None = None) -> list[dict]:
     """The next bookable days, in the business's local time, honouring the order cut-off."""
     now = now or datetime.now(_tz())
-    hh, mm = (offer.get("cutoff") or "11:00").split(":")
+    hh, mm = (offer.get("cutoff") or "10:00").split(":")
     cutoff = now.replace(hour=int(hh), minute=int(mm), second=0, microsecond=0)
     days = set(offer.get("days") or [0, 1, 2, 3, 4])
     out, d = [], now.date()
@@ -153,7 +153,7 @@ def price_box(offer: dict, box: dict) -> dict:
         if picked:
             choices[g["id"]] = picked
             summary.append(f"{g['label']}: {', '.join(picked)}")
-    return {"item": item["name"], "for": label, "summary": "; ".join(summary), "choices": choices,
+    return {"item": item["name"], "item_id": item["id"], "for": label, "summary": "; ".join(summary), "choices": choices,
             "note": (box.get("note") or "").strip()[:200], "price": round(price, 2)}
 
 
@@ -289,18 +289,9 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
     return {"ok": True}
 
 
-@public_router.post("/{token}", status_code=201)
-def place_order(request: Request, token: str, payload: dict = Body(...), db: Session = Depends(get_db)):
-    owner = _owner(token, db)
-    ip = ratelimit.client_ip(request)
-    if ratelimit.count(f"preorder:{ip}", 600) >= 8:
-        raise HTTPException(429, "A few orders have come from here already. Please wait a little while.")
-    ratelimit.record(f"preorder:{ip}", 600)
-    if (payload.get("company") or "").strip():  # honeypot
-        return {"ok": True, "public_id": secrets.token_hex(8), "status": "pending_payment", "url": ""}
-    if not payments_enabled():
-        raise HTTPException(503, "Online payment isn't switched on yet. Order by WhatsApp or email instead.")
-
+def build_order(owner: User, payload: dict) -> PreOrder:
+    """Validate a public order payload against the chef's offer and build the (unsaved) PreOrder.
+    Shared by the card path (Stripe Checkout) and the bank-transfer path."""
     offer = offer_for(owner)
     name = (payload.get("name") or "").strip()[:160]
     email = (payload.get("email") or "").strip().lower()
@@ -334,16 +325,63 @@ def place_order(request: Request, token: str, payload: dict = Body(...), db: Ses
         raise HTTPException(422, "Add at least one box (and at most twenty)")
     boxes = [price_box(offer, b) for b in boxes_in]
     subtotal = round(sum(b["price"] for b in boxes), 2)
-
-    order = PreOrder(
+    return PreOrder(
         user_id=owner.id, public_id=secrets.token_hex(10), offer_slug=offer.get("slug") or "", offer_title=offer.get("title") or "",
         status="pending_payment", customer_name=name, email=email, phone=phone,
         allergies=(payload.get("allergies") or "").strip()[:1000], for_date=date, fulfilment=fulfilment,
         slot_id=slot_id, slot_label=slot_label, delivery_address=address, note=(payload.get("note") or "").strip()[:1000],
         boxes=boxes, subtotal=subtotal, currency=offer.get("currency") or "GBP",
     )
+
+
+@public_router.post("/{token}/bank", status_code=201)
+def place_bank_order(request: Request, token: str, payload: dict = Body(...), db: Session = Depends(get_db)):
+    """An order paid by bank transfer: recorded as awaiting payment so it shows on the chef's Pre-orders page
+    (and in the customer's account), confirmed when the chef marks it paid. Works with no Stripe key at all."""
+    owner = _owner(token, db)
+    ip = ratelimit.client_ip(request)
+    if ratelimit.count(f"preorder:{ip}", 600) >= 8:
+        raise HTTPException(429, "A few orders have come from here already. Please wait a little while.")
+    ratelimit.record(f"preorder:{ip}", 600)
+    if (payload.get("company") or "").strip():  # honeypot
+        return {"ok": True, "public_id": secrets.token_hex(8), "status": "pending_payment"}
+    order = build_order(owner, payload)
+    order.pay_method = "bank"
+    db.add(order)
+    db.commit()
+    lines = "\n".join(f"- {b['for']}: {b['item']} ({b['summary']}) £{b['price']:.2f}" for b in order.boxes)
+    where = order.delivery_address if order.fulfilment == "delivery" else order.slot_label
+    mailer.send_email(
+        owner.email, f"{order.offer_title}: bank-transfer order from {order.customer_name} for {order.for_date} (awaiting payment)",
+        f"{order.customer_name} · {order.phone} · {order.email}\nFor {order.for_date} · {where}\n\n{lines}\n\nTotal £{order.subtotal:.2f}\n"
+        f"{('Allergies: ' + order.allergies) if order.allergies else ''}\n{('Note: ' + order.note) if order.note else ''}\n\n"
+        f"Once the transfer lands, mark it paid under Pre-orders in The Creatiste Command (that confirms the booking and emails the customer).",
+    )
+    mailer.send_email(
+        order.email, f"Your {order.offer_title} order for {order.for_date} (awaiting your bank transfer)",
+        f"Hi {order.customer_name},\n\nThank you for your order for {order.for_date}.\n\n{lines}\n\nTotal £{order.subtotal:.2f}\n{where}\n\n"
+        f"Please send the bank transfer with your name as the reference. Your order is confirmed once we have sent a receipt of payment "
+        f"and the final collection or delivery details by WhatsApp.",
+    )
+    return {"ok": True, "public_id": order.public_id, "status": order.status, "total": order.subtotal}
+
+
+@public_router.post("/{token}", status_code=201)
+def place_order(request: Request, token: str, payload: dict = Body(...), db: Session = Depends(get_db)):
+    owner = _owner(token, db)
+    ip = ratelimit.client_ip(request)
+    if ratelimit.count(f"preorder:{ip}", 600) >= 8:
+        raise HTTPException(429, "A few orders have come from here already. Please wait a little while.")
+    ratelimit.record(f"preorder:{ip}", 600)
+    if (payload.get("company") or "").strip():  # honeypot
+        return {"ok": True, "public_id": secrets.token_hex(8), "status": "pending_payment", "url": ""}
+    if not payments_enabled():
+        raise HTTPException(503, "Online payment isn't switched on yet. Order by WhatsApp or email instead.")
+
+    order = build_order(owner, payload)
     db.add(order)
     db.flush()
+    boxes, subtotal, offer = order.boxes, order.subtotal, offer_for(owner)
 
     return_url = (payload.get("return_url") or "").strip()
     if not return_url.startswith(("http://", "https://")):
@@ -357,7 +395,7 @@ def place_order(request: Request, token: str, payload: dict = Body(...), db: Ses
         "quantity": 1,
     } for b in boxes]
     session = stripe.checkout.Session.create(
-        mode="payment", line_items=line_items, customer_email=email,
+        mode="payment", line_items=line_items, customer_email=order.email,
         success_url=f"{return_url}/clean-dream/confirmed?order={order.public_id}&session_id={{CHECKOUT_SESSION_ID}}",
         cancel_url=f"{return_url}/clean-dream?cancelled={order.public_id}",
         metadata={"preorder_id": str(order.id), "public_id": order.public_id},
@@ -378,7 +416,7 @@ def list_orders(from_date: str = "", to_date: str = "", db: Session = Depends(ge
     if to_date:
         q = q.filter(PreOrder.for_date <= to_date[:10])
     rows = q.order_by(PreOrder.for_date.asc(), PreOrder.created_at.asc()).all()
-    return [{**_summary(o), "id": o.id, "phone": o.phone, "email": o.email, "allergies": o.allergies, "note": o.note,
+    return [{**_summary(o), "id": o.id, "pay_method": o.pay_method or "stripe", "phone": o.phone, "email": o.email, "allergies": o.allergies, "note": o.note,
              "paid_at": o.paid_at.isoformat() if o.paid_at else None, "booking_id": o.booking_id,
              "boxes": [{**b} for b in o.boxes or []]} for o in rows]
 
@@ -391,6 +429,12 @@ def update_order(order_id: int, payload: dict = Body(...), db: Session = Depends
     status = payload.get("status")
     if status not in ("paid", "collected", "cancelled", "refunded"):
         raise HTTPException(422, "Unknown status")
+    if order.status == "pending_payment" and status == "paid":
+        if order.pay_method != "bank":
+            raise HTTPException(422, "This order hasn't been paid")
+        mark_paid(db, order, payment_intent="bank-transfer")  # confirms the booking + emails, idempotent
+        db.commit()
+        return _summary(order)
     if order.status == "pending_payment" and status != "cancelled":
         raise HTTPException(422, "This order hasn't been paid")
     order.status = status

@@ -91,6 +91,26 @@ const EXAMPLES = {
     ],
   },
 
+  diary: {
+    title: 'A week with your time blocked out',
+    blurb: 'Bookings show with their time window; your own entries sit beside them. This is what a standing service looks like:',
+    item: (
+      <MockItem
+        title="Clean Dream lunch service"
+        badges={<Badge tone="amber">Limited</Badge>}
+        metas={[
+          <Meta key="d" icon="clock">Mon to Fri · 09:00 – 14:00 · weekly</Meta>,
+          <Meta key="p" icon="calendar">Prep day before each confirmed event</Meta>,
+        ]}
+        note="Your website shows this day as limited (a slot may still fit), never the title."
+      />
+    ),
+    tips: [
+      'Give every booking a start and end time, then a second job on the same day is an honest yes or no.',
+      'Block a holiday with an end date and the whole run shows as full on your site.',
+      'Turn “show on my website” on under the rules once the week looks right.',
+    ],
+  },
   clients: {
     title: 'A client worth remembering',
     blurb: 'Your relationship book — preferences, allergies and history, so every repeat booking starts ahead:',

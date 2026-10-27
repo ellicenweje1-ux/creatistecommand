@@ -420,6 +420,20 @@ export function Faq() {
           stays yours.
         </p>
       </Section>
+      <Section heading="Can my website show which dates I have free?">
+        <p>
+          Yes. The Diary gives you a Monday-to-Sunday week with every booking’s time window, your standing
+          services, prep days and days off. Your own website can show that as a live availability calendar,
+          only ever as open, limited or full per day, so enquiries arrive for dates you can actually take.
+        </p>
+      </Section>
+      <Section heading="Can my customers have an account on my website?">
+        <p>
+          Yes. Visitors sign in with a code sent to their email (no passwords to forget) and see their own
+          enquiries, orders and reviews, with their details remembered for next time. On your side they are
+          simply clients, as before.
+        </p>
+      </Section>
       <Section heading="Can my customers order and pay on my own website?">
         <p>
           Yes. Pre-orders (Pro and above) lets a lunch service or a pop-up take orders on your own site, paid by card

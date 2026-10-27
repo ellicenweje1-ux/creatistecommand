@@ -73,11 +73,11 @@ function About() {
   return (
     <Section ground="ivory" id="about">
       <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
-        <div className="lg:col-span-6">
+        <div className="lg:col-span-8 lg:col-start-3">
           <Reveal><Eyebrow>{ABOUT.eyebrow}</Eyebrow></Reveal>
           <Reveal delay={1}><Heading className="mt-5">{ABOUT.title}</Heading></Reveal>
           <Reveal delay={2}><p className="mt-3 font-display text-[22px] italic text-gold-deep sm:text-[26px]">{ABOUT.tagline}</p></Reveal>
-          <Reveal delay={2}><p className="lede mt-8 max-w-lg text-ink/80">{ABOUT.body}</p></Reveal>
+          <Reveal delay={2}><p className="lede mt-8 max-w-2xl text-ink/80">{ABOUT.body}</p></Reveal>
           <dl className="mt-10 divide-y divide-sand border-y border-sand">
             {ABOUT.pillars.map((p, i) => (
               <Reveal key={p.k} as="div" delay={i} className="grid gap-2 py-5 sm:grid-cols-[140px_1fr]">
@@ -86,10 +86,6 @@ function About() {
               </Reveal>
             ))}
           </dl>
-        </div>
-        <div className="relative lg:col-span-6">
-          <Reveal className="ml-auto w-[82%]"><Frame src={ABOUT.photos[0]} alt="Ellice at a buffet spread" ratio="4/5" /></Reveal>
-          <Reveal delay={2} className="absolute -bottom-10 left-0 w-[46%] shadow-2xl"><Frame src={ABOUT.photos[1]} alt="Jollof rice, puff puff and salad" ratio="4/5" /></Reveal>
         </div>
       </div>
     </Section>
@@ -153,7 +149,7 @@ function LoadedBarFeature() {
 }
 
 /* One highlights feature for the home page: a slow, continuous strip of photographs (the best of the
-   gallery and the Instagram feed), linking on to the gallery and Instagram. Replaces the separate gallery
+   gallery and the Instagram feed), linking on to the gallery (now part of Our Portfolio) and Instagram. Replaces the separate gallery
    grid, Instagram mirror and chef teaser that used to sit here. */
 function Highlights() {
   const photos = GALLERY.photos.slice(0, 14)
@@ -166,14 +162,14 @@ function Highlights() {
           <Reveal delay={1}><Heading className="mt-5 max-w-xl">{GALLERY.title}</Heading></Reveal>
         </div>
         <Reveal delay={2} className="flex flex-wrap gap-6">
-          <Link to="/the-gallery" className="inline-flex items-center gap-2 font-body text-[12px] uppercase tracking-wide text-ink/70 hover:text-gold-deep">The Gallery <Arrow /></Link>
+          <Link to="/portfolio#gallery" className="inline-flex items-center gap-2 font-body text-[12px] uppercase tracking-wide text-ink/70 hover:text-gold-deep">The Gallery <Arrow /></Link>
           <a href={`https://instagram.com/${CONTACT.instagram}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 font-body text-[12px] uppercase tracking-wide text-ink/70 hover:text-gold-deep">@{CONTACT.instagram} <Arrow /></a>
         </Reveal>
       </div>
       <div className="relative mt-10 -mx-5 sm:-mx-8 lg:-mx-12" data-highlights>
         <div className="ticker ticker-slow items-stretch gap-3 px-3 sm:gap-4">
           {row.map((p, n) => (
-            <Link key={`${p.src}-${n}`} to="/the-gallery" className="block w-[220px] shrink-0 sm:w-[280px]" aria-hidden={n >= photos.length ? 'true' : undefined} tabIndex={n >= photos.length ? -1 : undefined}>
+            <Link key={`${p.src}-${n}`} to="/portfolio#gallery" className="block w-[220px] shrink-0 sm:w-[280px]" aria-hidden={n >= photos.length ? 'true' : undefined} tabIndex={n >= photos.length ? -1 : undefined}>
               <Frame src={p.src} alt={n >= photos.length ? '' : p.alt} ratio="4/5" />
             </Link>
           ))}

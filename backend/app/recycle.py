@@ -16,7 +16,7 @@ from . import config
 from .auth import require_active
 from .database import get_db
 from .models import (
-    Appointment, Client, DeletedItem, Design, Idea, InventoryItem, Menu, OnlineOrder,
+    Appointment, Client, DeletedItem, Design, DiaryBlock, Idea, InventoryItem, Menu, OnlineOrder,
     PackingList, Recipe, RoutePlan, ShoppingList, Supplier, SupplierPrice, Task,
 )
 from .utils import entity_label, to_dict, ws_id
@@ -26,13 +26,14 @@ log = logging.getLogger("recycle")
 # Everything built on the crud_router factory — i.e. every item a chef can delete + restore.
 RECOVERABLE = [
     Recipe, Menu, InventoryItem, Client, Idea, Design, OnlineOrder, ShoppingList,
-    Task, RoutePlan, Appointment, PackingList, Supplier, SupplierPrice,
+    Task, RoutePlan, Appointment, PackingList, Supplier, SupplierPrice, DiaryBlock,
 ]
 REGISTRY = {m.__tablename__: m for m in RECOVERABLE}
 
 # Friendly type names for the "Recently deleted" list.
 FRIENDLY = {
     Recipe.__tablename__: "Recipe",
+    DiaryBlock.__tablename__: "Diary entry",
     Menu.__tablename__: "Menu",
     InventoryItem.__tablename__: "Inventory item",
     Client.__tablename__: "Client",

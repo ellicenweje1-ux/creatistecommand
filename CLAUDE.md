@@ -439,6 +439,59 @@ All built + verified (Playwright **52/52** `scratchpad/verify_v7.py`; build clea
   file; replace `site/public/docs/the-home-edit-packages.pdf` when she updates it). The weekly budget hint now reads from £184 (The Prep
   Day) to £690; the enquiry package select follows automatically.
 
+### Follow-on (same 28th-wave session — seventh batch: gallery into Portfolio, 10am cut-off, DIARY + live availability calendar, CUSTOMER ACCOUNTS, bank-transfer pre-orders, FAQ, live chat, terms)
+All built + verified (backend TestClient **64/64** `scratchpad/test_batch7.py` + `test_preorders.py` 36/36 + `test_reviews.py` 23/23; Playwright
+**100/100** `scratchpad/verify_v8.py` incl. the live site↔Command flows below; both builds clean), branch pushed and **merged to `main`**; preview artifact
+Version 8. Two NEW generic Command features (Diary, customer accounts) + one extension (bank-transfer pre-orders), all additive/inert for other chefs.
+- **Site quick fixes:** The Gallery page is gone, the masonry + lightbox + Instagram mirror now live on **Our Portfolio** under `#gallery` (jump chips for The
+  Gallery + Testimonials; `/the-gallery` and `/gallery` redirect to `/portfolio#gallery`; Highlights strip links there). The home About photo collage is
+  removed (text column centred). **Loaded Bar hero is plain `bg-black`** (`data-loaded-bar-hero`) so the station image merges. **Clean Dream cut-off is 10:00**
+  everywhere: site content/NOW/how/terms, `CleanDream.jsx` fallback, Command `DEFAULT_OFFER` + fallback in `preorders.py`, the Home guide tip. ⚠️ Her printed
+  Clean Dream PDF menu (`site/public/docs/clean-dream-menu.pdf`) still says 11am; she has to re-export it from Canva. **WhatsApp float is now a "Live chat"
+  pill** (`data-live-chat`: green dot, "Quick queries · faster replies", prefilled greeting). **FAQ** = `FAQ` in content (13 Q&As) rendered as a
+  details/summary accordion on the **Enquire page under `#faq`** (no new page; footer "FAQs" link → `/enquire#faq`). **Terms "Bookings and payment"**: full
+  payment for all personal chef services; private catering 50% deposit, balance by the quotation date; bookings at least 14 days ahead, inside 14 days = full
+  payment at booking (mirrored in the FAQ).
+- **DIARY (Command, all plans; `backend/app/routers/diary.py`, `frontend/src/pages/Diary.jsx`, Operations nav after Bookings, `clock` icon).** New
+  **`diary_blocks`** table (`create_all`; crud at `/api/diary/blocks`, recoverable from the recycle bin): kind busy | standing (weekly, `weekdays` list,
+  optional `until`) | prep | off (optional `end_date` for a holiday run), time window or all day. Additive **`users.diary_rules` JSON** {max_per_day 1,
+  prep_days 1, public true, horizon_days 90} via `GET/PUT /api/diary/rules`. **`GET /api/diary/days?from_date&to_date`** computes each day: bookings
+  quoted/confirmed/in_prep count (enquiries don't); ≥ max → **full**; a day-off block → full; an event under the cap, a prep day (auto, `prep_days` before
+  each confirmed/in_prep event, or a manual prep block), or any timed/standing block → **limited**; else **open** (+ `why`, bookings with time windows, blocks,
+  `prep_for`). **Public `GET /api/public/availability/{enquiry_token}`** returns only `{date, state}` from today to the horizon (empty when `public` is off).
+  UI: Mon–Sun week (`[data-week] [data-day][data-state]`), "+ Block time" / "+ Booking" (opens `BookingForm` with the date), block modal (kind, title,
+  date/until, times, weekly repeat + weekday chips), an **8-week table "as your website sees them"**, and the rules card with the "Show my availability on my
+  website" toggle. NB `ui.jsx Card` now forwards `...rest` (data-attrs) — it silently dropped them before. **Site:** `site/src/availability.jsx` →
+  **live calendar on What's Up With Us (`#availability`)**: 3 month grids, open (gold outline, links to `/enquire?date=`), limited (tinted), full
+  (struck through), legend; a dashed placeholder when there's no API or the diary is hidden. Enquire reads `?date=` into the lane's date field.
+- **CUSTOMER ACCOUNTS (Command + site; `backend/app/routers/customers.py`, `site/src/account.js`, `site/src/pages/Account.jsx` at `/account`).** New
+  **`site_customers`** table. Public, keyed by the enquiry token: `POST …/customer/{token}/login` {email, name?} emails a **six-digit code** (hashed with
+  SECRET_KEY, 15 min, 5 tries, per-IP cap 6/10 min, honeypot `company`, **503 when email isn't configured**); `POST …/verify` → a 90-day customer JWT
+  (`typ: customer`, bound to the chef); `GET/PATCH …/me` → profile + **enquiries** (bookings of Clients with that email, pre-order bookings excluded) +
+  **pre-orders** (by email, boxes incl. `item_id`/`choices`) + **reviews** (by email, status). Verify links/creates nothing itself: clients come from the
+  existing enquiry/order/review flows; `PATCH me` also updates the linked Client's name/phone. Site: "Sign in" / "My account · Name" link (desktop nav,
+  mobile sheet, footer; `data-account-link`), the account dashboard (details, orders with **"Order this again"**, enquiries, reviews, sign out), and
+  `prefill()` fills the blanks on Enquire, Clean Dream checkout and the review form. Re-order parks the boxes in `sessionStorage` → `/clean-dream?reorder=1`
+  rebuilds + re-prices them against the current menu and opens checkout. Ticketing for future events: not built (needs a ticket product first; the account is
+  the natural home when it comes).
+- **Bank-transfer pre-orders now land in Command.** `preorders.py`: `place_order` split into **`build_order()`** (shared validation/pricing) + Stripe; new
+  **`POST /api/public/preorder/{token}/bank`** records the order `pending_payment` with additive **`preorders.pay_method='bank'`** (migration key
+  `"preorders"`), emails chef + customer "awaiting payment"; `PATCH /api/preorders/{id}` `{status:'paid'}` on a bank order calls `mark_paid` (day booking +
+  client + emails, idempotent). `price_box` now stores `item_id`. **Pre-orders page**: bank orders always show ("Awaiting bank transfer" + **Mark paid**),
+  card attempts stay behind "Show unpaid attempts". **Site:** the "I’ve paid, send my order" button first POSTs the order to `/bank` (when Command is
+  reachable), then opens WhatsApp as before; a `data-handoff` panel says it's logged and offers the WhatsApp link again. ⚠️ **Regression caught by the old
+  suite**: the refactor left `customer_email=email` in the Stripe path → fixed to `order.email` (`test_preorders.py` 36/36 again).
+- **FAQ (rule #3):** Support FAQ "How does the Diary work…", "Can my customers sign in on my website?", "What is a bank-transfer pre-order?"; public `/faq`
+  "Can my website show which dates I have free?" + "Can my customers have an account…"; Home guide bubble `diary` + `examples.jsx` `diary` card; site FAQ
+  "Can I see which dates you have free?" / "Do I need an account?"; privacy notice "Your account" section.
+- **Verification notes:** Command e2e app (`scratchpad/app_e2e.py`) now sets `RESEND_API_KEY=re_test_fake` and captures `mailer._deliver` to
+  `scratchpad/mail.jsonl` (sign-in codes read from there) + a `POST /__e2e/payments/off|on` toggle so the bank path can be driven with Stripe stubbed.
+  Harness lessons: CSS-uppercased badges again (`.lower()`); the seeded demo chef already has Saturday events, so pick clean dates; repeated runs must
+  delete their own bookings or `max_per_day` tests drift.
+- **Still TODO from Ellice:** re-export the Clean Dream printed menu at 10am; set `VITE_API_BASE` + `VITE_ENQUIRY_TOKEN` on Cloudflare Pages (the diary
+  calendar, accounts and bank-order logging all need them); switch "Show my availability on my website" on under Diary once her week looks right;
+  photos/logos for the portfolio entries; Instagram widget URL; catering Stripe keys when she wants card payment.
+
 ### DEPLOYING THE CATERING SITE (Cloudflare Pages — Ellice does this once; ~10 minutes)
 1. Cloudflare dashboard (the **jill+quinton** account) → Workers & Pages → Create → Pages → **Connect to Git** → repo
    `ellicenweje1-ux/creatistecommand`, production branch **`main`**.

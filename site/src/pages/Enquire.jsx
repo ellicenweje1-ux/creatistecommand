@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { CONTACT, ENQUIRE, HOME_EDIT_PACKAGES, HOURS, LOADED_BAR, PERSONAL_CHEF, PRIVATE_CATERING, RECOMMENDED_BUDGET, SETTINGS, TABLE_MENU } from '../content/site.js'
+import { CONTACT, ENQUIRE, HOME_EDIT_PACKAGES, HOURS, LOADED_BAR, PERSONAL_CHEF, PRIVATE_CATERING, RECOMMENDED_BUDGET, SETTINGS, TABLE_MENU, FAQ } from '../content/site.js'
 import { Arrow, Button, Eyebrow, Heading, Reveal, Section } from '../ui.jsx'
+import { prefill } from '../account.js'
 
 /* ── Questions per lane ─────────────────────────────────────────────────────
    Each field: { k, label, type: text|email|tel|date|time|number|select|radio|textarea|check, options?, req?, half?, hint? } */
@@ -139,8 +140,10 @@ export default function Enquire() {
     const all = [...PERSONAL_CHEF.services, ...PRIVATE_CATERING.services]
     const found = all.find((s) => s.slug === svc)
     const name = found ? found.name : svc === 'the-loaded-bar' ? 'The Loaded Bar for another occasion' : ''
-    setAnswers((prev) => ({ ...prev, ...(name ? { service: name } : {}) }))
+    const date = params.get('date') || ''
+    setAnswers((prev) => ({ ...prev, ...(name ? { service: name } : {}), ...(date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? { date } : {}) }))
   }, [params])
+  useEffect(() => { prefill(setContact) }, []) // a signed-in visitor's details, only the blanks
 
   const formRef = useRef(null)
   const jump = useRef(false)
@@ -281,7 +284,37 @@ export default function Enquire() {
           </div>
         </div>
       </Section>
+      <FaqSection />
     </>
+  )
+}
+
+/* The FAQ, kept on this page (under #faq) rather than a page of its own. Native details/summary so it
+   works without any script and reads well on a phone. */
+function FaqSection() {
+  return (
+    <Section ground="linen" id="faq" className="scroll-mt-20">
+      <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+        <div className="lg:col-span-4">
+          <Reveal><Eyebrow className="text-gold-deep">{FAQ.eyebrow}</Eyebrow></Reveal>
+          <Reveal delay={1}><Heading className="mt-5">{FAQ.title}</Heading></Reveal>
+          <Reveal delay={2}><p className="lede mt-6 text-ink/75">{FAQ.intro}</p></Reveal>
+        </div>
+        <div className="lg:col-span-8">
+          <div className="divide-y divide-sand border-y border-sand" data-faq>
+            {FAQ.items.map((it, i) => (
+              <Reveal key={it.q} as="details" delay={i % 3} className="group py-5">
+                <summary className="flex cursor-pointer list-none items-start justify-between gap-6 font-display text-[19px] leading-snug text-ink sm:text-[22px] [&::-webkit-details-marker]:hidden">
+                  <span>{it.q}</span>
+                  <span aria-hidden="true" className="mt-1 shrink-0 font-body text-[18px] text-gold-deep transition-transform group-open:rotate-45">+</span>
+                </summary>
+                <p className="mt-4 max-w-2xl font-body text-[15px] font-light leading-relaxed text-ink/75">{it.a}</p>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </div>
+    </Section>
   )
 }
 

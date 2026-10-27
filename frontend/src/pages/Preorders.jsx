@@ -8,6 +8,7 @@ import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Spinner, Tex
    day, so this page is the box-by-box view: who, which slot, what's in each named box. */
 const TONES = { paid: 'green', collected: 'gray', cancelled: 'red', refunded: 'amber', pending_payment: 'amber' }
 const LABELS = { paid: 'Paid', collected: 'Collected', cancelled: 'Cancelled', refunded: 'Refunded', pending_payment: 'Awaiting payment' }
+const label = (o) => (o.status === 'pending_payment' && o.pay_method === 'bank' ? 'Awaiting bank transfer' : LABELS[o.status] || o.status)
 
 export default function Preorders() {
   const [orders, setOrders] = useState(null)
@@ -26,7 +27,8 @@ export default function Preorders() {
   useEffect(() => { load() }, [from]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const groups = useMemo(() => {
-    const vis = (orders || []).filter((o) => showPending || o.status !== 'pending_payment')
+    // Bank-transfer orders are real orders waiting for the money to land, so they always show; card attempts that never paid are hidden unless asked for.
+    const vis = (orders || []).filter((o) => showPending || o.status !== 'pending_payment' || o.pay_method === 'bank')
     const by = {}
     vis.forEach((o) => { (by[o.date] ||= []).push(o) })
     return Object.entries(by).sort(([a], [b]) => a.localeCompare(b))
@@ -48,7 +50,7 @@ export default function Preorders() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Pre-orders" subtitle="Orders placed and paid on your own site, box by box, ready for labelling." />
+      <PageHeader title="Pre-orders" sub="Orders placed on your own site, box by box, ready for labelling. Bank-transfer orders wait here until you mark them paid." />
 
       <Card className="p-4">
         <div className="flex flex-wrap items-end gap-4">
@@ -63,7 +65,7 @@ export default function Preorders() {
       </Card>
 
       {groups.length === 0 ? (
-        <EmptyState icon="cart" title="No orders yet" body={offer.payments === 'stripe' ? 'Paid orders from your site will appear here, grouped by day.' : 'Online payment isn’t switched on yet. Set PREORDER_STRIPE_SECRET_KEY (your business Stripe account) and the order page starts taking card payments. Until then your site sends orders by WhatsApp or email.'} />
+        <EmptyState icon="cart" title="No orders yet" hint={offer.payments === 'stripe' ? 'Orders from your site will appear here, grouped by day.' : 'Orders from your site appear here grouped by day. Bank-transfer orders arrive as “awaiting bank transfer”: mark each paid once the money lands and it becomes a confirmed booking. Set PREORDER_STRIPE_SECRET_KEY (your business Stripe account) to take card payments as well.'} />
       ) : groups.map(([date, rows]) => (
         <Card key={date} className="p-0">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
@@ -81,7 +83,8 @@ export default function Preorders() {
                     {o.note ? <p className="mt-1 text-sm text-fg/60">Note: {o.note}</p> : null}
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge tone={TONES[o.status] || 'gray'}>{LABELS[o.status] || o.status}</Badge>
+                    <Badge tone={TONES[o.status] || 'gray'}>{label(o)}</Badge>
+                    {o.status === 'pending_payment' && o.pay_method === 'bank' ? <Button size="sm" onClick={() => setStatus(o, 'paid')} data-mark-paid>Mark paid</Button> : null}
                     {o.status === 'paid' ? <Button size="sm" variant="ghost" onClick={() => setStatus(o, 'collected')}>Mark collected</Button> : null}
                     {o.status !== 'cancelled' && o.status !== 'refunded' ? <Button size="sm" variant="ghost" onClick={() => setStatus(o, 'cancelled')}>Cancel</Button> : null}
                   </div>

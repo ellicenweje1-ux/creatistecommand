@@ -184,7 +184,7 @@ const GROUPS = [
           'Point your site at your enquiry token so the order page reads the offer',
           'Switch card payment on with your own business Stripe key; until then the site takes orders by WhatsApp or email',
         ],
-        tip: 'Keep the cut-off honest. Orders in by 11am, made the same day, is a promise your prep list can keep.',
+        tip: 'Keep the cut-off honest. Orders in by 10am, made the same day, is a promise your prep list can keep.',
       },
       {
         key: 'orders', icon: 'truck', label: 'Orders', title: 'Orders — deliveries & tracking', to: '/app/orders', min: 2,
@@ -236,6 +236,21 @@ const GROUPS = [
   {
     label: 'Grow the business',
     modules: [
+      {
+        key: 'diary', icon: 'clock', label: 'Diary', title: 'Diary — your week, and what your website shows as free', to: '/app/diary',
+        blurb: 'Monday to Sunday with every booking’s time window, your standing services, prep days and days off, feeding a live availability calendar on your own site.',
+        benefits: [
+          'See at a glance where a second job still fits on a day that already has one',
+          'Prep days are kept automatically before each confirmed event',
+          'Your website shows open, limited or full per day, never the detail, so enquiries land on dates you can take',
+        ],
+        how: [
+          'Give bookings a start and end time so the day shows what’s really committed',
+          'Block a standing weekly service, a prep day or a holiday with “Block time”',
+          'Set how many events a day can hold and how many prep days each event needs, then switch “show on my website” on',
+        ],
+        tip: 'A Sunday drop-off with two prep days keeps Friday and Saturday as limited, so nobody books your cooking days out from under you.',
+      },
       {
         key: 'clients', icon: 'users', label: 'Clients', title: 'Clients — your portfolio', to: '/app/clients', min: 2,
         blurb: 'Everyone you’ve cooked for — preferences, dietaries, booking history and reviews.',

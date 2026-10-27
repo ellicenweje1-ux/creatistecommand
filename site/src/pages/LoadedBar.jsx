@@ -7,7 +7,7 @@ export default function LoadedBar() {
   const L = LOADED_BAR
   return (
     <>
-      <section className="hero-field grain relative pt-40 pb-20 sm:pb-28">
+      <section className="relative bg-black pt-40 pb-20 sm:pb-28" data-loaded-bar-hero>
         <div className="mx-auto grid w-full max-w-page items-end gap-12 px-5 sm:px-8 lg:grid-cols-12 lg:px-12">
           <div className="lg:col-span-7">
             <Reveal><Eyebrow>{L.eyebrow}</Eyebrow></Reveal>

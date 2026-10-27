@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { CLEAN_DREAM, CONTACT, SETTINGS } from '../content/site.js'
 import { Arrow, Button, Eyebrow, Heading, Reveal, Section, asset } from '../ui.jsx'
+import { REORDER_KEY, getCustomer, prefill } from '../account.js'
 
 const money = (n) => `£${Number(n || 0).toFixed(2)}`
 const API = SETTINGS.apiBase && SETTINGS.enquiryToken ? `${SETTINGS.apiBase}/api/public/preorder` : ''
@@ -12,7 +13,7 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 function openDates(menu) {
   const now = new Date()
   const ldn = new Date(now.toLocaleString('en-GB', { timeZone: 'Europe/London' }).replace(/(\d+)\/(\d+)\/(\d+), (.*)/, '$3-$2-$1T$4'))
-  const [hh, mm] = (menu.cutoff || '11:00').split(':').map(Number)
+  const [hh, mm] = (menu.cutoff || '10:00').split(':').map(Number)
   const after = ldn.getHours() > hh || (ldn.getHours() === hh && ldn.getMinutes() >= mm)
   const d = new Date(ldn.getFullYear(), ldn.getMonth(), ldn.getDate() + (after ? 1 : 0))
   const out = []
@@ -151,6 +152,30 @@ export default function CleanDream() {
   useEffect(() => {
     setF((p) => ({ ...p, date: dates[0]?.date || '', slot_id: menu.slots?.[0]?.id || '' }))
   }, [menu, dates])
+  useEffect(() => { prefill(setF) }, []) // a signed-in visitor's name, email and phone
+  // "Order this again" from the account page: rebuild the previous boxes against the current menu (re-priced).
+  useEffect(() => {
+    if (!params.get('reorder')) return
+    let saved = null
+    try { saved = JSON.parse(sessionStorage.getItem(REORDER_KEY) || 'null'); sessionStorage.removeItem(REORDER_KEY) } catch {}
+    if (!saved?.boxes?.length) return
+    const rebuilt = saved.boxes.map((b) => {
+      const item = menu.items.find((i) => i.id === b.item_id) || menu.items.find((i) => i.name === b.item)
+      if (!item) return null
+      const choices = {}
+      for (const g of item.groups || []) {
+        const names = new Set((g.options || []).map((o) => o.name))
+        const picked = (b.choices?.[g.id] || []).filter((n) => names.has(n))
+        if (picked.length) choices[g.id] = picked
+      }
+      return { id: Math.random().toString(36).slice(2), item_id: item.id, item: item.name, for: b.for || '', choices, note: b.note || '', price: priceBox(item, choices), summary: summarise(item, choices) }
+    }).filter(Boolean)
+    if (!rebuilt.length) return
+    setBoxes(rebuilt)
+    setF((p) => ({ ...p, fulfilment: saved.fulfilment === 'delivery' ? 'delivery' : 'collection', delivery_address: saved.delivery_address || p.delivery_address, allergies: saved.allergies || p.allergies }))
+    setStage('checkout')
+    setTimeout(() => checkoutRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300)
+  }, [menu]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!API) return
     fetch(`${API}/${SETTINGS.enquiryToken}`).then((r) => (r.ok ? r.json() : Promise.reject(r))).then((d) => {
@@ -173,9 +198,20 @@ export default function CleanDream() {
     e.preventDefault()
     if (!ready) return
     if (!API || !payments) {
+      // Bank transfer (or no payment set up): log the order with us first so it is on our list and in your
+      // account, then hand the same order to WhatsApp (or email) for you to send.
+      setState({ status: 'sending', error: '' })
+      let logged = false
+      if (API && showBank) {
+        try {
+          const r = await fetch(`${API}/${SETTINGS.enquiryToken}/bank`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...f, boxes: boxes.map((b) => ({ item_id: b.item_id, for: b.for, choices: b.choices, note: b.note })) }) })
+          logged = r.ok
+        } catch { logged = false }
+      }
       const text = encodeURIComponent(waText())
-      window.location.href = CONTACT.whatsapp ? `https://wa.me/${CONTACT.whatsapp}?text=${text}` : `mailto:${CONTACT.email}?subject=${encodeURIComponent('Clean Dream order')}&body=${text}`
-      setState({ status: 'handoff', error: '' })
+      const href = CONTACT.whatsapp ? `https://wa.me/${CONTACT.whatsapp}?text=${text}` : `mailto:${CONTACT.email}?subject=${encodeURIComponent('Clean Dream order')}&body=${text}`
+      setState({ status: 'handoff', error: '', logged, href })
+      window.location.href = href
       return
     }
     setState({ status: 'sending', error: '' })
@@ -341,12 +377,18 @@ export default function CleanDream() {
                         <p className="mt-4 font-body text-[12px] leading-relaxed text-ink/70">{CLEAN_DREAM.confirm}</p>
                       </div>
                     )}
-                    <Button type="submit" variant={showBank ? 'gold' : 'ghost-ink'} disabled={!ready} className="mt-4 w-full disabled:cursor-not-allowed disabled:opacity-40">
-                      {showBank ? 'I’ve paid, send my order' : CONTACT.whatsapp ? 'Send order on WhatsApp' : 'Send order by email'} <Arrow />
+                    <Button type="submit" variant={showBank ? 'gold' : 'ghost-ink'} disabled={!ready || state.status === 'sending'} className="mt-4 w-full disabled:cursor-not-allowed disabled:opacity-40">
+                      {state.status === 'sending' ? 'Logging your order…' : showBank ? 'I’ve paid, send my order' : CONTACT.whatsapp ? 'Send order on WhatsApp' : 'Send order by email'} <Arrow />
                     </Button>
                     <p className="mt-3 font-body text-[12px] text-stone">{CONTACT.whatsapp ? 'Your order opens in WhatsApp for you to send. ' : 'Your order opens in your email app for you to send. '}{CLEAN_DREAM.confirm}</p>
                   </>
                 )}
+                {state.status === 'handoff' ? (
+                  <div className="mt-5 border border-gold bg-linen p-5 font-body text-[13px] leading-relaxed text-ink/80" data-handoff>
+                    {state.logged ? <p>Your order is logged with us{getCustomer() ? ' and saved in your account' : ''}. </p> : null}
+                    <p>{CONTACT.whatsapp ? 'WhatsApp should have opened with your order ready to send.' : 'Your email app should have opened with your order ready to send.'} If it didn’t, <a href={state.href} className="link-under text-gold-deep">open it here</a>.</p>
+                  </div>
+                ) : null}
                 <button type="button" onClick={() => setStage('build')} className="mt-4 font-body text-[11px] uppercase tracking-wide text-stone hover:text-ink">Back to the basket</button>
               </div>
             </div>

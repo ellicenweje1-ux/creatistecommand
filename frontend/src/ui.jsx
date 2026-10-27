@@ -113,9 +113,9 @@ export function IconButton({ icon, label, className = '', size = 16, type = 'but
 }
 
 /* ---------------------------------- layout --------------------------------- */
-export function Card({ title, action, children, className = '', pad = true }) {
+export function Card({ title, action, children, className = '', pad = true, ...rest }) {
   return (
-    <section className={cls('rounded-xl border border-line bg-card shadow-card', className)}>
+    <section className={cls('rounded-xl border border-line bg-card shadow-card', className)} {...rest}>
       {(title || action) && (
         <header className="flex items-center justify-between gap-3 border-b border-line/70 px-4 py-3">
           <h3 className="font-display text-[15px] font-semibold">{title}</h3>

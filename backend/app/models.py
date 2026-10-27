@@ -94,6 +94,7 @@ class User(Base):
     examples_hidden: Mapped[list] = mapped_column(JSON, default=list)
     # The chef's public pre-order offer (menu, slots, delivery policy) — see routers/preorders.py.
     preorder_offer: Mapped[dict] = mapped_column(JSON, default=dict)
+    diary_rules: Mapped[dict] = mapped_column(JSON, default=dict)  # {max_per_day, prep_days, public, horizon_days}
     admin_notes: Mapped[str] = mapped_column(Text, default="")
     # Password reset: a short-lived token emailed to the user (see routers/auth_router.py)
     reset_token: Mapped[str] = mapped_column(String(64), default="")
@@ -232,6 +233,38 @@ class Booking(OwnedMixin, Base):
     dietary_notes: Mapped[str] = mapped_column(Text, default="")
     setup_notes: Mapped[str] = mapped_column(Text, default="")
     notes: Mapped[str] = mapped_column(Text, default="")
+
+
+class DiaryBlock(OwnedMixin, Base):
+    """A chef's own diary entry that isn't a booking: time already committed (a standing lunch service,
+    a prep day, a day off). Drives the public availability calendar on the chef's website together with
+    the bookings themselves. `repeat` = '' (one date) or 'weekly' (every listed weekday until `until`)."""
+    __tablename__ = "diary_blocks"
+    title: Mapped[str] = mapped_column(String(160), default="")
+    kind: Mapped[str] = mapped_column(String(16), default="busy")      # busy | prep | off | standing
+    date: Mapped[str] = mapped_column(String(10), default="", index=True)
+    end_date: Mapped[str] = mapped_column(String(10), default="")      # optional: a run of days (holiday)
+    start_time: Mapped[str] = mapped_column(String(5), default="")     # blank = all day
+    end_time: Mapped[str] = mapped_column(String(5), default="")
+    repeat: Mapped[str] = mapped_column(String(10), default="")        # '' | weekly
+    weekdays: Mapped[list] = mapped_column(JSON, default=list)         # [0..6], Monday = 0, for weekly repeats
+    until: Mapped[str] = mapped_column(String(10), default="")         # last date a weekly repeat applies
+    booking_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+
+class SiteCustomer(OwnedMixin, Base):
+    """A visitor's account on the chef's own website (sign in by emailed code). Links by email to the
+    Client record, the enquiries, the pre-orders and the reviews that visitor has sent in."""
+    __tablename__ = "site_customers"
+    email: Mapped[str] = mapped_column(String(255), index=True)
+    name: Mapped[str] = mapped_column(String(160), default="")
+    phone: Mapped[str] = mapped_column(String(40), default="")
+    client_id: Mapped[int] = mapped_column(Integer, nullable=True)
+    login_code_hash: Mapped[str] = mapped_column(String(128), default="")
+    login_code_expires: Mapped[datetime] = mapped_column(DateTime, nullable=True)
+    login_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    last_login: Mapped[datetime] = mapped_column(DateTime, nullable=True)
 
 
 class ShoppingList(OwnedMixin, Base):
@@ -546,6 +579,7 @@ class PreOrder(OwnedMixin, Base):
     boxes: Mapped[list] = mapped_column(JSON, default=list)   # [{for, item, summary, choices, price}]
     subtotal: Mapped[float] = mapped_column(Float, default=0)
     currency: Mapped[str] = mapped_column(String(8), default="GBP")
+    pay_method: Mapped[str] = mapped_column(String(20), default="stripe")  # stripe | bank (transfer, confirmed by the chef)
     stripe_session_id: Mapped[str] = mapped_column(String(120), default="")
     stripe_payment_intent: Mapped[str] = mapped_column(String(120), default="")
     paid_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)

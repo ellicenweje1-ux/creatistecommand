@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { CONTACT, FOOTER, HOURS } from './content/site.js'
 import { ScrollToTop, asset } from './ui.jsx'
 import Home from './pages/Home.jsx'
@@ -8,13 +8,14 @@ import PrivateCatering from './pages/PrivateCatering.jsx'
 import LoadedBar from './pages/LoadedBar.jsx'
 import WhatsOn from './pages/WhatsOn.jsx'
 import Chef from './pages/Chef.jsx'
-import Gallery from './pages/Gallery.jsx'
 import Enquire from './pages/Enquire.jsx'
 import Portfolio from './pages/Portfolio.jsx'
 import { Privacy, Terms } from './pages/Legal.jsx'
 import CleanDream, { CleanDreamConfirmed } from './pages/CleanDream.jsx'
 import TableMenuPrint from './pages/TableMenu.jsx'
 import Menus from './pages/Menus.jsx'
+import Account from './pages/Account.jsx'
+import { useCustomer } from './account.js'
 
 const NAV = [
   { to: '/personal-chef', label: 'Personal Chef' },
@@ -23,7 +24,6 @@ const NAV = [
   { to: '/the-menus', label: 'The Menus' },
   { to: '/whats-up', label: 'What’s Up With Us?' },
   { to: '/portfolio', label: 'Our Portfolio' },
-  { to: '/the-gallery', label: 'The Gallery' },
   { to: '/the-chef', label: 'About the Chef' },
 ]
 
@@ -55,6 +55,7 @@ function Nav() {
             </NavLink>
           ))}
           <Link to="/enquire" className="ml-1 whitespace-nowrap border border-gold px-3.5 py-2 font-body text-[10.5px] uppercase tracking-[0.1em] text-gold transition-colors hover:bg-gold hover:text-ink">Enquire Now</Link>
+          <AccountLink className="ml-1 whitespace-nowrap font-body text-[10px] uppercase tracking-[0.08em] text-ivory/70 transition-colors hover:text-gold 2xl:text-[10.5px]" />
         </nav>
         <button type="button" onClick={() => setOpen((v) => !v)} className="xl:hidden -mr-2 p-2 text-ivory" aria-expanded={open} aria-label={open ? 'Close menu' : 'Open menu'}>
           <span className="relative block h-4 w-6">
@@ -76,6 +77,7 @@ function Nav() {
           ))}
           <Link to="/enquire" className="mt-6 bg-gold px-6 py-3.5 text-center font-body text-[11px] uppercase tracking-wide text-ink">Enquire Now</Link>
           <Link to="/clean-dream" className="mt-2 border border-ivory/30 px-6 py-3.5 text-center font-body text-[11px] uppercase tracking-wide text-ivory/90">Order Clean Dream</Link>
+          <AccountLink className="mt-4 text-center font-body text-[11px] uppercase tracking-wide text-ivory/70" />
           <p className="mt-auto font-body text-[12px] text-smoke" style={{ paddingBottom: 'calc(2.5rem + env(safe-area-inset-bottom))' }}>
             <a href={`mailto:${CONTACT.email}`} className="link-under">{CONTACT.email}</a>
           </p>
@@ -83,6 +85,12 @@ function Nav() {
       </div>
     </>
   )
+}
+
+/* "Sign in" for a visitor, "My account · Name" once signed in. */
+function AccountLink({ className = '' }) {
+  const c = useCustomer()
+  return <Link to="/account" className={className} data-account-link>{c ? `My account${c.name ? ` · ${c.name.split(' ')[0]}` : ''}` : 'Sign in'}</Link>
 }
 
 function Footer() {
@@ -100,6 +108,8 @@ function Footer() {
             <ul className="mt-5 space-y-3 font-body text-[14px] text-ivory/80">
               {NAV.map((n) => <li key={n.to}><Link to={n.to} className="hover:text-gold">{n.label}</Link></li>)}
               <li><Link to="/enquire" className="hover:text-gold">Enquire Now</Link></li>
+              <li><Link to="/enquire#faq" className="hover:text-gold" data-faq-link>FAQs</Link></li>
+              <li><AccountLink className="hover:text-gold" /></li>
             </ul>
           </div>
           <div className="lg:col-span-4">
@@ -129,13 +139,22 @@ function Footer() {
   )
 }
 
+/* Live chat: WhatsApp, for quick queries and the fastest reply. The float is a labelled pill so visitors know it's a chat, not just a logo. */
 function WhatsApp() {
   if (!CONTACT.whatsapp) return null
+  const text = encodeURIComponent('Hi Ellice, quick question from thecreatistecatering.com: ')
   return (
-    <a href={`https://wa.me/${CONTACT.whatsapp}`} target="_blank" rel="noreferrer" aria-label="Message on WhatsApp"
-      className="fixed bottom-5 right-5 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-gold text-ink shadow-lg transition-transform hover:scale-105"
+    <a href={`https://wa.me/${CONTACT.whatsapp}?text=${text}`} target="_blank" rel="noreferrer" aria-label="Live chat on WhatsApp for quick queries" title="Live chat · quick queries, faster responses"
+      className="fixed bottom-5 right-5 z-30 flex h-12 items-center gap-2.5 rounded-full bg-gold pl-3 pr-4 text-ink shadow-lg transition-transform hover:scale-105" data-live-chat
       style={{ marginBottom: 'env(safe-area-inset-bottom)' }}>
-      <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden="true"><path d="M20 3.9A11.3 11.3 0 0 0 2.2 17.6L1 23l5.6-1.5A11.3 11.3 0 0 0 20 3.9Zm-8 17.3c-1.7 0-3.3-.5-4.7-1.3l-.3-.2-3.3.9.9-3.2-.2-.3a9.4 9.4 0 1 1 7.6 4.1Zm5.2-7c-.3-.1-1.7-.8-1.9-.9-.3-.1-.4-.1-.6.1l-.9 1.1c-.2.2-.3.2-.6.1a7.7 7.7 0 0 1-3.8-3.3c-.3-.5.3-.5.8-1.5.1-.2 0-.3 0-.5l-.9-2c-.2-.5-.5-.5-.6-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5 1.9.8 2.6.9 3.5.7.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.3.2-1.4-.1-.1-.3-.2-.6-.3Z"/></svg>
+      <span className="relative flex h-6 w-6 items-center justify-center">
+        <svg viewBox="0 0 24 24" className="h-6 w-6" fill="currentColor" aria-hidden="true"><path d="M20 3.9A11.3 11.3 0 0 0 2.2 17.6L1 23l5.6-1.5A11.3 11.3 0 0 0 20 3.9Zm-8 17.3c-1.7 0-3.3-.5-4.7-1.3l-.3-.2-3.3.9.9-3.2-.2-.3a9.4 9.4 0 1 1 7.6 4.1Zm5.2-7c-.3-.1-1.7-.8-1.9-.9-.3-.1-.4-.1-.6.1l-.9 1.1c-.2.2-.3.2-.6.1a7.7 7.7 0 0 1-3.8-3.3c-.3-.5.3-.5.8-1.5.1-.2 0-.3 0-.5l-.9-2c-.2-.5-.5-.5-.6-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5s1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5 1.9.8 2.6.9 3.5.7.6-.1 1.7-.7 1.9-1.4.2-.7.2-1.3.2-1.4-.1-.1-.3-.2-.6-.3Z"/></svg>
+        <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-gold bg-emerald-600" aria-hidden="true" />
+      </span>
+      <span className="flex flex-col leading-none">
+        <span className="font-body text-[12px] font-medium uppercase tracking-wide">Live chat</span>
+        <span className="mt-0.5 hidden font-body text-[10px] text-ink/70 sm:block">Quick queries · faster replies</span>
+      </span>
     </a>
   )
 }
@@ -168,13 +187,14 @@ export default function App() {
           <Route path="/whats-on" element={<WhatsOn />} />
           <Route path="/portfolio" element={<Portfolio />} />
           <Route path="/the-chef" element={<Chef />} />
-          <Route path="/the-gallery" element={<Gallery />} />
-          <Route path="/gallery" element={<Gallery />} />
+          <Route path="/the-gallery" element={<Navigate to="/portfolio#gallery" replace />} />
+          <Route path="/gallery" element={<Navigate to="/portfolio#gallery" replace />} />
           <Route path="/clean-dream" element={<CleanDream />} />
           <Route path="/clean-dream/confirmed" element={<CleanDreamConfirmed />} />
           <Route path="/the-creatiste-table-menu" element={<TableMenuPrint />} />
           <Route path="/the-menus" element={<Menus />} />
           <Route path="/enquire" element={<Enquire />} />
+          <Route path="/account" element={<Account />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="*" element={<NotFound />} />

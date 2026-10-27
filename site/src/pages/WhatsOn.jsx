@@ -1,6 +1,7 @@
 import { NOW } from '../content/site.js'
 import { Button, Eyebrow, Heading, Reveal, Section } from '../ui.jsx'
 import { EnquireBand } from './Home.jsx'
+import { AvailabilityBlock } from '../availability.jsx'
 
 function Card({ item, i }) {
   const dim = !item.live
@@ -38,6 +39,9 @@ export default function WhatsOn() {
         <div className="grid gap-5 lg:grid-cols-3">
           {NOW.items.map((it, i) => <Card key={it.name} item={it} i={i} />)}
         </div>
+      </Section>
+      <Section ground="ink" id="availability" className="border-t border-ink-3 scroll-mt-20">
+        <AvailabilityBlock />
       </Section>
       <EnquireBand ground="ivory" />
     </>

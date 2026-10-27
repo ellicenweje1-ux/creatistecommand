@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { CONTACT, KIND_WORDS, PORTFOLIO, SETTINGS } from '../content/site.js'
+import { CONTACT, GALLERY, KIND_WORDS, PORTFOLIO, SETTINGS } from '../content/site.js'
 import { Arrow, Button, Eyebrow, Frame, Heading, Reveal, Section, asset } from '../ui.jsx'
 import { EnquireBand } from './Home.jsx'
+import SocialMirror from '../social.jsx'
+import { prefill } from '../account.js'
 
 const slug = (s) => s.toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 const API = SETTINGS.apiBase && SETTINGS.enquiryToken ? `${SETTINGS.apiBase}/api/public` : ''
@@ -49,6 +51,8 @@ export default function Portfolio() {
                 </a>
               </li>
             ))}
+            <li><a href="#gallery" onClick={(e) => { const el = document.getElementById('gallery'); if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth', block: 'start' }); history.replaceState(null, '', '#gallery') } }} className="flex items-center gap-3 border border-gold/60 px-4 py-3 transition-colors hover:border-gold" data-jump="gallery"><span className="font-display text-[17px]">The Gallery</span><Arrow className="h-3 w-3 text-gold" /></a></li>
+            <li><a href="#testimonials" onClick={(e) => { const el = document.getElementById('testimonials'); if (el) { e.preventDefault(); el.scrollIntoView({ behavior: 'smooth', block: 'start' }); history.replaceState(null, '', '#testimonials') } }} className="flex items-center gap-3 border border-gold/60 px-4 py-3 transition-colors hover:border-gold" data-jump="testimonials"><span className="font-display text-[17px]">Testimonials</span><Arrow className="h-3 w-3 text-gold" /></a></li>
           </Reveal>
         </div>
       </section>
@@ -77,6 +81,9 @@ export default function Portfolio() {
         </div>
       </Section>
 
+      <GallerySection />
+      <SocialMirror ground="ink" />
+
       <Section ground="linen" tight id="testimonials">
         <Reveal className="text-center"><Eyebrow className="text-gold-deep">{KIND_WORDS.eyebrow}</Eyebrow><Heading size="md" className="mt-4">{KIND_WORDS.title}</Heading></Reveal>
         <div className="mx-auto mt-10 grid max-w-5xl gap-6 md:grid-cols-2" data-testimonials>
@@ -95,11 +102,49 @@ export default function Portfolio() {
   )
 }
 
+/* The Gallery, merged into the portfolio: a masonry of every photograph with a lightbox. */
+function GallerySection() {
+  const [open, setOpen] = useState(null)
+  useEffect(() => {
+    if (open === null) return
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open])
+  return (
+    <Section ground="linen" id="gallery" className="scroll-mt-20">
+      <div className="flex flex-wrap items-end justify-between gap-6">
+        <div>
+          <Reveal><Eyebrow className="text-gold-deep">{GALLERY.eyebrow}</Eyebrow></Reveal>
+          <Reveal delay={1}><Heading className="mt-5 max-w-xl">{GALLERY.title}</Heading></Reveal>
+        </div>
+        <Reveal delay={2}><p className="font-body text-[14px] text-stone">{GALLERY.follow}: <a href={`https://instagram.com/${CONTACT.instagram}`} target="_blank" rel="noreferrer" className="link-under text-ink/90">@{CONTACT.instagram}</a></p></Reveal>
+      </div>
+      <div className="mt-10 columns-2 gap-3 sm:gap-4 md:columns-3" data-gallery>
+        {GALLERY.photos.map((p, i) => (
+          <Reveal key={p.src} delay={i % 3} className="mb-3 break-inside-avoid sm:mb-4">
+            <button type="button" onClick={() => setOpen(i)} className="block w-full text-left" aria-label={`Open: ${p.alt}`}>
+              <Frame src={p.src} alt={p.alt} ratio={`${p.w}/${p.h}`} />
+            </button>
+          </Reveal>
+        ))}
+      </div>
+      {open !== null ? (
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center bg-ink/95 p-5" onClick={() => setOpen(null)}>
+          <img src={asset(GALLERY.photos[open].src)} alt={GALLERY.photos[open].alt} className="max-h-[88vh] max-w-full object-contain" />
+          <button type="button" className="absolute right-5 top-5 font-body text-[12px] uppercase tracking-wide text-ivory/80 hover:text-gold" style={{ top: 'calc(1.25rem + env(safe-area-inset-top))' }}>Close</button>
+        </div>
+      ) : null}
+    </Section>
+  )
+}
+
 /* Leave us a review: a star rating, name, event and a few words. Goes to The Creatiste Command
    for approval before it appears above; without a token it hands off to email. Google reviews
    can be plugged in beside this later. */
 function ReviewForm() {
   const [f, setF] = useState({ rating: 0, name: '', email: '', event: '', date: '', comment: '', company: '' })
+  useEffect(() => { prefill(setF) }, [])
   const [state, setState] = useState({ status: 'idle', error: '' })
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
   const ready = f.rating > 0 && f.name.trim() && f.comment.trim()

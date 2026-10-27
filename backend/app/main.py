@@ -11,7 +11,7 @@ from fastapi import Depends
 
 from . import recycle
 from .auth import require_owner, require_plan
-from .routers import admin, ai, auth_router, billing, bookings, calendar_feed, core, cron, dashboard, exports, finance, founders, onboarding, preorders, public, push, quotes, reviews, support, team, uploads, zoom
+from .routers import admin, ai, auth_router, billing, bookings, calendar_feed, core, cron, customers, dashboard, diary, exports, finance, founders, onboarding, preorders, public, push, quotes, reviews, support, team, uploads, zoom
 
 app = FastAPI(title="The Creatiste Command", version="1.0.0")
 
@@ -53,6 +53,10 @@ app.include_router(preorders.public_router, prefix=API)
 app.include_router(preorders.router, prefix=API)
 app.include_router(reviews.public_router, prefix=API)
 app.include_router(reviews.router, prefix=API)
+app.include_router(diary.public_router, prefix=API)
+app.include_router(diary.router, prefix=f"{API}/diary", tags=["diary"])
+app.include_router(diary.blocks, prefix=f"{API}/diary/blocks", tags=["diary"])
+app.include_router(customers.public_router, prefix=API)
 app.include_router(founders.router, prefix=API)
 app.include_router(onboarding.router, prefix=API)
 app.include_router(zoom.router, prefix=API)

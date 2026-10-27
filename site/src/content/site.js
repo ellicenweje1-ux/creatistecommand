@@ -282,8 +282,8 @@ export const NOW = {
       kind: 'Weekday Lunch Service',
       name: 'Clean Dream',
       when: 'Monday to Friday',
-      detail: 'Clean, whole-food lunch bowls, cooked fresh and served hot. Order by 11am for collection at 1pm or 2:30pm, or delivery between locations by arrangement.',
-      meta: ['Order by 11:00am', 'Collection W5 · 1pm', 'Collection SW15 · 2:30pm'],
+      detail: 'Clean, whole-food lunch bowls, cooked fresh and served hot. Order by 10am for collection at 1pm or 2:30pm, or delivery between locations by arrangement.',
+      meta: ['Order by 10:00am', 'Collection W5 · 1pm', 'Collection SW15 · 2:30pm'],
       cta: { label: 'Order Clean Dream', to: '/clean-dream' },
     },
     {
@@ -314,7 +314,7 @@ export const CLEAN_DREAM = {
   /* The live order menu. Mirrors the offer held in The Creatiste Command (which prices and takes
      payment for each order); if Command is reachable its copy wins, so the two never drift. */
   menu: {
-    title: 'Clean Dream', currency: 'GBP', cutoff: '11:00', days: [0, 1, 2, 3, 4], days_ahead: 5,
+    title: 'Clean Dream', currency: 'GBP', cutoff: '10:00', days: [0, 1, 2, 3, 4], days_ahead: 5,
     items: [{
       id: 'bowl', name: 'Build your own bowl', price: 8, desc: 'Whole-food lunch bowl, cooked fresh and served hot.',
       groups: [
@@ -341,7 +341,7 @@ export const CLEAN_DREAM = {
   sub: 'Clean, whole-food lunch bowls, cooked fresh and served hot. Comforting, home-cooked and beautiful, built to keep you going.',
   photo: '/photos/clean-dream-boxes.jpg',
   how: [
-    ['Order by 11am', 'Orders in by 11:00am are made the same day, Monday to Friday. After 11am, your order rolls to the next weekday.'],
+    ['Order by 10am', 'Orders in by 10:00am are made the same day, Monday to Friday. After 10am, your order rolls to the next weekday.'],
     ['Collect at 1pm or 2:30pm', 'Two collection points each day. Pick the one that suits you at checkout.'],
     ['Or have it delivered', 'Deliveries between the two locations by request, at +£0.65 per mile. We confirm by WhatsApp after you order and the delivery fee is charged separately.'],
     ['Confirmed by WhatsApp', 'Your order will be confirmed once I send a receipt of payment and final collection/delivery details via WhatsApp. Every box is named so each person’s food is labelled correctly.'],
@@ -520,7 +520,8 @@ export const LEGAL = {
     title: 'Privacy notice',
     intro: 'The Creatiste Catering is run by Ellice Nweje, based in Slough, England. This notice explains what we collect through this website and what we do with it.',
     sections: [
-      ['What we collect', 'When you enquire, order from Clean Dream or leave a review, we collect what you type into the form: your name, email address, phone number, the details of your event or order (dates, guest numbers, venue, dietary needs and allergies) and any message you write. We also receive the usual technical information a browser sends, such as your IP address, which we use only to keep the forms free of spam.'],
+      ['What we collect', 'When you enquire, order from Clean Dream, leave a review or sign in to your account, we collect what you type into the form: your name, email address, phone number, the details of your event or order (dates, guest numbers, venue, dietary needs and allergies) and any message you write. We also receive the usual technical information a browser sends, such as your IP address, which we use only to keep the forms free of spam.'],
+      ['Your account', 'If you choose to sign in, we email you a one-time six-digit code (no password is stored) and keep you signed in on that device for up to 90 days. Your account simply groups the enquiries, orders and reviews sent with your email address. Sign out at any time from Your account; to have the account removed, email us.'],
       ['How we use it', 'To reply to your enquiry, arrange a consultation and quote; to prepare, confirm and deliver your Clean Dream order; to label food correctly and keep you safe where you have told us about allergies; and to show your review on this site once you have left one and we have approved it. We do not sell your details or use them for advertising.'],
       ['Where it is kept', 'Enquiries, orders and reviews are stored in The Creatiste Command, the booking system we run for the business, hosted in the cloud with Render. Confirmation emails are sent through Resend. This website is served by Cloudflare. Orders sent by WhatsApp are handled by WhatsApp under its own terms.'],
       ['How long we keep it', 'Enquiries and orders are kept as part of our booking records for up to six years, as required for accounts and tax. Reviews stay on the site until you ask us to remove them. You can ask us to delete anything we hold about you at any time, subject to what we must keep by law.'],
@@ -532,12 +533,35 @@ export const LEGAL = {
     title: 'Terms of service',
     intro: 'The short version of how we work. A full quotation, once accepted, forms the contract for a catering booking; these terms cover everything else on this site.',
     sections: [
-      ['Catering bookings', 'Every booking begins with a consultation. We then send a tailored quotation; nothing is confirmed until you have accepted it in writing and paid the booking fee it states. The Loaded Bar must be booked at least 14 days in advance and a 50% booking fee secures the date. Final guest numbers, dietary requirements and allergies must be confirmed by the date given on the quotation.'],
-      ['Clean Dream orders', 'Orders placed by 11:00am are made the same day, Monday to Friday; orders after 11:00am roll to the next weekday. Payment is by bank transfer using the details shown at checkout. Your order is confirmed only once we have sent a receipt of payment and the final collection or delivery details by WhatsApp. Delivery between the collection points is by request and charged separately at £0.65 per mile. Because every order is cooked fresh for you, an order cannot be cancelled or refunded after the 11:00am cut-off on its day.'],
+      ['Bookings and payment', 'Every booking begins with a consultation. We then send a tailored quotation; nothing is confirmed until you have accepted it in writing and paid what it states. Full payment is required for all personal chef services (Batchfully Made, The Home Edit and Sorted & Served) before the service begins. Private catering (The Loaded Bar, Corporate Curations, Private & Personal and The Creatiste Table) is secured with a 50% deposit, with the balance due by the date on the quotation. Bookings need to be made at least 14 days before the event; a booking made within 14 days of the event requires full payment at the time of booking. Final guest numbers, dietary requirements and allergies must be confirmed by the date given on the quotation.'],
+      ['Clean Dream orders', 'Orders placed by 10:00am are made the same day, Monday to Friday; orders after 10:00am roll to the next weekday. Payment is by bank transfer using the details shown at checkout. Your order is confirmed only once we have sent a receipt of payment and the final collection or delivery details by WhatsApp. Delivery between the collection points is by request and charged separately at £0.65 per mile. Because every order is cooked fresh for you, an order cannot be cancelled or refunded after the 10:00am cut-off on its day.'],
       ['Allergies and dietary needs', 'Tell us about every allergy and dietary requirement when you enquire or order, and again if anything changes. Our food is prepared in a kitchen that handles all fourteen major allergens, so we cannot guarantee any dish is entirely free of an allergen even where we have left it out. Every box and dish is labelled with the details you give us.'],
-      ['Cancellations and changes', 'Booking fees are non-refundable once paid, because they hold a date we then turn other work away from. Changes to a confirmed booking are by agreement and may change the price. If we have to cancel for reasons within our control, you will receive a full refund of everything paid.'],
+      ['Cancellations and changes', 'Deposits and booking payments are non-refundable once paid, because they hold a date we then turn other work away from. Changes to a confirmed booking are by agreement and may change the price. If we have to cancel for reasons within our control, you will receive a full refund of everything paid.'],
       ['Reviews', 'Reviews left on this site are read before they appear and may be declined or removed if they are abusive, misleading or not about our food or service. By leaving a review you let us show your first name, the event you mention and your words on this site.'],
       ['This website', 'The photographs, menus and words on this site belong to The Creatiste Catering and may not be reused without permission. Prices shown in downloadable guides are indicative; a quotation is the final figure. These terms are governed by the law of England and Wales.'],
     ],
   },
+}
+
+/* Frequently asked questions. Shown on the Enquire page (under #faq) so there is no extra page to maintain;
+   the footer links straight to it. Keep these in step with the terms above and the service pages. */
+export const FAQ = {
+  eyebrow: 'Frequently asked questions',
+  title: 'Before you enquire.',
+  intro: 'The questions we are asked most, answered plainly. Anything else: start a live chat on WhatsApp or send the form above.',
+  items: [
+    { q: 'How do I book?', a: 'Choose your enquiry type above and tell us about your event or your week. We reply personally, usually within one business day, and arrange a consultation (a short call, within the next seven days). After the consultation you receive a full quotation breakdown, amended until you are happy, and your date is secured once it is accepted and paid.' },
+    { q: 'How far in advance do I need to book?', a: 'At least 14 days before the event, please. A booking made inside 14 days may still be possible, but it requires full payment at the time of booking. The Loaded Bar always needs 14 days.' },
+    { q: 'How does payment work?', a: 'Personal chef services (Batchfully Made, The Home Edit and Sorted & Served) are paid in full before the service begins. Private catering (The Loaded Bar, Corporate Curations, Private & Personal and The Creatiste Table) is secured with a 50% deposit, with the balance due by the date on your quotation. Clean Dream orders are paid by bank transfer at checkout.' },
+    { q: 'Why are there no prices on the site?', a: 'Because every event is designed around its consultation, and a figure without the conversation would be a guess. Guides are available for The Home Edit packages and Batchfully Made (see The Menus), The Creatiste Table starts at £43 per head, and every quotation is a full, itemised breakdown.' },
+    { q: 'What is the minimum number of guests?', a: 'The Loaded Bar serves a minimum of 15 guests and up to 50 (larger events are considered on request). The Creatiste Table seats 5 to 12 guests. Personal chef services are for one to four people in your home.' },
+    { q: 'Do you cater for allergies and dietary requirements?', a: 'Yes. Vegan, vegetarian and gluten-free plates are available on request, and every box and dish is labelled with the details you give us. Our food is prepared in a kitchen that handles all fourteen major allergens, so tell us about every allergy when you enquire, and again if anything changes.' },
+    { q: 'Do you drop off food in foil trays?', a: 'No. Private catering is served live from The Loaded Bar, our mobile serving station, with a chef present. Personal chef services are cooked in your home or delivered in labelled, portioned containers.' },
+    { q: 'How does Clean Dream work?', a: 'Build your bowls on the Clean Dream page, choose a weekday and a collection point (W5 at 1pm or SW15 at 2:30pm), then pay by bank transfer. Orders in by 10am are made the same day, Monday to Friday; after 10am your order rolls to the next weekday. Your order is confirmed once we send a receipt of payment and the final collection or delivery details by WhatsApp. Delivery between the collection points is by request at £0.65 per mile.' },
+    { q: 'Can I see which dates you have free?', a: 'Yes. The live availability calendar on What’s Up With Us shows every day for the next few months as open, limited or fully booked, straight from our diary. Tap an open or limited day and the enquiry form opens with that date filled in. A date is only held once your quotation is accepted.' },
+    { q: 'Do I need an account?', a: 'No, but it helps. Sign in with a code sent to your email (no password) and your enquiries, Clean Dream orders and reviews are logged under Your account, your details are remembered on every form, and a repeat Clean Dream order is one tap.' },
+    { q: 'Which areas do you cover?', a: 'We are based in London and travel across the city and the surrounding areas. For events further afield, a travel fee is confirmed at consultation.' },
+    { q: 'How quickly will I hear back?', a: 'Enquiries are answered within one business day. For a quick question, use the live chat button (bottom right) and you will reach us on WhatsApp during our operating hours, listed in the footer.' },
+    { q: 'Can I leave a review?', a: 'Please do. There is a review form on Our Portfolio under Client testimonials. Reviews are read before they appear on the site.' },
+  ],
 }
