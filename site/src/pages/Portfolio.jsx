@@ -118,7 +118,6 @@ function GallerySection() {
           <Reveal><Eyebrow className="text-gold-deep">{GALLERY.eyebrow}</Eyebrow></Reveal>
           <Reveal delay={1}><Heading className="mt-5 max-w-xl">{GALLERY.title}</Heading></Reveal>
         </div>
-        <Reveal delay={2}><p className="font-body text-[14px] text-stone">{GALLERY.follow}: <a href={`https://instagram.com/${CONTACT.instagram}`} target="_blank" rel="noreferrer" className="link-under text-ink/90">@{CONTACT.instagram}</a></p></Reveal>
       </div>
       <div className="mt-10 columns-2 gap-3 sm:gap-4 md:columns-3" data-gallery>
         {GALLERY.photos.map((p, i) => (

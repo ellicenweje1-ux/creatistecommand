@@ -3,10 +3,11 @@ import { Button, Eyebrow, Heading, Reveal, Section } from '../ui.jsx'
 import { EnquireBand } from './Home.jsx'
 import { AvailabilityBlock } from '../availability.jsx'
 
+const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 function Card({ item, i }) {
   const dim = !item.live
   return (
-    <Reveal delay={i} className={`flex flex-col border p-7 sm:p-9 ${dim ? 'border-dashed border-ink-3 text-smoke' : 'border-gold/40 bg-ink-2/70'}`}>
+    <Reveal delay={i} id={slug(item.kind)} className={`flex flex-col border p-7 sm:p-9 ${dim ? 'border-dashed border-ink-3 text-smoke' : 'border-gold/40 bg-ink-2/70'} scroll-mt-24`}>
       <div className="flex items-center justify-between gap-4">
         <p className={`eyebrow ${dim ? 'text-smoke' : ''}`}>{item.kind}</p>
         {item.live ? <span className="flex items-center gap-2 font-body text-[11px] uppercase tracking-wide text-gold"><span className="h-1.5 w-1.5 rounded-full bg-gold" />Live</span> : <span className="font-body text-[11px] uppercase tracking-wide text-smoke">Coming</span>}

@@ -499,6 +499,24 @@ follow. The dashed `/clean-dream` and `/clean-dream/confirmed` still work via a 
 (so an old payment return still lands). Offer slug, photo and PDF filenames keep their dash. Verified 7/7 Playwright + the
 pre-orders suite 36/36; merged to `main`.
 
+### Follow-on (same 28th-wave session — FAQ as bullets + wording, lead times, Thanksgiving pop-up, clickable live bar, receipt email, 10am menu PDF)
+All verified (12/12 Playwright desktop+mobile, pre-orders suite 36/36), merged to `main`, preview Version 9.
+- **FAQ answers are now bullet points** (`FAQ.items[].a` is an array of one-sentence strings; `Enquire.jsx` renders a `<ul>`). Wording: "Why are
+  there no prices" → "Because every service booked is designed around its consultation…"; lead times → **private catering at least 14 days** (inside
+  14 = full payment at booking; Loaded Bar always 14), **personal chef services at least 7 days** as long as the date is available (terms updated to
+  match); the foil-tray question is now **"Can you provide standard catering trays dropped off to my event?"** answered "No, we no longer provide
+  this service at the moment…".
+- **What's Up pop-up card is LIVE: "Thanksgiving Soul Food Pop-up · Friday 20 November · details coming soon"** (`NOW.items[1]`, `meta` chips,
+  footnote). Cards carry `id` = slug of `kind` (`#pop-up`, `#weekday-lunch-service`) with `scroll-mt-24`.
+- **Home "Live now" bar: every phrase is a link** to its item (`NOW.items[].link`: Clean Dream → `/cleandream`, pop-up → `/whats-up#pop-up`;
+  falls back to `cta.to`, then `/whats-up`); the duplicated loop copy is `aria-hidden`/untabbable. `data-now-strip` for tests (NB the ticker
+  moves, so Playwright needs `force=True`; closed `<details>` hide text from `innerText`, use `textContent`).
+- **Portfolio gallery heading**: the "Follow along on Instagram and TikTok" line is gone (the social mirror below already says it).
+- **Receipt (her question "does Command send a receipt once I've pressed Mark paid?"): YES.** `mark_paid` emails the customer, now subject
+  **"Payment received: your Clean Dream order is confirmed for <date>"** with "This email is your receipt" + every box, and emails her too.
+- **Clean Dream printed menu PDF replaced** with her 10am re-export (`site/public/docs/clean-dream-menu.pdf`, now also prints
+  thecreatistecatering.com/cleandream).
+
 ### DEPLOYING THE CATERING SITE (Cloudflare Pages — Ellice does this once; ~10 minutes)
 1. Cloudflare dashboard (the **jill+quinton** account) → Workers & Pages → Create → Pages → **Connect to Git** → repo
    `ellicenweje1-ux/creatistecommand`, production branch **`main`**.

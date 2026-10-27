@@ -308,7 +308,9 @@ function FaqSection() {
                   <span>{it.q}</span>
                   <span aria-hidden="true" className="mt-1 shrink-0 font-body text-[18px] text-gold-deep transition-transform group-open:rotate-45">+</span>
                 </summary>
-                <p className="mt-4 max-w-2xl font-body text-[15px] font-light leading-relaxed text-ink/75">{it.a}</p>
+                <ul className="mt-4 max-w-2xl list-disc space-y-1.5 pl-5 font-body text-[15px] font-light leading-relaxed text-ink/75 marker:text-gold-deep">
+                  {(Array.isArray(it.a) ? it.a : [it.a]).map((line) => <li key={line}>{line}</li>)}
+                </ul>
               </Reveal>
             ))}
           </div>

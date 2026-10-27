@@ -226,8 +226,8 @@ def mark_paid(db: Session, order: PreOrder, payment_intent: str = ""):
     where = order.slot_label + (f"\n  {order.delivery_address}" if order.delivery_address else "")
     biz = owner.business_name or owner.name
     mailer.send_email(
-        order.email, f"{biz}: your {order.offer_title} order is confirmed for {pretty_date}",
-        f"Hi {order.customer_name},\n\nThank you, your order is paid and confirmed.\n\n"
+        order.email, f"Payment received: your {order.offer_title} order is confirmed for {pretty_date}",
+        f"Hi {order.customer_name},\n\nThank you, your payment has been received and your order is confirmed. This email is your receipt.\n\n"
         f"When: {pretty_date}\nWhere: {where}\n\n{box_text}\n\nTotal paid: £{order.subtotal:.2f}\n"
         + (f"Allergies noted: {order.allergies}\n" if order.allergies else "")
         + ("\nDelivery: we'll message you on WhatsApp to confirm the drop and the mileage fee.\n" if order.fulfilment == "delivery" else "")
