@@ -396,8 +396,8 @@ def place_order(request: Request, token: str, payload: dict = Body(...), db: Ses
     } for b in boxes]
     session = stripe.checkout.Session.create(
         mode="payment", line_items=line_items, customer_email=order.email,
-        success_url=f"{return_url}/clean-dream/confirmed?order={order.public_id}&session_id={{CHECKOUT_SESSION_ID}}",
-        cancel_url=f"{return_url}/clean-dream?cancelled={order.public_id}",
+        success_url=f"{return_url}/cleandream/confirmed?order={order.public_id}&session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{return_url}/cleandream?cancelled={order.public_id}",
         metadata={"preorder_id": str(order.id), "public_id": order.public_id},
     )
     order.stripe_session_id = session.id

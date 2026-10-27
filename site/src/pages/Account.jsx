@@ -23,7 +23,7 @@ export default function Account() {
         {!ACCOUNT_API ? (
           <div className="mx-auto max-w-xl border border-sand bg-linen p-8" data-account-offline>
             <p className="font-display text-[22px]">Accounts open with the live site.</p>
-            <p className="mt-3 font-body text-[15px] font-light leading-relaxed text-ink/75">Sign-in is switched on once this site is connected to our booking system. In the meantime you can <Link to="/enquire" className="link-under text-gold-deep">enquire</Link> or <Link to="/clean-dream" className="link-under text-gold-deep">order Clean Dream</Link> as a guest.</p>
+            <p className="mt-3 font-body text-[15px] font-light leading-relaxed text-ink/75">Sign-in is switched on once this site is connected to our booking system. In the meantime you can <Link to="/enquire" className="link-under text-gold-deep">enquire</Link> or <Link to="/cleandream" className="link-under text-gold-deep">order Clean Dream</Link> as a guest.</p>
           </div>
         ) : customer ? <Dashboard /> : <SignIn />}
       </Section>
@@ -81,7 +81,7 @@ function Dashboard() {
     e.preventDefault()
     try { const p = await accountFetch('/me', { method: 'PATCH', body: JSON.stringify(edit) }); setCustomer({ ...getCustomer(), ...p }); setMe((m) => ({ ...m, customer: p })); setEdit(null) } catch (ex) { setErr(ex.message) }
   }
-  const reorder = (o) => { try { sessionStorage.setItem(REORDER_KEY, JSON.stringify({ boxes: o.boxes, fulfilment: o.fulfilment, delivery_address: o.delivery_address, allergies: o.allergies })) } catch {} nav('/clean-dream?reorder=1') }
+  const reorder = (o) => { try { sessionStorage.setItem(REORDER_KEY, JSON.stringify({ boxes: o.boxes, fulfilment: o.fulfilment, delivery_address: o.delivery_address, allergies: o.allergies })) } catch {} nav('/cleandream?reorder=1') }
   if (err) return <p className="font-body text-[15px] text-red-700">{err} <button type="button" onClick={clearCustomer} className="link-under">Sign in again</button>.</p>
   if (!me) return <p className="font-body text-[14px] text-stone">Loading your account…</p>
   const c = me.customer
@@ -105,7 +105,7 @@ function Dashboard() {
           )}
           {!edit ? <button type="button" onClick={() => setEdit({ name: c.name || '', phone: c.phone || '' })} className="mt-4 font-body text-[11px] uppercase tracking-wide text-gold-deep link-under">Edit details</button> : null}
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button to="/clean-dream" variant="ink">Order Clean Dream</Button>
+            <Button to="/cleandream" variant="ink">Order Clean Dream</Button>
             <Button to="/enquire" variant="ghost-ink">Enquire</Button>
           </div>
           <button type="button" onClick={clearCustomer} className="mt-8 font-body text-[11px] uppercase tracking-wide text-stone hover:text-ink" data-signout>Sign out</button>
@@ -128,7 +128,7 @@ function Dashboard() {
                 </li>
               ))}
             </ul>
-          ) : <p className="mt-4 font-body text-[14px] font-light text-ink/70">No Clean Dream orders yet. <Link to="/clean-dream" className="link-under text-gold-deep">Build your first bowl</Link>, and it will be saved here for a one-tap repeat.</p>}
+          ) : <p className="mt-4 font-body text-[14px] font-light text-ink/70">No Clean Dream orders yet. <Link to="/cleandream" className="link-under text-gold-deep">Build your first bowl</Link>, and it will be saved here for a one-tap repeat.</p>}
         </section>
         <section data-enquiries>
           <div className="flex items-end justify-between gap-4"><Heading size="md">Enquiries and bookings</Heading><span className="font-body text-[12px] text-stone">{me.enquiries.length}</span></div>

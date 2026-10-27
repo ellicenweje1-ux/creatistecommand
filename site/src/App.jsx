@@ -76,7 +76,7 @@ function Nav() {
             </NavLink>
           ))}
           <Link to="/enquire" className="mt-6 bg-gold px-6 py-3.5 text-center font-body text-[11px] uppercase tracking-wide text-ink">Enquire Now</Link>
-          <Link to="/clean-dream" className="mt-2 border border-ivory/30 px-6 py-3.5 text-center font-body text-[11px] uppercase tracking-wide text-ivory/90">Order Clean Dream</Link>
+          <Link to="/cleandream" className="mt-2 border border-ivory/30 px-6 py-3.5 text-center font-body text-[11px] uppercase tracking-wide text-ivory/90">Order Clean Dream</Link>
           <AccountLink className="mt-4 text-center font-body text-[11px] uppercase tracking-wide text-ivory/70" />
           <p className="mt-auto font-body text-[12px] text-smoke" style={{ paddingBottom: 'calc(2.5rem + env(safe-area-inset-bottom))' }}>
             <a href={`mailto:${CONTACT.email}`} className="link-under">{CONTACT.email}</a>
@@ -159,6 +159,11 @@ function WhatsApp() {
   )
 }
 
+function MovedTo({ to }) {
+  const { search, hash } = useLocation()
+  return <Navigate to={`${to}${search}${hash}`} replace />
+}
+
 function NotFound() {
   return (
     <section className="ground-ink flex min-h-[70vh] items-center">
@@ -189,8 +194,11 @@ export default function App() {
           <Route path="/the-chef" element={<Chef />} />
           <Route path="/the-gallery" element={<Navigate to="/portfolio#gallery" replace />} />
           <Route path="/gallery" element={<Navigate to="/portfolio#gallery" replace />} />
-          <Route path="/clean-dream" element={<CleanDream />} />
-          <Route path="/clean-dream/confirmed" element={<CleanDreamConfirmed />} />
+          <Route path="/cleandream" element={<CleanDream />} />
+          <Route path="/cleandream/confirmed" element={<CleanDreamConfirmed />} />
+          {/* The older dashed address still works (keeps the query string, so a payment return lands correctly). */}
+          <Route path="/clean-dream" element={<MovedTo to="/cleandream" />} />
+          <Route path="/clean-dream/confirmed" element={<MovedTo to="/cleandream/confirmed" />} />
           <Route path="/the-creatiste-table-menu" element={<TableMenuPrint />} />
           <Route path="/the-menus" element={<Menus />} />
           <Route path="/enquire" element={<Enquire />} />

@@ -433,7 +433,7 @@ export function CleanDreamConfirmed() {
             <p className="mt-3 font-body text-[12px] text-smoke">A confirmation email is on its way. Reference {order.public_id}.</p>
           </Reveal>
         ) : order?.status === 'pending_payment' && tries >= 6 ? (
-          <Reveal delay={2}><p className="lede mt-8 max-w-xl text-ivory/75">Payment hasn’t reached us yet. If you completed it, the confirmation will follow by email within a few minutes. Otherwise, <Link to="/clean-dream" className="link-under text-ivory">head back and try again</Link>.</p></Reveal>
+          <Reveal delay={2}><p className="lede mt-8 max-w-xl text-ivory/75">Payment hasn’t reached us yet. If you completed it, the confirmation will follow by email within a few minutes. Otherwise, <Link to="/cleandream" className="link-under text-ivory">head back and try again</Link>.</p></Reveal>
         ) : null}
         <Reveal delay={3} className="mt-10 flex flex-wrap gap-3"><Button to="/whats-up">What’s up with Us?</Button><Button to="/" variant="ghost">Back to the start</Button></Reveal>
       </div>

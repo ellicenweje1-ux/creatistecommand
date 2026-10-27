@@ -492,6 +492,13 @@ Version 8. Two NEW generic Command features (Diary, customer accounts) + one ext
   calendar, accounts and bank-order logging all need them); switch "Show my availability on my website" on under Diary once her week looks right;
   photos/logos for the portfolio entries; Instagram widget URL; catering Stripe keys when she wants card payment.
 
+### Follow-on (same 28th-wave session — order page address is `/cleandream`, no dash)
+Ellice's flyer address: **thecreatistecatering.com/cleandream**. Routes renamed in `site/src/App.jsx` (`/cleandream`,
+`/cleandream/confirmed`); every in-site link, the Account page and the Stripe `success_url`/`cancel_url` in `preorders.py`
+follow. The dashed `/clean-dream` and `/clean-dream/confirmed` still work via a `MovedTo` redirect that keeps the query string
+(so an old payment return still lands). Offer slug, photo and PDF filenames keep their dash. Verified 7/7 Playwright + the
+pre-orders suite 36/36; merged to `main`.
+
 ### DEPLOYING THE CATERING SITE (Cloudflare Pages — Ellice does this once; ~10 minutes)
 1. Cloudflare dashboard (the **jill+quinton** account) → Workers & Pages → Create → Pages → **Connect to Git** → repo
    `ellicenweje1-ux/creatistecommand`, production branch **`main`**.

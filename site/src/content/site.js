@@ -284,7 +284,7 @@ export const NOW = {
       when: 'Monday to Friday',
       detail: 'Clean, whole-food lunch bowls, cooked fresh and served hot. Order by 10am for collection at 1pm or 2:30pm, or delivery between locations by arrangement.',
       meta: ['Order by 10:00am', 'Collection W5 · 1pm', 'Collection SW15 · 2:30pm'],
-      cta: { label: 'Order Clean Dream', to: '/clean-dream' },
+      cta: { label: 'Order Clean Dream', to: '/cleandream' },
     },
     {
       live: false, // flip to true when there is an event to announce
@@ -481,7 +481,7 @@ export const MENUS_PAGE = {
     { title: 'The Creatiste Table', kind: 'Seasonal menu', body: 'The current set menu, from £43* per head. *Subject to final consultation. Travel fee and staffing may be charged.', file: '/docs/the-creatiste-table-menu.pdf', to: '/private-catering#the-creatiste-table' },
     { title: 'Batchfully Made', kind: 'Price list', body: 'Proteins, pastas, sides, vegetables and sauces, individually priced in 32oz and 58oz containers. Not on the menu? Ask and we’ll add it.', file: '/docs/batchfully-made-price-list.pdf', to: '/personal-chef#batchfully-made' },
     { title: 'The Home Edit', kind: 'Package options', body: 'Six packages for the in-home personal chef service, how each week looks, and the pricing basis.', file: '/docs/the-home-edit-packages.pdf', to: '/personal-chef#the-home-edit' },
-    { title: 'Clean Dream', kind: 'Lunch menu', body: 'Build your own bowl: bases, proteins, toppings and extras for the weekday lunch service.', file: '/docs/clean-dream-menu.pdf', to: '/clean-dream' },
+    { title: 'Clean Dream', kind: 'Lunch menu', body: 'Build your own bowl: bases, proteins, toppings and extras for the weekday lunch service.', file: '/docs/clean-dream-menu.pdf', to: '/cleandream' },
     // TODO Ellice: Corporate Curations and Private & Personal menu offerings when ready
   ],
 }
