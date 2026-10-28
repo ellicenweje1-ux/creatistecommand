@@ -112,6 +112,38 @@ def share_invoice(invoice_id: int, send: bool = False, db: Session = Depends(get
     return {**to_dict(inv), "public_url": link, "emailed": emailed}
 
 
+@invoices.post("/{invoice_id}/receipt")
+def send_receipt(invoice_id: int, db: Session = Depends(get_db), user=Depends(require_active)):
+    """Confirm an invoice as paid and email the client a receipt of payment (with the invoice link).
+    Marks the invoice paid (today) if it isn't already. Returns {emailed, public_url}."""
+    inv = get_owned(db, Invoice, invoice_id, ws_id(user))
+    owner = db.get(User, ws_id(user))
+    client = db.get(Client, inv.client_id) if inv.client_id else None
+    if inv.status != "paid":
+        inv.status = "paid"
+        inv.paid_date = inv.paid_date or date.today().isoformat()
+    if not inv.public_token:
+        inv.public_token = uuid.uuid4().hex
+    link = f"{config.APP_URL.rstrip('/')}/i/{inv.public_token}"
+    total = invoice_total(inv)
+    cur = (owner.currency if owner and getattr(owner, "currency", None) else "GBP")
+    sym = {"GBP": "£", "EUR": "€", "USD": "$"}.get(cur, "")
+    emailed = False
+    if client and client.user_id == ws_id(user) and client.email:
+        biz = (owner.business_name or owner.name) if owner else "your caterer"
+        mailer.send_email(
+            client.email, f"Receipt of payment: invoice {inv.number or inv.id} from {biz}",
+            f"Hi {client.name},\n\nThank you, your payment of {sym}{total:,.2f} for invoice {inv.number or inv.id} has been received"
+            f"{(' on ' + inv.paid_date) if inv.paid_date else ''}. This email is your receipt.\n\n"
+            f"The paid invoice is here for your records:\n{link}\n\n{biz}",
+        )
+        emailed = True
+    log_activity(db, user, "updated", inv, summary=f"Receipt sent for invoice {inv.number or inv.id}" if emailed else f"Marked invoice {inv.number or inv.id} paid")
+    db.commit()
+    db.refresh(inv)
+    return {**to_dict(inv), "public_url": link, "emailed": emailed}
+
+
 @invoices.post("/{invoice_id}/duplicate")
 def duplicate_invoice(invoice_id: int, db: Session = Depends(get_db), user=Depends(require_active)):
     """Copy an invoice into a fresh draft (new number, no sent-link/paid state) — the

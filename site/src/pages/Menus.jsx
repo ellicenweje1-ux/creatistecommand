@@ -14,18 +14,29 @@ export default function Menus() {
         </div>
       </section>
       <Section ground="ivory">
-        <div className="grid gap-px bg-sand md:grid-cols-2">
-          {MENUS_PAGE.items.map((m, i) => (
-            <Reveal key={m.title} delay={i % 2} className="flex flex-col bg-ivory p-7 sm:p-9">
-              <p className="font-body text-[11px] uppercase tracking-eyebrow text-gold-deep">{m.kind}</p>
-              <p className="mt-3 font-display text-[28px]">{m.title}</p>
-              <p className="mt-3 flex-1 font-body text-[14px] font-light leading-relaxed text-ink/75">{m.body}</p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                {m.file ? <Button href={asset(m.file)} variant="ink" target="_blank" rel="noreferrer">Download PDF</Button> : <Button to={m.request || '/enquire'} variant="ink">Request the price list</Button>}
-                <Link to={m.to} className="inline-flex items-center gap-2 px-2 py-3 font-body text-[12px] uppercase tracking-wide text-ink/70 hover:text-gold-deep">Read more <Arrow /></Link>
+        <div className="space-y-14">
+          {(MENUS_PAGE.groups || [...new Set(MENUS_PAGE.items.map((m) => m.umbrella))]).map((g) => {
+            const items = MENUS_PAGE.items.filter((m) => (m.umbrella || 'Other') === g)
+            if (!items.length) return null
+            return (
+              <div key={g} data-menu-group={g}>
+                <Reveal className="flex items-center gap-4"><Eyebrow className="text-gold-deep">{g}</Eyebrow><span className="h-px flex-1 bg-sand" /></Reveal>
+                <div className="mt-6 grid gap-px bg-sand md:grid-cols-2">
+                  {items.map((m, i) => (
+                    <Reveal key={m.title} delay={i % 2} className="flex flex-col bg-ivory p-7 sm:p-9">
+                      <p className="font-body text-[11px] uppercase tracking-eyebrow text-gold-deep">{m.kind} <span className="ml-2 font-normal normal-case tracking-normal text-stone">· {m.umbrella}</span></p>
+                      <p className="mt-3 font-display text-[28px]">{m.title}</p>
+                      <p className="mt-3 flex-1 font-body text-[14px] font-light leading-relaxed text-ink/75">{m.body}</p>
+                      <div className="mt-6 flex flex-wrap gap-3">
+                        {m.file ? <Button href={asset(m.file)} variant="ink" target="_blank" rel="noreferrer">Download PDF</Button> : <Button to={m.request || '/enquire'} variant="ink">Request the price list</Button>}
+                        <Link to={m.to} className="inline-flex items-center gap-2 px-2 py-3 font-body text-[12px] uppercase tracking-wide text-ink/70 hover:text-gold-deep">Read more <Arrow /></Link>
+                      </div>
+                    </Reveal>
+                  ))}
+                </div>
               </div>
-            </Reveal>
-          ))}
+            )
+          })}
         </div>
       </Section>
       <EnquireBand />

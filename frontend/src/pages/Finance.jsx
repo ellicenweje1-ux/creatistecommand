@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls, fmtDate, fmtMoney, INVOICE_STATUSES, INVOICE_TONES, invoiceTotal, SYMBOLS, todayISO, uid } from '../format'
-import { Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, Select, Spinner, StatCard, Tabs, Textarea, toast, toastErr } from '../ui'
+import { Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, SearchInput, Select, Spinner, StatCard, Tabs, Textarea, toast, toastErr } from '../ui'
 import ExampleCard from '../examples'
 import { QuotesPanel } from './Quotes'
 import { ChargesMenu } from '../charges'
@@ -444,11 +444,32 @@ export default function Finance() {
   const [expenses, setExpenses] = useState([])
   const [invoiceModal, setInvoiceModal] = useState({ open: false, initial: null })
   const [expenseModal, setExpenseModal] = useState({ open: false, initial: null })
+  const [clients, setClients] = useState([])
+  const [q, setQ] = useState('')
+  const [receipting, setReceipting] = useState(null)
 
   const load = () => {
     api.get('/finance/summary').then(setSummary).catch(toastErr)
     api.get('/invoices').then(setInvoices).catch(toastErr)
     api.get('/expenses').then(setExpenses).catch(toastErr)
+    api.get('/clients').then(setClients).catch(() => setClients([]))
+  }
+  const clientName = (inv) => clients.find((c) => c.id === inv.client_id)?.name || ''
+  // Term search: number, client, status, and every line item (so "jollof" finds every invoice it was ever on).
+  const needle = q.trim().toLowerCase()
+  const shownInvoices = !needle ? invoices : invoices.filter((inv) => {
+    const hay = [inv.number, clientName(inv), inv.status, inv.notes, ...(inv.items || []).map((it) => it.description || it.name || '')].join(' ').toLowerCase()
+    return hay.includes(needle)
+  })
+  const matchingLines = (inv) => needle ? (inv.items || []).filter((it) => (it.description || it.name || '').toLowerCase().includes(needle)).map((it) => it.description || it.name) : []
+  const sendReceipt = async (inv) => {
+    if (!window.confirm(`Confirm ${inv.number || '#' + inv.id} as paid and email ${clientName(inv) || 'the client'} a receipt?`)) return
+    setReceipting(inv.id)
+    try {
+      const r = await api.post(`/invoices/${inv.id}/receipt`)
+      toast(r.emailed ? 'Receipt emailed to the client' : 'Marked paid. No client email on file, so nothing was sent.')
+      load()
+    } catch (e) { toastErr(e) } finally { setReceipting(null) }
   }
   useEffect(load, [])
   if (!summary) return <Spinner />
@@ -522,24 +543,38 @@ export default function Finance() {
       {tab === 'invoices' && (
         invoices.length === 0 ? <EmptyState icon="coins" title="No invoices yet" action={<Button icon="plus" onClick={() => setInvoiceModal({ open: true, initial: null })}>New invoice</Button>} /> : (
           <div className="space-y-3">
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <SearchInput value={q} onChange={setQ} placeholder="Search invoices: client, number or any line item…" className="w-full sm:w-96" />
             <Button size="sm" variant="secondary" icon="down" onClick={() => api.download('/finance/export/invoices.csv', 'creatiste-invoices.csv').catch(toastErr)}>Export CSV</Button>
           </div>
+          {needle ? <p className="text-xs text-fg/60" data-invoice-search-count>{shownInvoices.length} of {invoices.length} invoices match “{q.trim()}”</p> : null}
           <div className="overflow-hidden rounded-xl border border-line bg-card shadow-card">
             <table className="w-full text-sm">
               <thead><tr className="border-b border-line bg-parchment/50 text-left text-[11px] uppercase tracking-wider text-fg/45">
-                <th className="px-4 py-2.5">Number</th><th className="px-4 py-2.5">Issued</th><th className="hidden px-4 py-2.5 sm:table-cell">Due</th><th className="px-4 py-2.5 text-right">Total</th><th className="px-4 py-2.5">Status</th>
+                <th className="px-4 py-2.5">Number</th><th className="px-4 py-2.5">Client</th><th className="hidden px-4 py-2.5 sm:table-cell">Issued</th><th className="hidden px-4 py-2.5 md:table-cell">Due</th><th className="px-4 py-2.5 text-right">Total</th><th className="px-4 py-2.5">Status</th><th className="px-4 py-2.5"></th>
               </tr></thead>
               <tbody className="divide-y divide-line/60">
-                {invoices.map((inv) => (
-                  <tr key={inv.id} className="cursor-pointer hover:bg-parchment/40" onClick={() => setInvoiceModal({ open: true, initial: inv })}>
+                {shownInvoices.map((inv) => (
+                  <tr key={inv.id} className="cursor-pointer hover:bg-parchment/40" onClick={() => setInvoiceModal({ open: true, initial: inv })} data-invoice-row>
                     <td className="px-4 py-3 font-medium">{inv.number || `#${inv.id}`}</td>
-                    <td className="px-4 py-3 text-fg/60">{fmtDate(inv.issue_date)}</td>
-                    <td className="hidden px-4 py-3 text-fg/60 sm:table-cell">{fmtDate(inv.due_date)}</td>
+                    <td className="px-4 py-3" data-invoice-client>
+                      <span className="font-medium">{clientName(inv) || <span className="text-fg/40">No client</span>}</span>
+                      {matchingLines(inv).length ? <p className="mt-0.5 text-xs text-copper">{matchingLines(inv).slice(0, 2).join(' · ')}{matchingLines(inv).length > 2 ? ` +${matchingLines(inv).length - 2}` : ''}</p> : null}
+                    </td>
+                    <td className="hidden px-4 py-3 text-fg/60 sm:table-cell">{fmtDate(inv.issue_date)}</td>
+                    <td className="hidden px-4 py-3 text-fg/60 md:table-cell">{fmtDate(inv.due_date)}</td>
                     <td className="px-4 py-3 text-right font-semibold">{fmtMoney(invoiceTotal(inv), cur)}</td>
                     <td className="px-4 py-3"><Badge tone={INVOICE_TONES[inv.status]}>{inv.status}</Badge></td>
+                    <td className="px-4 py-3 text-right" onClick={(ev) => ev.stopPropagation()}>
+                      {inv.status !== 'void' && !inv.file_url ? (
+                        <Button size="sm" variant={inv.status === 'paid' ? 'ghost' : 'secondary'} disabled={receipting === inv.id} onClick={() => sendReceipt(inv)} data-send-receipt title={inv.status === 'paid' ? 'Email the client a receipt of payment' : 'Mark paid and email the client a receipt'}>
+                          {receipting === inv.id ? 'Sending…' : inv.status === 'paid' ? 'Send receipt' : 'Confirm paid + receipt'}
+                        </Button>
+                      ) : null}
+                    </td>
                   </tr>
                 ))}
+                {needle && !shownInvoices.length ? <tr><td colSpan={7} className="px-4 py-6 text-center text-sm text-fg/60">Nothing matches. Try a client’s name or a dish from the invoice.</td></tr> : null}
               </tbody>
             </table>
           </div>

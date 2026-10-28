@@ -517,6 +517,56 @@ All verified (12/12 Playwright desktop+mobile, pre-orders suite 36/36), merged t
 - **Clean Dream printed menu PDF replaced** with her 10am re-export (`site/public/docs/clean-dream-menu.pdf`, now also prints
   thecreatistecatering.com/cleandream).
 
+### Follow-on (same 28th-wave session — SITE IS LIVE at thecreatistecatering.com; eighth batch: documents on one page, menus grouped, Clean Dream half & half / sauces / steak, bank flow simplified, careers, FSA cert, DIARY RULES BY BOOKING TYPE, invoice search + receipt, WhatsApp receipt)
+Ellice completed the Cloudflare Pages setup ("all done") so **the site is live** (every merge to `main` now redeploys it). All built + verified
+(backend `scratchpad/test_batch8.py` **23/23**, `test_batch7.py` 64/64, `test_preorders.py` 36/36; Playwright `scratchpad/verify_v9.py` **66/66** desktop+mobile
+incl. the live bank-order and Command flows, `verify_v8.py` 99/100 where the miss is date drift in the test — the standing block only shows on the
+weekdays left in the current week); merged to `main`; preview artifact Version 10.
+- **Printed documents = one shared module `site/src/docs.jsx`** (`DocFrame`: black card, gold rules, small `h-7` lockup; `TableMenuCard`,
+  `BatchfullyCard`, `HomeEditCard`; print routes `/the-creatiste-table-menu`, `/batchfully-made-price-list`, `/the-home-edit-packages`). All
+  three PDFs in `site/public/docs/` are regenerated from these routes (Playwright `page.pdf` A4, `pdfinfo` = **1 page each**). `TableMenu.jsx` is now a
+  re-export shim. **Batchfully Made** is content (`BATCHFULLY_LIST`, transcribed from her old PDF): **bold uppercase component headers**, every
+  item in the same body face, 32oz/58oz columns. **The Home Edit** doc = the four packages + how the week looks + good to know (the six-package
+  Canva PDF is gone). Regenerate after copy changes: boot `vite preview`, print the three routes (recipe in `verify` history / this note).
+- **The Menus page groups by umbrella** (`MENUS_PAGE.groups` Personal chef · Private catering · Lunch service; each item has `umbrella`, shown small
+  beside the kind). Home Edit card says four packages.
+- **Clean Dream (site `CLEAN_DREAM.menu` + Command `DEFAULT_OFFER`, kept identical):** base `max: 2` ("choose one, or two for half and half", no
+  surcharge); the four sauces (hot honey, sriracha, balsamic glaze, raspberry balsamic) moved out of toppings into a **`sauces` group at +£0.25
+  each** (max 4); new **`steak_cooked` group** (Medium / Well done, min 1) with **`requires: {groups: ['protein','extra_protein'], option: 'Steak'}`**:
+  only shown/enforced when steak is in the bowl (`groupActive` on the site; `price_box` skips inactive groups server-side, so a stray choice is
+  ignored and a missing one 422s). ⚠️ **Her printed Clean Dream PDF (`clean-dream-menu.pdf`) still shows sauces free / no steak question** — a
+  Canva re-export is on her list.
+- **Bank-transfer flow simplified (her "is it over complicated?"):** with Command reachable, "I’ve paid, place my order" POSTs to `/bank` and shows an
+  **"Order received" panel on the page** (`data-placed`; emails go to both; saved to the account). No WhatsApp hop for the customer any more; the
+  WhatsApp/email handoff remains only when Command can't be reached. She confirms by WhatsApp once the money lands (her receipt).
+- **Careers on What's Up (`CAREERS`, `#careers`):** Delivery driver (paid per job, Slough or surrounding, flexible) + volunteer Social media
+  coordinator (remote, travel to bookings reimbursed), each with "Apply by email" (`mailto:` with subject) + WhatsApp. **Thanksgiving pop-up set
+  back to `live: false`** (card shows the date as "coming"; off the live bar) until she flips it. **FSA Food Allergy Online Training** (9 Sep 2018,
+  3h CPD) hosted at `site/public/docs/fsa-food-allergy-online-training.jpg` in the accreditations (the "Allergen awareness · issuer to confirm"
+  placeholder is gone).
+- **DIARY RULES BY BOOKING TYPE (Command):** `diary_rules.kinds` = `[{id, label, match[], max_per_day, prep_days, blocks_day}]`, defaults
+  **Private catering** (match private catering/loaded bar/corporate/creatiste table/wedding/party; 1/day, 2 prep days, **takes the whole day**),
+  **Personal chef** (personal chef/batchfully/home edit/sorted & served; 2/day, 0 prep), **Clean Dream** (pre-order/clean dream; 1/day). `kind_of()`
+  matches keywords against `event_type + title` (the site's enquiry form writes "Lane · Service", pre-order bookings are `Pre-order`). Engine:
+  day-off → full; a `blocks_day` kind present → full ("Private catering takes the day"); total ≥ `max_per_day` (**default now 2**) → full; a kind
+  at its own cap → limited ("No more personal chef today"); any booking / prep day (per-kind `prep_days`) / timed block → limited. `why` carries
+  "Type: n of max" lines; chef bookings carry `kind`. `PUT /diary/rules {kinds}` validates (label required, match string or list, ints clamped,
+  ≤12 kinds, ids generated). **Diary.jsx rules card** gained a "Rules by booking type" editor (rows: type, keywords, per day, prep days,
+  "Takes the whole day", remove; "Add a type"). NB `rules_for` returns the defaults until the chef saves kinds once.
+- **Invoices (Command, Finance → Invoices):** **client name column** on every row (fetched from `/clients`), a **search box** matching number,
+  client, status, notes and **every line item** (matching lines shown under the client, "n of m invoices match"), and **"Confirm paid + receipt"**
+  per row → new `POST /invoices/{id}/receipt` (marks paid today if not already, mints the public link, emails the client "Receipt of payment:
+  invoice … · This email is your receipt" with the total + link; "Send receipt" on an already-paid invoice; no email on file → marked paid, nothing
+  sent). Hidden for void and uploaded-PDF invoices.
+- **Pre-orders: "Copy WhatsApp receipt"** on paid/collected orders (`receiptText()`): greeting, RECEIPT OF PAYMENT, amount + method, ref, day,
+  every box, total, collection point or **delivery address + blanks for window and fee (£0.65/mile)**, allergies, sign-off; copied to the clipboard.
+  (Her ask for a manual template; the same text was given in chat.) FAQ (rule #3): Support FAQ diary entry extended for types; new "Can I search my
+  invoices…receipt" + "How do I send a WhatsApp receipt for a pre-order?".
+- **Harness notes:** the Clean Dream builder now has 5 group steps (+ a 6th when steak is picked) — suites that walk it need three Skips; the step
+  rail carries `data-steps` (the page has other `<ol>`s). Repeated runs must use unique invoice numbers/emails (`RUN` suffix).
+- **Still TODO from Ellice:** Canva re-export of the Clean Dream menu PDF (sauces 25p, half & half, steak cook), flip the Thanksgiving card live, the
+  rest of the site-review list given in chat.
+
 ### DEPLOYING THE CATERING SITE (Cloudflare Pages — Ellice does this once; ~10 minutes)
 1. Cloudflare dashboard (the **jill+quinton** account) → Workers & Pages → Create → Pages → **Connect to Git** → repo
    `ellicenweje1-ux/creatistecommand`, production branch **`main`**.

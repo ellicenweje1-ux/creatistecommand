@@ -8,6 +8,31 @@ import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Spinner, Tex
    day, so this page is the box-by-box view: who, which slot, what's in each named box. */
 const TONES = { paid: 'green', collected: 'gray', cancelled: 'red', refunded: 'amber', pending_payment: 'amber' }
 const LABELS = { paid: 'Paid', collected: 'Collected', cancelled: 'Cancelled', refunded: 'Refunded', pending_payment: 'Awaiting payment' }
+/* The WhatsApp receipt Ellice sends by hand once a transfer lands: boxes, total, where and when, with a
+   blank for the delivery fee. Copied to the clipboard, pasted into WhatsApp, figures tweaked as needed. */
+function receiptText(o) {
+  const lines = (o.boxes || []).map((b) => `• ${b.for}: ${b.item}${b.summary ? ` (${b.summary})` : ''}${b.note ? ` [${b.note}]` : ''} £${Number(b.price || 0).toFixed(2)}`)
+  const when = o.date ? new Date(o.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }) : ''
+  const where = o.delivery_address ? `Delivery to: ${o.delivery_address}\nDelivery window: ____\nDelivery fee: £____ (£0.65 per mile)` : `Collection: ${o.slot || ''}`
+  return [
+    `Hi ${(o.name || '').split(' ')[0]}, thank you for your ${o.title || 'Clean Dream'} order.`,
+    '',
+    'RECEIPT OF PAYMENT',
+    `Payment received: £${Number(o.total || 0).toFixed(2)}${o.pay_method === 'bank' ? ' by bank transfer' : ''}`,
+    `Order ref: ${o.public_id || ''}`,
+    `For: ${when}`,
+    '',
+    ...lines,
+    `Total: £${Number(o.total || 0).toFixed(2)}`,
+    o.delivery_address ? 'Total incl. delivery: £____' : '',
+    '',
+    where,
+    o.allergies ? `Allergies noted: ${o.allergies}` : '',
+    '',
+    'Your order is confirmed. See you then!',
+    'The Creatiste Catering',
+  ].filter((l) => l !== '').join('\n')
+}
 const label = (o) => (o.status === 'pending_payment' && o.pay_method === 'bank' ? 'Awaiting bank transfer' : LABELS[o.status] || o.status)
 
 export default function Preorders() {
@@ -34,6 +59,9 @@ export default function Preorders() {
     return Object.entries(by).sort(([a], [b]) => a.localeCompare(b))
   }, [orders, showPending])
 
+  const copyReceipt = async (o) => {
+    try { await navigator.clipboard.writeText(receiptText(o)); toast('Receipt copied. Paste it into WhatsApp and fill in the blanks.') } catch { window.prompt('Copy this receipt:', receiptText(o)) }
+  }
   const setStatus = async (o, status) => {
     try { await api.patch(`/preorders/${o.id}`, { status }); toast(`Marked ${LABELS[status].toLowerCase()}`); load() } catch (e) { toastErr(e) }
   }
@@ -85,6 +113,7 @@ export default function Preorders() {
                   <div className="flex items-center gap-2">
                     <Badge tone={TONES[o.status] || 'gray'}>{label(o)}</Badge>
                     {o.status === 'pending_payment' && o.pay_method === 'bank' ? <Button size="sm" onClick={() => setStatus(o, 'paid')} data-mark-paid>Mark paid</Button> : null}
+                    {o.status === 'paid' || o.status === 'collected' ? <Button size="sm" variant="ghost" onClick={() => copyReceipt(o)} data-copy-receipt>Copy WhatsApp receipt</Button> : null}
                     {o.status === 'paid' ? <Button size="sm" variant="ghost" onClick={() => setStatus(o, 'collected')}>Mark collected</Button> : null}
                     {o.status !== 'cancelled' && o.status !== 'refunded' ? <Button size="sm" variant="ghost" onClick={() => setStatus(o, 'cancelled')}>Cancel</Button> : null}
                   </div>

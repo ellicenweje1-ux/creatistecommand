@@ -288,7 +288,7 @@ export const NOW = {
       link: '/cleandream',
     },
     {
-      live: true,
+      live: false, // flip to true once the details are set
       kind: 'Pop-up',
       name: 'Thanksgiving Soul Food Pop-up',
       when: 'Friday 20 November',
@@ -321,13 +321,16 @@ export const CLEAN_DREAM = {
     items: [{
       id: 'bowl', name: 'Build your own bowl', price: 8, desc: 'Whole-food lunch bowl, cooked fresh and served hot.',
       groups: [
-        { id: 'base', label: 'Base', pick: 'choose one', min: 1, max: 1, options: [{ name: 'Whole sweet potato' }, { name: 'Tomato & pepper bulgur' }, { name: 'Spring mix' }] },
+        { id: 'base', label: 'Base', pick: 'choose one, or two for half and half', min: 1, max: 2, options: [{ name: 'Whole sweet potato' }, { name: 'Tomato & pepper bulgur' }, { name: 'Spring mix' }] },
         { id: 'protein', label: 'Protein', pick: 'choose one', min: 1, max: 1, options: [{ name: 'Beef mince' }, { name: 'Chicken mince' }, { name: 'Tofu mince' }, { name: 'Steak', surcharge: 3 }, { name: 'Blackened prawns', surcharge: 2 }] },
         { id: 'toppings', label: 'Toppings', pick: 'choose up to five', min: 0, max: 5, extra_price: 0.5, extra_premium_price: 1, options: [
           { name: 'Avocado', premium: true }, { name: 'Feta', premium: true }, { name: 'Cottage cheese', premium: true }, { name: 'Boiled egg', premium: true }, { name: 'Fried egg', premium: true },
           { name: 'Cherry tomatoes' }, { name: 'Red onion' }, { name: 'Sweetcorn' }, { name: 'Pomegranate' }, { name: 'Pickled pink slaw' }, { name: 'Sliced pickles' }, { name: 'Pickled jalapeño' },
-          { name: 'Coriander' }, { name: 'Parsley' }, { name: 'Rocket' }, { name: 'Hot honey' }, { name: 'Sriracha' }, { name: 'Balsamic glaze' }, { name: 'Raspberry balsamic glaze' }] },
+          { name: 'Coriander' }, { name: 'Parsley' }, { name: 'Rocket' }] },
+        { id: 'sauces', label: 'Sauces', pick: 'optional, 25p each', min: 0, max: 4, options: [{ name: 'Hot honey', surcharge: 0.25 }, { name: 'Sriracha', surcharge: 0.25 }, { name: 'Balsamic glaze', surcharge: 0.25 }, { name: 'Raspberry balsamic glaze', surcharge: 0.25 }] },
         { id: 'extra_protein', label: 'Extra protein', pick: 'optional', min: 0, max: 2, options: [{ name: 'Beef mince', surcharge: 2 }, { name: 'Chicken mince', surcharge: 2 }, { name: 'Tofu mince', surcharge: 2 }, { name: 'Steak', surcharge: 4 }, { name: 'Blackened prawns', surcharge: 3 }] },
+        /* Only asked when steak is in the bowl (protein or extra protein); then it must be answered. */
+        { id: 'steak_cooked', label: 'Steak', pick: 'medium or well done', min: 1, max: 1, requires: { groups: ['protein', 'extra_protein'], option: 'Steak' }, options: [{ name: 'Medium' }, { name: 'Well done' }] },
       ],
     }],
     slots: [
@@ -347,7 +350,7 @@ export const CLEAN_DREAM = {
     ['Order by 10am', 'Orders in by 10:00am are made the same day, Monday to Friday. After 10am, your order rolls to the next weekday.'],
     ['Collect at 1pm or 2:30pm', 'Two collection points each day. Pick the one that suits you at checkout.'],
     ['Or have it delivered', 'Deliveries between the two locations by request, at +£0.65 per mile. We confirm by WhatsApp after you order and the delivery fee is charged separately.'],
-    ['Confirmed by WhatsApp', 'Your order will be confirmed once I send a receipt of payment and final collection/delivery details via WhatsApp. Every box is named so each person’s food is labelled correctly.'],
+    ['Confirmed by WhatsApp', 'Pay by bank transfer at checkout and place your order. Once your payment lands we send a receipt and the final collection or delivery details by WhatsApp. Every box is named so each person’s food is labelled correctly.'],
   ],
 }
 
@@ -396,7 +399,7 @@ export const CHEF = {
   accreditations: [
     // TODO Ellice: add each certificate as { name, issuer, year, file: '/docs/….pdf' }
     { name: 'Level 2 Food Hygiene and Safety for Catering', issuer: 'High Speed Training · issued 11 March 2025, renewal due March 2028', year: '2025', file: '/docs/level-2-food-hygiene-and-safety-for-catering.pdf' },
-    { name: 'Allergen awareness', issuer: 'Issuer to confirm', year: '' },
+    { name: 'Food Allergy Online Training', issuer: 'Food Standards Agency · completed 9 September 2018 · 3 hours CPD', year: '2018', file: '/docs/fsa-food-allergy-online-training.jpg' },
     { name: 'Food hygiene rating', issuer: 'Local authority', year: '' },
   ],
 }
@@ -479,12 +482,13 @@ export const MENUS_PAGE = {
   eyebrow: 'The Menus',
   title: 'Every menu, in one place.',
   intro: 'The brochures and menus from across the site, tidy and ready to download.',
+  groups: ['Personal chef', 'Private catering', 'Lunch service'],
   items: [
-    { title: 'The Loaded Bar', kind: 'Brochure', body: 'What’s included, the corporate and private bowl menus, requirements and terms for the live hot food station.', file: '/docs/the-loaded-bar.pdf', to: '/the-loaded-bar' },
-    { title: 'The Creatiste Table', kind: 'Seasonal menu', body: 'The current set menu, from £43* per head. *Subject to final consultation. Travel fee and staffing may be charged.', file: '/docs/the-creatiste-table-menu.pdf', to: '/private-catering#the-creatiste-table' },
-    { title: 'Batchfully Made', kind: 'Price list', body: 'Proteins, pastas, sides, vegetables and sauces, individually priced in 32oz and 58oz containers. Not on the menu? Ask and we’ll add it.', file: '/docs/batchfully-made-price-list.pdf', to: '/personal-chef#batchfully-made' },
-    { title: 'The Home Edit', kind: 'Package options', body: 'Six packages for the in-home personal chef service, how each week looks, and the pricing basis.', file: '/docs/the-home-edit-packages.pdf', to: '/personal-chef#the-home-edit' },
-    { title: 'Clean Dream', kind: 'Lunch menu', body: 'Build your own bowl: bases, proteins, toppings and extras for the weekday lunch service.', file: '/docs/clean-dream-menu.pdf', to: '/cleandream' },
+    { title: 'The Loaded Bar', kind: 'Brochure', umbrella: 'Private catering', body: 'What’s included, the corporate and private bowl menus, requirements and terms for the live hot food station.', file: '/docs/the-loaded-bar.pdf', to: '/the-loaded-bar' },
+    { title: 'The Creatiste Table', kind: 'Seasonal menu', umbrella: 'Private catering', body: 'The current set menu, from £43* per head. *Subject to final consultation. Travel fee and staffing may be charged.', file: '/docs/the-creatiste-table-menu.pdf', to: '/private-catering#the-creatiste-table' },
+    { title: 'Batchfully Made', kind: 'Price list', umbrella: 'Personal chef', body: 'Proteins, pastas, sides, vegetables and sauces, individually priced in 32oz and 58oz containers. Not on the menu? Ask and we’ll add it.', file: '/docs/batchfully-made-price-list.pdf', to: '/personal-chef#batchfully-made' },
+    { title: 'The Home Edit', kind: 'Package options', umbrella: 'Personal chef', body: 'The four packages for the in-home personal chef service, how each week looks, and the pricing basis.', file: '/docs/the-home-edit-packages.pdf', to: '/personal-chef#the-home-edit' },
+    { title: 'Clean Dream', kind: 'Lunch menu', umbrella: 'Lunch service', body: 'Build your own bowl: bases, proteins, toppings and extras for the weekday lunch service.', file: '/docs/clean-dream-menu.pdf', to: '/cleandream' },
     // TODO Ellice: Corporate Curations and Private & Personal menu offerings when ready
   ],
 }
@@ -620,4 +624,45 @@ export const FAQ = {
       'Reviews are read before they appear on the site.',
     ] },
   ],
+}
+
+/* Careers: shown on What's Up With Us. Applications come in by email (and WhatsApp). */
+export const CAREERS = {
+  eyebrow: 'Join the team',
+  title: 'We’re hiring.',
+  intro: 'Two roles open right now. Tell us a little about yourself and why you’d like to work with us.',
+  email: 'enquiries@thecreatistecatering.com',
+  roles: [
+    {
+      title: 'Delivery driver',
+      type: 'Paid per job · flexible hours',
+      where: 'Slough or the surrounding areas, preferably',
+      body: 'Collecting from our kitchen and delivering Clean Dream orders and event food to clients, reliably and on time. You bring your own vehicle and a friendly, professional manner; we pay per job.',
+      asks: ['Own car or van, full UK licence and insurance', 'Based in or near Slough, with flexible availability on weekdays and some weekends', 'Careful with food: on time, kept level, handed over with a smile'],
+    },
+    {
+      title: 'Social media coordinator',
+      type: 'Volunteer · remote, with travel to bookings reimbursed',
+      where: 'Remote, travelling to bookings when needed',
+      body: 'Capturing content at bookings, editing it, and shaping a content plan that shows what we do. A real portfolio piece for someone building a career in food and hospitality content.',
+      asks: ['Comfortable filming and photographing on a phone at live events', 'Editing for Instagram and TikTok, with an eye for our look', 'Able to put together a simple monthly content plan', 'Travel to bookings is required and reimbursed'],
+    },
+  ],
+}
+
+/* Batchfully Made price list, rendered as a document (and printed to /docs/batchfully-made-price-list.pdf).
+   Prices per container: 32oz and 58oz. */
+export const BATCHFULLY_LIST = {
+  title: 'Batchfully Made',
+  sub: 'Meal prep · Price list',
+  intro: 'Component-based batch prep in 32oz and 58oz containers, built around your preferences.',
+  columns: ['32oz', '58oz'],
+  sections: [
+    { name: 'Proteins', items: [['Garlic & herb prawns', 13, 22], ['Salmon bites', 10.5, 17.5], ['Salmon', 10, 16.5], ['Blackened Cajun basa', 9, 15], ['Tuna fishcakes', 9, 15], ['Chicken thigh', 9, 15], ['Chicken wings', 8.5, 14], ['Turkey meatballs', 9, 15]] },
+    { name: 'Pastas', items: [['Prawn pasta', 10, 15], ['Creamy Alfredo pasta', 8, 13], ['Chicken pasta', 8, 13], ['Sausage pasta', 8, 13], ['Tuna pasta salad', 8, 13]] },
+    { name: 'Sides', items: [['Creamy red potato mash', 6.5, 10], ['Sweet potato & halloumi hash', 7, 10.5], ['Roast sweet potato', 6, 7.5], ['Whole roasted sweet potato', 5.5, 7.5], ['Fragrant coconut white rice', 6, 9], ['Tomato & red pepper bulgur', 6, 9], ['Seasoned rice', 5.5, 8.5]] },
+    { name: 'Vegetables', items: [['Asparagus & tenderstem broccoli', 6.5, 10], ['Honey glazed carrots', 5.5, 8.5], ['Mixed salad with avocado', 5.5, 8.5], ['Sweetcorn cobettes', 5, 7.5], ['Steamed mixed veg', 5, 7.5]] },
+    { name: 'Sauces & dressings', single: true, items: [['Sweet chilli BBQ sauce', 2], ['Garlic white sauce', 2], ['Hot honey dressing', 0.5], ['Balsamic & honey dressing', 'Complimentary']] },
+  ],
+  footer: 'Not on the menu? Let us know, we’ll make it and add it.',
 }

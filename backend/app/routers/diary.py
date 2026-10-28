@@ -2,10 +2,14 @@
 
 A day's state is computed from the bookings (status quoted/confirmed/in_prep, with their time windows) plus
 the chef's own diary blocks (a standing weekly service, prep days, days off), under the chef's diary rules:
-  max_per_day   how many events a day can hold before it is full (default 1)
-  prep_days     days before each confirmed event that are kept as prep (default 1; shown as "limited")
+  max_per_day   how many bookings in total a day can hold before it is full (default 1)
+  prep_days     default days before each confirmed event that are kept as prep (default 1; shown as "limited")
   public        whether the website may show availability at all (default on)
   horizon_days  how far ahead the public calendar reaches (default 90)
+  kinds         per booking-type rules, matched on the booking's event type / title by keywords:
+                {id, label, match[], max_per_day, prep_days, blocks_day}. A kind that `blocks_day` makes the
+                day full the moment one is booked (a catered event); a kind at its own cap, or any booking at
+                all, makes the day limited. Unmatched bookings use the defaults above.
 Public state is only ever open | limited | full (no titles, no client names).
 
 Chef:
@@ -31,8 +35,47 @@ router = APIRouter()  # rules + the computed days (kept off the crud router so /
 public_router = APIRouter(prefix="/public", tags=["public"])
 
 ACTIVE = ("quoted", "confirmed", "in_prep")
-DEFAULT_RULES = {"max_per_day": 1, "prep_days": 1, "public": True, "horizon_days": 90}
+DEFAULT_KINDS = [
+    {"id": "private", "label": "Private catering", "match": ["private catering", "loaded bar", "corporate", "creatiste table", "wedding", "party"],
+     "max_per_day": 1, "prep_days": 2, "blocks_day": True},
+    {"id": "personal", "label": "Personal chef", "match": ["personal chef", "batchfully", "home edit", "sorted & served", "sorted and served"],
+     "max_per_day": 2, "prep_days": 0, "blocks_day": False},
+    {"id": "cleandream", "label": "Clean Dream", "match": ["pre-order", "clean dream"],
+     "max_per_day": 1, "prep_days": 0, "blocks_day": False},
+]
+DEFAULT_RULES = {"max_per_day": 2, "prep_days": 1, "public": True, "horizon_days": 90, "kinds": DEFAULT_KINDS}
 KINDS = ("busy", "prep", "off", "standing")
+
+
+def _clean_kinds(raw) -> list[dict]:
+    out = []
+    for i, k in enumerate(raw if isinstance(raw, list) else []):
+        if not isinstance(k, dict):
+            continue
+        label = str(k.get("label") or "").strip()[:60]
+        if not label:
+            continue
+        match = k.get("match")
+        if isinstance(match, str):
+            match = match.split(",")
+        match = [str(m).strip().lower()[:60] for m in (match or []) if str(m).strip()][:20]
+        try:
+            mpd = max(1, min(int(k.get("max_per_day") or 1), 50))
+            prep = max(0, min(int(k.get("prep_days") or 0), 14))
+        except (TypeError, ValueError):
+            raise HTTPException(422, f"{label}: limits must be whole numbers")
+        kid = str(k.get("id") or "").strip()[:40] or f"kind{i + 1}"
+        out.append({"id": kid, "label": label, "match": match, "max_per_day": mpd, "prep_days": prep, "blocks_day": bool(k.get("blocks_day"))})
+    return out[:12]
+
+
+def kind_of(kinds: list[dict], bk: Booking) -> dict | None:
+    """The first kind whose keywords appear in the booking's event type or title."""
+    hay = f"{bk.event_type or ''} {bk.title or ''}".lower()
+    for k in kinds:
+        if any(m and m in hay for m in k["match"]):
+            return k
+    return None
 
 
 def rules_for(owner: User) -> dict:
@@ -41,6 +84,7 @@ def rules_for(owner: User) -> dict:
     r["prep_days"] = max(0, min(int(r.get("prep_days") or 0), 14))
     r["horizon_days"] = max(14, min(int(r.get("horizon_days") or 90), 365))
     r["public"] = bool(r.get("public", True))
+    r["kinds"] = _clean_kinds(r.get("kinds")) if "kinds" in (owner.diary_rules or {}) else [dict(k) for k in DEFAULT_KINDS]
     return r
 
 
@@ -72,7 +116,9 @@ def compute_days(db: Session, owner_id: int, rules: dict, start: _date, end: _da
         return []
     # Bookings a little before the window too, so prep days of an event just after the window are counted.
     prep = rules["prep_days"]
-    q_from, q_to = start.isoformat(), (end + timedelta(days=prep)).isoformat()
+    kinds = rules.get("kinds") or []
+    max_prep = max([prep] + [k["prep_days"] for k in kinds])
+    q_from, q_to = start.isoformat(), (end + timedelta(days=max_prep)).isoformat()
     bookings = (db.query(Booking).filter(Booking.user_id == owner_id, Booking.status.in_(ACTIVE),
                                           Booking.date >= q_from, Booking.date <= q_to).all())
     blocks = db.query(DiaryBlock).filter(DiaryBlock.user_id == owner_id).all()
@@ -85,7 +131,8 @@ def compute_days(db: Session, owner_id: int, rules: dict, start: _date, end: _da
         if bk.status not in ("confirmed", "in_prep"):
             continue
         d = _date.fromisoformat(bk.date)
-        for n in range(1, prep + 1):
+        k = kind_of(kinds, bk)
+        for n in range(1, (k["prep_days"] if k else prep) + 1):
             prep_for.setdefault((d - timedelta(days=n)).isoformat(), []).append(bk.title)
 
     out = []
@@ -95,13 +142,27 @@ def compute_days(db: Session, owner_id: int, rules: dict, start: _date, end: _da
         todays = by_day.get(iso, [])
         blk = [b for b in blocks if _block_on(b, day)]
         state, why = "open", []
+        # Count today's bookings per kind; a kind that takes the whole day, or any kind over its own cap, decides.
+        counts: dict[str, int] = {}
+        for bk in todays:
+            k = kind_of(kinds, bk)
+            counts[k["id"] if k else "_other"] = counts.get(k["id"] if k else "_other", 0) + 1
+        by_id = {k["id"]: k for k in kinds}
+        kind_lines = [f"{by_id[kid]['label']}: {n} of {by_id[kid]['max_per_day']}" if kid in by_id else f"Other: {n}" for kid, n in counts.items()]
+        blocked_by = [by_id[kid]["label"] for kid, n in counts.items() if kid in by_id and by_id[kid]["blocks_day"] and n >= 1]
+        capped = [by_id[kid]["label"] for kid, n in counts.items() if kid in by_id and n >= by_id[kid]["max_per_day"]]
         if any(b.kind == "off" and not b.start_time for b in blk):
             state, why = "full", ["Day off"]
+        elif blocked_by:
+            state, why = "full", [f"{blocked_by[0]} takes the day"] + kind_lines
         elif len(todays) >= rules["max_per_day"]:
-            state, why = "full", ["Booked"]
+            state, why = "full", ["Booked"] + kind_lines
         else:
-            if todays:
-                why.append("Event already on")
+            if capped:
+                why.append(f"No more {', '.join(capped).lower()} today")
+            elif todays:
+                why.append("Booking already on")
+            why.extend(kind_lines)
             if iso in prep_for:
                 why.append("Prep day")
             if any(b.kind in ("busy", "standing", "off") for b in blk):
@@ -115,7 +176,9 @@ def compute_days(db: Session, owner_id: int, rules: dict, start: _date, end: _da
             row["why"] = why
             row["bookings"] = [{"id": bk.id, "title": bk.title, "status": bk.status, "start_time": bk.start_time,
                                 "end_time": bk.end_time, "guest_count": bk.guest_count, "event_type": bk.event_type,
-                                "venue_name": bk.venue_name} for bk in sorted(todays, key=lambda b: b.start_time or "")]
+                                "venue_name": bk.venue_name, "kind": (kind_of(kinds, bk) or {}).get("label", "")}
+                               for bk in sorted(todays, key=lambda b: b.start_time or "")]
+            row["counts"] = counts
             row["blocks"] = [to_dict(b) for b in blk]
             row["prep_for"] = prep_for.get(iso, [])
         out.append(row)
@@ -140,6 +203,8 @@ def save_rules(payload: dict = Body(...), db: Session = Depends(get_db), user: U
                 raise HTTPException(422, f"{k} must be a whole number")
     if "public" in payload:
         cur["public"] = bool(payload["public"])
+    if "kinds" in payload:
+        cur["kinds"] = _clean_kinds(payload["kinds"])
     owner.diary_rules = dict(cur)  # fresh object so SQLAlchemy persists the JSON
     db.commit()
     return rules_for(owner)

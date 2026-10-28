@@ -44,7 +44,7 @@ DEFAULT_OFFER = {
             "id": "bowl", "name": "Build your own bowl", "price": 8,
             "desc": "Whole-food lunch bowl, cooked fresh and served hot.",
             "groups": [
-                {"id": "base", "label": "Base", "pick": "choose one", "min": 1, "max": 1,
+                {"id": "base", "label": "Base", "pick": "choose one, or two for half and half", "min": 1, "max": 2,
                  "options": [{"name": "Whole sweet potato"}, {"name": "Tomato & pepper bulgur"}, {"name": "Spring mix"}]},
                 {"id": "protein", "label": "Protein", "pick": "choose one", "min": 1, "max": 1,
                  "options": [{"name": "Beef mince"}, {"name": "Chicken mince"}, {"name": "Tofu mince"},
@@ -56,12 +56,18 @@ DEFAULT_OFFER = {
                              {"name": "Fried egg", "premium": True}, {"name": "Cherry tomatoes"}, {"name": "Red onion"},
                              {"name": "Sweetcorn"}, {"name": "Pomegranate"}, {"name": "Pickled pink slaw"},
                              {"name": "Sliced pickles"}, {"name": "Pickled jalapeño"}, {"name": "Coriander"},
-                             {"name": "Parsley"}, {"name": "Rocket"}, {"name": "Hot honey"}, {"name": "Sriracha"},
-                             {"name": "Balsamic glaze"}, {"name": "Raspberry balsamic glaze"}]},
+                             {"name": "Parsley"}, {"name": "Rocket"}]},
+                {"id": "sauces", "label": "Sauces", "pick": "optional, 25p each", "min": 0, "max": 4,
+                 "options": [{"name": "Hot honey", "surcharge": 0.25}, {"name": "Sriracha", "surcharge": 0.25},
+                             {"name": "Balsamic glaze", "surcharge": 0.25}, {"name": "Raspberry balsamic glaze", "surcharge": 0.25}]},
                 {"id": "extra_protein", "label": "Extra protein", "pick": "optional", "min": 0, "max": 2,
                  "options": [{"name": "Beef mince", "surcharge": 2}, {"name": "Chicken mince", "surcharge": 2},
                              {"name": "Tofu mince", "surcharge": 2}, {"name": "Steak", "surcharge": 4},
                              {"name": "Blackened prawns", "surcharge": 3}]},
+                # Only asked when steak is in the bowl (protein or extra protein); then it must be answered.
+                {"id": "steak_cooked", "label": "Steak", "pick": "medium or well done", "min": 1, "max": 1,
+                 "requires": {"groups": ["protein", "extra_protein"], "option": "Steak"},
+                 "options": [{"name": "Medium"}, {"name": "Well done"}]},
             ],
         },
     ],
@@ -134,6 +140,9 @@ def price_box(offer: dict, box: dict) -> dict:
     price = float(item.get("price") or 0)
     choices, summary = {}, []
     for g in item.get("groups") or []:
+        req = g.get("requires")
+        if req and not any(req.get("option") in (choices_in.get(gid) or []) for gid in req.get("groups") or []):
+            continue  # the group doesn't apply to this box (e.g. no steak, so no "how cooked")
         picked = [str(x) for x in (choices_in.get(g["id"]) or []) if str(x).strip()]
         opts = {o["name"]: o for o in g.get("options") or []}
         unknown = [p for p in picked if p not in opts]

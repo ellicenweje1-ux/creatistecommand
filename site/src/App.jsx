@@ -13,6 +13,7 @@ import Portfolio from './pages/Portfolio.jsx'
 import { Privacy, Terms } from './pages/Legal.jsx'
 import CleanDream, { CleanDreamConfirmed } from './pages/CleanDream.jsx'
 import TableMenuPrint from './pages/TableMenu.jsx'
+import { BatchfullyPrint, HomeEditPrint } from './docs.jsx'
 import Menus from './pages/Menus.jsx'
 import Account from './pages/Account.jsx'
 import { useCustomer } from './account.js'
@@ -200,6 +201,8 @@ export default function App() {
           <Route path="/clean-dream" element={<MovedTo to="/cleandream" />} />
           <Route path="/clean-dream/confirmed" element={<MovedTo to="/cleandream/confirmed" />} />
           <Route path="/the-creatiste-table-menu" element={<TableMenuPrint />} />
+          <Route path="/batchfully-made-price-list" element={<BatchfullyPrint />} />
+          <Route path="/the-home-edit-packages" element={<HomeEditPrint />} />
           <Route path="/the-menus" element={<Menus />} />
           <Route path="/enquire" element={<Enquire />} />
           <Route path="/account" element={<Account />} />

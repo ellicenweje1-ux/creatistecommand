@@ -104,7 +104,7 @@ export default function Diary() {
                   <li key={`b${b.id}`}>
                     <Link to={`/app/bookings/${b.id}`} className="block rounded border border-copper/40 bg-copper/10 px-2 py-1.5 text-xs hover:border-copper" data-booking>
                       <p className="font-medium leading-snug">{b.title}</p>
-                      <p className="text-fg/60">{b.start_time ? `${hhmm(b.start_time)}${b.end_time ? ` – ${hhmm(b.end_time)}` : ''}` : 'Time not set'}{b.guest_count ? ` · ${b.guest_count} guests` : ''} · {b.status.replace('_', ' ')}</p>
+                      <p className="text-fg/60">{b.kind ? <span className="text-copper">{b.kind} · </span> : null}{b.start_time ? `${hhmm(b.start_time)}${b.end_time ? ` – ${hhmm(b.end_time)}` : ''}` : 'Time not set'}{b.guest_count ? ` · ${b.guest_count} guests` : ''} · {b.status.replace('_', ' ')}</p>
                     </Link>
                   </li>
                 ))}
@@ -167,11 +167,39 @@ export default function Diary() {
         <p className="font-display text-lg">How a day fills up</p>
         <p className="mt-1 text-sm text-fg/70">Bookings that are quoted, confirmed or in prep count towards a day. Enquiries don’t. Days off are always full; a standing service or a prep day makes a day limited (a slot may still be possible, so the site invites people to ask).</p>
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          <Field label="Events a day can hold" hint="Once a day has this many, it shows as full."><Input type="number" min={1} max={20} value={rules.max_per_day} onChange={(e) => setRules({ ...rules, max_per_day: e.target.value })} /></Field>
-          <Field label="Prep days before each confirmed event" hint="Kept as limited, so a Sunday drop-off keeps Friday and Saturday for cooking."><Input type="number" min={0} max={14} value={rules.prep_days} onChange={(e) => setRules({ ...rules, prep_days: e.target.value })} /></Field>
+          <Field label="Bookings a day can hold, all types together" hint="Once a day has this many, it shows as full."><Input type="number" min={1} max={20} value={rules.max_per_day} onChange={(e) => setRules({ ...rules, max_per_day: e.target.value })} /></Field>
+          <Field label="Prep days before a confirmed booking (default)" hint="Kept as limited. A booking type below can set its own."><Input type="number" min={0} max={14} value={rules.prep_days} onChange={(e) => setRules({ ...rules, prep_days: e.target.value })} /></Field>
           <Field label="How far ahead the website shows" hint="Days from today."><Input type="number" min={14} max={365} value={rules.horizon_days} onChange={(e) => setRules({ ...rules, horizon_days: e.target.value })} /></Field>
         </div>
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-6 border-t border-line pt-5" data-kinds>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-medium">Rules by booking type</p>
+              <p className="mt-1 text-sm text-fg/70">Each booking is matched to a type by the words in its event type or title (the enquiry form fills these in, so “Personal Chef Services · Batchfully Made” lands under Personal chef). Set how many of each type a day can hold, how many prep days each needs, and whether one booking of that type takes the whole day.</p>
+            </div>
+            <Button size="sm" variant="ghost" icon="plus" onClick={() => setRules({ ...rules, kinds: [...(rules.kinds || []), { id: `kind${Date.now()}`, label: '', match: [], max_per_day: 1, prep_days: 0, blocks_day: false }] })}>Add a type</Button>
+          </div>
+          <div className="mt-4 space-y-3">
+            {(rules.kinds || []).map((k, i) => {
+              const setK = (patch) => setRules({ ...rules, kinds: rules.kinds.map((x, n) => (n === i ? { ...x, ...patch } : x)) })
+              return (
+                <div key={k.id || i} className="grid gap-3 rounded-lg border border-line p-3 md:grid-cols-12 md:items-end" data-kind-row>
+                  <Field label="Type" className="md:col-span-3"><Input value={k.label} placeholder="e.g. Private catering" onChange={(e) => setK({ label: e.target.value })} /></Field>
+                  <Field label="Matches when the booking mentions" hint="Comma-separated words" className="md:col-span-4"><Input value={Array.isArray(k.match) ? k.match.join(', ') : k.match || ''} placeholder="loaded bar, corporate, wedding" onChange={(e) => setK({ match: e.target.value.split(',').map((x) => x.trim()).filter(Boolean) })} /></Field>
+                  <Field label="Per day" className="md:col-span-1"><Input type="number" min={1} max={50} value={k.max_per_day} onChange={(e) => setK({ max_per_day: e.target.value })} /></Field>
+                  <Field label="Prep days" className="md:col-span-1"><Input type="number" min={0} max={14} value={k.prep_days} onChange={(e) => setK({ prep_days: e.target.value })} /></Field>
+                  <div className="flex items-center justify-between gap-2 md:col-span-3">
+                    <Toggle checked={!!k.blocks_day} onChange={(v) => setK({ blocks_day: v })} label="Takes the whole day" />
+                    <IconButton icon="trash" label="Remove this type" onClick={() => setRules({ ...rules, kinds: rules.kinds.filter((_, n) => n !== i) })} />
+                  </div>
+                </div>
+              )
+            })}
+            {!(rules.kinds || []).length ? <p className="text-sm text-fg/60">No types yet: every booking counts the same. Add one to treat, say, Clean Dream days differently from a catered event.</p> : null}
+          </div>
+          <p className="mt-3 text-xs text-fg/50">Bookings that match no type use the limits above. The first matching type wins, so put the most specific first.</p>
+        </div>
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
           <Toggle checked={!!rules.public} onChange={(v) => setRules({ ...rules, public: v })} label="Show my availability on my website" />
           <Button onClick={saveRules} disabled={savingRules}>{savingRules ? 'Saving…' : 'Save rules'}</Button>
         </div>

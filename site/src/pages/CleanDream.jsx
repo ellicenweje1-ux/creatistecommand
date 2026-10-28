@@ -25,10 +25,15 @@ function openDates(menu) {
   return out
 }
 
+/* A group with `requires` only applies when the named option is picked in one of the listed groups
+   (the steak question only appears once steak is in the bowl). */
+export const groupActive = (g, choices) => !g.requires || (g.requires.groups || []).some((gid) => (choices[gid] || []).includes(g.requires.option))
+const activeGroups = (item, choices) => (item.groups || []).filter((g) => groupActive(g, choices))
+
 /* Mirrors the server's pricing so the running total is honest; the server is still the authority. */
 function priceBox(item, choices) {
   let price = Number(item.price || 0)
-  for (const g of item.groups || []) {
+  for (const g of activeGroups(item, choices)) {
     const picked = choices[g.id] || []
     const opts = Object.fromEntries((g.options || []).map((o) => [o.name, o]))
     picked.forEach((name, n) => {
@@ -39,7 +44,7 @@ function priceBox(item, choices) {
   }
   return Math.round(price * 100) / 100
 }
-const summarise = (item, choices) => (item.groups || []).filter((g) => (choices[g.id] || []).length).map((g) => `${g.label}: ${choices[g.id].join(', ')}`).join('; ')
+const summarise = (item, choices) => activeGroups(item, choices).filter((g) => (choices[g.id] || []).length).map((g) => `${g.label}: ${choices[g.id].join(', ')}`).join('; ')
 
 function Chip({ on, onClick, children }) {
   return <button type="button" onClick={onClick} aria-pressed={on} className={`border px-4 py-2.5 font-body text-[13px] transition-colors ${on ? 'border-gold bg-gold text-ink' : 'border-ink-3 text-ivory/85 hover:border-gold/60'}`}>{children}</button>
@@ -47,10 +52,10 @@ function Chip({ on, onClick, children }) {
 
 /* The bowl builder as steps: one choice group per step, then name the box, then add to basket. */
 function Builder({ item, onAdd, boxCount }) {
-  const groups = item.groups || []
-  const steps = [...groups.map((g) => ({ kind: 'group', g })), { kind: 'name' }]
   const [i, setI] = useState(0)
   const [choices, setChoices] = useState({})
+  const groups = activeGroups(item, choices)
+  const steps = [...groups.map((g) => ({ kind: 'group', g })), { kind: 'name' }]
   const [forWho, setForWho] = useState('')
   const [note, setNote] = useState('')
   const top = useRef(null)
@@ -67,7 +72,7 @@ function Builder({ item, onAdd, boxCount }) {
   const go = (n) => { setI(n); top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
   const add = () => {
     if (!forWho.trim()) return
-    onAdd({ item_id: item.id, item: item.name, for: forWho.trim(), choices, note: note.trim(), price, summary: summarise(item, choices) })
+    onAdd({ item_id: item.id, item: item.name, for: forWho.trim(), choices: Object.fromEntries(groups.filter((g) => (choices[g.id] || []).length).map((g) => [g.id, choices[g.id]])), note: note.trim(), price, summary: summarise(item, choices) })
     setChoices({}); setForWho(''); setNote(''); go(0)
   }
   return (
@@ -77,7 +82,7 @@ function Builder({ item, onAdd, boxCount }) {
         <p className="font-body text-[12px] uppercase tracking-wide text-gold">{money(item.price)} to start</p>
       </div>
       {/* Step rail */}
-      <ol className="mt-6 flex flex-wrap gap-x-5 gap-y-2">
+      <ol className="mt-6 flex flex-wrap gap-x-5 gap-y-2" data-steps>
         {steps.map((s, n) => {
           const label = s.kind === 'group' ? s.g.label : 'Name it'
           const done = n < i
@@ -94,7 +99,7 @@ function Builder({ item, onAdd, boxCount }) {
       <div className="mt-8 min-h-[200px]">
         {step.kind === 'group' ? (
           <fieldset>
-            <legend className="font-display text-[22px]">Step {i + 1}: {step.g.label === 'Extra protein' ? 'Add extra protein?' : `Choose your ${step.g.label.toLowerCase()}`} <span className="ml-2 font-body text-[12px] normal-case tracking-normal text-smoke">{step.g.pick}{step.g.extra_price ? ` · beyond ${step.g.max}, ${money(step.g.extra_price)} each (premium ${money(step.g.extra_premium_price)})` : ''}</span></legend>
+            <legend className="font-display text-[22px]">Step {i + 1}: {step.g.label === 'Extra protein' ? 'Add extra protein?' : step.g.requires ? `How would you like your ${step.g.label.toLowerCase()}?` : `Choose your ${step.g.label.toLowerCase()}`} <span className="ml-2 font-body text-[12px] normal-case tracking-normal text-smoke">{step.g.pick}{step.g.extra_price ? ` · beyond ${step.g.max}, ${money(step.g.extra_price)} each (premium ${money(step.g.extra_premium_price)})` : ''}</span></legend>
             <div className="mt-5 flex flex-wrap gap-2">
               {(step.g.options || []).map((o) => {
                 const on = (choices[step.g.id] || []).includes(o.name)
@@ -198,19 +203,21 @@ export default function CleanDream() {
     e.preventDefault()
     if (!ready) return
     if (!API || !payments) {
-      // Bank transfer (or no payment set up): log the order with us first so it is on our list and in your
-      // account, then hand the same order to WhatsApp (or email) for you to send.
+      // Bank transfer: the order is placed with us straight away (it lands on our list and in your account,
+      // and you get an email). We confirm by WhatsApp once the transfer arrives. Only when our system can't
+      // be reached does the order fall back to a WhatsApp or email message.
       setState({ status: 'sending', error: '' })
-      let logged = false
       if (API && showBank) {
         try {
           const r = await fetch(`${API}/${SETTINGS.enquiryToken}/bank`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...f, boxes: boxes.map((b) => ({ item_id: b.item_id, for: b.for, choices: b.choices, note: b.note })) }) })
-          logged = r.ok
-        } catch { logged = false }
+          const j = await r.json().catch(() => ({}))
+          if (r.ok) { setState({ status: 'placed', error: '', public_id: j.public_id }); return }
+          if (r.status === 422 || r.status === 429) { setState({ status: 'error', error: j.detail || 'Something in the order needs a second look.' }); return }
+        } catch {}
       }
       const text = encodeURIComponent(waText())
       const href = CONTACT.whatsapp ? `https://wa.me/${CONTACT.whatsapp}?text=${text}` : `mailto:${CONTACT.email}?subject=${encodeURIComponent('Clean Dream order')}&body=${text}`
-      setState({ status: 'handoff', error: '', logged, href })
+      setState({ status: 'handoff', error: '', href })
       window.location.href = href
       return
     }
@@ -359,7 +366,7 @@ export default function CleanDream() {
                   </>
                 ) : (
                   <>
-                    {/* Paying by bank transfer: the details sit behind a button, then the order goes to us on WhatsApp. */}
+                    {/* Paying by bank transfer: the details sit behind a button; the order is then placed with us and confirmed by WhatsApp once the money lands. */}
                     {!showBank ? (
                       <Button type="button" variant="ink" onClick={() => setShowBank(true)} className="mt-6 w-full" data-pay-bank>Pay {money(total)} by bank transfer <Arrow /></Button>
                     ) : (
@@ -377,18 +384,27 @@ export default function CleanDream() {
                         <p className="mt-4 font-body text-[12px] leading-relaxed text-ink/70">{CLEAN_DREAM.confirm}</p>
                       </div>
                     )}
-                    <Button type="submit" variant={showBank ? 'gold' : 'ghost-ink'} disabled={!ready || state.status === 'sending'} className="mt-4 w-full disabled:cursor-not-allowed disabled:opacity-40">
-                      {state.status === 'sending' ? 'Logging your order…' : showBank ? 'I’ve paid, send my order' : CONTACT.whatsapp ? 'Send order on WhatsApp' : 'Send order by email'} <Arrow />
-                    </Button>
-                    <p className="mt-3 font-body text-[12px] text-stone">{CONTACT.whatsapp ? 'Your order opens in WhatsApp for you to send. ' : 'Your order opens in your email app for you to send. '}{CLEAN_DREAM.confirm}</p>
+                    {state.status === 'placed' ? (
+                      <div className="mt-5 border border-gold bg-ivory p-5" data-placed>
+                        <p className="font-display text-[22px]">Order received. Thank you{f.name ? `, ${f.name.split(' ')[0]}` : ''}.</p>
+                        <p className="mt-2 font-body text-[13px] leading-relaxed text-ink/80">{CLEAN_DREAM.confirm} A copy has been emailed to {f.email}.{getCustomer() ? ' It is also saved in your account.' : ''}</p>
+                        <p className="mt-2 font-body text-[12px] text-stone">Not sent the transfer yet? The bank details are just above.</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Button type="submit" variant={showBank ? 'gold' : 'ghost-ink'} disabled={!ready || state.status === 'sending'} className="mt-4 w-full disabled:cursor-not-allowed disabled:opacity-40">
+                          {state.status === 'sending' ? 'Placing your order…' : showBank ? (API ? 'I’ve paid, place my order' : 'I’ve paid, send my order') : CONTACT.whatsapp ? 'Send order on WhatsApp' : 'Send order by email'} <Arrow />
+                        </Button>
+                        <p className="mt-3 font-body text-[12px] text-stone">{API ? 'Your order is placed with us straight away and a copy is emailed to you. ' : CONTACT.whatsapp ? 'Your order opens in WhatsApp for you to send. ' : 'Your order opens in your email app for you to send. '}{CLEAN_DREAM.confirm}</p>
+                        {state.status === 'handoff' ? (
+                          <div className="mt-5 border border-gold bg-linen p-5 font-body text-[13px] leading-relaxed text-ink/80" data-handoff>
+                            <p>{CONTACT.whatsapp ? 'WhatsApp should have opened with your order ready to send.' : 'Your email app should have opened with your order ready to send.'} If it didn’t, <a href={state.href} className="link-under text-gold-deep">open it here</a>.</p>
+                          </div>
+                        ) : null}
+                      </>
+                    )}
                   </>
                 )}
-                {state.status === 'handoff' ? (
-                  <div className="mt-5 border border-gold bg-linen p-5 font-body text-[13px] leading-relaxed text-ink/80" data-handoff>
-                    {state.logged ? <p>Your order is logged with us{getCustomer() ? ' and saved in your account' : ''}. </p> : null}
-                    <p>{CONTACT.whatsapp ? 'WhatsApp should have opened with your order ready to send.' : 'Your email app should have opened with your order ready to send.'} If it didn’t, <a href={state.href} className="link-under text-gold-deep">open it here</a>.</p>
-                  </div>
-                ) : null}
                 <button type="button" onClick={() => setStage('build')} className="mt-4 font-body text-[11px] uppercase tracking-wide text-stone hover:text-ink">Back to the basket</button>
               </div>
             </div>

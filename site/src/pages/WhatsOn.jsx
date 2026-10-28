@@ -1,4 +1,4 @@
-import { NOW } from '../content/site.js'
+import { CAREERS, CONTACT, NOW } from '../content/site.js'
 import { Button, Eyebrow, Heading, Reveal, Section } from '../ui.jsx'
 import { EnquireBand } from './Home.jsx'
 import { AvailabilityBlock } from '../availability.jsx'
@@ -39,6 +39,30 @@ export default function WhatsOn() {
       <Section ground="ink" tight>
         <div className="grid gap-5 lg:grid-cols-3">
           {NOW.items.map((it, i) => <Card key={it.name} item={it} i={i} />)}
+        </div>
+      </Section>
+      <Section ground="linen" id="careers" className="scroll-mt-20">
+        <div className="grid gap-10 lg:grid-cols-12 lg:gap-16">
+          <div className="lg:col-span-4">
+            <Reveal><Eyebrow className="text-gold-deep">{CAREERS.eyebrow}</Eyebrow></Reveal>
+            <Reveal delay={1}><Heading className="mt-5">{CAREERS.title}</Heading></Reveal>
+            <Reveal delay={2}><p className="lede mt-6 text-ink/75">{CAREERS.intro}</p></Reveal>
+          </div>
+          <div className="grid gap-5 lg:col-span-8">
+            {CAREERS.roles.map((r, i) => (
+              <Reveal key={r.title} delay={i} as="article" className="border border-sand bg-ivory p-7 sm:p-9" data-role>
+                <p className="font-body text-[11px] uppercase tracking-eyebrow text-gold-deep">{r.type}</p>
+                <p className="mt-3 font-display text-[28px]">{r.title}</p>
+                <p className="mt-1 font-body text-[13px] text-stone">{r.where}</p>
+                <p className="mt-4 font-body text-[15px] font-light leading-relaxed text-ink/75">{r.body}</p>
+                <ul className="mt-4 list-disc space-y-1 pl-5 font-body text-[14px] font-light leading-relaxed text-ink/75 marker:text-gold-deep">{r.asks.map((a) => <li key={a}>{a}</li>)}</ul>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <Button href={`mailto:${CAREERS.email}?subject=${encodeURIComponent(`Application: ${r.title}`)}`} variant="ink">Apply by email</Button>
+                  {CONTACT.whatsapp ? <Button href={`https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(`Hi Ellice, I’d like to apply for the ${r.title} role.`)}`} variant="ghost-ink" target="_blank" rel="noreferrer">Message on WhatsApp</Button> : null}
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </Section>
       <Section ground="ink" id="availability" className="border-t border-ink-3 scroll-mt-20">
