@@ -22,7 +22,7 @@ const NAV = [
   { to: '/personal-chef', label: 'Personal Chef' },
   { to: '/private-catering', label: 'Private Catering' },
   { to: '/the-loaded-bar', label: 'The Loaded Bar' },
-  { to: '/the-menus', label: 'The Menus' },
+  { to: '/the-menus', label: 'Menus' },
   { to: '/whats-up', label: 'What’s Up With Us?' },
   { to: '/portfolio', label: 'Our Portfolio' },
   { to: '/the-chef', label: 'About the Chef' },

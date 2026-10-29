@@ -369,7 +369,7 @@ export function SettingsInvoices() {
     bank_account_name: '', bank_name: '', bank_sort_code: '', bank_account_number: '',
     invoice_payment_link: '', invoice_payment_link_label: '', invoice_payment_details: '',
     invoice_notes_default: '', invoice_deposit_percent: 0, service_charges: [], invoice_app_url: '',
-    invoice_tax_label: '',
+    invoice_tax_label: '', receipt_email_template: '', receipt_whatsapp_template: '',
   })
   const [seqs, setSeqs] = useState({ invoice: 1, quote: 1 })
   const [busy, setBusy] = useState(false)
@@ -390,6 +390,7 @@ export function SettingsInvoices() {
       invoice_deposit_percent: user.invoice_deposit_percent || 0,
       service_charges: user.service_charges || [], invoice_app_url: user.invoice_app_url || '',
       invoice_tax_label: user.invoice_tax_label || '',
+      receipt_email_template: user.receipt_email_template || '', receipt_whatsapp_template: user.receipt_whatsapp_template || '',
     })
   }, [user])
   useEffect(() => {
@@ -489,6 +490,19 @@ export function SettingsInvoices() {
         <Field label="Default notes" hint="Appear on every new invoice — press Enter for new lines (they stay as separate lines)." className="mt-3">
           <Textarea rows={3} value={form.invoice_notes_default} onChange={upd('invoice_notes_default')} placeholder={'Payment due within 7 days.\nAllergen information available on request.'} />
         </Field>
+      </Card>
+
+      <Card title="Receipts" data-receipts-card>
+        <p className="mb-3 text-sm text-fg/60">The wording of the receipts you send. Leave either blank to use the built-in version. Placeholders in curly braces are filled in for you.</p>
+        <Field label="Receipt of payment email (invoices)" hint="Sent by “Confirm paid + receipt” on an invoice. Placeholders: {client} {number} {amount} {date} {link} {business}">
+          <Textarea rows={6} value={form.receipt_email_template} maxLength={3000} onChange={upd('receipt_email_template')}
+            placeholder={'Hi {client},\n\nThank you, your payment of {amount} for invoice {number} has been received on {date}. This email is your receipt.\n\nThe paid invoice is here for your records:\n{link}\n\n{business}'} />
+        </Field>
+        <Field label="WhatsApp receipt (pre-orders)" hint="Copied by “Copy WhatsApp receipt” on Pre-orders. Placeholders: {first_name} {name} {date} {boxes} {total} {ref} {where} {allergies} {business}" className="mt-3">
+          <Textarea rows={6} value={form.receipt_whatsapp_template} maxLength={3000} onChange={upd('receipt_whatsapp_template')}
+            placeholder={'Hi {first_name}, thank you for your order.\n\nRECEIPT OF PAYMENT\nPayment received: {total}\nOrder ref: {ref}\nFor: {date}\n\n{boxes}\nTotal: {total}\n\n{where}\n{allergies}\n\nYour order is confirmed. See you then!\n{business}'} />
+        </Field>
+        <div className="mt-3 flex justify-end"><Button onClick={save} disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button></div>
       </Card>
 
       <Card title="Invoice & quote numbering">

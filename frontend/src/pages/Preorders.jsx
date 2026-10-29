@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
+import { useAuth } from '../auth'
 import { fmtDate, fmtMoney, todayISO } from '../format'
 import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Spinner, Textarea, toast, toastErr } from '../ui'
 
@@ -10,10 +11,20 @@ const TONES = { paid: 'green', collected: 'gray', cancelled: 'red', refunded: 'a
 const LABELS = { paid: 'Paid', collected: 'Collected', cancelled: 'Cancelled', refunded: 'Refunded', pending_payment: 'Awaiting payment' }
 /* The WhatsApp receipt Ellice sends by hand once a transfer lands: boxes, total, where and when, with a
    blank for the delivery fee. Copied to the clipboard, pasted into WhatsApp, figures tweaked as needed. */
-function receiptText(o) {
+function receiptText(o, template = '', business = 'The Creatiste Catering') {
   const lines = (o.boxes || []).map((b) => `• ${b.for}: ${b.item}${b.summary ? ` (${b.summary})` : ''}${b.note ? ` [${b.note}]` : ''} £${Number(b.price || 0).toFixed(2)}`)
   const when = o.date ? new Date(o.date + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }) : ''
   const where = o.delivery_address ? `Delivery to: ${o.delivery_address}\nDelivery window: ____\nDelivery fee: £____ (£0.65 per mile)` : `Collection: ${o.slot || ''}`
+  const total = `£${Number(o.total || 0).toFixed(2)}`
+  if (template && template.trim()) {
+    // The chef's own wording (Settings → Invoices → Receipts), placeholders filled in.
+    const fill = {
+      '{first_name}': (o.name || '').split(' ')[0], '{name}': o.name || '', '{date}': when, '{boxes}': lines.join('\n'),
+      '{total}': total, '{ref}': o.public_id || '', '{where}': where, '{allergies}': o.allergies ? `Allergies noted: ${o.allergies}` : '',
+      '{business}': business, '{title}': o.title || 'Clean Dream',
+    }
+    return Object.entries(fill).reduce((s, [k, v]) => s.split(k).join(v), template).replace(/\n{3,}/g, '\n\n').trim()
+  }
   return [
     `Hi ${(o.name || '').split(' ')[0]}, thank you for your ${o.title || 'Clean Dream'} order.`,
     '',
@@ -30,12 +41,13 @@ function receiptText(o) {
     o.allergies ? `Allergies noted: ${o.allergies}` : '',
     '',
     'Your order is confirmed. See you then!',
-    'The Creatiste Catering',
+    business,
   ].filter((l) => l !== '').join('\n')
 }
 const label = (o) => (o.status === 'pending_payment' && o.pay_method === 'bank' ? 'Awaiting bank transfer' : LABELS[o.status] || o.status)
 
 export default function Preorders() {
+  const { user } = useAuth()
   const [orders, setOrders] = useState(null)
   const [offer, setOffer] = useState(null)
   const [json, setJson] = useState('')
@@ -60,7 +72,8 @@ export default function Preorders() {
   }, [orders, showPending])
 
   const copyReceipt = async (o) => {
-    try { await navigator.clipboard.writeText(receiptText(o)); toast('Receipt copied. Paste it into WhatsApp and fill in the blanks.') } catch { window.prompt('Copy this receipt:', receiptText(o)) }
+    const text = receiptText(o, user?.receipt_whatsapp_template || '', user?.business_name || user?.name || 'The Creatiste Catering')
+    try { await navigator.clipboard.writeText(text); toast('Receipt copied. Paste it into WhatsApp and fill in the blanks.') } catch { window.prompt('Copy this receipt:', text) }
   }
   const setStatus = async (o, status) => {
     try { await api.patch(`/preorders/${o.id}`, { status }); toast(`Marked ${LABELS[status].toLowerCase()}`); load() } catch (e) { toastErr(e) }

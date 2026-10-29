@@ -161,6 +161,9 @@ def update_me(payload: dict = Body(...), db: Session = Depends(get_db), user: Us
         user.invoice_payment_details = str(payload["invoice_payment_details"] or "").strip()[:1000]
     if "invoice_footer" in payload:
         user.invoice_footer = str(payload["invoice_footer"] or "").strip()[:300]
+    for field in ("receipt_email_template", "receipt_whatsapp_template"):
+        if field in payload:
+            setattr(user, field, str(payload[field] or "").strip()[:3000])
     if "invoice_tax_label" in payload:
         user.invoice_tax_label = str(payload["invoice_tax_label"] or "").strip()[:20]
     # Structured bank presets + an alternative "pay online" link, and per-invoice defaults.

@@ -98,7 +98,7 @@ export default function PublicInvoice() {
               </tr>
             ) : (
               <tr key={i} className="border-b border-neutral-100">
-                <td className="py-2.5 pr-2">{it.description}</td>
+                <td className="py-2.5 pr-2">{it.description}{it.receipt_url && <a href={it.receipt_url} target="_blank" rel="noreferrer" className="ml-2 whitespace-nowrap text-xs font-semibold underline" style={{ color: accent }} data-view-receipt>View receipt</a>}</td>
                 <td className="py-2.5 text-right text-neutral-500">{it.qty}</td>
                 <td className="py-2.5 text-right text-neutral-500">{fmtMoney(it.unit_price, currency)}</td>
                 <td className="py-2.5 text-right font-medium">{fmtMoney((Number(it.qty) || 0) * (Number(it.unit_price) || 0), currency)}</td>

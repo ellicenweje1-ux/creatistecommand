@@ -1,4 +1,4 @@
-import { CAREERS, CONTACT, NOW } from '../content/site.js'
+import { CAREERS, NOW } from '../content/site.js'
 import { Button, Eyebrow, Heading, Reveal, Section } from '../ui.jsx'
 import { EnquireBand } from './Home.jsx'
 import { AvailabilityBlock } from '../availability.jsx'
@@ -58,7 +58,6 @@ export default function WhatsOn() {
                 <ul className="mt-4 list-disc space-y-1 pl-5 font-body text-[14px] font-light leading-relaxed text-ink/75 marker:text-gold-deep">{r.asks.map((a) => <li key={a}>{a}</li>)}</ul>
                 <div className="mt-6 flex flex-wrap gap-3">
                   <Button href={`mailto:${CAREERS.email}?subject=${encodeURIComponent(`Application: ${r.title}`)}`} variant="ink">Apply by email</Button>
-                  {CONTACT.whatsapp ? <Button href={`https://wa.me/${CONTACT.whatsapp}?text=${encodeURIComponent(`Hi Ellice, I’d like to apply for the ${r.title} role.`)}`} variant="ghost-ink" target="_blank" rel="noreferrer">Message on WhatsApp</Button> : null}
                 </div>
               </Reveal>
             ))}

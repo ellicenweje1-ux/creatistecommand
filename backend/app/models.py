@@ -63,6 +63,8 @@ class User(Base):
     invoice_deposit_percent: Mapped[int] = mapped_column(Integer, default=0)  # 0 = pay in full
     # Customisable footer / thank-you line at the base of the invoice document.
     invoice_footer: Mapped[str] = mapped_column(String(300), default="")
+    receipt_email_template: Mapped[str] = mapped_column(Text, default="")     # payment receipt email, {client} {number} {amount} {date} {link} {business}
+    receipt_whatsapp_template: Mapped[str] = mapped_column(Text, default="")  # pre-order WhatsApp receipt, see Preorders.jsx
     # What the tax line is called on quotes/invoices — "Tax" (default), "VAT", "BTW", "TVA"…
     invoice_tax_label: Mapped[str] = mapped_column(String(20), default="")
     role: Mapped[str] = mapped_column(String(20), default="chef")  # chef | admin | staff

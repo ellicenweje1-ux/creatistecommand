@@ -47,6 +47,7 @@ def ensure_columns():
             "service_charges": "JSON", "invoice_app_url": "VARCHAR(500) DEFAULT ''",
             "invoice_accent": "VARCHAR(20) DEFAULT ''",
             "invoice_payment_details": "TEXT DEFAULT ''", "invoice_footer": "VARCHAR(300) DEFAULT ''",
+            "receipt_email_template": "TEXT DEFAULT ''", "receipt_whatsapp_template": "TEXT DEFAULT ''",
             "bank_account_name": "VARCHAR(160) DEFAULT ''", "bank_name": "VARCHAR(120) DEFAULT ''",
             "bank_sort_code": "VARCHAR(20) DEFAULT ''", "bank_account_number": "VARCHAR(40) DEFAULT ''",
             "invoice_payment_link": "VARCHAR(500) DEFAULT ''", "invoice_payment_link_label": "VARCHAR(80) DEFAULT ''",

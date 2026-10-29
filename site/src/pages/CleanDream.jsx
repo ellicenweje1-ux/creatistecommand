@@ -39,7 +39,7 @@ function priceBox(item, choices) {
     picked.forEach((name, n) => {
       const o = opts[name] || {}
       price += Number(o.surcharge || 0)
-      if (g.max && n >= g.max) price += Number(o.premium ? g.extra_premium_price : g.extra_price) || 0
+      if (g.max && n >= g.max) price += Number(o.extra_price ?? (o.premium ? g.extra_premium_price : g.extra_price)) || 0
     })
   }
   return Math.round(price * 100) / 100
@@ -54,8 +54,10 @@ function Chip({ on, onClick, children }) {
 function Builder({ item, onAdd, boxCount }) {
   const [i, setI] = useState(0)
   const [choices, setChoices] = useState({})
-  const groups = activeGroups(item, choices)
+  const groups = (item.groups || []).filter((g) => !g.requires)
   const steps = [...groups.map((g) => ({ kind: 'group', g })), { kind: 'name' }]
+  // A dependent group (the steak question) is asked inside the step where its trigger was picked, not as its own step.
+  const inlineFor = (g) => (item.groups || []).filter((d) => d.requires && (d.requires.groups || []).includes(g.id) && (choices[g.id] || []).includes(d.requires.option))
   const [forWho, setForWho] = useState('')
   const [note, setNote] = useState('')
   const top = useRef(null)
@@ -68,11 +70,11 @@ function Builder({ item, onAdd, boxCount }) {
     if (g.max && cur.length >= g.max && !(g.extra_price || g.extra_premium_price)) return c
     return { ...c, [g.id]: [...cur, name] }
   })
-  const canNext = step.kind === 'group' ? (choices[step.g.id] || []).length >= (step.g.min || 0) : !!forWho.trim()
+  const canNext = step.kind === 'group' ? (choices[step.g.id] || []).length >= (step.g.min || 0) && inlineFor(step.g).every((d) => (choices[d.id] || []).length >= (d.min || 0)) : !!forWho.trim()
   const go = (n) => { setI(n); top.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
   const add = () => {
     if (!forWho.trim()) return
-    onAdd({ item_id: item.id, item: item.name, for: forWho.trim(), choices: Object.fromEntries(groups.filter((g) => (choices[g.id] || []).length).map((g) => [g.id, choices[g.id]])), note: note.trim(), price, summary: summarise(item, choices) })
+    onAdd({ item_id: item.id, item: item.name, for: forWho.trim(), choices: Object.fromEntries(activeGroups(item, choices).filter((g) => (choices[g.id] || []).length).map((g) => [g.id, choices[g.id]])), note: note.trim(), price, summary: summarise(item, choices) })
     setChoices({}); setForWho(''); setNote(''); go(0)
   }
   return (
@@ -99,13 +101,21 @@ function Builder({ item, onAdd, boxCount }) {
       <div className="mt-8 min-h-[200px]">
         {step.kind === 'group' ? (
           <fieldset>
-            <legend className="font-display text-[22px]">Step {i + 1}: {step.g.label === 'Extra protein' ? 'Add extra protein?' : step.g.requires ? `How would you like your ${step.g.label.toLowerCase()}?` : `Choose your ${step.g.label.toLowerCase()}`} <span className="ml-2 font-body text-[12px] normal-case tracking-normal text-smoke">{step.g.pick}{step.g.extra_price ? ` · beyond ${step.g.max}, ${money(step.g.extra_price)} each (premium ${money(step.g.extra_premium_price)})` : ''}</span></legend>
+            <legend className="font-display text-[22px]">Step {i + 1}: {step.g.label === 'Extra protein' ? 'Add extra protein?' : step.g.requires ? `How would you like your ${step.g.label.toLowerCase()}?` : `Choose your ${step.g.label.toLowerCase()}`} <span className="ml-2 font-body text-[12px] normal-case tracking-normal text-smoke">{step.g.pick}{step.g.extra_price ? ` · beyond ${step.g.max}, ${money(step.g.extra_price)} each (premium ${money(step.g.extra_premium_price)}, sauces ${money(Math.min(...(step.g.options || []).map((o) => o.extra_price).filter(Boolean), step.g.extra_price))})` : ''}</span></legend>
             <div className="mt-5 flex flex-wrap gap-2">
               {(step.g.options || []).map((o) => {
                 const on = (choices[step.g.id] || []).includes(o.name)
                 return <Chip key={o.name} on={on} onClick={() => toggle(step.g, o.name)}>{o.name}{o.surcharge ? <span className={`ml-1.5 text-[11px] ${on ? 'text-ink/70' : 'text-gold'}`}>+{money(o.surcharge)}</span> : null}{o.premium ? <span className={`ml-1 text-[10px] uppercase ${on ? 'text-ink/60' : 'text-smoke'}`}>p</span> : null}</Chip>
               })}
             </div>
+            {inlineFor(step.g).map((d) => (
+              <div key={d.id} className="mt-5 border-t border-ink-3 pt-4" data-inline-group={d.id}>
+                <p className="font-display text-[18px]">How would you like your {d.label.toLowerCase()}? <span className="ml-2 font-body text-[12px] text-smoke">{d.pick}</span></p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(d.options || []).map((o) => <Chip key={o.name} on={(choices[d.id] || []).includes(o.name)} onClick={() => toggle(d, o.name)}>{o.name}</Chip>)}
+                </div>
+              </div>
+            ))}
             {(choices[step.g.id] || []).length ? <p className="mt-4 font-body text-[12px] text-ivory/60">{choices[step.g.id].join(', ')}</p> : null}
           </fieldset>
         ) : (
@@ -392,10 +402,14 @@ export default function CleanDream() {
                       </div>
                     ) : (
                       <>
-                        <Button type="submit" variant={showBank ? 'gold' : 'ghost-ink'} disabled={!ready || state.status === 'sending'} className="mt-4 w-full disabled:cursor-not-allowed disabled:opacity-40">
-                          {state.status === 'sending' ? 'Placing your order…' : showBank ? (API ? 'I’ve paid, place my order' : 'I’ve paid, send my order') : CONTACT.whatsapp ? 'Send order on WhatsApp' : 'Send order by email'} <Arrow />
-                        </Button>
-                        <p className="mt-3 font-body text-[12px] text-stone">{API ? 'Your order is placed with us straight away and a copy is emailed to you. ' : CONTACT.whatsapp ? 'Your order opens in WhatsApp for you to send. ' : 'Your order opens in your email app for you to send. '}{CLEAN_DREAM.confirm}</p>
+                        {showBank ? (
+                          <>
+                            <Button type="submit" variant="gold" disabled={!ready || state.status === 'sending'} className="mt-4 w-full disabled:cursor-not-allowed disabled:opacity-40">
+                              {state.status === 'sending' ? 'Placing your order…' : API ? 'I’ve paid, place my order' : 'I’ve paid, send my order'} <Arrow />
+                            </Button>
+                            <p className="mt-3 font-body text-[12px] text-stone">{API ? 'Your order is placed with us straight away and a copy is emailed to you. ' : CONTACT.whatsapp ? 'Your order opens in WhatsApp for you to send. ' : 'Your order opens in your email app for you to send. '}{CLEAN_DREAM.confirm}</p>
+                          </>
+                        ) : <p className="mt-3 font-body text-[12px] text-stone">Tap the button to see the bank details, make the transfer, then place your order. An order cancelled after the 10am cut-off on its day results in loss of payment.</p>}
                         {state.status === 'handoff' ? (
                           <div className="mt-5 border border-gold bg-linen p-5 font-body text-[13px] leading-relaxed text-ink/80" data-handoff>
                             <p>{CONTACT.whatsapp ? 'WhatsApp should have opened with your order ready to send.' : 'Your email app should have opened with your order ready to send.'} If it didn’t, <a href={state.href} className="link-under text-gold-deep">open it here</a>.</p>

@@ -63,6 +63,18 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
   const addItem = (line) => setForm({ ...form, items: [...items, line] })
   const dupItem = (i) => setForm({ ...form, items: [...items.slice(0, i + 1), { ...items[i], id: uid() }, ...items.slice(i + 1)] })
   const removeItem = (i) => setForm({ ...form, items: items.filter((_, idx) => idx !== i) })
+  const [uploadingReceipt, setUploadingReceipt] = useState(false)
+  // Grocery reimbursement (personal chef services): upload the shop receipt and it becomes a line
+  // the client can open from the invoice. The chef types the amount; the receipt link rides on the line.
+  const uploadReceipt = (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setUploadingReceipt(true)
+    api.upload(file)
+      .then(({ url }) => { addItem({ id: uid(), description: 'Groceries (receipt attached)', qty: 1, unit_price: 0, receipt_url: url }); toast('Receipt attached — type the amount on the new line') })
+      .catch(toastErr).finally(() => setUploadingReceipt(false))
+  }
   const total = invoiceTotal(form)
   const depositDue = form.deposit_type === 'percent'
     ? Math.max(0, total * (Number(form.deposit_value) || 0) / 100)
@@ -198,7 +210,10 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
                     </div>
                   ) : (
                     <div className="grid flex-1 grid-cols-12 gap-1.5">
-                      <Input className="col-span-5" placeholder="Description" value={it.description} onChange={(e) => setItem(i, 'description', e.target.value)} />
+                      <div className="col-span-5 flex items-center gap-1">
+                        <Input className="min-w-0 flex-1" placeholder="Description" value={it.description} onChange={(e) => setItem(i, 'description', e.target.value)} />
+                        {it.receipt_url && <a href={it.receipt_url} target="_blank" rel="noreferrer" className="shrink-0 text-xs text-copper underline" title="Open the attached receipt" data-line-receipt>receipt</a>}
+                      </div>
                       <Input className="col-span-2" type="number" step="any" placeholder="Qty" value={it.qty} onChange={(e) => setItem(i, 'qty', e.target.value)} />
                       <Input className="col-span-3" type="number" step="0.01" placeholder="Unit price" value={it.unit_price} onChange={(e) => setItem(i, 'unit_price', e.target.value)} />
                       <IconButton icon="copy" label="Duplicate line" className="col-span-1 justify-self-center self-center" onClick={() => dupItem(i)} />
@@ -214,7 +229,12 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
             <Button type="button" size="sm" variant="ghost" icon="menu" onClick={() => addItem({ id: uid(), description: '', section: true })}>Add break</Button>
             <MenuItemsMenu items={menuItems} currency={currency} className="w-auto" onAdd={addItem} />
             <ChargesMenu saved={user?.service_charges || []} className="w-auto" onAdd={addItem} />
+            <label className={cls('inline-flex cursor-pointer items-center gap-1 rounded-lg border border-fg/15 px-2.5 py-1 text-xs font-medium hover:bg-fg/5', uploadingReceipt && 'opacity-60')} title="Grocery reimbursement: attach the shop receipt as a line the client can open">
+              <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" className="sr-only" onChange={uploadReceipt} disabled={uploadingReceipt} data-receipt-upload />
+              {uploadingReceipt ? 'Uploading…' : '+ Upload a grocery receipt'}
+            </label>
           </div>
+          <p className="mt-1 text-xs text-fg/45">Grocery reimbursement: upload the shop receipt, then type the amount on the line it adds. The client gets a “View receipt” link on the invoice.</p>
         </div>
 
         <div className="grid grid-cols-3 gap-3">

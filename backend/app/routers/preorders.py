@@ -56,10 +56,10 @@ DEFAULT_OFFER = {
                              {"name": "Fried egg", "premium": True}, {"name": "Cherry tomatoes"}, {"name": "Red onion"},
                              {"name": "Sweetcorn"}, {"name": "Pomegranate"}, {"name": "Pickled pink slaw"},
                              {"name": "Sliced pickles"}, {"name": "Pickled jalapeño"}, {"name": "Coriander"},
-                             {"name": "Parsley"}, {"name": "Rocket"}]},
-                {"id": "sauces", "label": "Sauces", "pick": "optional, 25p each", "min": 0, "max": 4,
-                 "options": [{"name": "Hot honey", "surcharge": 0.25}, {"name": "Sriracha", "surcharge": 0.25},
-                             {"name": "Balsamic glaze", "surcharge": 0.25}, {"name": "Raspberry balsamic glaze", "surcharge": 0.25}]},
+                             {"name": "Parsley"}, {"name": "Rocket"},
+                             # sauces count as toppings; beyond the five they are 25p each rather than 50p
+                             {"name": "Hot honey", "extra_price": 0.25}, {"name": "Sriracha", "extra_price": 0.25},
+                             {"name": "Balsamic glaze", "extra_price": 0.25}, {"name": "Raspberry balsamic glaze", "extra_price": 0.25}]},
                 {"id": "extra_protein", "label": "Extra protein", "pick": "optional", "min": 0, "max": 2,
                  "options": [{"name": "Beef mince", "surcharge": 2}, {"name": "Chicken mince", "surcharge": 2},
                              {"name": "Tofu mince", "surcharge": 2}, {"name": "Steak", "surcharge": 4},
@@ -158,7 +158,8 @@ def price_box(offer: dict, box: dict) -> dict:
             o = opts[name]
             price += float(o.get("surcharge") or 0)
             if hard_cap and n >= hard_cap:
-                price += float(g.get("extra_premium_price") if o.get("premium") else g.get("extra_price") or 0)
+                # an option can carry its own over-the-cap price (sauces at 25p); else the group's premium/standard
+                price += float(o["extra_price"] if o.get("extra_price") is not None else (g.get("extra_premium_price") if o.get("premium") else g.get("extra_price")) or 0)
         if picked:
             choices[g["id"]] = picked
             summary.append(f"{g['label']}: {', '.join(picked)}")

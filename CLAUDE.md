@@ -567,6 +567,43 @@ weekdays left in the current week); merged to `main`; preview artifact Version 1
 - **Still TODO from Ellice:** Canva re-export of the Clean Dream menu PDF (sauces 25p, half & half, steak cook), flip the Thanksgiving card live, the
   rest of the site-review list given in chat.
 
+### Follow-on (same 28th-wave session — ninth batch: sauces as toppings, inline steak question, Menus, careers, docs headings, transparent frames, cancellation rule, RECEIPT TEMPLATES + GROCERY RECEIPTS on invoices, analytics)
+All built + verified (backend `test_batch8.py` **24/24** (two sauce tests rewritten to the new rule), `test_batch7.py` 64/64, `test_preorders.py` 36/36;
+Playwright `scratchpad/verify_v10.py` **83/83** desktop+mobile incl. the live Command flows; both builds clean; the three PDFs regenerated = 1 page each);
+merged to `main`; preview artifact Version 11.
+- **Clean Dream (site `CLEAN_DREAM.menu` + Command `DEFAULT_OFFER`, identical):** the separate **sauces step is gone** — the four sauces are
+  ordinary **toppings** carrying `extra_price: 0.25`, so inside the five they're free and beyond the five a sauce is 25p (a plain extra
+  topping stays 50p, premium £1). `price_box` honours a per-option `extra_price` first. The **steak doneness question is inline**: groups with
+  `requires` are no longer steps; `inlineFor(g)` renders them inside the step where Steak is pressed (`[data-inline-group="steak_cooked"]`,
+  Next gated until chosen). **Pay step:** before the bank button there is only the bank button + a note (the confusing "send by WhatsApp"
+  ghost button is gone); after it, the details + the single "I've paid, place my order". **Terms/FAQ/how-steps:** an order cancelled after
+  the 10am cut-off on its day = loss of payment. ⚠️ Her printed Clean Dream PDF still needs the Canva re-export (sauces 25p beyond five, half &
+  half, steak cook).
+- **Site:** nav/eyebrow **"Menus"** (route stays `/the-menus`); Loaded Bar menus card says both bowl menus are in the one brochure (no separate
+  corporate/private menus — her answer); **careers**: own car only, "you need to be flexible", email apply only (WhatsApp buttons removed);
+  **`.frame` is transparent** (a blank frame shows the page background; only `.frame-contain` for her station cut-out stays black);
+  **documents**: heading = the document name (BATCHFULLY MADE / THE HOME EDIT / THE CREATISTE TABLE) with the kind as the eyebrow
+  ("Meal prep · Price list"), the one-liner on one line, items fully written (wrap, no ellipsis), Batchfully sauces £2 / dressings 50p
+  (`BATCHFULLY_LIST` single section with a `note`); card tightened (12.5px rows, 96px price columns) so the list still prints on one A4 page.
+- **Analytics:** Cloudflare Web Analytics beacon injected by `site/src/main.jsx` when **`VITE_CF_ANALYTICS_TOKEN`** is set on the Pages project
+  (Cloudflare → Analytics & Logs → Web Analytics → add site → copy the token). Nothing loads without it. Alternative: the Pages project's own
+  "Web Analytics" toggle (no env var).
+- **Command — receipt templates (additive `users.receipt_email_template` + `users.receipt_whatsapp_template`, TEXT, in the model + the single
+  `users` key of `ensure_columns`, whitelisted on `PUT /auth/me` at 3000 chars):** **Settings → Invoices → Receipts** card (`data-receipts-card`)
+  with both textareas. `finance.send_receipt` fills the email template ({client} {number} {amount} {date} {link} {business}; blank = the
+  built-in `DEFAULT_RECEIPT_EMAIL`); `Preorders.jsx receiptText(o, template, business)` fills the WhatsApp one ({first_name} {name} {date}
+  {boxes} {total} {ref} {where} {allergies} {business} {title}; blank = the built-in text).
+- **Command — grocery reimbursement on invoices (no schema change, `receipt_url` rides on the line item JSON):** invoice editor gains
+  **"+ Upload a grocery receipt"** (`[data-receipt-upload]`, `api.upload`) → adds a "Groceries (receipt attached)" line (qty 1, price typed by
+  the chef, `[data-line-receipt]` chip); `PublicInvoice.jsx` shows **"View receipt"** (`[data-view-receipt]`) beside that line, so the client
+  pays the groceries on the same invoice as the fee. FAQ (rule #3): "Can I change the wording of my receipts?" + "How do I bill a client for
+  groceries I bought for them?".
+- **Render:** Ellice's screenshot showed **"This service has been suspended"** at creatistecommand.onrender.com — a Render account/billing
+  matter (Billing → payment method / the service banner), not code. While Command is down the site falls back to email/WhatsApp for enquiries
+  and orders; the diary calendar, accounts and reviews show their placeholders.
+- **Harness notes:** the rail has no sauces/steak steps now (toppings → extra protein → name it: two Skips after protein); `/bank` returns
+  **201**; `fmtMoney` prints `£162.5`; the Batchfully section note is CSS-uppercased (`.lower()`).
+
 ### DEPLOYING THE CATERING SITE (Cloudflare Pages — Ellice does this once; ~10 minutes)
 1. Cloudflare dashboard (the **jill+quinton** account) → Workers & Pages → Create → Pages → **Connect to Git** → repo
    `ellicenweje1-ux/creatistecommand`, production branch **`main`**.

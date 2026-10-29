@@ -112,6 +112,12 @@ def share_invoice(invoice_id: int, send: bool = False, db: Session = Depends(get
     return {**to_dict(inv), "public_url": link, "emailed": emailed}
 
 
+DEFAULT_RECEIPT_EMAIL = (
+    "Hi {client},\n\nThank you, your payment of {amount} for invoice {number} has been received on {date}. "
+    "This email is your receipt.\n\nThe paid invoice is here for your records:\n{link}\n\n{business}"
+)
+
+
 @invoices.post("/{invoice_id}/receipt")
 def send_receipt(invoice_id: int, db: Session = Depends(get_db), user=Depends(require_active)):
     """Confirm an invoice as paid and email the client a receipt of payment (with the invoice link).
@@ -131,12 +137,14 @@ def send_receipt(invoice_id: int, db: Session = Depends(get_db), user=Depends(re
     emailed = False
     if client and client.user_id == ws_id(user) and client.email:
         biz = (owner.business_name or owner.name) if owner else "your caterer"
-        mailer.send_email(
-            client.email, f"Receipt of payment: invoice {inv.number or inv.id} from {biz}",
-            f"Hi {client.name},\n\nThank you, your payment of {sym}{total:,.2f} for invoice {inv.number or inv.id} has been received"
-            f"{(' on ' + inv.paid_date) if inv.paid_date else ''}. This email is your receipt.\n\n"
-            f"The paid invoice is here for your records:\n{link}\n\n{biz}",
-        )
+        fill = {"{client}": client.name or "", "{number}": inv.number or str(inv.id), "{amount}": f"{sym}{total:,.2f}",
+                "{date}": inv.paid_date or date.today().isoformat(), "{link}": link, "{business}": biz}
+        body = (owner.receipt_email_template or "").strip() if owner else ""
+        if not body:
+            body = DEFAULT_RECEIPT_EMAIL
+        for k, v in fill.items():
+            body = body.replace(k, v)
+        mailer.send_email(client.email, f"Receipt of payment: invoice {inv.number or inv.id} from {biz}", body)
         emailed = True
     log_activity(db, user, "updated", inv, summary=f"Receipt sent for invoice {inv.number or inv.id}" if emailed else f"Marked invoice {inv.number or inv.id} paid")
     db.commit()

@@ -326,8 +326,9 @@ export const CLEAN_DREAM = {
         { id: 'toppings', label: 'Toppings', pick: 'choose up to five', min: 0, max: 5, extra_price: 0.5, extra_premium_price: 1, options: [
           { name: 'Avocado', premium: true }, { name: 'Feta', premium: true }, { name: 'Cottage cheese', premium: true }, { name: 'Boiled egg', premium: true }, { name: 'Fried egg', premium: true },
           { name: 'Cherry tomatoes' }, { name: 'Red onion' }, { name: 'Sweetcorn' }, { name: 'Pomegranate' }, { name: 'Pickled pink slaw' }, { name: 'Sliced pickles' }, { name: 'Pickled jalapeño' },
-          { name: 'Coriander' }, { name: 'Parsley' }, { name: 'Rocket' }] },
-        { id: 'sauces', label: 'Sauces', pick: 'optional, 25p each', min: 0, max: 4, options: [{ name: 'Hot honey', surcharge: 0.25 }, { name: 'Sriracha', surcharge: 0.25 }, { name: 'Balsamic glaze', surcharge: 0.25 }, { name: 'Raspberry balsamic glaze', surcharge: 0.25 }] },
+          { name: 'Coriander' }, { name: 'Parsley' }, { name: 'Rocket' },
+          /* sauces count as toppings; beyond the five they are 25p each rather than 50p */
+          { name: 'Hot honey', extra_price: 0.25 }, { name: 'Sriracha', extra_price: 0.25 }, { name: 'Balsamic glaze', extra_price: 0.25 }, { name: 'Raspberry balsamic glaze', extra_price: 0.25 }] },
         { id: 'extra_protein', label: 'Extra protein', pick: 'optional', min: 0, max: 2, options: [{ name: 'Beef mince', surcharge: 2 }, { name: 'Chicken mince', surcharge: 2 }, { name: 'Tofu mince', surcharge: 2 }, { name: 'Steak', surcharge: 4 }, { name: 'Blackened prawns', surcharge: 3 }] },
         /* Only asked when steak is in the bowl (protein or extra protein); then it must be answered. */
         { id: 'steak_cooked', label: 'Steak', pick: 'medium or well done', min: 1, max: 1, requires: { groups: ['protein', 'extra_protein'], option: 'Steak' }, options: [{ name: 'Medium' }, { name: 'Well done' }] },
@@ -347,7 +348,7 @@ export const CLEAN_DREAM = {
   sub: 'Clean, whole-food lunch bowls, cooked fresh and served hot. Comforting, home-cooked and beautiful, built to keep you going.',
   photo: '/photos/clean-dream-boxes.jpg',
   how: [
-    ['Order by 10am', 'Orders in by 10:00am are made the same day, Monday to Friday. After 10am, your order rolls to the next weekday.'],
+    ['Order by 10am', 'Orders in by 10:00am are made the same day, Monday to Friday. After 10am, your order rolls to the next weekday. An order cancelled after the 10am cut-off on its day results in loss of payment.'],
     ['Collect at 1pm or 2:30pm', 'Two collection points each day. Pick the one that suits you at checkout.'],
     ['Or have it delivered', 'Deliveries between the two locations by request, at +£0.65 per mile. We confirm by WhatsApp after you order and the delivery fee is charged separately.'],
     ['Confirmed by WhatsApp', 'Pay by bank transfer at checkout and place your order. Once your payment lands we send a receipt and the final collection or delivery details by WhatsApp. Every box is named so each person’s food is labelled correctly.'],
@@ -479,12 +480,12 @@ export const GALLERY = {
 }
 
 export const MENUS_PAGE = {
-  eyebrow: 'The Menus',
+  eyebrow: 'Menus',
   title: 'Every menu, in one place.',
   intro: 'The brochures and menus from across the site, tidy and ready to download.',
   groups: ['Personal chef', 'Private catering', 'Lunch service'],
   items: [
-    { title: 'The Loaded Bar', kind: 'Brochure', umbrella: 'Private catering', body: 'What’s included, the corporate and private bowl menus, requirements and terms for the live hot food station.', file: '/docs/the-loaded-bar.pdf', to: '/the-loaded-bar' },
+    { title: 'The Loaded Bar', kind: 'Brochure', umbrella: 'Private catering', body: 'What’s included, the Corporate Curations and Private & Personal bowl menus, requirements and terms for the live hot food station. Both menus are in this one brochure.', file: '/docs/the-loaded-bar.pdf', to: '/the-loaded-bar' },
     { title: 'The Creatiste Table', kind: 'Seasonal menu', umbrella: 'Private catering', body: 'The current set menu, from £43* per head. *Subject to final consultation. Travel fee and staffing may be charged.', file: '/docs/the-creatiste-table-menu.pdf', to: '/private-catering#the-creatiste-table' },
     { title: 'Batchfully Made', kind: 'Price list', umbrella: 'Personal chef', body: 'Proteins, pastas, sides, vegetables and sauces, individually priced in 32oz and 58oz containers. Not on the menu? Ask and we’ll add it.', file: '/docs/batchfully-made-price-list.pdf', to: '/personal-chef#batchfully-made' },
     { title: 'The Home Edit', kind: 'Package options', umbrella: 'Personal chef', body: 'The four packages for the in-home personal chef service, how each week looks, and the pricing basis.', file: '/docs/the-home-edit-packages.pdf', to: '/personal-chef#the-home-edit' },
@@ -541,7 +542,7 @@ export const LEGAL = {
     intro: 'The short version of how we work. A full quotation, once accepted, forms the contract for a catering booking; these terms cover everything else on this site.',
     sections: [
       ['Bookings and payment', 'Every booking begins with a consultation. We then send a tailored quotation; nothing is confirmed until you have accepted it in writing and paid what it states. Full payment is required for all personal chef services (Batchfully Made, The Home Edit and Sorted & Served) before the service begins. Private catering (The Loaded Bar, Corporate Curations, Private & Personal and The Creatiste Table) is secured with a 50% deposit, with the balance due by the date on the quotation. Private catering must be booked at least 14 days before the event; a private catering booking made within 14 days of the event requires full payment at the time of booking. Personal chef services need at least 7 days’ notice before the start date, subject to availability. Final guest numbers, dietary requirements and allergies must be confirmed by the date given on the quotation.'],
-      ['Clean Dream orders', 'Orders placed by 10:00am are made the same day, Monday to Friday; orders after 10:00am roll to the next weekday. Payment is by bank transfer using the details shown at checkout. Your order is confirmed only once we have sent a receipt of payment and the final collection or delivery details by WhatsApp. Delivery between the collection points is by request and charged separately at £0.65 per mile. Because every order is cooked fresh for you, an order cannot be cancelled or refunded after the 10:00am cut-off on its day.'],
+      ['Clean Dream orders', 'Orders placed by 10:00am are made the same day, Monday to Friday; orders after 10:00am roll to the next weekday. Payment is by bank transfer using the details shown at checkout. Your order is confirmed only once we have sent a receipt of payment and the final collection or delivery details by WhatsApp. Delivery between the collection points is by request and charged separately at £0.65 per mile. Because every order is cooked fresh for you, an order cancelled after the 10:00am cut-off on its day results in loss of payment; no refund is given.'],
       ['Allergies and dietary needs', 'Tell us about every allergy and dietary requirement when you enquire or order, and again if anything changes. Our food is prepared in a kitchen that handles all fourteen major allergens, so we cannot guarantee any dish is entirely free of an allergen even where we have left it out. Every box and dish is labelled with the details you give us.'],
       ['Cancellations and changes', 'Deposits and booking payments are non-refundable once paid, because they hold a date we then turn other work away from. Changes to a confirmed booking are by agreement and may change the price. If we have to cancel for reasons within our control, you will receive a full refund of everything paid.'],
       ['Reviews', 'Reviews left on this site are read before they appear and may be declined or removed if they are abusive, misleading or not about our food or service. By leaving a review you let us show your first name, the event you mention and your words on this site.'],
@@ -576,7 +577,7 @@ export const FAQ = {
     ] },
     { q: 'Why are there no prices on the site?', a: [
       'Because every service booked is designed around its consultation, and a figure without the conversation would be a guess.',
-      'Guides are available for The Home Edit packages and Batchfully Made (see The Menus).',
+      'Guides are available for The Home Edit packages and Batchfully Made (see Menus).',
       'The Creatiste Table starts at £43 per head.',
       'Every quotation is a full, itemised breakdown.',
     ] },
@@ -598,6 +599,7 @@ export const FAQ = {
     { q: 'How does Clean Dream work?', a: [
       'Build your bowls on the Clean Dream page, choose a weekday and a collection point (W5 at 1pm or SW15 at 2:30pm), then pay by bank transfer.',
       'Orders in by 10am are made the same day, Monday to Friday. After 10am your order rolls to the next weekday.',
+      'An order cancelled after the 10am cut-off on its day results in loss of payment.',
       'Your order is confirmed once we send a receipt of payment and the final collection or delivery details by WhatsApp.',
       'Delivery between the collection points is by request at £0.65 per mile.',
     ] },
@@ -635,10 +637,10 @@ export const CAREERS = {
   roles: [
     {
       title: 'Delivery driver',
-      type: 'Paid per job · flexible hours',
+      type: 'Paid per job · you need to be flexible',
       where: 'Slough or the surrounding areas, preferably',
-      body: 'Collecting from our kitchen and delivering Clean Dream orders and event food to clients, reliably and on time. You bring your own vehicle and a friendly, professional manner; we pay per job.',
-      asks: ['Own car or van, full UK licence and insurance', 'Based in or near Slough, with flexible availability on weekdays and some weekends', 'Careful with food: on time, kept level, handed over with a smile'],
+      body: 'Collecting from our kitchen and delivering Clean Dream orders and event food to clients, reliably and on time. You bring your own car and a friendly, professional manner; we pay per job.',
+      asks: ['Own car, full UK licence and insurance', 'Based in or near Slough, and flexible: weekdays and some weekends, at short notice when needed', 'Careful with food: on time, kept level, handed over with a smile'],
     },
     {
       title: 'Social media coordinator',
@@ -662,7 +664,7 @@ export const BATCHFULLY_LIST = {
     { name: 'Pastas', items: [['Prawn pasta', 10, 15], ['Creamy Alfredo pasta', 8, 13], ['Chicken pasta', 8, 13], ['Sausage pasta', 8, 13], ['Tuna pasta salad', 8, 13]] },
     { name: 'Sides', items: [['Creamy red potato mash', 6.5, 10], ['Sweet potato & halloumi hash', 7, 10.5], ['Roast sweet potato', 6, 7.5], ['Whole roasted sweet potato', 5.5, 7.5], ['Fragrant coconut white rice', 6, 9], ['Tomato & red pepper bulgur', 6, 9], ['Seasoned rice', 5.5, 8.5]] },
     { name: 'Vegetables', items: [['Asparagus & tenderstem broccoli', 6.5, 10], ['Honey glazed carrots', 5.5, 8.5], ['Mixed salad with avocado', 5.5, 8.5], ['Sweetcorn cobettes', 5, 7.5], ['Steamed mixed veg', 5, 7.5]] },
-    { name: 'Sauces & dressings', single: true, items: [['Sweet chilli BBQ sauce', 2], ['Garlic white sauce', 2], ['Hot honey dressing', 0.5], ['Balsamic & honey dressing', 'Complimentary']] },
+    { name: 'Sauces & dressings', single: true, note: 'Sauces £2 · Dressings 50p', items: [['Sweet chilli BBQ sauce', 2], ['Garlic white sauce', 2], ['Hot honey dressing', 0.5], ['Balsamic & honey dressing', 0.5]] },
   ],
   footer: 'Not on the menu? Let us know, we’ll make it and add it.',
 }
