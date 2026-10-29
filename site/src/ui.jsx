@@ -6,14 +6,19 @@ const base = import.meta.env.BASE_URL || '/'
 export const asset = (p) => (p.startsWith('/') ? base.replace(/\/$/, '') + p : p)
 
 export function ScrollToTop() {
-  const { pathname, hash } = useLocation()
+  const { pathname, hash, key } = useLocation()
   useEffect(() => {
     if (hash) {
-      const el = document.querySelector(hash)
-      if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); return }
+      let el = null
+      try { el = document.getElementById(decodeURIComponent(hash.slice(1))) } catch { el = null }
+      if (el) {
+        // A tick later so the mobile menu (which locks body scroll) has closed first.
+        const t = setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60)
+        return () => clearTimeout(t)
+      }
     }
     window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' })
-  }, [pathname, hash])
+  }, [pathname, hash, key])
   return null
 }
 

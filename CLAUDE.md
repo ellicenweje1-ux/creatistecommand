@@ -577,8 +577,8 @@ merged to `main`; preview artifact Version 11.
   `requires` are no longer steps; `inlineFor(g)` renders them inside the step where Steak is pressed (`[data-inline-group="steak_cooked"]`,
   Next gated until chosen). **Pay step:** before the bank button there is only the bank button + a note (the confusing "send by WhatsApp"
   ghost button is gone); after it, the details + the single "I've paid, place my order". **Terms/FAQ/how-steps:** an order cancelled after
-  the 10am cut-off on its day = loss of payment. ⚠️ Her printed Clean Dream PDF still needs the Canva re-export (sauces 25p beyond five, half &
-  half, steak cook).
+  the 10am cut-off on its day = loss of payment. (Her printed Clean Dream PDF: **Ellice confirmed in batch 10 that the hosted
+  `clean-dream-menu.pdf` is the correct, most up-to-date version** — do not flag it again.)
 - **Site:** nav/eyebrow **"Menus"** (route stays `/the-menus`); Loaded Bar menus card says both bowl menus are in the one brochure (no separate
   corporate/private menus — her answer); **careers**: own car only, "you need to be flexible", email apply only (WhatsApp buttons removed);
   **`.frame` is transparent** (a blank frame shows the page background; only `.frame-contain` for her station cut-out stays black);
@@ -603,6 +603,35 @@ merged to `main`; preview artifact Version 11.
   and orders; the diary calendar, accounts and reviews show their placeholders.
 - **Harness notes:** the rail has no sauces/steak steps now (toppings → extra protein → name it: two Skips after protein); `/bank` returns
   **201**; `fmtMoney` prints `£162.5`; the Batchfully section note is CSS-uppercased (`.lower()`).
+
+### Follow-on (same 28th-wave session — tenth batch: SECTION DROPDOWNS under every menu title, THE CREATISTE COMMAND landing page on the catering site)
+All built + verified (Playwright `scratchpad/verify_v11.py` **21/21** desktop 1280 + mobile 390; `verify_v10.py` 83/83 regression; build clean);
+merged to `main`; preview artifact Version 12. **Render is back live** (Ellice resolved the suspension; no code). **Clean Dream PDF confirmed
+current by Ellice** (see the batch-9 note).
+- **Nav dropdowns (`NAV_MENU` in `site/src/content/site.js`, rendered by `App.jsx`):** each of the 7 titles carries `sub: [{to, label, external?}]`
+  pointing at section ids on its page (Personal Chef: the three services + Enquire · Private Catering: how it’s served + three services + Enquire ·
+  The Loaded Bar: included / the bowl menus / requirements / the brochure PDF · Menus: the three umbrella groups · What’s Up: Clean Dream card /
+  Order Clean Dream / pop-ups / availability / careers · Our Portfolio: selected work / gallery / testimonials / leave a review · About the Chef:
+  about me / specialisms & profile / accreditations / **Creatiste Command**). **Desktop:** hover or keyboard focus (`group-hover` /
+  `group-focus-within`) opens a dark panel under the title (`[data-nav-item] [data-nav-dropdown]`, chevron rotates); the 8-item row still fits one
+  line at 1280. **Mobile:** each title row gets a chevron button (`[data-mobile-toggle]`) that expands that title’s sections (`[data-mobile-sub]`,
+  one open at a time, reset when the sheet closes); the sheet now scrolls. **New section ids** so every sub-link lands: `how-its-served`
+  (ServiceUmbrella), `menu` + `requirements` (LoadedBar), `about-me` / `specialisms` / `accreditations` (Chef), `selected-work` (Portfolio), the
+  Menus group divs (`id` = slug of the group), `process` / `testimonials` / `creatiste-command` (Home), `start` (Enquire). **`main [id]
+  { scroll-margin-top: 92px }`** clears the fixed header. **`ScrollToTop`** now keys on `location.key` too (the same hash twice still scrolls),
+  resolves the id with `getElementById` (decoded) and defers 60ms so the mobile sheet’s body-scroll lock has lifted; the header closes the sheet on
+  pathname **or hash** change (a same-page hash link used to leave it open). `SubLink` renders `external: true` entries (the brochure) as plain
+  `<a target=_blank>` through `asset()`.
+- **The Creatiste Command on the catering site (`/creatiste-command`, `site/src/pages/Command.jsx`, copy in `COMMAND`):** hero (eyebrow "For
+  chefs & caterers", strap "The platform we built to run our own kitchen.", the labelled-containers photo, **Try it now** →
+  `https://creatistecommand.onrender.com/register` in a new tab + "Watch the one-minute intro" → the platform landing), "How we use it, every week"
+  (six real uses: enquiries → pipeline, quotes/invoices/receipts, Clean Dream orders, the diary → public calendar, shopping/prep/packing, reviews +
+  customer accounts), "What’s inside" (eight feature cards incl. Mise and offline), tagline, a "Free trial" band (no card for the trial, onboarding
+  call first) with Try it now + the site link, and a note that it is a separate product by the same founder. **No prices** (that stays on the
+  platform’s own pricing section). Linked from: a **"Behind the scenes" band on Home** (`[data-command-band]`, before the enquire band), the
+  **About the Chef dropdown**, and the **footer Explore list** (`[data-command-link]`). Not a 9th nav title (the row would overflow at 1280).
+- **Harness notes:** the test reads `NAV_MENU` out of `site.js` with a regex and visits every hash target, so a renamed id fails loudly; hover
+  the `> a` of a `[data-nav-item]`; section tops land 60–130px from the viewport top after the 60ms deferred scroll (wait ≥1.2s).
 
 ### DEPLOYING THE CATERING SITE (Cloudflare Pages — Ellice does this once; ~10 minutes)
 1. Cloudflare dashboard (the **jill+quinton** account) → Workers & Pages → Create → Pages → **Connect to Git** → repo

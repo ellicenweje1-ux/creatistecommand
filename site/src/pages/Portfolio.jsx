@@ -57,7 +57,7 @@ export default function Portfolio() {
         </div>
       </section>
 
-      <Section ground="ivory">
+      <Section ground="ivory" id="selected-work">
         <Reveal><Eyebrow className="text-gold-deep">Selected work</Eyebrow></Reveal>
         <div className="mt-8 space-y-16">
           {PORTFOLIO.features.map((f, i) => (

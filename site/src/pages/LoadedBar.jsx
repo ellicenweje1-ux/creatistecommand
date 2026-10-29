@@ -43,7 +43,7 @@ export default function LoadedBar() {
         </div>
       </Section>
 
-      <Section ground="ink">
+      <Section ground="ink" id="menu">
         <div className="max-w-2xl">
           <Reveal><Eyebrow>{L.menu.title}</Eyebrow></Reveal>
           <Reveal delay={1}><Heading className="mt-5">Every guest builds their own.</Heading>
@@ -52,7 +52,7 @@ export default function LoadedBar() {
         <BowlMenu ground="ink" className="mt-10" />
       </Section>
 
-      <Section ground="linen">
+      <Section ground="linen" id="requirements">
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <Reveal><Eyebrow className="text-gold-deep">Booking</Eyebrow></Reveal>

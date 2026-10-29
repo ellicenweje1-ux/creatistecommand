@@ -19,7 +19,7 @@ export default function Menus() {
             const items = MENUS_PAGE.items.filter((m) => (m.umbrella || 'Other') === g)
             if (!items.length) return null
             return (
-              <div key={g} data-menu-group={g}>
+              <div key={g} id={g.toLowerCase().replace(/[^a-z0-9]+/g, '-')} data-menu-group={g}>
                 <Reveal className="flex items-center gap-4"><Eyebrow className="text-gold-deep">{g}</Eyebrow><span className="h-px flex-1 bg-sand" /></Reveal>
                 <div className="mt-6 grid gap-px bg-sand md:grid-cols-2">
                   {items.map((m, i) => (

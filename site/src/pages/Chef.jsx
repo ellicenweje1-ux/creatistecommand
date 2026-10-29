@@ -21,7 +21,7 @@ export default function Chef() {
         </div>
       </section>
 
-      <Section ground="linen" tight>
+      <Section ground="linen" tight id="about-me">
         <div className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-4">
             <Reveal><Eyebrow className="text-gold-deep">About me</Eyebrow></Reveal>
@@ -33,7 +33,7 @@ export default function Chef() {
         </div>
       </Section>
 
-      <Section ground="ivory">
+      <Section ground="ivory" id="specialisms">
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <Reveal><Eyebrow className="text-gold-deep">Specialisms</Eyebrow></Reveal>
@@ -47,7 +47,7 @@ export default function Chef() {
               {CHEF.profile.map(([k, v]) => <div key={k} className="grid gap-1 py-3 sm:grid-cols-[120px_1fr]"><dt className="font-body text-[11px] uppercase tracking-wide text-stone">{k}</dt><dd className="font-body text-[14px] text-ink/85">{v}</dd></div>)}
             </Reveal>
           </div>
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-7" id="accreditations">
             <Reveal><Eyebrow className="text-gold-deep">Accreditations & certificates</Eyebrow></Reveal>
             <Reveal as="ul" delay={1} className="mt-6 divide-y divide-sand border-y border-sand">
               {CHEF.accreditations.map((a) => (

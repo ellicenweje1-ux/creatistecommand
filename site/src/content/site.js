@@ -22,6 +22,93 @@ export const CONTACT = {
   area: 'Based in Slough, serving West London, Surrey and Berkshire', // TODO Ellice: confirm wording
 }
 
+/* The main menu. Each title opens a dropdown of that page's sections (desktop: hover; phone: tap the +).
+   Sub-links point at section ids on the page, so adding a section here means giving it that id. */
+export const NAV_MENU = [
+  { to: '/personal-chef', label: 'Personal Chef', sub: [
+    { to: '/personal-chef#batchfully-made', label: 'Batchfully Made' },
+    { to: '/personal-chef#the-home-edit', label: 'The Home Edit' },
+    { to: '/personal-chef#sorted-and-served', label: 'Sorted & Served' },
+    { to: '/enquire?lane=personal-chef', label: 'Enquire' },
+  ] },
+  { to: '/private-catering', label: 'Private Catering', sub: [
+    { to: '/private-catering#how-its-served', label: 'How it’s served' },
+    { to: '/private-catering#corporate-curations', label: 'Corporate Curations' },
+    { to: '/private-catering#private-and-personal', label: 'Private & Personal' },
+    { to: '/private-catering#the-creatiste-table', label: 'The Creatiste Table' },
+    { to: '/enquire?lane=private-catering', label: 'Enquire' },
+  ] },
+  { to: '/the-loaded-bar', label: 'The Loaded Bar', sub: [
+    { to: '/the-loaded-bar#included', label: 'What’s included' },
+    { to: '/the-loaded-bar#menu', label: 'The bowl menus' },
+    { to: '/the-loaded-bar#requirements', label: 'Information & requirements' },
+    { to: '/docs/the-loaded-bar.pdf', label: 'Grab the brochure', external: true },
+  ] },
+  { to: '/the-menus', label: 'Menus', sub: [
+    { to: '/the-menus#personal-chef', label: 'Personal chef' },
+    { to: '/the-menus#private-catering', label: 'Private catering' },
+    { to: '/the-menus#lunch-service', label: 'Lunch service' },
+  ] },
+  { to: '/whats-up', label: 'What’s Up With Us?', sub: [
+    { to: '/whats-up#weekday-lunch-service', label: 'Clean Dream · weekday lunch' },
+    { to: '/cleandream', label: 'Order Clean Dream' },
+    { to: '/whats-up#pop-up', label: 'Pop-ups & events' },
+    { to: '/whats-up#availability', label: 'Our availability' },
+    { to: '/whats-up#careers', label: 'Careers' },
+  ] },
+  { to: '/portfolio', label: 'Our Portfolio', sub: [
+    { to: '/portfolio#selected-work', label: 'Selected work' },
+    { to: '/portfolio#gallery', label: 'The Gallery' },
+    { to: '/portfolio#testimonials', label: 'Client testimonials' },
+    { to: '/portfolio#leave-a-review', label: 'Leave us a review' },
+  ] },
+  { to: '/the-chef', label: 'About the Chef', sub: [
+    { to: '/the-chef#about-me', label: 'About me' },
+    { to: '/the-chef#specialisms', label: 'Specialisms & profile' },
+    { to: '/the-chef#accreditations', label: 'Accreditations & certificates' },
+    { to: '/creatiste-command', label: 'Creatiste Command · our kitchen software' },
+  ] },
+]
+
+/* The Creatiste Command: the management platform Ellice built, which this business runs on.
+   A landing page for other chefs and caterers, with a "Try it now" into the platform itself. */
+export const COMMAND = {
+  url: 'https://creatistecommand.onrender.com',
+  tryUrl: 'https://creatistecommand.onrender.com/register',
+  introUrl: 'https://creatistecommand.onrender.com/',
+  eyebrow: 'For chefs & caterers',
+  title: 'The Creatiste Command',
+  strap: 'The platform we built to run our own kitchen.',
+  intro: 'Every enquiry on this site, every Clean Dream order, every review and the live availability calendar runs through The Creatiste Command: the all-in-one management platform founded by our chef, Ellice Nweje, for private chefs, caterers and all culinary professionals. We use it every day to manage our kitchen, and now you can too.',
+  photo: '/photos/prep-labelled.jpg',
+  tagline: 'Flavour. Freedom. Finesse. Now for your business as well as your food.',
+  useTitle: 'How we use it, every week.',
+  uses: [
+    ['Enquiries land in a pipeline', 'The Enquire Now form on this site lands straight in our bookings pipeline: enquiry, quoted, confirmed, in prep. Nothing gets lost in an inbox.'],
+    ['Quotes and invoices in our branding', 'Menus become quotes, quotes become invoices, invoices send receipts. Deposits, bank details, grocery receipts and our own numbering, all in one place.'],
+    ['Clean Dream orders, priced and recorded', 'The order page you see at thecreatistecatering.com/cleandream is powered by Command: every bowl is priced server-side, every paid order becomes a booking on our calendar.'],
+    ['The diary and the public calendar', 'Our availability calendar on What’s Up With Us reads from the Command diary: standing commitments, prep days and booking rules decide which dates show as open.'],
+    ['Shopping, prep and packing from the menu', 'Each event has its own shopping list, prep tasks, supplier route and packing list, built from the menu, with drag-to-reorder checklists on the phone.'],
+    ['Reviews, approved by us', 'The review form on Our Portfolio goes to Command for approval before it shows here. Customers can sign in to see their orders and enquiries.'],
+  ],
+  featuresTitle: 'What’s inside.',
+  features: [
+    ['Bookings & clients', 'Every event from enquiry to final presentation, with the client, the menu, the money and the prep in one place.'],
+    ['Menus & recipes', 'Set menus with PDFs, recipe sheets, serving sizes and a 14-allergen matrix that prints as an FSA-style table.'],
+    ['Quotes, invoices & receipts', 'Branded documents with approval links, deposits, receipts and your own number format.'],
+    ['Shopping, suppliers & routes', 'A price book per supplier, shopping lists that become route stops, and packing lists for the van.'],
+    ['Diary & availability', 'Rules by booking type, prep days, days off, and a public availability calendar for your own website.'],
+    ['Pre-orders & reviews', 'Take paid pre-orders for a lunch service or pop-up, and approve customer reviews before they show on your site.'],
+    ['Mise, your AI sous-chef', 'Named for mise en place: drafts shopping lists, prep plans and recipe sheets from a menu, when you ask.'],
+    ['Works offline on your phone', 'Installs as an app, keeps working with no signal in the kitchen or the van, and syncs when you are back online.'],
+  ],
+  trialTitle: 'Try it now.',
+  trialBody: 'Start with a free trial, no card needed for the trial. Every new account begins with a short onboarding call so you are set up properly from day one.',
+  tryLabel: 'Try it now',
+  introLabel: 'Watch the one-minute intro',
+  note: 'The Creatiste Command is a separate product from The Creatiste Catering, run by the same founder.',
+}
+
 export const HOURS = [
   { label: 'Client enquiries & consultations', value: 'Mon to Fri, 9:00am to 6:00pm' },
   { label: 'Personal chef bookings', value: 'Sun to Thurs' },

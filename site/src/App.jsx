@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
-import { CONTACT, FOOTER, HOURS } from './content/site.js'
+import { CONTACT, FOOTER, HOURS, NAV_MENU } from './content/site.js'
 import { ScrollToTop, asset } from './ui.jsx'
 import Home from './pages/Home.jsx'
 import PersonalChef from './pages/PersonalChef.jsx'
@@ -16,17 +16,20 @@ import TableMenuPrint from './pages/TableMenu.jsx'
 import { BatchfullyPrint, HomeEditPrint } from './docs.jsx'
 import Menus from './pages/Menus.jsx'
 import Account from './pages/Account.jsx'
+import Command from './pages/Command.jsx'
 import { useCustomer } from './account.js'
 
-const NAV = [
-  { to: '/personal-chef', label: 'Personal Chef' },
-  { to: '/private-catering', label: 'Private Catering' },
-  { to: '/the-loaded-bar', label: 'The Loaded Bar' },
-  { to: '/the-menus', label: 'Menus' },
-  { to: '/whats-up', label: 'What’s Up With Us?' },
-  { to: '/portfolio', label: 'Our Portfolio' },
-  { to: '/the-chef', label: 'About the Chef' },
-]
+const NAV = NAV_MENU
+
+/* A sub-link: in-site (hash or query) via the router, documents as plain links. */
+function SubLink({ s, className, onClick }) {
+  if (s.external) return <a href={asset(s.to)} target="_blank" rel="noreferrer" className={className} onClick={onClick}>{s.label}</a>
+  return <Link to={s.to} className={className} onClick={onClick}>{s.label}</Link>
+}
+
+function Chevron({ className = '' }) {
+  return <svg viewBox="0 0 10 6" className={`h-[5px] w-[9px] ${className}`} aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.2" /></svg>
+}
 
 function Nav() {
   const [solid, setSolid] = useState(false)
@@ -38,7 +41,9 @@ function Nav() {
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
-  useEffect(() => { setOpen(false) }, [pathname])
+  const { hash, key: navKey } = useLocation()
+  const [expanded, setExpanded] = useState(null)
+  useEffect(() => { setOpen(false); setExpanded(null) }, [pathname, hash, navKey])
   useEffect(() => { document.body.style.overflow = open ? 'hidden' : '' ; return () => { document.body.style.overflow = '' } }, [open])
 
   return (
@@ -51,9 +56,20 @@ function Nav() {
         </Link>
         <nav className="hidden flex-nowrap items-center gap-3 xl:flex 2xl:gap-4" aria-label="Main">
           {NAV.map((n) => (
-            <NavLink key={n.to} to={n.to} className={({ isActive }) => `whitespace-nowrap font-body text-[10px] uppercase tracking-[0.08em] transition-colors 2xl:text-[10.5px] 2xl:tracking-[0.1em] ${isActive ? 'text-gold' : 'text-ivory/80 hover:text-ivory'}`}>
-              {n.label}
-            </NavLink>
+            <div key={n.to} className="group relative" data-nav-item={n.to}>
+              <NavLink to={n.to} className={({ isActive }) => `flex items-center gap-1.5 whitespace-nowrap py-3 font-body text-[10px] uppercase tracking-[0.08em] transition-colors 2xl:text-[10.5px] 2xl:tracking-[0.1em] ${isActive ? 'text-gold' : 'text-ivory/80 hover:text-ivory'}`} aria-haspopup={n.sub?.length ? 'true' : undefined}>
+                {n.label}{n.sub?.length ? <Chevron className="opacity-60 transition-transform duration-300 group-hover:rotate-180 group-focus-within:rotate-180" /> : null}
+              </NavLink>
+              {n.sub?.length ? (
+                <div className="invisible absolute left-1/2 top-full z-50 -translate-x-1/2 pt-1 opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100" data-nav-dropdown>
+                  <ul className="min-w-[230px] border border-ink-3 bg-ink/95 py-2 shadow-[0_18px_40px_rgba(0,0,0,.45)] backdrop-blur-md">
+                    {n.sub.map((s) => (
+                      <li key={s.to}><SubLink s={s} className="block whitespace-nowrap px-5 py-2.5 font-body text-[11px] uppercase tracking-[0.1em] text-ivory/75 transition-colors hover:bg-ink-2 hover:text-gold" /></li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
           ))}
           <Link to="/enquire" className="ml-1 whitespace-nowrap border border-gold px-3.5 py-2 font-body text-[10.5px] uppercase tracking-[0.1em] text-gold transition-colors hover:bg-gold hover:text-ink">Enquire Now</Link>
           <AccountLink className="ml-1 whitespace-nowrap font-body text-[10px] uppercase tracking-[0.08em] text-ivory/70 transition-colors hover:text-gold 2xl:text-[10.5px]" />
@@ -69,12 +85,26 @@ function Nav() {
     </header>
       {/* Mobile sheet — a sibling of the header: backdrop-filter on the header would otherwise become its containing block. */}
       <div className={`xl:hidden fixed inset-x-0 bottom-0 top-[76px] z-30 bg-ink transition-opacity duration-300 ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}>
-        <nav className="flex h-full flex-col px-6 pt-4" aria-label="Mobile">
+        <nav className="flex h-full flex-col overflow-y-auto px-6 pt-4" aria-label="Mobile">
           <p className="eyebrow pb-3">Menu</p>
           {NAV.map((n, i) => (
-            <NavLink key={n.to} to={n.to} className={({ isActive }) => `flex items-baseline justify-between border-t border-ink-3 py-3.5 font-display text-[19px] tracking-[0.01em] ${isActive ? 'text-gold' : 'text-ivory/90'}`}>
-              <span>{n.label}</span><span className="font-body text-[10px] tracking-eyebrow text-smoke">0{i + 1}</span>
-            </NavLink>
+            <div key={n.to} className="border-t border-ink-3" data-mobile-item={n.to}>
+              <div className="flex items-center">
+                <NavLink to={n.to} className={({ isActive }) => `flex flex-1 items-baseline justify-between py-3.5 font-display text-[19px] tracking-[0.01em] ${isActive ? 'text-gold' : 'text-ivory/90'}`}>
+                  <span>{n.label}</span><span className="font-body text-[10px] tracking-eyebrow text-smoke">0{i + 1}</span>
+                </NavLink>
+                {n.sub?.length ? (
+                  <button type="button" onClick={() => setExpanded((v) => (v === n.to ? null : n.to))} className="-mr-2 ml-3 flex h-10 w-10 items-center justify-center text-ivory/70" aria-expanded={expanded === n.to} aria-label={`${expanded === n.to ? 'Hide' : 'Show'} ${n.label} sections`} data-mobile-toggle>
+                    <Chevron className={`transition-transform duration-300 ${expanded === n.to ? 'rotate-180 text-gold' : ''}`} />
+                  </button>
+                ) : null}
+              </div>
+              {n.sub?.length && expanded === n.to ? (
+                <ul className="mb-3 space-y-0.5 border-l border-ink-3 pl-4" data-mobile-sub>
+                  {n.sub.map((s) => <li key={s.to}><SubLink s={s} className="block py-2 font-body text-[12px] uppercase tracking-[0.1em] text-ivory/70" /></li>)}
+                </ul>
+              ) : null}
+            </div>
           ))}
           <Link to="/enquire" className="mt-6 bg-gold px-6 py-3.5 text-center font-body text-[11px] uppercase tracking-wide text-ink">Enquire Now</Link>
           <Link to="/cleandream" className="mt-2 border border-ivory/30 px-6 py-3.5 text-center font-body text-[11px] uppercase tracking-wide text-ivory/90">Order Clean Dream</Link>
@@ -110,6 +140,7 @@ function Footer() {
               {NAV.map((n) => <li key={n.to}><Link to={n.to} className="hover:text-gold">{n.label}</Link></li>)}
               <li><Link to="/enquire" className="hover:text-gold">Enquire Now</Link></li>
               <li><Link to="/enquire#faq" className="hover:text-gold" data-faq-link>FAQs</Link></li>
+              <li><Link to="/creatiste-command" className="hover:text-gold" data-command-link>The Creatiste Command</Link></li>
               <li><AccountLink className="hover:text-gold" /></li>
             </ul>
           </div>
@@ -206,6 +237,7 @@ export default function App() {
           <Route path="/the-menus" element={<Menus />} />
           <Route path="/enquire" element={<Enquire />} />
           <Route path="/account" element={<Account />} />
+          <Route path="/creatiste-command" element={<Command />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="*" element={<NotFound />} />

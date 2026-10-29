@@ -57,6 +57,9 @@
 .frame-empty { background: linear-gradient(135deg, #15120E 0%, #1E1A15 50%, #15120E 100%); }
 .frame-empty::before { content: ''; position: absolute; inset: 14px; border: 1px solid rgba(188,164,123,.25); }
 
+/* Anchored sections land below the fixed header. */
+main [id] { scroll-margin-top: 92px; }
+
 /* Marquee strip used on the Now section */
 .ticker { display: flex; gap: 3rem; width: max-content; animation: ticker 40s linear infinite; }
 @keyframes ticker { to { transform: translateX(-50%); } }

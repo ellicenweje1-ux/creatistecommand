@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ABOUT, CONTACT, GALLERY, HERO, KIND_WORDS, MISSION, NOW, PERSONAL_CHEF, PRIVATE_CATERING, PROCESS, LOADED_BAR, SETTINGS } from '../content/site.js'
+import { ABOUT, COMMAND, CONTACT, GALLERY, HERO, KIND_WORDS, LOADED_BAR, MISSION, NOW, PERSONAL_CHEF, PRIVATE_CATERING, PROCESS, SETTINGS } from '../content/site.js'
 import { Arrow, Button, Eyebrow, Flame, Frame, Heading, Reveal, Section, asset } from '../ui.jsx'
 
 function Hero() {
@@ -182,7 +182,7 @@ function Highlights() {
 
 function Process() {
   return (
-    <Section ground="linen">
+    <Section ground="linen" id="process">
       <div className="max-w-2xl">
         <Reveal><Eyebrow className="text-gold-deep">{PROCESS.eyebrow}</Eyebrow></Reveal>
         <Reveal delay={1}><Heading className="mt-5">{PROCESS.title}</Heading></Reveal>
@@ -203,12 +203,31 @@ function Process() {
 function KindWords() {
   const q = KIND_WORDS.quotes[0]
   return (
-    <Section ground="ivory" tight>
+    <Section ground="ivory" tight id="testimonials">
       <Reveal className="text-center"><Eyebrow className="text-gold-deep">{KIND_WORDS.eyebrow}</Eyebrow><Heading size="md" className="mt-4">{KIND_WORDS.title}</Heading></Reveal>
       <Reveal delay={1} className="mx-auto mt-10 max-w-3xl text-center">
         <p className="font-display text-[24px] leading-snug text-ink/90 sm:text-[30px]">“{q.text}”</p>
         <p className="mt-6 font-body text-[11px] uppercase tracking-eyebrow text-stone">{q.who}</p>
       </Reveal>
+    </Section>
+  )
+}
+
+/* Behind the scenes: the business runs on The Creatiste Command. A short band that leads to its page. */
+export function CommandBand() {
+  return (
+    <Section ground="ink" tight className="border-t border-ink-3" id="creatiste-command">
+      <div className="grid items-center gap-8 lg:grid-cols-12" data-command-band>
+        <div className="lg:col-span-8">
+          <Reveal><Eyebrow>Behind the scenes</Eyebrow></Reveal>
+          <Reveal delay={1}><Heading className="mt-4">Our kitchen runs on The Creatiste Command.</Heading></Reveal>
+          <Reveal delay={2}><p className="lede mt-4 max-w-xl text-ivory/70">{COMMAND.strap} Built by our chef for chefs and caterers: bookings, menus, quotes, invoices, shopping, prep and the diary, in one place.</p></Reveal>
+        </div>
+        <Reveal delay={2} className="flex flex-wrap gap-3 lg:col-span-4 lg:justify-end">
+          <Button to="/creatiste-command" variant="ghost">Find out more</Button>
+          <Button href={COMMAND.tryUrl} target="_blank" rel="noreferrer">{COMMAND.tryLabel}</Button>
+        </Reveal>
+      </div>
     </Section>
   )
 }
@@ -243,6 +262,7 @@ export default function Home() {
       <Highlights />
       <Process />
       <KindWords />
+      <CommandBand />
       <EnquireBand />
     </>
   )

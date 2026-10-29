@@ -24,7 +24,7 @@ export default function ServiceUmbrella({ u, lane }) {
       </section>
 
       {u.howServed ? (
-        <Section ground="ivory" tight>
+        <Section ground="ivory" tight id="how-its-served">
           <div className="grid items-center gap-10 lg:grid-cols-12">
             <div className="lg:col-span-7">
               <Reveal><Eyebrow className="text-gold-deep">{u.howServed.eyebrow}</Eyebrow></Reveal>
