@@ -1,5 +1,5 @@
 import { CHEF } from '../content/site.js'
-import { Eyebrow, Frame, Heading, Reveal, Section } from '../ui.jsx'
+import { Eyebrow, Frame, Heading, Reveal, Section, docUrl } from '../ui.jsx'
 import { EnquireBand } from './Home.jsx'
 
 export default function Chef() {
@@ -56,7 +56,7 @@ export default function Chef() {
                     <p className="font-display text-[19px]">{a.name}</p>
                     <p className="mt-1 font-body text-[13px] text-stone">{a.issuer}{a.year ? ` · ${a.year}` : ''}</p>
                   </div>
-                  {a.file ? <a href={a.file} target="_blank" rel="noreferrer" className="font-body text-[12px] uppercase tracking-wide text-gold-deep link-under">View</a> : <span className="font-body text-[11px] uppercase tracking-wide text-stone/70">Certificate to follow</span>}
+                  {a.file ? <a href={docUrl(a.file)} target="_blank" rel="noreferrer" className="font-body text-[12px] uppercase tracking-wide text-gold-deep link-under">View</a> : <span className="font-body text-[11px] uppercase tracking-wide text-stone/70">Certificate to follow</span>}
                 </li>
               ))}
             </Reveal>

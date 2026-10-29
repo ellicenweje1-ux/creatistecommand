@@ -30,9 +30,9 @@ export default function Command() {
           <Reveal><Eyebrow className="text-gold-deep">We use it to manage our kitchen</Eyebrow></Reveal>
           <Reveal delay={1}><Heading className="mt-5">{C.useTitle}</Heading></Reveal>
         </div>
-        <ol className="mt-12 grid gap-px bg-sand md:grid-cols-2 lg:grid-cols-3" data-command-uses>
+        <ol className="mt-12 grid border-l border-t border-sand md:grid-cols-2 lg:grid-cols-3" data-command-uses>
           {C.uses.map(([t, d], i) => (
-            <Reveal key={t} as="li" delay={i % 3} className="bg-ivory p-7">
+            <Reveal key={t} as="li" delay={i % 3} className="border-b border-r border-sand p-7">
               <p className="font-display text-[30px] text-gold-deep">0{i + 1}</p>
               <p className="mt-4 font-display text-[20px]">{t}</p>
               <p className="mt-3 font-body text-[14px] font-light leading-relaxed text-ink/70">{d}</p>

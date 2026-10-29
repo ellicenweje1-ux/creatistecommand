@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
 import { CONTACT, FOOTER, HOURS, NAV_MENU } from './content/site.js'
-import { ScrollToTop, asset } from './ui.jsx'
+import { ScrollToTop, asset, docUrl } from './ui.jsx'
 import Home from './pages/Home.jsx'
 import PersonalChef from './pages/PersonalChef.jsx'
 import PrivateCatering from './pages/PrivateCatering.jsx'
@@ -23,7 +23,7 @@ const NAV = NAV_MENU
 
 /* A sub-link: in-site (hash or query) via the router, documents as plain links. */
 function SubLink({ s, className, onClick }) {
-  if (s.external) return <a href={asset(s.to)} target="_blank" rel="noreferrer" className={className} onClick={onClick}>{s.label}</a>
+  if (s.external) return <a href={docUrl(s.to)} target="_blank" rel="noreferrer" className={className} onClick={onClick}>{s.label}</a>
   return <Link to={s.to} className={className} onClick={onClick}>{s.label}</Link>
 }
 

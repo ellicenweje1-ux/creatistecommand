@@ -187,9 +187,9 @@ function Process() {
         <Reveal><Eyebrow className="text-gold-deep">{PROCESS.eyebrow}</Eyebrow></Reveal>
         <Reveal delay={1}><Heading className="mt-5">{PROCESS.title}</Heading></Reveal>
       </div>
-      <ol className="mt-12 grid gap-px bg-sand sm:grid-cols-2 lg:grid-cols-4">
+      <ol className="mt-12 grid border-l border-t border-sand sm:grid-cols-2 lg:grid-cols-4">
         {PROCESS.steps.map(([t, d], i) => (
-          <Reveal key={t} as="li" delay={i} className="bg-linen p-7">
+          <Reveal key={t} as="li" delay={i} className="border-b border-r border-sand p-7">
             <p className="font-display text-[34px] text-gold-deep">0{i + 1}</p>
             <p className="mt-4 font-display text-[20px]">{t}</p>
             <p className="mt-3 font-body text-[14px] font-light leading-relaxed text-ink/70">{d}</p>

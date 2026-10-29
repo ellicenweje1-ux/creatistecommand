@@ -3,6 +3,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { fmtDate, fmtMoney, todayISO } from '../format'
 import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Spinner, Textarea, toast, toastErr } from '../ui'
+import { EmailPreview, PreviewModal } from '../receiptpreview'
 
 /* Pre-orders — customer orders placed on the chef's own website (a lunch service, a pop-up),
    paid by card before they're confirmed. Paid orders also roll into one confirmed Booking per
@@ -54,6 +55,9 @@ export default function Preorders() {
   const [from, setFrom] = useState(todayISO())
   const [showPending, setShowPending] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [paidPreview, setPaidPreview] = useState(null) // {o, customer:{to,subject,body}, chef:{…}}
+  const [waPreview, setWaPreview] = useState(null)     // {o, text}
+  const [busy, setBusy] = useState(false)
 
   const load = async () => {
     try {
@@ -71,13 +75,28 @@ export default function Preorders() {
     return Object.entries(by).sort(([a], [b]) => a.localeCompare(b))
   }, [orders, showPending])
 
-  const copyReceipt = async (o) => {
-    const text = receiptText(o, user?.receipt_whatsapp_template || '', user?.business_name || user?.name || 'The Creatiste Catering')
-    try { await navigator.clipboard.writeText(text); toast('Receipt copied. Paste it into WhatsApp and fill in the blanks.') } catch { window.prompt('Copy this receipt:', text) }
+  // The WhatsApp receipt opens as an editable preview first; copy when it reads right.
+  const copyReceipt = (o) => setWaPreview({ o, text: receiptText(o, user?.receipt_whatsapp_template || '', user?.business_name || user?.name || 'The Creatiste Catering') })
+  const copyWa = async () => {
+    const text = waPreview?.text || ''
+    try { await navigator.clipboard.writeText(text); toast('Receipt copied. Paste it into WhatsApp.'); setWaPreview(null) } catch { window.prompt('Copy this receipt:', text) }
   }
   const setStatus = async (o, status) => {
+    if (status === 'paid') {
+      // Marking paid confirms the booking AND emails the customer their receipt: show that email first.
+      try { const p = await api.get(`/preorders/${o.id}/receipt-preview`); setPaidPreview({ o, ...p }) } catch (e) { toastErr(e) }
+      return
+    }
     try { await api.patch(`/preorders/${o.id}`, { status }); toast(`Marked ${LABELS[status].toLowerCase()}`); load() } catch (e) { toastErr(e) }
   }
+  const confirmPaid = async () => {
+    const o = paidPreview?.o
+    if (!o) return
+    setBusy(true)
+    try { await api.patch(`/preorders/${o.id}`, { status: 'paid' }); toast('Marked paid. Receipt emailed to the customer.'); setPaidPreview(null); load() } catch (e) { toastErr(e) } finally { setBusy(false) }
+  }
+  const site = (user?.socials?.website || '').trim()
+  const previewUrl = site ? `${site.replace(/\/$/, '').replace(/^(?!https?:\/\/)/, 'https://')}/cleandream?preview=1` : ''
   const saveOffer = async () => {
     let parsed
     try { parsed = JSON.parse(json) } catch { toastErr(new Error('That isn’t valid JSON yet')); return }
@@ -92,6 +111,25 @@ export default function Preorders() {
   return (
     <div className="space-y-6">
       <PageHeader title="Pre-orders" sub="Orders placed on your own site, box by box, ready for labelling. Bank-transfer orders wait here until you mark them paid." />
+      <PreviewModal open={!!paidPreview} onClose={() => setPaidPreview(null)} title="Mark paid and send this receipt?" confirmLabel="Mark paid & send receipt" onConfirm={confirmPaid} busy={busy}>
+        {paidPreview ? <EmailPreview to={paidPreview.customer?.to} subject={paidPreview.customer?.subject} body={paidPreview.customer?.body}
+          note={`${paidPreview.o.name}’s order becomes a confirmed booking for ${fmtDate(paidPreview.o.date)} and this receipt is emailed to them. You get a copy too.`} /> : null}
+      </PreviewModal>
+      <PreviewModal open={!!waPreview} onClose={() => setWaPreview(null)} title="WhatsApp receipt" confirmLabel="Copy to clipboard" onConfirm={copyWa}>
+        {waPreview ? <div data-wa-preview>
+          <p className="mb-2 text-sm text-fg/70">Read it through and tweak anything (the delivery blanks, a line of your own), then copy and paste it into WhatsApp. Change the standing wording under Settings → Invoices → Receipts.</p>
+          <Textarea rows={16} className="font-mono text-xs" value={waPreview.text} onChange={(e) => setWaPreview((p) => ({ ...p, text: e.target.value }))} />
+        </div> : null}
+      </PreviewModal>
+      <Card className="p-4" data-customer-preview>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="font-display text-lg">See it as a customer</p>
+            <p className="mt-1 text-sm text-fg/70">Open your order page with <code className="rounded bg-fg/5 px-1">?preview=1</code> on the end: the whole journey runs exactly as a customer sees it (bowls, basket, bank transfer, order received) but nothing is saved, emailed or charged, and at the end it shows the emails they would receive. {previewUrl ? '' : 'Set your website under Settings → Business and the button appears here.'}</p>
+          </div>
+          {previewUrl ? <a href={previewUrl} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-lg bg-copper px-4 py-2 text-sm font-medium text-ink hover:opacity-90" data-customer-preview-link>Preview as a customer</a> : null}
+        </div>
+      </Card>
 
       <Card className="p-4">
         <div className="flex flex-wrap items-end gap-4">

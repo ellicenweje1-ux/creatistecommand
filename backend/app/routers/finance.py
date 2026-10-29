@@ -118,6 +118,35 @@ DEFAULT_RECEIPT_EMAIL = (
 )
 
 
+def render_receipt(inv: Invoice, owner: User | None, client: Client | None, link: str) -> dict:
+    """The receipt-of-payment email for an invoice, with the chef's template (or the built-in one) filled in.
+    Pure: nothing sent. `to` is empty when the client has no email on file."""
+    total = invoice_total(inv)
+    cur = (owner.currency if owner and getattr(owner, "currency", None) else "GBP")
+    sym = {"GBP": "£", "EUR": "€", "USD": "$"}.get(cur, "")
+    biz = (owner.business_name or owner.name) if owner else "your caterer"
+    fill = {"{client}": (client.name if client else "") or "", "{number}": inv.number or str(inv.id), "{amount}": f"{sym}{total:,.2f}",
+            "{date}": inv.paid_date or date.today().isoformat(), "{link}": link, "{business}": biz}
+    body = (owner.receipt_email_template or "").strip() if owner else ""
+    if not body:
+        body = DEFAULT_RECEIPT_EMAIL
+    for k, v in fill.items():
+        body = body.replace(k, v)
+    return {"to": (client.email if client else "") or "", "subject": f"Receipt of payment: invoice {inv.number or inv.id} from {biz}", "body": body}
+
+
+@invoices.get("/{invoice_id}/receipt-preview")
+def receipt_preview(invoice_id: int, db: Session = Depends(get_db), user=Depends(require_active)):
+    """Exactly what 'Confirm paid + receipt' will email, before it goes. Changes nothing."""
+    inv = get_owned(db, Invoice, invoice_id, ws_id(user))
+    owner = db.get(User, ws_id(user))
+    client = db.get(Client, inv.client_id) if inv.client_id else None
+    if client and client.user_id != ws_id(user):
+        client = None
+    link = f"{config.APP_URL.rstrip('/')}/i/{inv.public_token or '…'}"
+    return {**render_receipt(inv, owner, client, link), "marks_paid": inv.status != "paid", "status": inv.status}
+
+
 @invoices.post("/{invoice_id}/receipt")
 def send_receipt(invoice_id: int, db: Session = Depends(get_db), user=Depends(require_active)):
     """Confirm an invoice as paid and email the client a receipt of payment (with the invoice link).
@@ -131,20 +160,10 @@ def send_receipt(invoice_id: int, db: Session = Depends(get_db), user=Depends(re
     if not inv.public_token:
         inv.public_token = uuid.uuid4().hex
     link = f"{config.APP_URL.rstrip('/')}/i/{inv.public_token}"
-    total = invoice_total(inv)
-    cur = (owner.currency if owner and getattr(owner, "currency", None) else "GBP")
-    sym = {"GBP": "£", "EUR": "€", "USD": "$"}.get(cur, "")
     emailed = False
     if client and client.user_id == ws_id(user) and client.email:
-        biz = (owner.business_name or owner.name) if owner else "your caterer"
-        fill = {"{client}": client.name or "", "{number}": inv.number or str(inv.id), "{amount}": f"{sym}{total:,.2f}",
-                "{date}": inv.paid_date or date.today().isoformat(), "{link}": link, "{business}": biz}
-        body = (owner.receipt_email_template or "").strip() if owner else ""
-        if not body:
-            body = DEFAULT_RECEIPT_EMAIL
-        for k, v in fill.items():
-            body = body.replace(k, v)
-        mailer.send_email(client.email, f"Receipt of payment: invoice {inv.number or inv.id} from {biz}", body)
+        mail = render_receipt(inv, owner, client, link)
+        mailer.send_email(mail["to"], mail["subject"], mail["body"])
         emailed = True
     log_activity(db, user, "updated", inv, summary=f"Receipt sent for invoice {inv.number or inv.id}" if emailed else f"Marked invoice {inv.number or inv.id} paid")
     db.commit()

@@ -4,6 +4,8 @@ import { Link, useLocation } from 'react-router-dom'
 const base = import.meta.env.BASE_URL || '/'
 /* Public asset path that survives the relative-base preview build. */
 export const asset = (p) => (p.startsWith('/') ? base.replace(/\/$/, '') + p : p)
+/* Documents (PDFs, certificates) carry the build id so browsers and CDNs fetch the latest file. */
+export const docUrl = (p) => `${asset(p)}${p.includes('?') ? '&' : '?'}v=${typeof __BUILD_ID__ !== 'undefined' ? __BUILD_ID__ : '0'}`
 
 export function ScrollToTop() {
   const { pathname, hash, key } = useLocation()

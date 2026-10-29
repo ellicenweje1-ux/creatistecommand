@@ -9,6 +9,7 @@ import { ChargesMenu } from '../charges'
 import { MenuItemsMenu, fetchMenuItems } from '../menulines'
 import { PriceBookSearch } from '../pricebook'
 import { GripHandle, SortableList } from '../sortable'
+import { EmailPreview, PreviewModal } from '../receiptpreview'
 
 /* ------------------------------ invoice editor ------------------------------ */
 export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, bookingId = null, clientId = null, prefillItems = null, currency = 'GBP' }) {
@@ -467,6 +468,7 @@ export default function Finance() {
   const [clients, setClients] = useState([])
   const [q, setQ] = useState('')
   const [receipting, setReceipting] = useState(null)
+  const [receiptPreview, setReceiptPreview] = useState(null) // {inv, to, subject, body, marks_paid}
 
   const load = () => {
     api.get('/finance/summary').then(setSummary).catch(toastErr)
@@ -482,12 +484,18 @@ export default function Finance() {
     return hay.includes(needle)
   })
   const matchingLines = (inv) => needle ? (inv.items || []).filter((it) => (it.description || it.name || '').toLowerCase().includes(needle)).map((it) => it.description || it.name) : []
+  // Preview first: the exact email the client will get, then one deliberate confirm.
   const sendReceipt = async (inv) => {
-    if (!window.confirm(`Confirm ${inv.number || '#' + inv.id} as paid and email ${clientName(inv) || 'the client'} a receipt?`)) return
+    try { const p = await api.get(`/invoices/${inv.id}/receipt-preview`); setReceiptPreview({ inv, ...p }) } catch (e) { toastErr(e) }
+  }
+  const confirmReceipt = async () => {
+    const inv = receiptPreview?.inv
+    if (!inv) return
     setReceipting(inv.id)
     try {
       const r = await api.post(`/invoices/${inv.id}/receipt`)
       toast(r.emailed ? 'Receipt emailed to the client' : 'Marked paid. No client email on file, so nothing was sent.')
+      setReceiptPreview(null)
       load()
     } catch (e) { toastErr(e) } finally { setReceipting(null) }
   }
@@ -496,6 +504,11 @@ export default function Finance() {
 
   return (
     <div>
+      <PreviewModal open={!!receiptPreview} onClose={() => setReceiptPreview(null)} title={receiptPreview?.marks_paid ? 'Confirm paid + send this receipt?' : 'Send this receipt?'}
+        confirmLabel={receiptPreview?.to ? (receiptPreview?.marks_paid ? 'Confirm paid & send' : 'Send receipt') : 'Mark paid (nothing to send)'} onConfirm={confirmReceipt} busy={receipting === receiptPreview?.inv?.id}>
+        {receiptPreview ? <EmailPreview to={receiptPreview.to} subject={receiptPreview.subject} body={receiptPreview.body}
+          note={receiptPreview.marks_paid ? `${receiptPreview.inv.number || 'This invoice'} will be marked paid today, then this email goes to the client. Change the wording any time under Settings → Invoices → Receipts.` : 'The invoice is already marked paid. This email goes to the client exactly as shown.'} /> : null}
+      </PreviewModal>
       <PageHeader title="Finance" sub="Quotes approved, invoices out, expenses in — profit visible."
         actions={
           <>

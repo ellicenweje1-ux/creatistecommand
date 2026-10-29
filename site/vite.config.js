@@ -6,4 +6,6 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   base: process.env.VITE_BASE || '/',
+  // Stamped into every document link (?v=…) so a re-exported PDF with the same name is never served from a cache.
+  define: { __BUILD_ID__: JSON.stringify(Date.now().toString(36)) },
 })

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { HOME_EDIT_PACKAGES, LOADED_BAR, SETTINGS } from '../content/site.js'
 import { TableMenuCard } from './TableMenu.jsx'
-import { Arrow, Button, Eyebrow, Frame, Heading, Reveal, Section, asset } from '../ui.jsx'
+import { Arrow, Button, Eyebrow, Frame, Heading, Reveal, Section, asset, docUrl } from '../ui.jsx'
 import { EnquireBand } from './Home.jsx'
 import BowlMenu from '../menu.jsx'
 
@@ -56,7 +56,7 @@ export default function ServiceUmbrella({ u, lane }) {
                   </Reveal>
                 ) : null}
                 {s.note ? <Reveal delay={3}><p className="mt-6 font-body text-[13px] italic text-stone">{s.note}</p></Reveal> : null}
-                {s.docUrl ? <Reveal delay={3} className="mt-6"><Button href={asset(s.docUrl)} variant="ghost-ink" target="_blank" rel="noreferrer">{s.docLabel || 'Download the PDF'}</Button></Reveal> : null}
+                {s.docUrl ? <Reveal delay={3} className="mt-6"><Button href={docUrl(s.docUrl)} variant="ghost-ink" target="_blank" rel="noreferrer">{s.docLabel || 'Download the PDF'}</Button></Reveal> : null}
                 {s.menuNote ? <Reveal delay={3}><p className="mt-6 font-body text-[13px] italic text-stone">{s.menuNote}</p></Reveal> : null}
                 {SETTINGS.showFromPrices && s.from ? <Reveal delay={3}><p className="mt-6 font-body text-[12px] uppercase tracking-wide text-gold-deep">From {s.from} · subject to consultation</p></Reveal> : null}
                 <Reveal delay={3} className="mt-8 flex flex-wrap gap-3">
@@ -82,7 +82,7 @@ export default function ServiceUmbrella({ u, lane }) {
                   <Reveal><p className="font-body text-[11px] uppercase tracking-eyebrow text-gold-deep">The set menu</p></Reveal>
                   <Reveal delay={1}><Heading size="md" className="mt-4">Changes with the seasons.</Heading></Reveal>
                   <Reveal delay={2}><p className="lede mt-5 max-w-md text-ink/75">One menu, cooked for the whole table and priced per head. Courses can be tailored to dietary requirements and preferences, and vegan, nut-free and gluten-free plates are available on request.</p></Reveal>
-                  <Reveal delay={3} className="mt-6 flex flex-wrap gap-3"><Button href={asset('/docs/the-creatiste-table-menu.pdf')} variant="ghost-ink" target="_blank" rel="noreferrer">Download the menu</Button></Reveal>
+                  <Reveal delay={3} className="mt-6 flex flex-wrap gap-3"><Button href={docUrl('/docs/the-creatiste-table-menu.pdf')} variant="ghost-ink" target="_blank" rel="noreferrer">Download the menu</Button></Reveal>
                 </div>
                 <Reveal delay={1} className="lg:col-span-7"><TableMenuCard /></Reveal>
               </div>
@@ -99,20 +99,19 @@ export default function ServiceUmbrella({ u, lane }) {
 
 function Packages({ ground }) {
   const P = HOME_EDIT_PACKAGES
-  const cell = ground === 'ivory' ? 'bg-ivory' : 'bg-linen'
   return (
     <div className="mt-16">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Reveal><p className="font-body text-[11px] uppercase tracking-eyebrow text-gold-deep">Package options</p></Reveal>
-          <Reveal delay={1}><Heading size="md" className="mt-4">Six ways to hand over the week.</Heading></Reveal>
+          <Reveal delay={1}><Heading size="md" className="mt-4">Four ways to hand over the week.</Heading></Reveal>
           <Reveal delay={2}><p className="lede mt-4 max-w-xl text-ink/75">Set packages on different pricing bases, so you can choose the schedule and level of cover that works best. Weekly figures are indicative labour costs confirmed at consultation, and groceries are paid at cost by you.</p></Reveal>
         </div>
-        <Reveal delay={2}><Button href={asset(P.docUrl)} variant="ghost-ink" target="_blank" rel="noreferrer">Download the package guide</Button></Reveal>
+        <Reveal delay={2}><Button href={docUrl(P.docUrl)} variant="ghost-ink" target="_blank" rel="noreferrer">Download the package guide</Button></Reveal>
       </div>
-      <div className="mt-10 grid gap-px bg-sand sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-10 grid border-l border-t border-sand sm:grid-cols-2 lg:grid-cols-3">
         {P.items.map((k, i) => (
-          <Reveal key={k.n} delay={i % 3} className={`flex flex-col ${cell} p-6`}>
+          <Reveal key={k.n} delay={i % 3} className="flex flex-col border-b border-r border-sand p-6">
             <p className="font-body text-[10px] uppercase tracking-eyebrow text-gold-deep">Package {k.n}</p>
             <p className="mt-2 font-display text-[22px]">{k.name}</p>
             <p className="mt-1 font-body text-[11px] uppercase tracking-wide text-stone">{k.cover}</p>

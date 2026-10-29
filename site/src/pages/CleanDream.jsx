@@ -158,6 +158,9 @@ export default function CleanDream() {
   const [state, setState] = useState({ status: 'idle', error: '' })
   const [showBank, setShowBank] = useState(false)
   const [copied, setCopied] = useState(false)
+  // ?preview=1: a dress rehearsal for the chef. Everything looks and behaves exactly as a customer sees it,
+  // but nothing is saved, emailed or charged; at the end we show the emails a customer would receive.
+  const preview = params.get('preview') === '1'
   const bank = CLEAN_DREAM.bank
   const bankText = () => `${bank.name}\n${bank.bank}\nAccount number ${bank.account}\nSort code ${bank.sort}\nReference ${f.name || 'your name'}\nAmount ${money(total)}`
   const copyBank = async () => { try { await navigator.clipboard.writeText(bankText()); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {} }
@@ -217,6 +220,20 @@ export default function CleanDream() {
       // and you get an email). We confirm by WhatsApp once the transfer arrives. Only when our system can't
       // be reached does the order fall back to a WhatsApp or email message.
       setState({ status: 'sending', error: '' })
+      if (preview) {
+        // Rehearsal: validate and price for real, save nothing, then show what the customer would get.
+        let emails = null
+        if (API) {
+          try {
+            const r = await fetch(`${API}/${SETTINGS.enquiryToken}/preview`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...f, boxes: boxes.map((b) => ({ item_id: b.item_id, for: b.for, choices: b.choices, note: b.note })) }) })
+            const j = await r.json().catch(() => ({}))
+            if (!r.ok) { setState({ status: 'error', error: j.detail || 'Something in the order needs a second look.' }); return }
+            emails = j.emails || null
+          } catch {}
+        }
+        setState({ status: 'placed', error: '', public_id: 'PREVIEW', preview: true, emails })
+        return
+      }
       if (API && showBank) {
         try {
           const r = await fetch(`${API}/${SETTINGS.enquiryToken}/bank`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...f, boxes: boxes.map((b) => ({ item_id: b.item_id, for: b.for, choices: b.choices, note: b.note })) }) })
@@ -232,6 +249,7 @@ export default function CleanDream() {
       return
     }
     setState({ status: 'sending', error: '' })
+    if (preview) { setState({ status: 'placed', error: '', public_id: 'PREVIEW', preview: true, emails: null }); return }
     try {
       const r = await fetch(`${API}/${SETTINGS.enquiryToken}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -256,14 +274,15 @@ export default function CleanDream() {
           <Reveal delay={1}><Heading as="h1" size="xl" className="mt-5">{CLEAN_DREAM.title}</Heading></Reveal>
           <Reveal delay={2}><p className="lede mt-8 max-w-xl text-ivory/80">{CLEAN_DREAM.sub}</p></Reveal>
           <Reveal delay={3} className="mt-8"><Button href="#order">Start your order <Arrow /></Button></Reveal>
+          {preview ? <div className="mt-8 max-w-xl border border-gold bg-gold/10 px-4 py-3 font-body text-[13px] leading-relaxed text-gold-light" data-preview-banner><span className="font-semibold uppercase tracking-wide">Preview mode.</span> This is exactly what a customer sees. Place a practice order: nothing is saved, emailed or charged, and the emails they would receive are shown at the end.</div> : null}
           {params.get('cancelled') ? <Reveal delay={3}><p className="mt-6 inline-block border border-gold/40 px-4 py-2 font-body text-[13px] text-gold-light">Payment was cancelled, so nothing was ordered. Build your bowls again below whenever you’re ready.</p></Reveal> : null}
         </div>
       </section>
 
       <Section ground="linen" tight>
-        <ol className="grid gap-px bg-sand sm:grid-cols-2 lg:grid-cols-4">
+        <ol className="grid border-l border-t border-sand sm:grid-cols-2 lg:grid-cols-4">
           {CLEAN_DREAM.how.map(([t, d], i) => (
-            <Reveal key={t} as="li" delay={i} className="bg-linen p-6">
+            <Reveal key={t} as="li" delay={i} className="border-b border-r border-sand p-6">
               <p className="font-display text-[28px] text-gold-deep">0{i + 1}</p>
               <p className="mt-3 font-display text-[19px]">{t}</p>
               <p className="mt-2 font-body text-[14px] font-light leading-relaxed text-ink/70">{d}</p>
@@ -395,11 +414,33 @@ export default function CleanDream() {
                       </div>
                     )}
                     {state.status === 'placed' ? (
-                      <div className="mt-5 border border-gold bg-ivory p-5" data-placed>
-                        <p className="font-display text-[22px]">Order received. Thank you{f.name ? `, ${f.name.split(' ')[0]}` : ''}.</p>
-                        <p className="mt-2 font-body text-[13px] leading-relaxed text-ink/80">{CLEAN_DREAM.confirm} A copy has been emailed to {f.email}.{getCustomer() ? ' It is also saved in your account.' : ''}</p>
-                        <p className="mt-2 font-body text-[12px] text-stone">Not sent the transfer yet? The bank details are just above.</p>
-                      </div>
+                      <>
+                        <div className="mt-5 border border-gold bg-ivory p-5" data-placed>
+                          <p className="font-display text-[22px]">Order received. Thank you{f.name ? `, ${f.name.split(' ')[0]}` : ''}.</p>
+                          <p className="mt-2 font-body text-[13px] leading-relaxed text-ink/80">{CLEAN_DREAM.confirm} A copy has been emailed to {f.email}.{getCustomer() ? ' It is also saved in your account.' : ''}</p>
+                          <p className="mt-2 font-body text-[12px] text-stone">Not sent the transfer yet? The bank details are just above.</p>
+                        </div>
+                        {state.preview ? (
+                          <div className="mt-5 border border-dashed border-gold-deep/60 bg-ivory p-5" data-preview-next>
+                            <p className="font-body text-[11px] uppercase tracking-eyebrow text-gold-deep">Preview only · nothing was sent</p>
+                            <p className="mt-2 font-display text-[20px]">What the customer receives next</p>
+                            {state.emails ? (
+                              <div className="mt-4 space-y-5">
+                                {[['1 · Straight away', 'awaiting'], ['2 · Once you mark the order paid in Command', 'receipt']].map(([label, key]) => state.emails[key] ? (
+                                  <div key={key} data-preview-email={key}>
+                                    <p className="font-body text-[12px] uppercase tracking-wide text-stone">{label}</p>
+                                    <p className="mt-1 font-body text-[14px] font-medium">{state.emails[key].subject}</p>
+                                    <pre className="mt-2 whitespace-pre-wrap border-l-2 border-sand pl-4 font-body text-[13px] leading-relaxed text-ink/80">{state.emails[key].body}</pre>
+                                  </div>
+                                ) : null)}
+                                <p className="font-body text-[12px] text-stone">You also get a copy of each, and the WhatsApp receipt you send by hand is under Pre-orders in Command.</p>
+                              </div>
+                            ) : (
+                              <p className="mt-3 font-body text-[13px] leading-relaxed text-ink/75">With Command connected, a real order emails the customer an awaiting-payment copy straight away, and a receipt once you mark it paid. Open this preview on the live site to see both emails word for word.</p>
+                            )}
+                          </div>
+                        ) : null}
+                      </>
                     ) : (
                       <>
                         {showBank ? (

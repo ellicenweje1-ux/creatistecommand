@@ -184,6 +184,63 @@ def _summary(order: PreOrder) -> dict:
     }
 
 
+def _pretty_date(iso: str) -> str:
+    try:
+        return datetime.strptime(iso, "%Y-%m-%d").strftime("%A %-d %B")
+    except Exception:
+        return iso or ""
+
+
+def awaiting_emails(owner: User, order: PreOrder) -> dict:
+    """The two 'awaiting your bank transfer' emails (customer + chef) for a bank-transfer order. Pure: no sending."""
+    lines = "\n".join(f"- {b['for']}: {b['item']} ({b['summary']}) £{b['price']:.2f}" for b in order.boxes or [])
+    where = order.delivery_address if order.fulfilment == "delivery" else order.slot_label
+    return {
+        "customer": {
+            "to": order.email,
+            "subject": f"Your {order.offer_title} order for {_pretty_date(order.for_date)} (awaiting your bank transfer)",
+            "body": f"Hi {order.customer_name},\n\nThank you for your order for {_pretty_date(order.for_date)}.\n\n{lines}\n\nTotal £{order.subtotal:.2f}\n{where}\n\n"
+                    f"Please send the bank transfer with your name as the reference. Your order is confirmed once we have sent a receipt of payment "
+                    f"and the final collection or delivery details by WhatsApp.",
+        },
+        "chef": {
+            "to": owner.email,
+            "subject": f"{order.offer_title}: bank-transfer order from {order.customer_name} for {order.for_date} (awaiting payment)",
+            "body": f"{order.customer_name} · {order.phone} · {order.email}\nFor {order.for_date} · {where}\n\n{lines}\n\nTotal £{order.subtotal:.2f}\n"
+                    f"{('Allergies: ' + order.allergies) if order.allergies else ''}\n{('Note: ' + order.note) if order.note else ''}\n\n"
+                    f"Once the transfer lands, mark it paid under Pre-orders in The Creatiste Command (that confirms the booking and emails the customer).",
+        },
+    }
+
+
+def receipt_emails(owner: User, order: PreOrder) -> dict:
+    """The 'payment received' receipt (customer) + the paid-order note (chef). Pure: no sending."""
+    pretty_date = _pretty_date(order.for_date)
+    box_text = "\n".join(f"  • {b['for']}: {b['item']}, {b['summary']}{' [' + b['note'] + ']' if b.get('note') else ''} (£{b['price']:.2f})" for b in order.boxes or [])
+    where = order.slot_label + (f"\n  {order.delivery_address}" if order.delivery_address else "")
+    biz = owner.business_name or owner.name
+    title = f"{order.offer_title} pre-orders"
+    return {
+        "customer": {
+            "to": order.email,
+            "subject": f"Payment received: your {order.offer_title} order is confirmed for {pretty_date}",
+            "body": f"Hi {order.customer_name},\n\nThank you, your payment has been received and your order is confirmed. This email is your receipt.\n\n"
+                    f"When: {pretty_date}\nWhere: {where}\n\n{box_text}\n\nTotal paid: £{order.subtotal:.2f}\n"
+                    + (f"Allergies noted: {order.allergies}\n" if order.allergies else "")
+                    + ("\nDelivery: we'll message you on WhatsApp to confirm the drop and the mileage fee.\n" if order.fulfilment == "delivery" else "")
+                    + f"\nOrder reference: {order.public_id}\n\n— {biz}",
+        },
+        "chef": {
+            "to": owner.email,
+            "subject": f"[{order.offer_title}] Paid order · {pretty_date} · {len(order.boxes or [])} box(es) · {order.customer_name}",
+            "body": f"{order.customer_name} · {order.phone} · {order.email}\nWhen: {pretty_date}\nWhere: {where}\n\n{box_text}\n\n"
+                    + (f"Allergies: {order.allergies}\n" if order.allergies else "")
+                    + (f"Note: {order.note}\n" if order.note else "")
+                    + f"Paid £{order.subtotal:.2f} · ref {order.public_id}\n\nIt's on your Bookings as '{title}' for that day.\n\n— The Creatiste Command",
+        },
+    }
+
+
 def mark_paid(db: Session, order: PreOrder, payment_intent: str = ""):
     """Idempotent: confirm the order, roll it into the day's booking, create the client, send both emails."""
     if order.status != "pending_payment":
@@ -231,25 +288,9 @@ def mark_paid(db: Session, order: PreOrder, payment_intent: str = ""):
     order.booking_id = booking.id
     db.commit()
 
-    pretty_date = datetime.strptime(order.for_date, "%Y-%m-%d").strftime("%A %-d %B")
-    box_text = "\n".join(f"  • {b['for']}: {b['item']}, {b['summary']}{' [' + b['note'] + ']' if b.get('note') else ''} (£{b['price']:.2f})" for b in order.boxes or [])
-    where = order.slot_label + (f"\n  {order.delivery_address}" if order.delivery_address else "")
-    biz = owner.business_name or owner.name
-    mailer.send_email(
-        order.email, f"Payment received: your {order.offer_title} order is confirmed for {pretty_date}",
-        f"Hi {order.customer_name},\n\nThank you, your payment has been received and your order is confirmed. This email is your receipt.\n\n"
-        f"When: {pretty_date}\nWhere: {where}\n\n{box_text}\n\nTotal paid: £{order.subtotal:.2f}\n"
-        + (f"Allergies noted: {order.allergies}\n" if order.allergies else "")
-        + ("\nDelivery: we'll message you on WhatsApp to confirm the drop and the mileage fee.\n" if order.fulfilment == "delivery" else "")
-        + f"\nOrder reference: {order.public_id}\n\n— {biz}",
-    )
-    mailer.send_email(
-        owner.email, f"[{order.offer_title}] Paid order · {pretty_date} · {len(order.boxes or [])} box(es) · {order.customer_name}",
-        f"{order.customer_name} · {order.phone} · {order.email}\nWhen: {pretty_date}\nWhere: {where}\n\n{box_text}\n\n"
-        + (f"Allergies: {order.allergies}\n" if order.allergies else "")
-        + (f"Note: {order.note}\n" if order.note else "")
-        + f"Paid £{order.subtotal:.2f} · ref {order.public_id}\n\nIt's on your Bookings as '{title}' for that day.\n\n— The Creatiste Command",
-    )
+    mails = receipt_emails(owner, order)
+    mailer.send_email(mails["customer"]["to"], mails["customer"]["subject"], mails["customer"]["body"])
+    mailer.send_email(mails["chef"]["to"], mails["chef"]["subject"], mails["chef"]["body"])
 
 
 @public_router.get("/status/{public_id}")
@@ -359,21 +400,25 @@ def place_bank_order(request: Request, token: str, payload: dict = Body(...), db
     order.pay_method = "bank"
     db.add(order)
     db.commit()
-    lines = "\n".join(f"- {b['for']}: {b['item']} ({b['summary']}) £{b['price']:.2f}" for b in order.boxes)
-    where = order.delivery_address if order.fulfilment == "delivery" else order.slot_label
-    mailer.send_email(
-        owner.email, f"{order.offer_title}: bank-transfer order from {order.customer_name} for {order.for_date} (awaiting payment)",
-        f"{order.customer_name} · {order.phone} · {order.email}\nFor {order.for_date} · {where}\n\n{lines}\n\nTotal £{order.subtotal:.2f}\n"
-        f"{('Allergies: ' + order.allergies) if order.allergies else ''}\n{('Note: ' + order.note) if order.note else ''}\n\n"
-        f"Once the transfer lands, mark it paid under Pre-orders in The Creatiste Command (that confirms the booking and emails the customer).",
-    )
-    mailer.send_email(
-        order.email, f"Your {order.offer_title} order for {order.for_date} (awaiting your bank transfer)",
-        f"Hi {order.customer_name},\n\nThank you for your order for {order.for_date}.\n\n{lines}\n\nTotal £{order.subtotal:.2f}\n{where}\n\n"
-        f"Please send the bank transfer with your name as the reference. Your order is confirmed once we have sent a receipt of payment "
-        f"and the final collection or delivery details by WhatsApp.",
-    )
+    mails = awaiting_emails(owner, order)
+    mailer.send_email(mails["chef"]["to"], mails["chef"]["subject"], mails["chef"]["body"])
+    mailer.send_email(mails["customer"]["to"], mails["customer"]["subject"], mails["customer"]["body"])
     return {"ok": True, "public_id": order.public_id, "status": order.status, "total": order.subtotal}
+
+
+@public_router.post("/{token}/preview")
+def preview_order(token: str, payload: dict = Body(...), db: Session = Depends(get_db)):
+    """A dress rehearsal of a bank-transfer order: validated and priced exactly like a real one, but nothing is
+    saved, emailed or charged. Returns the order summary plus the emails the customer WOULD receive (the
+    awaiting-payment copy now, the receipt once the chef marks it paid). Powers the site's ?preview=1 mode."""
+    owner = _owner(token, db)
+    order = build_order(owner, payload)
+    order.pay_method = "bank"
+    order.public_id = "PREVIEW-" + order.public_id[:6]
+    return {
+        "ok": True, "preview": True, "summary": _summary(order),
+        "emails": {"awaiting": awaiting_emails(owner, order)["customer"], "receipt": receipt_emails(owner, order)["customer"]},
+    }
 
 
 @public_router.post("/{token}", status_code=201)
@@ -450,6 +495,17 @@ def update_order(order_id: int, payload: dict = Body(...), db: Session = Depends
     order.status = status
     db.commit()
     return _summary(order)
+
+
+@router.get("/{order_id}/receipt-preview")
+def receipt_preview(order_id: int, db: Session = Depends(get_db), user: User = Depends(require_plan(2))):
+    """What marking this order paid will send the customer (and the chef), before it goes."""
+    order = db.query(PreOrder).filter(PreOrder.id == order_id, PreOrder.user_id == ws_id(user)).first()
+    if not order:
+        raise HTTPException(404, "Order not found")
+    owner = db.get(User, ws_id(user))
+    mails = receipt_emails(owner, order)
+    return {"will_send": order.status == "pending_payment" and order.pay_method == "bank", "status": order.status, **mails}
 
 
 @router.get("/offer")

@@ -1,5 +1,5 @@
 import { LOADED_BAR, SETTINGS } from '../content/site.js'
-import { Button, Eyebrow, Frame, Heading, Reveal, Section, asset } from '../ui.jsx'
+import { Button, Eyebrow, Frame, Heading, Reveal, Section, asset, docUrl } from '../ui.jsx'
 import { EnquireBand } from './Home.jsx'
 import BowlMenu from '../menu.jsx'
 
@@ -17,7 +17,7 @@ export default function LoadedBar() {
             <Reveal delay={3} className="mt-10 flex flex-wrap gap-3">
               <Button href="#included">What’s included</Button>
               <Button to="/enquire?lane=private-catering&service=the-loaded-bar" variant="ghost">Book the bar</Button>
-              {L.deckUrl ? <Button href={asset(L.deckUrl)} variant="ghost" target="_blank" rel="noreferrer">Grab the brochure</Button> : null}
+              {L.deckUrl ? <Button href={docUrl(L.deckUrl)} variant="ghost" target="_blank" rel="noreferrer">Grab the brochure</Button> : null}
             </Reveal>
           </div>
           <Reveal delay={2} className="lg:col-span-5"><Frame src={L.photo} alt="The Loaded Bar station" ratio="4/5" fit="contain" /></Reveal>

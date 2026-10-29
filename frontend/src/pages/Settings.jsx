@@ -4,7 +4,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { perkIcon, perkTitle } from '../booking'
 import { DEFAULT_CONTACT_TEMPLATE } from '../contact'
-import { cls, fmtMoney, label, renderDocNumber, SYMBOLS } from '../format'
+import { cls, fmtMoney, label, renderDocNumber, SYMBOLS, todayISO } from '../format'
 import { getInstallPrompt, isStandalone } from '../offline'
 import { currentSubscription, disablePush, enablePush, getPushConfig, iosNeedsInstall, permissionState, pushSupported, sendTestPush } from '../push'
 import { Badge, Button, Card, Field, Icon, IconButton, Input, PasswordInput, Modal, PageHeader, Select, Stars, Textarea, Toggle, toast, toastErr } from '../ui'
@@ -354,6 +354,9 @@ export function SettingsSecurity() {
 }
 
 /* -------------------------------- Appearance ------------------------------- */
+const RECEIPT_EMAIL_DEFAULT = 'Hi {client},\n\nThank you, your payment of {amount} for invoice {number} has been received on {date}. This email is your receipt.\n\nThe paid invoice is here for your records:\n{link}\n\n{business}'
+const RECEIPT_WA_DEFAULT = 'Hi {first_name}, thank you for your {title} order.\n\nRECEIPT OF PAYMENT\nPayment received: {total}\nOrder ref: {ref}\nFor: {date}\n\n{boxes}\nTotal: {total}\n\n{where}\n{allergies}\n\nYour order is confirmed. See you then!\n{business}'
+const fillSample = (tpl, fill) => Object.entries(fill).reduce((t, [k, v]) => t.split(k).join(v), tpl).replace(/\n{3,}/g, '\n\n').trim()
 const BRAND_GOLD = '#BFA987'
 const ACCENT_PRESETS = ['#BFA987', '#0C0A08', '#1F6F54', '#7A2E2E', '#2E4A7A', '#6B7D68', '#9C5B8B', '#C77D34']
 const isHex = (v) => /^#[0-9a-fA-F]{6}$/.test(v || '')
@@ -502,6 +505,17 @@ export function SettingsInvoices() {
           <Textarea rows={6} value={form.receipt_whatsapp_template} maxLength={3000} onChange={upd('receipt_whatsapp_template')}
             placeholder={'Hi {first_name}, thank you for your order.\n\nRECEIPT OF PAYMENT\nPayment received: {total}\nOrder ref: {ref}\nFor: {date}\n\n{boxes}\nTotal: {total}\n\n{where}\n{allergies}\n\nYour order is confirmed. See you then!\n{business}'} />
         </Field>
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <div data-receipt-sample="email">
+            <p className="label">Preview · email, with sample details</p>
+            <pre className="mt-1 whitespace-pre-wrap rounded-lg border border-line bg-parchment/60 p-3 font-sans text-xs leading-relaxed text-fg/85">{fillSample(form.receipt_email_template || RECEIPT_EMAIL_DEFAULT, { '{client}': 'Jane Doe', '{number}': 'INV-2026-012', '{amount}': '£184.00', '{date}': todayISO(), '{link}': `${window.location.origin}/i/…`, '{business}': user?.business_name || user?.name || 'Your business' })}</pre>
+          </div>
+          <div data-receipt-sample="whatsapp">
+            <p className="label">Preview · WhatsApp, with sample details</p>
+            <pre className="mt-1 whitespace-pre-wrap rounded-lg border border-line bg-parchment/60 p-3 font-sans text-xs leading-relaxed text-fg/85">{fillSample(form.receipt_whatsapp_template || RECEIPT_WA_DEFAULT, { '{first_name}': 'Jane', '{name}': 'Jane Doe', '{date}': 'Friday 7 November', '{boxes}': '• Jane: Build your own bowl (Spring mix · Chicken mince · 3 toppings) £8.00\n• Sam: Build your own bowl (Bulgur · Steak, medium) £11.00', '{total}': '£19.00', '{ref}': 'a1b2c3d4e5', '{where}': 'Collection: W5 @ 1pm', '{allergies}': 'Allergies noted: none', '{business}': user?.business_name || user?.name || 'Your business', '{title}': 'Clean Dream' })}</pre>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-fg/50">Before anything is sent you also see the real email for that invoice or order and confirm it, so the wording here is never a surprise.</p>
         <div className="mt-3 flex justify-end"><Button onClick={save} disabled={busy}>{busy ? 'Saving…' : 'Save'}</Button></div>
       </Card>
 

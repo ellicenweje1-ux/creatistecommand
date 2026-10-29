@@ -633,6 +633,37 @@ current by Ellice** (see the batch-9 note).
 - **Harness notes:** the test reads `NAV_MENU` out of `site.js` with a regex and visits every hash target, so a renamed id fails loudly; hover
   the `> a` of a `[data-nav-item]`; section tops land 60–130px from the viewport top after the 60ms deferred scroll (wait ≥1.2s).
 
+### Follow-on (same 28th-wave session — eleventh batch: beige grid cells, cached PDFs, CLEAN DREAM PREVIEW MODE, RECEIPT PREVIEWS before sending)
+All built + verified (backend `test_preorders.py` 36/36, `test_batch8.py` 24/24, `test_batch7.py` 64/64; Playwright `scratchpad/verify_v12.py` **29/29**
+incl. the live preview-mode rehearsal and every Command preview modal; both builds clean); merged to `main`; preview artifact Version 13.
+- **"You haven't made changes" / "menu formats haven't changed" = CACHED PDFs.** Her Menus screenshot already showed batch-8 work, so Pages deploys
+  fine; the documents keep the same filenames, so her browser kept the old copy. Fix: `site/vite.config.js` defines `__BUILD_ID__` (build timestamp)
+  and `ui.jsx docUrl(p)` appends `?v=<id>` to every document link (Menus, umbrella pages, Loaded Bar brochure, Table menu, certificates, the nav
+  brochure sub-link). Every deploy now busts the cache. (The sandbox proxy blocks thecreatistecatering.com, so the live site can't be fetched here.)
+- **Beige blanks:** the `grid gap-px bg-sand` trick showed the sand colour through empty cells (Menus "Lunch service" with one card, Home Edit 4
+  packages in 3 columns). Replaced everywhere with bordered cells (container `border-l border-t border-sand`, cells `border-b border-r border-sand`;
+  Home process, Clean Dream how, Command uses, umbrella packages, Menus cards). The umbrella heading now says **"Four ways to hand over the week."**
+- **CLEAN DREAM PREVIEW MODE (`/cleandream?preview=1`):** a gold banner "Preview mode… nothing is saved, emailed or charged"; the whole flow runs as a
+  customer sees it; on "I’ve paid, place my order" the site POSTs **`/api/public/preorder/{token}/preview`** (new: `build_order` validation +
+  pricing, saves nothing, returns `summary` + `emails.awaiting` / `emails.receipt`) and shows the order-received panel plus a **"What the customer
+  receives next"** panel (`[data-preview-next]`, `[data-preview-email="awaiting|receipt"]`) with both emails word for word. The card path never goes
+  to Stripe in preview. Without Command (plain build) the panel explains instead. **Pre-orders page** gains a "See it as a customer" card
+  (`[data-customer-preview]`) with a **"Preview as a customer"** link built from `user.socials.website` (+ `/cleandream?preview=1`).
+- **Email composers extracted in `preorders.py`:** `awaiting_emails(owner, order)` and `receipt_emails(owner, order)` (pure, `{customer, chef}` each
+  with to/subject/body; `_pretty_date`) — `place_bank_order` and `mark_paid` send through them, the preview endpoints read them. New chef
+  **`GET /api/preorders/{id}/receipt-preview`**. The customer awaiting email now says "Friday 30 October" rather than the ISO date.
+- **RECEIPT PREVIEWS (Command):** shared `frontend/src/receiptpreview.jsx` (`EmailPreview` = to/subject/body block, `PreviewModal` = "Not yet" +
+  one confirm). **Invoices:** "Confirm paid + receipt" now fetches **`GET /invoices/{id}/receipt-preview`** (new; `finance.render_receipt()` is the
+  shared renderer used by `send_receipt`) and opens the modal → "Confirm paid & send" (or "Send receipt" / "Mark paid (nothing to send)" when no
+  email); nothing is sent or marked until confirmed. **Pre-orders:** "Mark paid" opens the customer receipt email preview → "Mark paid & send
+  receipt"; "Copy WhatsApp receipt" opens an **editable** textarea preview → "Copy to clipboard" (the edited text is what's copied). **Settings →
+  Invoices → Receipts** shows both templates filled with sample details (`[data-receipt-sample="email|whatsapp"]`, live as you type). FAQ (rule #3):
+  "Can I see a receipt before it goes to the client?" + "Can I try my website’s order page as a customer would…?".
+- **Cloudflare Web Analytics:** her screenshot shows the "Automatic setup" step (the hostname is a Pages site) — click Next and Cloudflare injects the
+  beacon itself; **do not also set `VITE_CF_ANALYTICS_TOKEN`** (that would double count). The env-token path stays as a fallback for other hosts.
+- **Harness notes:** the e2e payments toggle must be OFF for the bank button to exist (`/__e2e/payments/off`); the Settings sample card's label line is
+  CSS-uppercased and part of `inner_text`; the fixed header overlaps element screenshots taken mid-scroll.
+
 ### DEPLOYING THE CATERING SITE (Cloudflare Pages — Ellice does this once; ~10 minutes)
 1. Cloudflare dashboard (the **jill+quinton** account) → Workers & Pages → Create → Pages → **Connect to Git** → repo
    `ellicenweje1-ux/creatistecommand`, production branch **`main`**.
