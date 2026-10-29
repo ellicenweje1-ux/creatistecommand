@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import { fmtDate, fmtMoney, invoiceTotal } from '../format'
+import { useParams, useSearchParams } from 'react-router-dom'
+import { fmtDate, fmtMoney, invoiceTotal, todayISO } from '../format'
 
 const GOLD = '#BFA987'
 
@@ -13,8 +13,10 @@ async function pub(path) {
 
 /* A clean, white, print-perfect invoice document (portrait) — the client's view and the
    chef's "save as PDF". Self-contained colours so it's identical regardless of app theme. */
-export default function PublicInvoice() {
+export default function PublicInvoice({ receipt = false }) {
   const { token } = useParams()
+  const [params] = useSearchParams()
+  const preview = receipt && params.get('preview') === '1' // the chef looking before marking paid
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   useEffect(() => {
@@ -31,6 +33,7 @@ export default function PublicInvoice() {
   const total = invoiceTotal(invoice)
   const taxAmt = total - (subtotal - (Number(invoice.discount) || 0))
   const statusColor = { paid: '#2e7d32', overdue: '#c62828', sent: accent, draft: '#888', void: '#999' }[invoice.status] || '#888'
+  const paidOn = invoice.status === 'paid' && invoice.paid_date ? invoice.paid_date : todayISO()
   // Deposit terms (per invoice): show deposit due + balance when set.
   const dep = invoice.deposit_type === 'percent'
     ? Math.max(0, total * (Number(invoice.deposit_value) || 0) / 100)
@@ -51,7 +54,8 @@ export default function PublicInvoice() {
         <button onClick={() => window.print()} style={{ background: accent }}
           className="rounded-lg px-4 py-2 text-sm font-semibold text-white shadow">Download / Print</button>
       </div>
-      <div className="mx-auto max-w-2xl bg-white p-8 text-neutral-800 shadow-lg print:max-w-none print:p-0 print:shadow-none">
+      <div className="relative mx-auto max-w-2xl bg-white p-8 text-neutral-800 shadow-lg print:max-w-none print:p-0 print:shadow-none" data-doc-kind={receipt ? 'receipt' : 'invoice'}>
+        {preview && <p className="absolute right-4 top-4 rounded border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-neutral-500 print:hidden" data-preview-ribbon>Preview · not yet paid</p>}
         <div className="flex items-start justify-between gap-4 border-b border-neutral-200 pb-5">
           <div className="flex items-center gap-3">
             {business.logo && <img src={business.logo} alt="" className="h-14 w-14 rounded object-cover" />}
@@ -62,23 +66,33 @@ export default function PublicInvoice() {
             </div>
           </div>
           <div className="text-right">
-            <p className="font-display text-2xl font-bold tracking-wide" style={{ color: accent }}>INVOICE</p>
-            <p className="text-sm font-medium">{invoice.number}</p>
-            <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide" style={{ color: statusColor }}>{invoice.status}</p>
+            <p className="font-display text-2xl font-bold tracking-wide" style={{ color: accent }}>{receipt ? 'RECEIPT' : 'INVOICE'}</p>
+            <p className="text-sm font-medium">{receipt ? `For invoice ${invoice.number}` : invoice.number}</p>
+            {receipt
+              ? <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#2e7d32' }}>Paid in full</p>
+              : <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide" style={{ color: statusColor }}>{invoice.status}</p>}
           </div>
         </div>
 
+        {receipt && (
+          <div className="mt-5 grid gap-3 rounded-lg px-5 py-4 sm:grid-cols-3" style={{ background: `${accent}14`, border: `1px solid ${accent}` }} data-receipt-summary>
+            <div><p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">Amount paid</p><p className="font-display text-2xl font-bold" style={{ color: accent }}>{fmtMoney(total, currency)}</p></div>
+            <div><p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">Paid on</p><p className="text-sm font-medium">{fmtDate(paidOn)}</p></div>
+            <div><p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-400">Received by</p><p className="text-sm font-medium">{business.name}</p></div>
+          </div>
+        )}
+
         <div className="mt-5 flex justify-between gap-4 text-sm">
           <div>
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">Bill to</p>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">{receipt ? 'Received from' : 'Bill to'}</p>
             <p className="font-medium">{client.name || '—'}</p>
             {client.company && <p className="text-neutral-500">{client.company}</p>}
             {client.email && <p className="text-neutral-500">{client.email}</p>}
           </div>
           <div className="space-y-0.5 text-right">
             {invoice.issue_date && <p><span className="text-neutral-400">Issued&nbsp;</span>{fmtDate(invoice.issue_date)}</p>}
-            {invoice.due_date && <p><span className="text-neutral-400">Due&nbsp;</span>{fmtDate(invoice.due_date)}</p>}
-            {invoice.status === 'paid' && invoice.paid_date && <p><span className="text-neutral-400">Paid&nbsp;</span>{fmtDate(invoice.paid_date)}</p>}
+            {!receipt && invoice.due_date && <p><span className="text-neutral-400">Due&nbsp;</span>{fmtDate(invoice.due_date)}</p>}
+            {(receipt || (invoice.status === 'paid' && invoice.paid_date)) && <p><span className="text-neutral-400">Paid&nbsp;</span>{fmtDate(paidOn)}</p>}
           </div>
         </div>
 
@@ -113,9 +127,9 @@ export default function PublicInvoice() {
             {Number(invoice.discount) > 0 && <Row label="Discount" value={`−${fmtMoney(invoice.discount, currency)}`} />}
             {Number(invoice.tax_rate) > 0 && <Row label={`${business.tax_label || 'Tax'} (${invoice.tax_rate}%)`} value={fmtMoney(taxAmt, currency)} />}
             <div className="mt-1 flex justify-between border-t pt-2 font-display text-lg font-bold" style={{ borderColor: accent }}>
-              <span>Total</span><span style={{ color: accent }}>{fmtMoney(total, currency)}</span>
+              <span>{receipt ? 'Total paid' : 'Total'}</span><span style={{ color: accent }}>{fmtMoney(total, currency)}</span>
             </div>
-            {dep > 0 && (
+            {!receipt && dep > 0 && (
               <div className="mt-2 border-t border-neutral-100 pt-2">
                 <Row label={`Deposit due${invoice.deposit_type === 'percent' ? ` (${Number(invoice.deposit_value)}%)` : ''}`} value={fmtMoney(dep, currency)} />
                 <div className="flex justify-between py-0.5 font-semibold text-neutral-800"><span>Balance due</span><span>{fmtMoney(total - dep, currency)}</span></div>
@@ -124,7 +138,7 @@ export default function PublicInvoice() {
           </div>
         </div>
 
-        {hasPay && (
+        {!receipt && hasPay && (
           <div className="mt-6 rounded-lg border px-4 py-2.5 text-sm" style={{ borderColor: accent, background: `${accent}10` }}>
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: accent }}>Payment</span>
@@ -140,6 +154,7 @@ export default function PublicInvoice() {
             <p className="whitespace-pre-line">{invoice.notes}</p>
           </div>
         )}
+        {receipt && <p className="mt-6 text-center text-sm font-medium text-neutral-700">Payment received with thanks. This document is your receipt.</p>}
         <p className="mt-8 whitespace-pre-line text-center text-[10px] text-neutral-400">{business.footer || 'Thank you for your business.'}</p>
       </div>
     </Wrap>

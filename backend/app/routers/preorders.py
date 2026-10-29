@@ -213,6 +213,11 @@ def awaiting_emails(owner: User, order: PreOrder) -> dict:
     }
 
 
+def receipt_url(order: PreOrder, preview: bool = False) -> str:
+    """The designed receipt document for an order (a branded page the customer can keep or print)."""
+    return f"{config.APP_URL.rstrip('/')}/r/{order.public_id}{'?preview=1' if preview else ''}"
+
+
 def receipt_emails(owner: User, order: PreOrder) -> dict:
     """The 'payment received' receipt (customer) + the paid-order note (chef). Pure: no sending."""
     pretty_date = _pretty_date(order.for_date)
@@ -228,7 +233,7 @@ def receipt_emails(owner: User, order: PreOrder) -> dict:
                     f"When: {pretty_date}\nWhere: {where}\n\n{box_text}\n\nTotal paid: £{order.subtotal:.2f}\n"
                     + (f"Allergies noted: {order.allergies}\n" if order.allergies else "")
                     + ("\nDelivery: we'll message you on WhatsApp to confirm the drop and the mileage fee.\n" if order.fulfilment == "delivery" else "")
-                    + f"\nOrder reference: {order.public_id}\n\n— {biz}",
+                    + f"\nOrder reference: {order.public_id}\nYour receipt (keep or print): {receipt_url(order)}\n\n{biz}",
         },
         "chef": {
             "to": owner.email,
@@ -291,6 +296,30 @@ def mark_paid(db: Session, order: PreOrder, payment_intent: str = ""):
     mails = receipt_emails(owner, order)
     mailer.send_email(mails["customer"]["to"], mails["customer"]["subject"], mails["customer"]["body"])
     mailer.send_email(mails["chef"]["to"], mails["chef"]["subject"], mails["chef"]["body"])
+
+
+@public_router.get("/receipt/{public_id}")
+def receipt_document(public_id: str, preview: int = 0, db: Session = Depends(get_db)):
+    """The receipt document for an order: the chef's branding + what was paid for. Public by the order's
+    unguessable id (the same way the status endpoint works). Before payment it renders as a preview only."""
+    order = db.query(PreOrder).filter(PreOrder.public_id == public_id).first()
+    if not order:
+        raise HTTPException(404, "Receipt not found")
+    paid = order.status in ("paid", "collected")
+    if not paid and not preview:
+        raise HTTPException(404, "This order hasn't been paid yet, so there's no receipt to show.")
+    owner = db.get(User, order.user_id)
+    paid_at = order.paid_at.isoformat() if order.paid_at else None
+    return {
+        "business": {
+            "name": owner.business_name or owner.name, "email": owner.business_email or owner.email or "",
+            "phone": owner.phone or "", "logo": owner.avatar_url or "", "accent": owner.invoice_accent or "#BFA987",
+            "footer": owner.invoice_footer or "",
+        },
+        "order": {**_summary(order), "paid": paid, "paid_at": paid_at, "pay_method": order.pay_method or "card",
+                  "allergies": order.allergies or "", "note": order.note or "", "pretty_date": _pretty_date(order.for_date)},
+        "preview": not paid,
+    }
 
 
 @public_router.get("/status/{public_id}")
@@ -505,7 +534,8 @@ def receipt_preview(order_id: int, db: Session = Depends(get_db), user: User = D
         raise HTTPException(404, "Order not found")
     owner = db.get(User, ws_id(user))
     mails = receipt_emails(owner, order)
-    return {"will_send": order.status == "pending_payment" and order.pay_method == "bank", "status": order.status, **mails}
+    return {"will_send": order.status == "pending_payment" and order.pay_method == "bank", "status": order.status,
+            "receipt_url": receipt_url(order, preview=order.status == "pending_payment"), **mails}
 
 
 @router.get("/offer")

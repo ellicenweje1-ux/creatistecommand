@@ -3,7 +3,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { fmtDate, fmtMoney, todayISO } from '../format'
 import { Badge, Button, Card, EmptyState, Field, Input, PageHeader, Spinner, Textarea, toast, toastErr } from '../ui'
-import { EmailPreview, PreviewModal } from '../receiptpreview'
+import { DocPreview, PreviewModal } from '../receiptpreview'
 
 /* Pre-orders — customer orders placed on the chef's own website (a lunch service, a pop-up),
    paid by card before they're confirmed. Paid orders also roll into one confirmed Booking per
@@ -112,8 +112,8 @@ export default function Preorders() {
     <div className="space-y-6">
       <PageHeader title="Pre-orders" sub="Orders placed on your own site, box by box, ready for labelling. Bank-transfer orders wait here until you mark them paid." />
       <PreviewModal open={!!paidPreview} onClose={() => setPaidPreview(null)} title="Mark paid and send this receipt?" confirmLabel="Mark paid & send receipt" onConfirm={confirmPaid} busy={busy}>
-        {paidPreview ? <EmailPreview to={paidPreview.customer?.to} subject={paidPreview.customer?.subject} body={paidPreview.customer?.body}
-          note={`${paidPreview.o.name}’s order becomes a confirmed booking for ${fmtDate(paidPreview.o.date)} and this receipt is emailed to them. You get a copy too.`} /> : null}
+        {paidPreview ? <DocPreview url={paidPreview.receipt_url} to={paidPreview.customer?.to} subject={paidPreview.customer?.subject} body={paidPreview.customer?.body}
+          note={`This is the receipt ${paidPreview.o.name} will receive. On confirm the order becomes a confirmed booking for ${fmtDate(paidPreview.o.date)} and the email below (with the receipt link) is sent. You get a copy too.`} /> : null}
       </PreviewModal>
       <PreviewModal open={!!waPreview} onClose={() => setWaPreview(null)} title="WhatsApp receipt" confirmLabel="Copy to clipboard" onConfirm={copyWa}>
         {waPreview ? <div data-wa-preview>

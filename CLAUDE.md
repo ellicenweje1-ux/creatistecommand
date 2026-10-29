@@ -664,6 +664,30 @@ incl. the live preview-mode rehearsal and every Command preview modal; both buil
 - **Harness notes:** the e2e payments toggle must be OFF for the bank button to exist (`/__e2e/payments/off`); the Settings sample card's label line is
   CSS-uppercased and part of `inner_text`; the fixed header overlaps element screenshots taken mid-scroll.
 
+### Follow-on (same 28th-wave session — twelfth batch: Table menu card on one line, DESIGNED RECEIPT DOCUMENTS with a visual preview)
+All built + verified (backend suites 36/24/64 green; Playwright `scratchpad/verify_v13.py` **19/19**; both builds clean; Table menu PDF regenerated,
+1 page); merged to `main`; preview artifact Version 14. **Cloudflare Web Analytics: done** (automatic setup, no env var).
+- **Table menu card (`site/src/docs.jsx`):** the `DocFrame` heading is `whitespace-nowrap` with phone sizes (15px/0.16em, 18px from 420px, the
+  26px/0.28em print size from `sm`) so **"THE CREATISTE TABLE" is one line at every width**; frame padding tightened on phones (`px-3`); dishes
+  **13px on phone / 14px from `sm`** (`[data-doc-dish]`), so the long first dish sits on **one line on the document and from tablet width**. ⚠️ On a
+  372px phone that 58-character line still wraps (it would need ~9px text) — told Ellice; not fixable without changing the copy.
+- **RECEIPT DOCUMENTS (Ellice: "an actual receipt design preview that the client will receive, similar to the invoice preview"):**
+  - **Invoice receipt** = `PublicInvoice` in `receipt` mode at **`/i/<token>/receipt`** (`[data-doc-kind="receipt"]`): "RECEIPT" heading, "For invoice
+    N", **Paid in full**, a tinted summary strip (Amount paid · Paid on · Received by), "Received from", the lines, **Total paid**; no payment bar,
+    deposit rows or due date; closing line "Payment received with thanks. This document is your receipt." `?preview=1` adds a "Preview · not yet
+    paid" ribbon (`[data-preview-ribbon]`) and shows today as the paid date. `finance.receipt_preview` now **mints the public token** so the frame
+    shows the real document and returns `receipt_url`; the receipt email `{link}` (and the default template: "Your receipt document is here to keep
+    or print") points at the `/receipt` document.
+  - **Pre-order receipt** = new **`frontend/src/pages/PublicReceipt.jsx`** at **`/r/<public_id>`** (`[data-doc-kind="preorder-receipt"]`) fed by new
+    public **`GET /api/public/preorder/receipt/{public_id}`** (chef branding + order summary; **404 until paid unless `?preview=1`**; the id is the same
+    unguessable one `/status` uses): RECEIPT, "Clean Dream · ref", "Paid by bank transfer", Amount paid / Paid on / For, Received from + collection or
+    delivery, a For · Box · Amount table with each bowl's summary, Total paid, allergies, the delivery note. `receipt_url()` in `preorders.py`; the
+    customer receipt email gains "Your receipt (keep or print): <link>"; the chef `receipt-preview` returns `receipt_url` (`?preview=1` while unpaid).
+  - **Preview modals** (`receiptpreview.jsx DocPreview`): an **iframe of the document** (`[data-receipt-frame]`) + "Open in a new tab" + a folded
+    `<details>` with the email (to/subject/body, `[data-email-details]`). Used by Finance "Confirm paid + receipt" and Pre-orders "Mark paid".
+    `EmailPreview` remains for text-only cases. FAQ (rule #3) reworded: "What does the client actually receive as a receipt, and can I see it first?".
+- **Harness notes:** read the framed document with `page.frame_locator('[data-receipt-frame]')`; `fmtDate` prints "Thu, Oct 29".
+
 ### DEPLOYING THE CATERING SITE (Cloudflare Pages — Ellice does this once; ~10 minutes)
 1. Cloudflare dashboard (the **jill+quinton** account) → Workers & Pages → Create → Pages → **Connect to Git** → repo
    `ellicenweje1-ux/creatistecommand`, production branch **`main`**.

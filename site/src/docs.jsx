@@ -11,9 +11,9 @@ export function Rule() {
 
 export function DocFrame({ heading, eyebrow, intro, children, footer, className = '', wide = false }) {
   return (
-    <article className={`mx-auto w-full ${wide ? 'max-w-[720px]' : 'max-w-[560px]'} border border-gold/40 bg-ink px-6 py-7 text-ivory sm:px-10 sm:py-8 ${className}`} data-doc>
-      <div className={`border border-gold/30 px-5 sm:px-8 ${wide ? 'py-5 sm:py-6' : 'py-8 sm:py-10'}`}>
-        <p className={`text-center font-display text-ivory ${heading.length > 10 ? 'text-[22px] tracking-[0.22em] sm:text-[26px] sm:tracking-[0.28em]' : 'text-[28px] tracking-[0.4em]'}`}>{heading}</p>
+    <article className={`mx-auto w-full ${wide ? 'max-w-[720px]' : 'max-w-[560px]'} border border-gold/40 bg-ink px-3 py-6 text-ivory sm:px-10 sm:py-8 ${className}`} data-doc>
+      <div className={`border border-gold/30 px-3 sm:px-8 ${wide ? 'py-5 sm:py-6' : 'py-7 sm:py-10'}`}>
+        <p className={`whitespace-nowrap text-center font-display text-ivory ${heading.length > 10 ? 'text-[15px] tracking-[0.16em] min-[420px]:text-[18px] min-[420px]:tracking-[0.2em] sm:text-[26px] sm:tracking-[0.28em]' : 'text-[24px] tracking-[0.3em] sm:text-[28px] sm:tracking-[0.4em]'}`}>{heading}</p>
         <p className="mt-2 text-center font-body text-[10px] uppercase tracking-eyebrow text-gold">{eyebrow}</p>
         {intro ? <p className="mx-auto mt-4 text-center font-body text-[11px] font-light leading-relaxed text-ivory/70 sm:whitespace-nowrap">{intro}</p> : null}
         <div className="mt-5"><Rule /></div>
@@ -99,7 +99,7 @@ export function TableMenuCard({ className = '' }) {
           {c.note ? <p className="mt-1.5 font-display text-[13px] italic text-ivory/70">{c.note}</p> : null}
           <ul className="mt-2.5 space-y-2.5">
             {c.dishes.map((d) => (
-              <li key={d.d} className="font-display text-[16px] leading-snug text-ivory/95">{d.d}{d.tag ? <span className="ml-2 font-body text-[10px] uppercase tracking-wide text-gold">{d.tag}</span> : null}</li>
+              <li key={d.d} className="font-display text-[13px] leading-snug text-ivory/95 sm:text-[14px]" data-doc-dish>{d.d}{d.tag ? <span className="ml-2 font-body text-[10px] uppercase tracking-wide text-gold">{d.tag}</span> : null}</li>
             ))}
           </ul>
         </section>

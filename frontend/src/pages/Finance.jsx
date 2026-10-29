@@ -9,7 +9,7 @@ import { ChargesMenu } from '../charges'
 import { MenuItemsMenu, fetchMenuItems } from '../menulines'
 import { PriceBookSearch } from '../pricebook'
 import { GripHandle, SortableList } from '../sortable'
-import { EmailPreview, PreviewModal } from '../receiptpreview'
+import { DocPreview, PreviewModal } from '../receiptpreview'
 
 /* ------------------------------ invoice editor ------------------------------ */
 export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, bookingId = null, clientId = null, prefillItems = null, currency = 'GBP' }) {
@@ -506,8 +506,8 @@ export default function Finance() {
     <div>
       <PreviewModal open={!!receiptPreview} onClose={() => setReceiptPreview(null)} title={receiptPreview?.marks_paid ? 'Confirm paid + send this receipt?' : 'Send this receipt?'}
         confirmLabel={receiptPreview?.to ? (receiptPreview?.marks_paid ? 'Confirm paid & send' : 'Send receipt') : 'Mark paid (nothing to send)'} onConfirm={confirmReceipt} busy={receipting === receiptPreview?.inv?.id}>
-        {receiptPreview ? <EmailPreview to={receiptPreview.to} subject={receiptPreview.subject} body={receiptPreview.body}
-          note={receiptPreview.marks_paid ? `${receiptPreview.inv.number || 'This invoice'} will be marked paid today, then this email goes to the client. Change the wording any time under Settings → Invoices → Receipts.` : 'The invoice is already marked paid. This email goes to the client exactly as shown.'} /> : null}
+        {receiptPreview ? <DocPreview url={receiptPreview.receipt_url} to={receiptPreview.to} subject={receiptPreview.subject} body={receiptPreview.body}
+          note={receiptPreview.marks_paid ? `This is the receipt ${clientName(receiptPreview.inv) || 'the client'} will receive. ${receiptPreview.inv.number || 'The invoice'} is marked paid today on confirm, and the email below carries the link.` : 'The invoice is already marked paid. This receipt and the email below go to the client exactly as shown.'} /> : null}
       </PreviewModal>
       <PageHeader title="Finance" sub="Quotes approved, invoices out, expenses in — profit visible."
         actions={

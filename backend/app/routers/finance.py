@@ -114,7 +114,7 @@ def share_invoice(invoice_id: int, send: bool = False, db: Session = Depends(get
 
 DEFAULT_RECEIPT_EMAIL = (
     "Hi {client},\n\nThank you, your payment of {amount} for invoice {number} has been received on {date}. "
-    "This email is your receipt.\n\nThe paid invoice is here for your records:\n{link}\n\n{business}"
+    "This email is your receipt.\n\nYour receipt document is here to keep or print:\n{link}\n\n{business}"
 )
 
 
@@ -143,8 +143,12 @@ def receipt_preview(invoice_id: int, db: Session = Depends(get_db), user=Depends
     client = db.get(Client, inv.client_id) if inv.client_id else None
     if client and client.user_id != ws_id(user):
         client = None
-    link = f"{config.APP_URL.rstrip('/')}/i/{inv.public_token or '…'}"
-    return {**render_receipt(inv, owner, client, link), "marks_paid": inv.status != "paid", "status": inv.status}
+    if not inv.public_token:  # the preview shows the real receipt document, so the link has to exist
+        inv.public_token = uuid.uuid4().hex
+        db.commit()
+    link = f"{config.APP_URL.rstrip('/')}/i/{inv.public_token}/receipt"
+    return {**render_receipt(inv, owner, client, link), "marks_paid": inv.status != "paid", "status": inv.status,
+            "receipt_url": link + ("?preview=1" if inv.status != "paid" else "")}
 
 
 @invoices.post("/{invoice_id}/receipt")
@@ -159,7 +163,7 @@ def send_receipt(invoice_id: int, db: Session = Depends(get_db), user=Depends(re
         inv.paid_date = inv.paid_date or date.today().isoformat()
     if not inv.public_token:
         inv.public_token = uuid.uuid4().hex
-    link = f"{config.APP_URL.rstrip('/')}/i/{inv.public_token}"
+    link = f"{config.APP_URL.rstrip('/')}/i/{inv.public_token}/receipt"
     emailed = False
     if client and client.user_id == ws_id(user) and client.email:
         mail = render_receipt(inv, owner, client, link)
