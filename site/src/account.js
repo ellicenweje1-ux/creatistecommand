@@ -7,6 +7,11 @@ const KEY = 'tcc_customer'
 const EVENT = 'tcc-customer'
 export const ACCOUNT_API = SETTINGS.apiBase && SETTINGS.enquiryToken ? `${SETTINGS.apiBase}/api/public/customer/${SETTINGS.enquiryToken}` : ''
 
+/* Design preview only: VITE_MOCK_ACCOUNT=1 swaps the booking system for canned data so the account can be shown with no backend.
+   When the variable is unset (the live build) this whole branch, and the mock file, are removed from the bundle. */
+const MOCK = import.meta.env.VITE_MOCK_ACCOUNT === '1'
+if (MOCK) { try { if (!localStorage.getItem(KEY)) localStorage.setItem(KEY, JSON.stringify({ token: 'mock', name: 'Rita Regular', email: 'rita@example.com', phone: '' })) } catch {} }
+
 export function getCustomer() {
   try { return JSON.parse(localStorage.getItem(KEY) || 'null') } catch { return null }
 }
@@ -28,6 +33,7 @@ export function useCustomer() {
 }
 
 export async function accountFetch(path, opts = {}) {
+  if (MOCK) { const m = await import('./accountMock.js'); return m.mockFetch(path, opts) }
   const c = getCustomer()
   const r = await fetch(`${ACCOUNT_API}${path}`, { ...opts, headers: { 'Content-Type': 'application/json', ...(c?.token ? { Authorization: `Bearer ${c.token}` } : {}), ...(opts.headers || {}) } })
   if (r.status === 401 && c?.token) clearCustomer()

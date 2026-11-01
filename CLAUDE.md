@@ -753,6 +753,13 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
 - **Gotchas:** `Badge` doesn't forward data attributes (wrap in a span). A clean `npm run build` doesn't prove the pages render; the Playwright run did.
   The hold email subject is "Your date is held: …" (tests once matched "hold"). Re-seeding the e2e DB changes the enquiry token, so rebuild the site with the
   new `VITE_ENQUIRY_TOKEN`.
+- **Portfolio heading (her correction, same day):** the eyebrow is now one line, "Selected work · 01 · Private Catering" (same font and size, umbrella in
+  `[data-work-umbrella]`), the big gold heading is the **service** (`[data-work-service]`, e.g. Corporate Curations), then the client row and description. The italic
+  service line is gone.
+- **Mock of the regular-client account** (she asked to see it): `VITE_MOCK_ACCOUNT=1` makes `account.js` use `accountMock.js` (canned dates, one awaiting hold,
+  one confirmed hold; any email and code signs in). Dead-code-eliminated from the live build (verified: no mock text in the prod bundle). Published as its own
+  artifact "Regular Client Booking Page (Mock)" https://claude.ai/artifact/QHCxc6zfrLRvs5Ueqmengy ; main preview is Version 17. Build recipe: mock env + `VITE_API_BASE=http://mock.invalid
+  VITE_ENQUIRY_TOKEN=mock VITE_ROUTER=hash VITE_BASE=./`, strip fonts/photos/docs, default hash `#/account`.
 - **Still TODO from Ellice:** tick "Regular" on the clients she wants to have this (their email must match their invoices); say if Sun to Thu / one week lead /
   3 open holds are right; the earlier list (budgets, Instagram widget, menu offerings, Stripe keys when she wants cards).
 

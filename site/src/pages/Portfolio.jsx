@@ -65,9 +65,8 @@ export default function Portfolio() {
               <Reveal className={`lg:col-span-5 ${i % 2 ? 'lg:order-2' : ''}`}><Frame src={f.photo} alt={`${f.name}, ${f.service}`} ratio="4/5" fit={f.fit || 'cover'} /></Reveal>
               {/* Top to bottom: service type, the service, the client (logo, name, profession or company, month), the description. */}
               <div className={`flex flex-col justify-center lg:col-span-7 ${i % 2 ? 'lg:order-1' : ''}`} data-work-text>
-                <Reveal><p className="font-body text-[11px] uppercase tracking-eyebrow text-stone">Selected work · {String(i + 1).padStart(2, '0')}</p></Reveal>
-                <Reveal delay={1}><Heading size="lg" className="mt-3 text-gold-deep" data-work-umbrella>{f.umbrella}</Heading></Reveal>
-                <Reveal delay={1}><p className="mt-2 font-display text-[22px] italic text-ink/80 sm:text-[26px]" data-work-service>{f.service}</p></Reveal>
+                <Reveal><p className="font-body text-[11px] uppercase tracking-eyebrow text-stone">Selected work · {String(i + 1).padStart(2, '0')} · <span data-work-umbrella>{f.umbrella}</span></p></Reveal>
+                <Reveal delay={1}><Heading size="lg" className="mt-3 text-gold-deep" data-work-service>{f.service}</Heading></Reveal>
                 <Reveal delay={2} className="mt-7 flex items-center gap-4 border-t border-sand pt-6">
                   {f.logo ? <img src={asset(f.logo)} alt={f.name} className="h-14 w-14 shrink-0 rounded-full border border-sand object-cover" /> : <span aria-hidden="true" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-sand bg-linen font-display text-[20px] text-gold-deep">{f.name.replace(/[^A-Za-z0-9]/g, '').slice(0, 1)}</span>}
                   <div>
