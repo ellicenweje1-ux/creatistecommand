@@ -791,6 +791,13 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
     testimonials" link), falling back to the standing quote when none is featured. The Reviews page has a "Where reviews go" guide card. FAQs (rule #3): Support
     "Can my Google or Apple calendar close dates…" + the reviews FAQ extended; public `/faq` calendar Q&A.
   - Preview artifact NOT republished this batch (the artifact tools were disconnected in this session): the live site is the reference. Republish Version 19 next time.
+- **Soulfood Friday 2.0 flyer on What's Up (sixteenth batch):** her flyer (`site/public/flyers/soulfood-friday-2.webp`, 1080x1350) now has a **featured block** on
+  `/whats-up` (`Featured` in `WhatsOn.jsx`, `[data-featured="pop-up"]`, id `pop-up` so the nav "Pop-ups & events" link still lands): flyer beside the details, the
+  flyer itself and the gold **"RSVP now"** button both link to her Partiful page (`NOW.items[1].cta.href`, new tab, `rel=noreferrer`). **Time and location are marked
+  "to be announced"** (chips). The pop-up item is `live: true` with **`until: '2026-11-20'`**: new `nowActive()` in `content/site.js` drops any item past its `until`
+  date from What's Up AND the Home live bar by itself the day after (verified with a faked clock: still up on the 20th, gone on the 21st), so no manual flip-down.
+  The Home live-bar phrases for the pop-up now open the RSVP in a new tab (the ticker supports external links). Playwright 25/25 desktop + mobile. When the time and
+  place are set, edit `meta` and `detail` in that item (`NOW` in `site.js`). The remaining What's Up cards sit in a 2-column grid under the featured block.
 - **Portfolio heading (her correction, same day):** the eyebrow is now one line, "Selected work · 01 · Private Catering" (same font and size, umbrella in
   `[data-work-umbrella]`), the big gold heading is the **service** (`[data-work-service]`, e.g. Corporate Curations), then the client row and description. The italic
   service line is gone.

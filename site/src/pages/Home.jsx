@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ABOUT, COMMAND, CONTACT, GALLERY, HERO, KIND_WORDS, LOADED_BAR, MISSION, NOW, PERSONAL_CHEF, PRIVATE_CATERING, PROCESS, SETTINGS } from '../content/site.js'
+import { nowActive, ABOUT, COMMAND, CONTACT, GALLERY, HERO, KIND_WORDS, LOADED_BAR, MISSION, NOW, PERSONAL_CHEF, PRIVATE_CATERING, PROCESS, SETTINGS } from '../content/site.js'
 import { Arrow, Button, Eyebrow, Flame, Frame, Heading, Reveal, Section, asset } from '../ui.jsx'
 
 function Hero() {
@@ -48,7 +48,7 @@ function Hero() {
 }
 
 function NowStrip() {
-  const live = NOW.items.filter((i) => i.live)
+  const live = NOW.items.filter((i) => i.live && nowActive(i))
   if (!live.length) return null
   // Every phrase in the strip links to its own item (the Clean Dream order page, the pop-up's section on What's Up).
   const words = live.flatMap((i) => [`${i.name} · ${i.kind}`, i.when, ...i.meta].map((w) => ({ w, to: i.link || i.cta?.to || '/whats-up' })))
@@ -61,7 +61,9 @@ function NowStrip() {
         </Link>
         <div className="relative min-w-0 flex-1 overflow-hidden py-4" data-now-strip>
           <div className="ticker font-body text-[12px] uppercase tracking-wide text-ivory/85">
-            {[...words, ...words].map((x, i) => <span key={i} className="flex items-center gap-12"><Link to={x.to} className="whitespace-nowrap transition-colors hover:text-gold" tabIndex={i >= words.length ? -1 : undefined} aria-hidden={i >= words.length ? 'true' : undefined}>{x.w}</Link><span className="h-1 w-1 rounded-full bg-gold" /></span>)}
+            {[...words, ...words].map((x, i) => <span key={i} className="flex items-center gap-12">{/^https?:/.test(x.to)
+              ? <a href={x.to} target="_blank" rel="noreferrer" className="whitespace-nowrap transition-colors hover:text-gold" tabIndex={i >= words.length ? -1 : undefined} aria-hidden={i >= words.length ? 'true' : undefined}>{x.w}</a>
+              : <Link to={x.to} className="whitespace-nowrap transition-colors hover:text-gold" tabIndex={i >= words.length ? -1 : undefined} aria-hidden={i >= words.length ? 'true' : undefined}>{x.w}</Link>}<span className="h-1 w-1 rounded-full bg-gold" /></span>)}
           </div>
         </div>
         <Link to="/whats-up" className="hidden shrink-0 items-center gap-2 border-l border-gold/30 pl-8 font-body text-[11px] uppercase tracking-eyebrow text-ivory/80 hover:text-gold lg:flex">What’s up with Us? <Arrow /></Link>

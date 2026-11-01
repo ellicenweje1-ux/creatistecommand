@@ -359,6 +359,8 @@ export const LOADED_BAR = {
 }
 
 /* "What's up with Us?" What is happening in real time. Items with `live: false` do not render on the home strip. */
+/* An item with an `until` date stays up through that day, then drops off What's Up and the live bar by itself. */
+export const nowActive = (i) => !i.until || i.until >= new Date().toISOString().slice(0, 10)
 export const NOW = {
   eyebrow: 'Find out what’s happening now',
   title: 'What’s up with Us?',
@@ -375,15 +377,17 @@ export const NOW = {
       link: '/cleandream',
     },
     {
-      live: false, // flip to true once the details are set
+      live: true,
+      until: '2026-11-20', // drops off the page and the live bar after the night itself
       kind: 'Pop-up',
-      name: 'Thanksgiving Soul Food Pop-up',
-      when: 'Friday 20 November',
-      detail: 'A one-night soul food table for Thanksgiving. Where we’ll be, what we’re serving and how to get a plate: details coming soon. Keep an eye on this page and on Instagram.',
-      meta: ['20 November', 'Soul food', 'Details to follow'],
-      footnote: 'Full details and how to book a plate will appear here as soon as they are set.',
-      cta: { label: 'Keep me posted', to: '/enquire?lane=events' },
-      link: '/whats-up#pop-up',
+      name: 'Soulfood Friday 2.0',
+      sub: 'Thanksgiving pop-up',
+      when: 'Friday 20 November · London',
+      detail: 'We’re back. Come. Eat. Be thankful. A one-night Thanksgiving soul food table. RSVPs are open and spaces are limited.',
+      meta: ['Fri 20 Nov', 'London', 'Time to be announced', 'Location to be announced'],
+      flyer: { src: '/flyers/soulfood-friday-2.webp', alt: 'Flyer: We’re back. Soulfood Friday 2.0, a Thanksgiving pop-up on Friday 20 November in London. Come. Eat. Be thankful. RSVPs open, limited spaces.' },
+      cta: { label: 'RSVP now', href: 'https://partiful.com/e/W4FoWq5EC4V1RDj6lua7?c=U5d0J40B' },
+      link: 'https://partiful.com/e/W4FoWq5EC4V1RDj6lua7?c=U5d0J40B',
     },
     {
       live: false,

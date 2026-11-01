@@ -1,5 +1,5 @@
-import { CAREERS, NOW } from '../content/site.js'
-import { Button, Eyebrow, Heading, Reveal, Section } from '../ui.jsx'
+import { CAREERS, NOW, nowActive } from '../content/site.js'
+import { Button, Eyebrow, Heading, Reveal, Section, asset } from '../ui.jsx'
 import { EnquireBand } from './Home.jsx'
 import { AvailabilityBlock } from '../availability.jsx'
 
@@ -21,12 +21,43 @@ function Card({ item, i }) {
         </ul>
       ) : null}
       {item.footnote ? <p className="mt-4 font-body text-[12px] italic text-smoke">{item.footnote}</p> : null}
-      {item.cta ? <div className="mt-7"><Button to={item.cta.to} variant={item.live ? 'gold' : 'ghost'}>{item.cta.label}</Button></div> : null}
+      {item.cta ? <div className="mt-7">{item.cta.href ? <Button href={item.cta.href} target="_blank" rel="noreferrer" variant={item.live ? 'gold' : 'ghost'}>{item.cta.label}</Button> : <Button to={item.cta.to} variant={item.live ? 'gold' : 'ghost'}>{item.cta.label}</Button>}</div> : null}
+    </Reveal>
+  )
+}
+
+/* A live item that comes with a flyer gets the stage: the flyer beside the details, RSVP as the main button. */
+function Featured({ item }) {
+  const rsvp = item.cta?.href
+  const img = <img src={asset(item.flyer.src)} alt={item.flyer.alt} loading="lazy" className="block h-auto w-full" />
+  return (
+    <Reveal id={slug(item.kind)} className="scroll-mt-24 border border-gold/40 bg-ink-2/70" data-featured={slug(item.kind)}>
+      <div className="grid items-center gap-8 p-5 sm:p-8 lg:grid-cols-12 lg:gap-12 lg:p-10">
+        <div className="mx-auto w-full max-w-[440px] lg:col-span-5">
+          {rsvp ? <a href={rsvp} target="_blank" rel="noreferrer" aria-label={`${item.cta.label}: ${item.name}`} data-flyer className="block border border-gold/30 transition-colors hover:border-gold">{img}</a> : img}
+        </div>
+        <div className="lg:col-span-7">
+          <div className="flex items-center gap-4">
+            <p className="eyebrow">{item.kind}</p>
+            <span className="flex items-center gap-2 font-body text-[11px] uppercase tracking-wide text-gold"><span className="h-1.5 w-1.5 rounded-full bg-gold" />Live</span>
+          </div>
+          <p className="mt-4 font-display text-[40px] leading-tight sm:text-[52px]">{item.name}</p>
+          {item.sub ? <p className="mt-1 font-body text-[12px] uppercase tracking-eyebrow text-gold">{item.sub}</p> : null}
+          <p className="mt-2 font-display text-[22px] italic text-gold-light">{item.when}</p>
+          <p className="mt-6 max-w-xl font-body text-[16px] font-light leading-relaxed text-ivory/80">{item.detail}</p>
+          {item.meta?.length ? <ul className="mt-6 flex flex-wrap gap-2">{item.meta.map((m) => <li key={m} className="border border-gold/40 px-3 py-1.5 font-body text-[11px] uppercase tracking-wide text-gold">{m}</li>)}</ul> : null}
+          {item.cta ? <div className="mt-8"><Button href={item.cta.href} target="_blank" rel="noreferrer" data-rsvp>{item.cta.label}</Button></div> : null}
+          {item.footnote ? <p className="mt-4 font-body text-[12px] italic text-smoke">{item.footnote}</p> : null}
+        </div>
+      </div>
     </Reveal>
   )
 }
 
 export default function WhatsOn() {
+  const items = NOW.items.filter(nowActive)
+  const featured = items.filter((i) => i.live && i.flyer)
+  const rest = items.filter((i) => !(i.live && i.flyer))
   return (
     <>
       <section className="hero-field grain relative pt-40 pb-16">
@@ -37,8 +68,11 @@ export default function WhatsOn() {
         </div>
       </section>
       <Section ground="ink" tight>
-        <div className="grid gap-5 lg:grid-cols-3">
-          {NOW.items.map((it, i) => <Card key={it.name} item={it} i={i} />)}
+        <div className="space-y-5">
+          {featured.map((it) => <Featured key={it.name} item={it} />)}
+          <div className="grid gap-5 lg:grid-cols-2" data-now-cards>
+            {rest.map((it, i) => <Card key={it.name} item={it} i={i} />)}
+          </div>
         </div>
       </Section>
       <Section ground="linen" id="careers" className="scroll-mt-20">
