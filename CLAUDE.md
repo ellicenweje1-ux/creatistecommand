@@ -759,6 +759,11 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
   New `config.DATE_HOLD_WINDOW_DAYS=30` caps `open_hold_dates` (and the API returns `window_days`), so the server enforces it too. The 7-day lead is unchanged, so
   the selectable range is day 7 to day 30. I read "month bookings" as "month calendar view"; **if she meant booking a whole month of a recurring service, ask.**
   Verified Playwright 37/37 (all free days within 7 to 30 days and Sun to Thu, nothing beyond 30 drawn, unavailable click selects nothing); holds backend 35/35.
+- **Indigo's description (her note):** she preferred my ORIGINAL wording plus her macros line, so it now reads "A personal chef service for a producer and label owner
+  with a packed studio diary: gluten-free meals, batch cooked, weighed and portioned to meet his macros, and labelled so the food keeps pace with the schedule."
+  **Diary blocks drive the reserve calendar** (verified: a whole-day block or holiday run removes those dates from the client calendar, refuses a hold on them, and
+  shows the day as full on the public calendar; a part-day block leaves the day holdable). NB the ICS calendar feed carries bookings (so live holds show on her phone
+  calendar) but NOT diary blocks, and nothing is read back from her Google/Apple calendar: a two-way sync is possible but not built.
 - **Portfolio heading (her correction, same day):** the eyebrow is now one line, "Selected work · 01 · Private Catering" (same font and size, umbrella in
   `[data-work-umbrella]`), the big gold heading is the **service** (`[data-work-service]`, e.g. Corporate Curations), then the client row and description. The italic
   service line is gone.

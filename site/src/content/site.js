@@ -521,7 +521,7 @@ export const PORTFOLIO = {
       body: 'Proteins, sides and vegetables batch-cooked in 32oz and 58oz containers, fuelling him between match days during training week, delivered labelled and ready to plate.' },
     { umbrella: 'Personal Chef', service: 'Sorted & Served', name: 'Indigo Kxd', role: 'Producer & label owner', date: '',
       photo: '/photos/batch-meals-indigo.jpg', logo: '/photos/clients/indigo.jpg',
-      body: 'Gluten-free meals, batch cooked, weighed and portioned to meet his macros.' },
+      body: 'A personal chef service for a producer and label owner with a packed studio diary: gluten-free meals, batch cooked, weighed and portioned to meet his macros, and labelled so the food keeps pace with the schedule.' },
   ],
 }
 
