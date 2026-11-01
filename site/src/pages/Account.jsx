@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { CONTACT } from '../content/site.js'
+import { CLEAN_DREAM, CONTACT, DATE_HOLD } from '../content/site.js'
 import { Arrow, Button, Eyebrow, Heading, Reveal, Section } from '../ui.jsx'
 import { ACCOUNT_API, REORDER_KEY, accountFetch, clearCustomer, getCustomer, setCustomer, useCustomer } from '../account.js'
 
@@ -71,6 +71,99 @@ function SignIn() {
   )
 }
 
+/* Regular / already-consulted clients hold a personal chef day with a small bank-transfer deposit. Shown only when Command says they are eligible. */
+function useCountdown(iso) {
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => { if (!iso) return undefined; const t = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(t) }, [iso])
+  if (!iso) return ''
+  const ms = new Date(iso).getTime() - now
+  if (ms <= 0) return 'expired'
+  const h = Math.floor(ms / 3600000), m = Math.floor((ms % 3600000) / 60000)
+  return `${h}h ${String(m).padStart(2, '0')}m left`
+}
+
+function HoldRow({ h, bank }) {
+  const left = useCountdown(h.paid ? '' : h.expires_at)
+  const [copied, setCopied] = useState(false)
+  const text = `${bank.name}\n${bank.bank}\nAccount number ${bank.account}\nSort code ${bank.sort}\nReference ${h.reference}\nAmount ${money(h.amount)}`
+  const copy = async () => { try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {} }
+  return (
+    <li className="py-5" data-hold data-hold-status={h.paid ? 'confirmed' : 'awaiting'}>
+      <p className="font-display text-[20px]">{fmt(h.date)} <span className="font-body text-[12px] uppercase tracking-wide text-gold-deep">· {h.paid ? 'Confirmed' : 'Awaiting your deposit'}</span></p>
+      <p className="mt-1 font-body text-[13px] text-stone">{h.service} · {money(h.amount)} deposit{h.paid ? ' received' : ''}{!h.paid && left ? ` · ${left}` : ''}</p>
+      {!h.paid && left !== 'expired' ? (
+        <div className="mt-4 border border-sand bg-ivory p-5" data-hold-bank>
+          <p className="font-body text-[11px] uppercase tracking-eyebrow text-gold-deep">Pay {money(h.amount)} by bank transfer</p>
+          <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-5 gap-y-1 font-body text-[14px]">
+            <dt className="text-stone">Name</dt><dd>{bank.name}</dd>
+            <dt className="text-stone">Bank</dt><dd>{bank.bank}</dd>
+            <dt className="text-stone">Account</dt><dd>{bank.account}</dd>
+            <dt className="text-stone">Sort code</dt><dd>{bank.sort}</dd>
+            <dt className="text-stone">Reference</dt><dd data-hold-ref className="font-medium">{h.reference}</dd>
+            <dt className="text-stone">Amount</dt><dd>{money(h.amount)}</dd>
+          </dl>
+          <button type="button" onClick={copy} className="mt-4 font-body text-[11px] uppercase tracking-wide text-gold-deep link-under">{copied ? 'Copied' : 'Copy the details'}</button>
+        </div>
+      ) : null}
+      {!h.paid && left === 'expired' ? <p className="mt-3 font-body text-[13px] text-stone">This hold has run out and the date has been released. You are welcome to hold it again if it is still free.</p> : null}
+    </li>
+  )
+}
+
+function ReserveDate() {
+  const [info, setInfo] = useState(null)
+  const [f, setF] = useState({ date: '', service: '', note: '' })
+  const [state, setState] = useState({ status: 'idle', error: '' })
+  const load = () => accountFetch('/holds').then(setInfo).catch(() => setInfo({ eligible: false }))
+  useEffect(() => { load() }, [])
+  if (!info || !info.eligible) return null
+  const bank = CLEAN_DREAM.bank
+  const submit = async (e) => {
+    e.preventDefault(); setState({ status: 'sending', error: '' })
+    try { await accountFetch('/hold', { method: 'POST', body: JSON.stringify(f) }); setF({ date: '', service: '', note: '' }); setState({ status: 'idle', error: '' }); await load() } catch (err) { setState({ status: 'error', error: err.message }); load() }
+  }
+  const dateOptions = info.dates || []
+  return (
+    <section data-reserve className="border border-gold/60 bg-linen p-7 sm:p-9">
+      <Eyebrow className="text-gold-deep">{DATE_HOLD.eyebrow}</Eyebrow>
+      <Heading size="md" className="mt-3">{DATE_HOLD.title}</Heading>
+      <p className="mt-4 max-w-2xl font-body text-[15px] font-light leading-relaxed text-ink/80">{DATE_HOLD.intro}</p>
+      <form onSubmit={submit} className="mt-7 grid gap-5 sm:grid-cols-2" data-reserve-form>
+        <div>
+          <label htmlFor="r-date" className="font-body text-[11px] uppercase tracking-eyebrow text-ink/70">Date <span className="text-gold-deep">*</span></label>
+          <select id="r-date" className="field-ivory mt-1" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} required>
+            <option value="">{dateOptions.length ? 'Choose a free date' : 'No free dates right now'}</option>
+            {dateOptions.map((d) => <option key={d} value={d}>{fmt(d)}</option>)}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="r-service" className="font-body text-[11px] uppercase tracking-eyebrow text-ink/70">Service <span className="text-gold-deep">*</span></label>
+          <select id="r-service" className="field-ivory mt-1" value={f.service} onChange={(e) => setF({ ...f, service: e.target.value })} required>
+            <option value="">Choose a service</option>
+            {(info.services || []).map((x) => <option key={x} value={x}>{x}</option>)}
+          </select>
+        </div>
+        <div className="sm:col-span-2">
+          <label htmlFor="r-note" className="font-body text-[11px] uppercase tracking-eyebrow text-ink/70">Anything we should know (optional)</label>
+          <input id="r-note" className="field-ivory mt-1" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} maxLength={500} />
+        </div>
+        {state.error ? <p className="font-body text-[13px] text-red-700 sm:col-span-2" data-reserve-error>{state.error}</p> : null}
+        <div className="sm:col-span-2"><Button type="submit" variant="ink" disabled={state.status === 'sending' || !dateOptions.length}>{state.status === 'sending' ? 'Holding your date…' : `Hold this date for ${money(info.amount)}`} <Arrow /></Button></div>
+      </form>
+      <ul className="mt-6 grid gap-1 font-body text-[13px] font-light leading-relaxed text-ink/75" data-reserve-rules>
+        {DATE_HOLD.rules.map((r) => <li key={r} className="flex gap-3"><span className="mt-[9px] h-px w-3 shrink-0 bg-gold-deep" aria-hidden="true" />{r}</li>)}
+      </ul>
+      {info.holds?.length ? (
+        <div className="mt-8" data-holds>
+          <Eyebrow className="text-gold-deep">Your held dates</Eyebrow>
+          <ul className="mt-2 divide-y divide-sand border-y border-sand">{info.holds.map((h) => <HoldRow key={h.id} h={h} bank={bank} />)}</ul>
+          <p className="mt-4 font-body text-[12px] text-stone">{DATE_HOLD.moveNote}</p>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
 function Dashboard() {
   const nav = useNavigate()
   const [me, setMe] = useState(null)
@@ -113,6 +206,7 @@ function Dashboard() {
         <p className="mt-5 font-body text-[12px] leading-relaxed text-stone">Quick question? Use the live chat (bottom right) or email <a href={`mailto:${CONTACT.email}`} className="link-under">{CONTACT.email}</a>.</p>
       </aside>
       <div className="space-y-12 lg:col-span-8">
+        <ReserveDate />
         <section data-orders>
           <div className="flex items-end justify-between gap-4"><Heading size="md">Clean Dream orders</Heading><span className="font-body text-[12px] text-stone">{me.orders.length} {me.orders.length === 1 ? 'order' : 'orders'}</span></div>
           {me.orders.length ? (

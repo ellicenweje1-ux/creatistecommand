@@ -715,12 +715,47 @@ documents contain no " and "); site build clean; the three PDFs regenerated = 1 
   package covers/hours/bodies, week/good-to-know lines, intros and footers of the **Table menu, Batchfully Made price list and Home Edit** cards (so
   the site cards and the PDFs agree). The **Loaded Bar brochure and the Clean Dream printed menu are her Canva files** — not editable here; she
   has to change those in Canva. Page copy on the Menus page cards was left alone (only the PDFs were asked about).
-- **OPEN QUESTION from Ellice (not built): "Clients who are already regular / been consulted just log in using the same invoice email to block out
-  their booking day with a £15 deposit?"** Feasible on what exists (customer sign-in by emailed code at `/account`, the Diary availability
-  calendar, bank-transfer pre-order pattern, `Client` match by email). Proposed shape: a "Reserve my date" step in the account for clients flagged
-  consulted/regular → pick an open date → a `held` Booking + a £15 bank-transfer deposit awaiting payment → she marks it received → confirmed, the
-  day shows as taken on the public calendar. **Decisions needed from her before building:** what counts as "regular" (a Client tag she sets?),
-  whether the £15 is refundable/off the final bill, how long an unpaid hold lasts, which services it covers, and card vs bank transfer.
+- **The open question above is ANSWERED and BUILT in the fourteenth batch (next section): the £15 date hold.**
+
+### Follow-on (same 28th-wave session — fourteenth batch: Indigo photos, THE £15 DATE HOLD ("Reserve your date") for regular clients)
+Built + verified (backend `/tmp/.../test_holds.py` **35/35** incl. an existing-table migration drill; Playwright **32/32** against a real Command + the built site:
+Clients toggle, site reserve flow, Bookings strip with email preview + confirm, invoice deposit credit, Indigo photos, copy; zero JS errors on both apps; both
+builds clean). Committed + pushed + merged to `main`; preview artifact Version 16. Ellice's answers that shaped it: regular = a **tag she sets on the client in
+Command** (matched by the email used on invoices); the £15 is **non-refundable, transferable to a later date, taken off the final invoice**; a hold lasts
+**12 hours**; **personal chef only**; **bank transfer only**.
+- **Indigo (portfolio):** her IMG_9615 → square circle crop `site/public/photos/clients/indigo.jpg` (avoids the number plate; initial badge gone) and
+  FullSizeRender → `site/public/photos/batch-meals-indigo.jpg` replaces his food photo (`PORTFOLIO.features`). The old `batch-lidded.jpg` stays in the gallery.
+- **Command, Clients:** `clients.regular` (additive BOOLEAN) + a "Regular / already consulted" checkbox in the client form (`data-regular-toggle`) and a badge
+  on the client card (`data-regular-badge`). **The email on that client must match the one the customer signs in with** (case-insensitive).
+- **A hold is a `Booking`** (additive cols `date_hold`, `hold_expires_at` (ISO UTC string), `deposit_amount`, `deposit_applied`; model + `ensure_columns`, ONE
+  `bookings` key; no new table so `PURGE_MODELS` is unchanged): status `enquiry`, `event_type "Personal chef · <service>"`, title "Date hold · <name>", note carries
+  the bank reference (`"Rita 10Nov"`). `diary.compute_days` counts it **only while unexpired and unpaid** (or once confirmed), so the day shows as taken on the
+  public calendar immediately. NB the Diary's own rules still apply: **personal chef allows 2 a day**, so a second personal chef booking on a held day is still
+  possible (the client's own held dates are filtered out of their dropdown; they can't hold the same day twice).
+- **`backend/app/routers/holds.py`** (all in one module): public `GET /api/public/customer/{token}/holds` (eligible?, free dates, the client's holds) and
+  `POST …/hold` {date, service, note?}; chef `GET /api/holds`, `GET /api/holds/{id}/paid-preview`, `POST /api/holds/{id}/paid` (→ confirmed, `deposit_paid`, emails
+  both), `POST /api/holds/{id}/release`. Expiry: `expire_holds()` runs in a daemon loop every 5 min (`start_expiry_loop`, started from the scheduler) **and** on
+  every holds endpoint call, cancelling lapsed holds and emailing the client. Knobs in `config.py` (env-overridable, defaults): `DATE_HOLD_DEPOSIT=15`,
+  `DATE_HOLD_HOURS=12`, `DATE_HOLD_MIN_DAYS=7` (at least a week ahead), `DATE_HOLD_MAX_ACTIVE=3` (unpaid holds per client), `DATE_HOLD_WEEKDAYS=6,0,1,2,3`
+  (**Sun to Thu**, her personal chef days: change if wrong). Per-IP rate limit on placing holds. `customers.py /me` no longer lists date holds under
+  "Enquiries and bookings" (they have their own card).
+- **Command, Bookings:** a **"Date holds · waiting for the deposit"** strip (`HoldsStrip`, `data-holds-strip`): client, date, service, bank reference, £15, live
+  "Xh left"; **"£15 received"** opens the same preview-then-confirm modal as receipts (email shown before anything sends) → "Confirm date & send"; **Release**
+  lets a day go. List/pipeline badges "Date hold" / "Deposit paid".
+- **Command, Finance:** an invoice linked to a booking whose deposit was paid and not yet applied shows a banner (`data-deposit-credit`) with **"Take it off this
+  invoice"** adding a negative line "Date-hold deposit already paid" (`deposit_credit: true`); saving the invoice sets `bookings.deposit_applied`.
+  **Moving the deposit to another date = edit the booking's date** (nothing else changes; the deposit stays attached).
+- **Site (`account.js` unchanged; `pages/Account.jsx ReserveDate`, copy in `DATE_HOLD` in `site/src/content/site.js`):** a "Reserve your date" card appears at the
+  top of the account dashboard **only for eligible clients**: date + service selects, optional note, **"Hold this date for £15.00"**, then each hold shows
+  Awaiting/Confirmed, a live countdown, her **bank details (`CLEAN_DREAM.bank`)**, the reference and a copy button; the four rules sit under the form. Terms
+  gained "Reserving a date", the site FAQ "Can I reserve my date myself?". Command FAQ (rule #3): Support "How do my regular clients reserve a date
+  themselves…?" + public `/faq` "Can my regular clients book a date themselves?".
+- **Gotchas:** `Badge` doesn't forward data attributes (wrap in a span). A clean `npm run build` doesn't prove the pages render; the Playwright run did.
+  The hold email subject is "Your date is held: …" (tests once matched "hold"). Re-seeding the e2e DB changes the enquiry token, so rebuild the site with the
+  new `VITE_ENQUIRY_TOKEN`.
+- **Still TODO from Ellice:** tick "Regular" on the clients she wants to have this (their email must match their invoices); say if Sun to Thu / one week lead /
+  3 open holds are right; the earlier list (budgets, Instagram widget, menu offerings, Stripe keys when she wants cards).
+
 
 ### DEPLOYING THE CATERING SITE (Cloudflare Pages — Ellice does this once; ~10 minutes)
 1. Cloudflare dashboard (the **jill+quinton** account) → Workers & Pages → Create → Pages → **Connect to Git** → repo

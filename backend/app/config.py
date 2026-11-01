@@ -35,6 +35,15 @@ DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DATA_DIR / 'creatiste.db'}
 # Public URL of the app (used for Stripe redirect URLs)
 APP_URL = os.getenv("APP_URL", "http://localhost:8000")
 
+# Date holds: a regular client reserves a personal chef date for a small non-refundable deposit paid by bank
+# transfer. Held for DATE_HOLD_HOURS; the deposit is taken off the final invoice and can be moved to a later date.
+DATE_HOLD_DEPOSIT = float(os.getenv("DATE_HOLD_DEPOSIT", "15"))
+DATE_HOLD_HOURS = float(os.getenv("DATE_HOLD_HOURS", "12"))
+DATE_HOLD_MIN_DAYS = int(os.getenv("DATE_HOLD_MIN_DAYS", "7"))          # personal chef bookings need at least a week
+DATE_HOLD_MAX_ACTIVE = int(os.getenv("DATE_HOLD_MAX_ACTIVE", "3"))      # unpaid holds one customer may have at once
+# Days of the week a hold can be placed on (Monday = 0). Default Sun to Thu, the published personal chef days.
+DATE_HOLD_WEEKDAYS = [int(x) for x in os.getenv("DATE_HOLD_WEEKDAYS", "6,0,1,2,3").split(",") if x.strip().isdigit()]
+
 # AI — Anthropic Claude. EMERGENT_LLM_KEY accepted as an alias for convenience.
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY") or os.getenv("EMERGENT_LLM_KEY") or ""
 AI_MODEL = os.getenv("AI_MODEL", "claude-opus-4-8")

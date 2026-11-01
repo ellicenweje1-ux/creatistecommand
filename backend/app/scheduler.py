@@ -167,4 +167,7 @@ def start_scheduler():
             time.sleep(max(0.5, config.SCHEDULER_INTERVAL_HOURS) * 3600)
 
     threading.Thread(target=loop, daemon=True, name="cc-scheduler").start()
+    from .routers.holds import start_expiry_loop
+
+    start_expiry_loop()  # releases lapsed date holds every few minutes
     log.info("scheduler started (every %.1fh)", config.SCHEDULER_INTERVAL_HOURS)

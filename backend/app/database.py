@@ -59,7 +59,12 @@ def ensure_columns():
         },
         "platform_settings": {"founders": "JSON"},
         "tasks": {"assignee_id": "INTEGER", "due_reminder_for": "VARCHAR(20) DEFAULT ''"},
-        "bookings": {"menu_type": "VARCHAR(80) DEFAULT ''"},
+        "bookings": {
+            "menu_type": "VARCHAR(80) DEFAULT ''",
+            "date_hold": "BOOLEAN DEFAULT 0", "hold_expires_at": "VARCHAR(19) DEFAULT ''",
+            "deposit_amount": "FLOAT DEFAULT 0", "deposit_applied": "BOOLEAN DEFAULT 0",
+        },
+        "clients": {"regular": "BOOLEAN DEFAULT 0"},
         "preorders": {"pay_method": "VARCHAR(20) DEFAULT 'stripe'"},
         "supplier_prices": {"quantity": "FLOAT DEFAULT 0"},
         "client_reviews": {

@@ -7,7 +7,7 @@ import { Badge, Button, Card, EmptyState, Field, Icon, IconButton, Input, Modal,
 import ExampleCard from '../examples'
 
 function ClientModal({ open, onClose, onSaved, initial = null }) {
-  const blank = { name: '', email: '', phone: '', company: '', address: '', dietary: [], allergies: '', likes: '', dislikes: '', tags: [], notes: '' }
+  const blank = { name: '', email: '', phone: '', company: '', address: '', dietary: [], allergies: '', likes: '', dislikes: '', tags: [], notes: '', regular: false }
   const [form, setForm] = useState(blank)
   const [dietaryText, setDietaryText] = useState('')
   const [tagText, setTagText] = useState('')
@@ -41,6 +41,11 @@ function ClientModal({ open, onClose, onSaved, initial = null }) {
           <Field label="Tags (comma-separated)"><Input value={tagText} onChange={(e) => setTagText(e.target.value)} placeholder="repeat, VIP" /></Field>
         </div>
         <Field label="Address"><Input value={form.address} onChange={set('address')} /></Field>
+        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-line bg-parchment/40 p-3" data-regular-toggle>
+          <input type="checkbox" className="mt-1 h-4 w-4" checked={!!form.regular} onChange={(e) => setForm({ ...form, regular: e.target.checked })} />
+          <span className="text-sm"><span className="font-medium">Regular / already consulted</span>
+            <span className="mt-0.5 block text-xs text-fg/60">When this client signs in on your website with the email above, they can reserve a personal chef date themselves for a small non-refundable deposit (taken off their final invoice). Needs an email address.</span></span>
+        </label>
         <Field label="Dietary (comma-separated)"><Input value={dietaryText} onChange={(e) => setDietaryText(e.target.value)} placeholder="vegetarian, halal" /></Field>
         <Field label="Allergies"><Input value={form.allergies} onChange={set('allergies')} placeholder="Shellfish (strict)" /></Field>
         <div className="grid grid-cols-2 gap-3">
@@ -100,6 +105,7 @@ function ClientDetail({ client, onEdit, onChanged }) {
           </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-1.5">
+          {client.regular && <span data-regular-badge><Badge tone="copper" className="normal-case">Regular · can reserve dates</Badge></span>}
           {(client.tags || []).map((t) => <Badge key={t} tone="ink">{t}</Badge>)}
           {(client.dietary || []).map((d) => <Badge key={d} tone="sage">{d}</Badge>)}
         </div>

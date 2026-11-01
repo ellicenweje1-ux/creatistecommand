@@ -22,6 +22,7 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
   const [clients, setClients] = useState([])
   const [bookings, setBookings] = useState([])
   const [menuItems, setMenuItems] = useState([])
+  const [linkedBooking, setLinkedBooking] = useState(null)  // the booking this invoice is for (to offer its date-hold deposit as a credit)
   const [sendPreview, setSendPreview] = useState(null)  // { url, email, invoiceId } — confirm before sending
   // Once any save has happened (Save draft / Preview / Send), the invoice exists — later
   // saves PATCH it (no accidental duplicates) and closing refreshes the parent list.
@@ -50,6 +51,12 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
         .catch(() => setForm(seeded))
     }
   }, [open, initial]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const id = bookingId ?? form.booking_id
+    if (!open || !id) { setLinkedBooking(null); return }
+    api.get(`/bookings/${id}`).then(setLinkedBooking).catch(() => setLinkedBooking(null))
+  }, [open, bookingId, form.booking_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Priced dishes to pull onto a line — refreshed when the linked booking changes
   // (same as the quote editor), so picking a booking mid-edit surfaces its menu.
@@ -119,7 +126,14 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
     } catch { /* best-effort — never block the invoice save */ }
   }
   const persist = () => (savedId ? api.patch(`/invoices/${savedId}`, buildPayload()) : api.post('/invoices', buildPayload()))
-    .then(async (inv) => { setSavedId(inv.id); setSavedMidEdit(true); await syncMenuToBooking(inv); return inv })
+    .then(async (inv) => {
+      setSavedId(inv.id); setSavedMidEdit(true); await syncMenuToBooking(inv)
+      // A date-hold deposit credited on this invoice is now spent: don't offer it again on the next one.
+      if (linkedBooking && !linkedBooking.deposit_applied && (form.items || []).some((it) => it.deposit_credit)) {
+        try { const b = await api.patch(`/bookings/${linkedBooking.id}`, { deposit_applied: true }); setLinkedBooking(b) } catch { /* best-effort */ }
+      }
+      return inv
+    })
   const save = (e) => { e.preventDefault(); persist().then(onSaved).catch(toastErr) }
   // Save where you are and keep editing — for long invoices filled in over several sittings.
   const saveDraft = () => persist()
@@ -235,6 +249,12 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
               {uploadingReceipt ? 'Uploading…' : '+ Upload a grocery receipt'}
             </label>
           </div>
+          {linkedBooking?.deposit_paid && linkedBooking.deposit_amount > 0 && !linkedBooking.deposit_applied && !items.some((it) => it.deposit_credit) && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-copper/50 bg-copper/5 px-3 py-2 text-sm" data-deposit-credit>
+              <span>This booking has a <strong>{fmtMoney(linkedBooking.deposit_amount, currency)}</strong> date-hold deposit already paid.</span>
+              <Button type="button" size="sm" variant="secondary" onClick={() => addItem({ id: uid(), description: 'Date-hold deposit already paid', qty: 1, unit_price: -Number(linkedBooking.deposit_amount), deposit_credit: true })} data-deposit-credit-btn>Take it off this invoice</Button>
+            </div>
+          )}
           <p className="mt-1 text-xs text-fg/45">Grocery reimbursement: upload the shop receipt, then type the amount on the line it adds. The client gets a “View receipt” link on the invoice.</p>
         </div>
 

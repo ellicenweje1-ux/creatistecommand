@@ -147,6 +147,9 @@ class Client(OwnedMixin, Base):
     dislikes: Mapped[str] = mapped_column(Text, default="")
     tags: Mapped[list] = mapped_column(JSON, default=list)
     notes: Mapped[str] = mapped_column(Text, default="")
+    # A regular / already-consulted client: signed in on the website with this email, they can reserve a
+    # date themselves for a small non-refundable deposit (see routers/holds.py).
+    regular: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class ClientReview(OwnedMixin, Base):
@@ -230,6 +233,12 @@ class Booking(OwnedMixin, Base):
     guest_count: Mapped[int] = mapped_column(Integer, default=0)
     quoted_price: Mapped[float] = mapped_column(Float, default=0)
     deposit_paid: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Date holds: a regular client reserves a day online for a small deposit. The booking sits as an 'enquiry' with
+    # date_hold set until the deposit lands (then 'confirmed') or hold_expires_at (ISO UTC, 12h) passes (then 'cancelled').
+    date_hold: Mapped[bool] = mapped_column(Boolean, default=False)
+    hold_expires_at: Mapped[str] = mapped_column(String(19), default="")
+    deposit_amount: Mapped[float] = mapped_column(Float, default=0)      # the deposit asked for / received
+    deposit_applied: Mapped[bool] = mapped_column(Boolean, default=False)  # already taken off an invoice
     menu: Mapped[list] = mapped_column(JSON, default=list)       # [{id,course,name,recipe_id,notes}]
     equipment: Mapped[list] = mapped_column(JSON, default=list)  # [str]
     dietary_notes: Mapped[str] = mapped_column(Text, default="")

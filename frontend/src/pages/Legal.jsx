@@ -427,6 +427,13 @@ export function Faq() {
           only ever as open, limited or full per day, so enquiries arrive for dates you can actually take.
         </p>
       </Section>
+      <Section heading="Can my regular clients book a date themselves?">
+        <p>
+          Yes. Mark a client as regular or already consulted and they can sign in on your website, choose a free
+          personal chef date and hold it with a small deposit paid by bank transfer. The date is held for a few
+          hours, then confirmed when you tap that the deposit has arrived, or released if it has not.
+        </p>
+      </Section>
       <Section heading="Can my customers have an account on my website?">
         <p>
           Yes. Visitors sign in with a code sent to their email (no passwords to forget) and see their own

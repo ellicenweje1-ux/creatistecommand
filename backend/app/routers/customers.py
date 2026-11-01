@@ -145,7 +145,7 @@ def me(token: str, authorization: str = Header(default=""), db: Session = Depend
     enquiries = [{"id": b.id, "title": b.title, "event_type": b.event_type, "date": b.date, "status": b.status,
                   "guest_count": b.guest_count, "venue_name": b.venue_name,
                   "created_at": b.created_at.isoformat() if b.created_at else ""}
-                 for b in bookings if b.event_type != "Pre-order"]
+                 for b in bookings if b.event_type != "Pre-order" and not b.date_hold]
     orders = (db.query(PreOrder).filter(PreOrder.user_id == owner.id, PreOrder.email == cus.email)
               .order_by(PreOrder.for_date.desc(), PreOrder.created_at.desc()).limit(50).all())
     reviews = (db.query(ClientReview).filter(ClientReview.user_id == owner.id, ClientReview.email == cus.email)

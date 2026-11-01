@@ -22,6 +22,7 @@ Public:
 from datetime import date as _date, datetime, timedelta
 
 from fastapi import APIRouter, Body, Depends, HTTPException
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from ..auth import require_active
@@ -119,7 +120,11 @@ def compute_days(db: Session, owner_id: int, rules: dict, start: _date, end: _da
     kinds = rules.get("kinds") or []
     max_prep = max([prep] + [k["prep_days"] for k in kinds])
     q_from, q_to = start.isoformat(), (end + timedelta(days=max_prep)).isoformat()
-    bookings = (db.query(Booking).filter(Booking.user_id == owner_id, Booking.status.in_(ACTIVE),
+    # A date hold (an online reservation waiting for its deposit) counts as a booking until its time runs out.
+    now_iso = datetime.utcnow().replace(microsecond=0).isoformat()
+    live_hold = and_(Booking.date_hold == True, Booking.status == "enquiry", Booking.deposit_paid == False,  # noqa: E712
+                     Booking.hold_expires_at > now_iso)
+    bookings = (db.query(Booking).filter(Booking.user_id == owner_id, or_(Booking.status.in_(ACTIVE), live_hold),
                                           Booking.date >= q_from, Booking.date <= q_to).all())
     blocks = db.query(DiaryBlock).filter(DiaryBlock.user_id == owner_id).all()
     blocks = [b for b in blocks if b.repeat == "weekly" or (b.end_date or b.date or "") >= q_from and (b.date or "") <= q_to]

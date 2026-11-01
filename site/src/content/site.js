@@ -520,7 +520,7 @@ export const PORTFOLIO = {
       photo: '/photos/batch-black-spread.jpg', logo: '/photos/clients/raees.jpg',
       body: 'Proteins, sides and vegetables batch-cooked in 32oz and 58oz containers, fuelling him between match days during training week, delivered labelled and ready to plate.' },
     { umbrella: 'Personal Chef', service: 'Sorted & Served', name: 'Indigo Kxd', role: 'Producer & label owner', date: '',
-      photo: '/photos/batch-lidded.jpg', logo: '',
+      photo: '/photos/batch-meals-indigo.jpg', logo: '/photos/clients/indigo.jpg',
       body: 'Gluten-free meals, batch cooked, weighed and portioned to meet his macros.' },
   ],
 }
@@ -618,6 +618,26 @@ export const FOOTER = {
 
 /* Privacy notice and terms: linked from the footer only. Plain English, UK-oriented. TODO Ellice: have a
    solicitor read these once before relying on them; add a registered business address if you have one. */
+/* Reserve your date: regular and already-consulted personal chef clients hold a day from their account with a
+   small deposit. The amount, hours and rules are set on the Command side; these words only describe them. */
+export const DATE_HOLD = {
+  eyebrow: 'Regular clients',
+  title: 'Reserve your date.',
+  intro: 'You have been consulted with us before, so you can hold your next personal chef day yourself. Pick a date, send the deposit by bank transfer and it is yours.',
+  how: [
+    'Choose a free date and the service you would like.',
+    'Send the deposit by bank transfer, using the reference shown.',
+    'We confirm your booking once the deposit lands.',
+  ],
+  rules: [
+    'Your date is held for 12 hours. If the deposit has not reached us by then, the date is released.',
+    'The deposit is non-refundable, but it can be moved to a later date if you need to change.',
+    'It is taken off your final invoice.',
+    'Personal chef services only: Batchfully Made, The Home Edit and Sorted & Served.',
+  ],
+  moveNote: 'Need to move your deposit to another date? Message us on WhatsApp or reply to your confirmation email.',
+}
+
 export const LEGAL = {
   updated: '26 October 2026',
   privacy: {
@@ -638,6 +658,7 @@ export const LEGAL = {
     intro: 'The short version of how we work. A full quotation, once accepted, forms the contract for a catering booking; these terms cover everything else on this site.',
     sections: [
       ['Bookings and payment', 'Every booking begins with a consultation. We then send a tailored quotation; nothing is confirmed until you have accepted it in writing and paid what it states. Full payment is required for all personal chef services (Batchfully Made, The Home Edit and Sorted & Served) before the service begins. Private catering (The Loaded Bar, Corporate Curations, Private & Personal and The Creatiste Table) is secured with a 50% deposit, with the balance due by the date on the quotation. Private catering must be booked at least 14 days before the event; a private catering booking made within 14 days of the event requires full payment at the time of booking. Personal chef services need at least 7 days’ notice before the start date, subject to availability. Final guest numbers, dietary requirements and allergies must be confirmed by the date given on the quotation.'],
+      ['Reserving a date', 'Regular and already-consulted personal chef clients can hold a date from their account with a £15 deposit paid by bank transfer. The date is held for 12 hours; if the deposit has not reached us in that time the date is released. The deposit is non-refundable, but it can be moved to a later date on request, and it is taken off the final invoice. Reserving a date online applies to personal chef services only.'],
       ['Clean Dream orders', 'Orders placed by 10:00am are made the same day, Monday to Friday; orders after 10:00am roll to the next weekday. Payment is by bank transfer using the details shown at checkout. Your order is confirmed only once we have sent a receipt of payment and the final collection or delivery details by WhatsApp. Delivery between the collection points is by request and charged separately at £0.65 per mile. Because every order is cooked fresh for you, an order cancelled after the 10:00am cut-off on its day results in loss of payment; no refund is given.'],
       ['Allergies and dietary needs', 'Tell us about every allergy and dietary requirement when you enquire or order, and again if anything changes. Our food is prepared in a kitchen that handles all fourteen major allergens, so we cannot guarantee any dish is entirely free of an allergen even where we have left it out. Every box and dish is labelled with the details you give us.'],
       ['Cancellations and changes', 'Deposits and booking payments are non-refundable once paid, because they hold a date we then turn other work away from. Changes to a confirmed booking are by agreement and may change the price. If we have to cancel for reasons within our control, you will receive a full refund of everything paid.'],
@@ -708,6 +729,13 @@ export const FAQ = {
       'No, but it helps.',
       'Sign in with a code sent to your email (no password) and your enquiries, Clean Dream orders and reviews are logged under Your account.',
       'Your details are remembered on every form, and a repeat Clean Dream order is one tap.',
+    ] },
+    { q: 'Can I reserve my date myself?', a: [
+      'If you have been consulted with us before and are a regular client, yes.',
+      'Sign in to Your account with the email on your invoices, choose a free date and send the deposit by bank transfer.',
+      'The deposit is non-refundable, can be moved to a later date, and is taken off your final invoice.',
+      'Your date is held for 12 hours while the deposit reaches us, then it is released.',
+      'This is for personal chef services only.',
     ] },
     { q: 'Which areas do you cover?', a: [
       'We are based in London and travel across the city and the surrounding areas.',
