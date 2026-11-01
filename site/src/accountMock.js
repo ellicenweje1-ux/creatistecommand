@@ -6,11 +6,11 @@ const ref = (day) => { const d = new Date(`${day}T12:00:00`); return `Rita ${d.g
 
 // free dates: Sunday to Thursday, from a week ahead
 const free = []
-for (let i = 8; free.length < 14; i++) { const d = new Date(); d.setDate(d.getDate() + i); if ([0, 1, 2, 3, 4].includes(d.getDay())) free.push(iso(d)) }
+for (let i = 8; i <= 30; i++) { const d = new Date(); d.setDate(d.getDate() + i); if ([0, 1, 2, 3, 4].includes(d.getDay())) free.push(iso(d)) }
 
 const holds = [
   { id: 1, date: free[1], service: 'The Home Edit', status: 'enquiry', paid: false, amount: 15, expires_at: new Date(Date.now() + 7.5 * 3600000).toISOString(), reference: ref(free[1]) },
-  { id: 2, date: free[6], service: 'Batchfully Made', status: 'confirmed', paid: true, amount: 15, expires_at: '', reference: ref(free[6]) },
+  { id: 2, date: free[8], service: 'Batchfully Made', status: 'confirmed', paid: true, amount: 15, expires_at: '', reference: ref(free[6]) },
 ]
 let nextId = 3
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -23,7 +23,7 @@ export async function mockFetch(path, opts = {}) {
   if (path === '/verify') return { token: 'mock', customer: { name: 'Rita Regular', email: body.email || 'rita@example.com', phone: '' } }
   if (path === '/holds') {
     const taken = new Set(holds.map((h) => h.date))
-    return { eligible: true, amount: 15, hours: 12, min_days: 7, services: ['Batchfully Made', 'The Home Edit', 'Sorted & Served'], dates: free.filter((d) => !taken.has(d)), holds: [...holds].sort((a, b) => a.date.localeCompare(b.date)) }
+    return { eligible: true, amount: 15, hours: 12, min_days: 7, window_days: 30, services: ['Batchfully Made', 'The Home Edit', 'Sorted & Served'], dates: free.filter((d) => !taken.has(d)), holds: [...holds].sort((a, b) => a.date.localeCompare(b.date)) }
   }
   if (path === '/hold' && method === 'POST') {
     if (!body.date || !body.service) throw new Error('Choose a date and a service.')

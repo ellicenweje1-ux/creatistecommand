@@ -753,6 +753,12 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
 - **Gotchas:** `Badge` doesn't forward data attributes (wrap in a span). A clean `npm run build` doesn't prove the pages render; the Playwright run did.
   The hold email subject is "Your date is held: …" (tests once matched "hold"). Re-seeding the e2e DB changes the enquiry token, so rebuild the site with the
   new `VITE_ENQUIRY_TOKEN`.
+- **Calendar picker (her next ask: "an actual calendar selection, only dates within the next 30 days"):** the date dropdown is now `HoldCalendar` in `Account.jsx`
+  (`[data-hold-calendar]`, Monday-first month grid with prev/next month arrows only when the 30-day window crosses a month; free days gold and tappable
+  `[data-cal-state=free]`, taken or too-soon days struck through, days beyond day 30 faint and inert; "Selected: …" line; submit disabled until a day is picked).
+  New `config.DATE_HOLD_WINDOW_DAYS=30` caps `open_hold_dates` (and the API returns `window_days`), so the server enforces it too. The 7-day lead is unchanged, so
+  the selectable range is day 7 to day 30. I read "month bookings" as "month calendar view"; **if she meant booking a whole month of a recurring service, ask.**
+  Verified Playwright 37/37 (all free days within 7 to 30 days and Sun to Thu, nothing beyond 30 drawn, unavailable click selects nothing); holds backend 35/35.
 - **Portfolio heading (her correction, same day):** the eyebrow is now one line, "Selected work · 01 · Private Catering" (same font and size, umbrella in
   `[data-work-umbrella]`), the big gold heading is the **service** (`[data-work-service]`, e.g. Corporate Curations), then the client row and description. The italic
   service line is gone.

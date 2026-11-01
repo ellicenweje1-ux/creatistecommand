@@ -118,12 +118,12 @@ def hold_dict(bk: Booking, name: str = "") -> dict:
 # ───────────────────────────── which dates can be held ─────────────────────────────
 def open_hold_dates(db: Session, owner: User, today: _date | None = None) -> list[str]:
     """Days a personal chef booking can still go on: not full, personal chef not at its own cap, on a personal
-    chef weekday, at least DATE_HOLD_MIN_DAYS ahead. Straight from the diary engine, so it matches the public calendar."""
+    chef weekday, at least DATE_HOLD_MIN_DAYS ahead and no further than DATE_HOLD_WINDOW_DAYS (30) out. Straight from the diary engine, so it matches the public calendar."""
     today = today or _date.today()
     rules = rules_for(owner)
     kind = kind_of(rules["kinds"], Booking(event_type="Personal chef", title="Date hold"))
     start = today + timedelta(days=config.DATE_HOLD_MIN_DAYS)
-    end = today + timedelta(days=min(rules["horizon_days"], 90))
+    end = today + timedelta(days=min(rules["horizon_days"], config.DATE_HOLD_WINDOW_DAYS))
     out = []
     for d in compute_days(db, owner.id, rules, start, end, detail=True):
         if d["state"] == "full" or _date.fromisoformat(d["date"]).weekday() not in config.DATE_HOLD_WEEKDAYS:
@@ -251,7 +251,7 @@ def my_holds(token: str, authorization: str = Header(default=""), db: Session = 
                                      Booking.status.in_(["enquiry", "confirmed"]), Booking.date >= _date.today().isoformat())
             .order_by(Booking.date.asc()).all()) if cids else []
     return {"eligible": bool(client), "amount": config.DATE_HOLD_DEPOSIT, "hours": config.DATE_HOLD_HOURS,
-            "min_days": config.DATE_HOLD_MIN_DAYS, "services": SERVICES,
+            "min_days": config.DATE_HOLD_MIN_DAYS, "window_days": config.DATE_HOLD_WINDOW_DAYS, "services": SERVICES,
             "dates": [d for d in open_hold_dates(db, owner) if d not in {b.date for b in mine}] if client else [],
             "holds": [hold_dict(b, cus.name or (client.name if client else "")) for b in mine]}
 

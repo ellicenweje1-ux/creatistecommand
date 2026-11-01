@@ -110,6 +110,51 @@ function HoldRow({ h, bank }) {
   )
 }
 
+/* A real month calendar for the next N days: only those days are drawn; free ones are gold and tappable, the rest are muted. */
+const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const pad2 = (n) => String(n).padStart(2, '0')
+const isoOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+function HoldCalendar({ dates, minDays, windowDays, value, onChange }) {
+  const today = new Date(); today.setHours(12, 0, 0, 0)
+  const last = new Date(today); last.setDate(last.getDate() + windowDays)
+  const free = new Set(dates)
+  const months = []
+  for (let m = new Date(today.getFullYear(), today.getMonth(), 1); m <= last; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) months.push(m)
+  const [idx, setIdx] = useState(0)
+  const m = months[Math.min(idx, months.length - 1)]
+  const first = new Date(m.getFullYear(), m.getMonth(), 1)
+  const lead = (first.getDay() + 6) % 7 // Monday first
+  const days = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate()
+  const cells = []
+  for (let i = 0; i < lead; i++) cells.push(null)
+  for (let d = 1; d <= days; d++) cells.push(new Date(m.getFullYear(), m.getMonth(), d, 12))
+  return (
+    <div className="mt-3 max-w-md border border-sand bg-ivory p-4 sm:p-5" data-hold-calendar>
+      <div className="flex items-center justify-between">
+        <button type="button" onClick={() => setIdx(idx - 1)} disabled={idx === 0} aria-label="Previous month" className="px-2 py-1 font-body text-[18px] text-ink disabled:opacity-25">‹</button>
+        <p className="font-display text-[20px]" data-cal-month>{m.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</p>
+        <button type="button" onClick={() => setIdx(idx + 1)} disabled={idx >= months.length - 1} aria-label="Next month" className="px-2 py-1 font-body text-[18px] text-ink disabled:opacity-25">›</button>
+      </div>
+      <div className="mt-3 grid grid-cols-7 gap-1 text-center">
+        {DOW.map((d) => <span key={d} className="font-body text-[10px] uppercase tracking-eyebrow text-stone">{d}</span>)}
+        {cells.map((d, i) => {
+          if (!d) return <span key={`b${i}`} />
+          const key = isoOf(d)
+          const inWindow = d >= new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0) && d <= last
+          if (!inWindow) return <span key={key} className="py-2 font-body text-[13px] text-ink/10" aria-hidden="true">{d.getDate()}</span>
+          const ok = free.has(key), on = value === key
+          return (
+            <button key={key} type="button" disabled={!ok} onClick={() => onChange(on ? '' : key)} data-cal-day={key} data-cal-state={on ? 'selected' : ok ? 'free' : 'unavailable'}
+              aria-label={`${fmt(key)}${ok ? ', free' : ', not available'}`} aria-pressed={on}
+              className={`py-2 font-body text-[14px] transition-colors ${on ? 'bg-ink text-ivory' : ok ? 'border border-gold-deep/70 text-ink hover:bg-gold/20' : 'text-ink/30 line-through decoration-ink/20'}`}>{d.getDate()}</button>
+          )
+        })}
+      </div>
+      <p className="mt-3 font-body text-[11px] text-stone">Showing the next {windowDays} days. Dates need at least {minDays} days’ notice.</p>
+    </div>
+  )
+}
+
 function ReserveDate() {
   const [info, setInfo] = useState(null)
   const [f, setF] = useState({ date: '', service: '', note: '' })
@@ -129,12 +174,10 @@ function ReserveDate() {
       <Heading size="md" className="mt-3">{DATE_HOLD.title}</Heading>
       <p className="mt-4 max-w-2xl font-body text-[15px] font-light leading-relaxed text-ink/80">{DATE_HOLD.intro}</p>
       <form onSubmit={submit} className="mt-7 grid gap-5 sm:grid-cols-2" data-reserve-form>
-        <div>
-          <label htmlFor="r-date" className="font-body text-[11px] uppercase tracking-eyebrow text-ink/70">Date <span className="text-gold-deep">*</span></label>
-          <select id="r-date" className="field-ivory mt-1" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} required>
-            <option value="">{dateOptions.length ? 'Choose a free date' : 'No free dates right now'}</option>
-            {dateOptions.map((d) => <option key={d} value={d}>{fmt(d)}</option>)}
-          </select>
+        <div className="sm:col-span-2" data-date-picker>
+          <p className="font-body text-[11px] uppercase tracking-eyebrow text-ink/70">Choose a date <span className="text-gold-deep">*</span></p>
+          <HoldCalendar dates={dateOptions} minDays={info.min_days ?? 7} windowDays={info.window_days ?? 30} value={f.date} onChange={(d) => setF({ ...f, date: d })} />
+          <p className="mt-3 font-body text-[13px] text-ink/80" data-picked>{f.date ? <>Selected: <strong>{fmt(f.date)}</strong></> : dateOptions.length ? `Free dates in the next ${info.window_days ?? 30} days are marked in gold.` : `No free dates in the next ${info.window_days ?? 30} days. Message us and we will find one.`}</p>
         </div>
         <div>
           <label htmlFor="r-service" className="font-body text-[11px] uppercase tracking-eyebrow text-ink/70">Service <span className="text-gold-deep">*</span></label>
@@ -148,7 +191,7 @@ function ReserveDate() {
           <input id="r-note" className="field-ivory mt-1" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} maxLength={500} />
         </div>
         {state.error ? <p className="font-body text-[13px] text-red-700 sm:col-span-2" data-reserve-error>{state.error}</p> : null}
-        <div className="sm:col-span-2"><Button type="submit" variant="ink" disabled={state.status === 'sending' || !dateOptions.length}>{state.status === 'sending' ? 'Holding your date…' : `Hold this date for ${money(info.amount)}`} <Arrow /></Button></div>
+        <div className="sm:col-span-2"><Button type="submit" variant="ink" disabled={state.status === 'sending' || !f.date}>{state.status === 'sending' ? 'Holding your date…' : `Hold this date for ${money(info.amount)}`} <Arrow /></Button></div>
       </form>
       <ul className="mt-6 grid gap-1 font-body text-[13px] font-light leading-relaxed text-ink/75" data-reserve-rules>
         {DATE_HOLD.rules.map((r) => <li key={r} className="flex gap-3"><span className="mt-[9px] h-px w-3 shrink-0 bg-gold-deep" aria-hidden="true" />{r}</li>)}
