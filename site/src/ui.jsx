@@ -52,14 +52,14 @@ export function Eyebrow({ children, className = '' }) {
   return <p className={`eyebrow ${className}`}>{children}</p>
 }
 
-export function Heading({ as: Tag = 'h2', size = 'lg', className = '', children }) {
+export function Heading({ as: Tag = 'h2', size = 'lg', className = '', children, ...rest }) {
   const s = {
     xl: 'text-[40px] sm:text-[56px] lg:text-[72px]',
     lg: 'text-[32px] sm:text-[42px] lg:text-[52px]',
     md: 'text-[26px] sm:text-[32px] lg:text-[36px]',
     sm: 'text-[22px] sm:text-[26px]',
   }[size]
-  return <Tag className={`display ${s} ${className}`}>{children}</Tag>
+  return <Tag className={`display ${s} ${className}`} {...rest}>{children}</Tag>
 }
 
 /* Buttons: gold (solid), ghost-ivory (for ink grounds), ghost-ink (for ivory grounds). */

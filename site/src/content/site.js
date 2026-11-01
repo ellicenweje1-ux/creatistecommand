@@ -500,19 +500,28 @@ export const PORTFOLIO = {
      `logo` (the person or business, a photo or logo file in /photos/clients/) shown beside the name. */
   /* Selected work. Each entry: the photo of the person or booking sits beside its highlight header
      (`kind`), with the name and the details of the event below. */
+  /* Each entry reads, top to bottom: the service type (`umbrella`), the service (`service`), the client (`name`) with their
+     profession or company (`role`) and the month of the booking (`date`), then the description (`body`). `logo` is the
+     client's logo or photo for the circle beside the name (files in /photos/clients/). */
   features: [
-    { kind: 'Corporate Curations', title: 'Forte Network', meta: 'Autumn Apex Fitness Event 2025 · Live food station', photo: '/photos/serving-bowl.jpg', logo: '',
+    { umbrella: 'Private Catering', service: 'Corporate Curations', name: 'Forte Network', role: 'Autumn Apex Fitness Event', date: 'September 2025',
+      photo: '/photos/serving-bowl.jpg', logo: '/photos/clients/forte-network.jpg',
       body: 'Cooking for Forte Network at the Autumn Apex Fitness Event 2025: bowls built to order and served hot from The Loaded Bar, fuelling a full day of training and talks.' },
-    { kind: 'Corporate Curations', title: 'Alicia’s Charity Sports Day', meta: 'Official vendor · Live food station · In advocation for Sickle Cell Disease', photo: '/photos/loaded-bar.png', fit: 'contain', logo: '', // TODO Ellice: a photo from the day, or Alicia's logo
-      body: 'The official vendor for Alicia’s Charity Sports Day, held in advocation for Sickle Cell Disease. We brought our live food station concept to the day: bowls built to order and served hot from The Loaded Bar, keeping players and supporters fed from first whistle to last.' },
-    { kind: 'The Creatiste Table', title: '15 Under 30 × Kasa', meta: 'Seated dinner collaboration', photo: '/photos/kasa-dinner.jpg', logo: '',
-      body: 'A four-stage set menu, served sharing style: marinated olives and glazed sausage bites on arrival, burrata and roasted aubergine dip with rosemary focaccia, spiced fruit braised duck on butter bean orzo, and a cardamom and orange tiramisu to finish.' },
-    { kind: 'Private & Personal', title: 'G4 Boys', meta: 'Private chef · International artists · May 2026', photo: '/photos/g4-buffet.jpg', logo: '',
-      body: 'A private chef booking for international artists on a London stay: a full spread cooked in-house and set out against the skyline, with every course on the table before the room sat down.' },
-    { kind: 'Batchfully Made', title: 'Ra’ees Bangura-Williams', meta: 'Personal chef service · Professional footballer', photo: '/photos/batch-black-spread.jpg', logo: '',
-      body: 'Batchfully Made personal chef service for a professional footballer: proteins, sides and vegetables batch-cooked in 32oz and 58oz containers around his training week, delivered chilled, labelled and ready to plate.' },
-    { kind: 'Personal Chef', title: 'Indigo Kxd', meta: 'Producer & label owner', photo: '/photos/batch-lidded.jpg', logo: '',
-      body: 'A personal chef service for a producer and label owner with a packed studio diary: the week batch-cooked, portioned and labelled so the food keeps pace with the schedule.' },
+    { umbrella: 'Private Catering', service: 'Corporate Curations', name: 'Alicia’s Charity Sports Day', role: 'Charity sports day · In advocation for Sickle Cell Disease', date: '25 July 2026',
+      photo: '/photos/loaded-bar.png', fit: 'contain', logo: '/photos/clients/acsd.jpg', // TODO Ellice: a photo from the day
+      body: 'The official vendor for Alicia’s Charity Sports Day. We brought our live food station concept to the day: bowls built to order and served hot from The Loaded Bar, keeping players and supporters fed from the first whistle to the last.' },
+    { umbrella: 'Private Catering', service: 'The Creatiste Table', name: '15 Under 30 × Kasa', role: 'Community of entrepreneurs under 30', date: '',
+      photo: '/photos/kasa-dinner.jpg', logo: '/photos/clients/15-under-30.jpg',
+      body: 'A four-course menu served for a private community of 15 entrepreneurs aged under 30, to celebrate their achievements as a collective. Vegan guests and gluten-free and nut-free diets were covered throughout.' },
+    { umbrella: 'Private Catering', service: 'Private & Personal', name: 'G4 Boys', role: 'International music artists', date: 'May 2026',
+      photo: '/photos/g4-buffet.jpg', logo: '/photos/clients/g4.jpg',
+      body: 'A private chef booking for international music artists from the US during their stay for the London tour: a full spread cooked in-house and set out against the skyline, with every course on the table before the room sat down.' },
+    { umbrella: 'Personal Chef', service: 'Batchfully Made', name: 'Ra’ees Bangura-Williams', role: 'Professional footballer', date: '',
+      photo: '/photos/batch-black-spread.jpg', logo: '/photos/clients/raees.jpg',
+      body: 'Proteins, sides and vegetables batch-cooked in 32oz and 58oz containers, fuelling him between match days during training week, delivered labelled and ready to plate.' },
+    { umbrella: 'Personal Chef', service: 'Sorted & Served', name: 'Indigo Kxd', role: 'Producer & label owner', date: '',
+      photo: '/photos/batch-lidded.jpg', logo: '',
+      body: 'Gluten-free meals, batch cooked, weighed and portioned to meet his macros.' },
   ],
 }
 

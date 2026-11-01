@@ -688,6 +688,40 @@ All built + verified (backend suites 36/24/64 green; Playwright `scratchpad/veri
     `EmailPreview` remains for text-only cases. FAQ (rule #3) reworded: "What does the client actually receive as a receipt, and can I see it first?".
 - **Harness notes:** read the framed document with `page.frame_locator('[data-receipt-frame]')`; `fmtDate` prints "Thu, Oct 29".
 
+### Follow-on (same 28th-wave session — thirteenth batch: PORTFOLIO restructured with client logos, "&" in the generated menu documents)
+Site-only (no backend change). Verified with Playwright (desktop 1280 + mobile 390, 21 checks: six entries in the new order, dates/professions,
+new descriptions, no "review"/"testimonial" in the selected-work block, five logo images load, small text gap, zero JS errors; the three
+documents contain no " and "); site build clean; the three PDFs regenerated = 1 page each; merged to `main`; preview artifact Version 15.
+- **Portfolio entry structure (`PORTFOLIO.features` in `site/src/content/site.js`, `Portfolio.jsx`):** `{umbrella, service, name, role, date, photo, logo,
+  body}`. Reads top to bottom: small "Selected work · 0N", big gold **service type** (`umbrella`: Private Catering / Personal Chef), the **service**
+  in italic (Corporate Curations, The Creatiste Table, Private & Personal, Batchfully Made, Sorted & Served), then a divider with the client's
+  circle logo + **name** + a line of **profession/company · month** (`role`, `date`), then the **description**. The text column is now
+  `justify-center` (the old `lg:mt-auto` that pushed the client block to the bottom, leaving the big gap, is gone). `Heading` now forwards
+  extra props (data-attrs). Jump chips use `name` + `service`. Her instruction: **no reference to reviews anywhere in this block** (she'll add
+  client reviews later).
+- **Entries (her wording, tidied, no em dashes):** Forte Network (Corporate Curations · Autumn Apex Fitness Event · September 2025) · Alicia's
+  Charity Sports Day (Corporate Curations · charity sports day, in advocation for Sickle Cell Disease · 25 July 2026, official vendor) ·
+  15 Under 30 × Kasa (The Creatiste Table · community of entrepreneurs under 30 · "a four-course menu served for a private community of 15
+  entrepreneurs aged under 30… vegan guests and gluten-free and nut-free diets covered"; no date supplied) · G4 Boys (Private & Personal ·
+  international music artists · May 2026 · "…from the US during their stay for the London tour") · Ra'ees Bangura-Williams (Personal Chef →
+  Batchfully Made · professional footballer · "fuelling him between match days during training week, delivered labelled and ready to plate") ·
+  Indigo Kxd (Personal Chef → Sorted & Served · producer & label owner · "Gluten-free meals, batch cooked, weighed and portioned to meet his
+  macros."). Forte, Alicia's, G4 moved to **Private Catering** as the service type; the big heading is no longer the service name.
+- **Client logos** (`site/public/photos/clients/`, 320px, from her five HEICs converted with `pillow-heif`): `forte-network.jpg`, `acsd.jpg`,
+  `15-under-30.jpg` (circle logos auto-cropped to the circle's bounding box by thresholding), `g4.jpg` (the blue-hoodie duo, top-centre square),
+  `raees.jpg` (headshot). Shown `rounded-full object-cover` beside the name and in the jump chips; **Indigo has no logo yet** (initial badge).
+  IMG mapping: 0203 = Ra'ees, 1526 = Forte, 2013 = G4, 5882 = ACSD, 5918 = 15 Under 30.
+- **"and" → "&" in the printed menu documents:** `amp()` (exported from `site/src/docs.jsx`) replaces whole-word "and" in the dish names, item names,
+  package covers/hours/bodies, week/good-to-know lines, intros and footers of the **Table menu, Batchfully Made price list and Home Edit** cards (so
+  the site cards and the PDFs agree). The **Loaded Bar brochure and the Clean Dream printed menu are her Canva files** — not editable here; she
+  has to change those in Canva. Page copy on the Menus page cards was left alone (only the PDFs were asked about).
+- **OPEN QUESTION from Ellice (not built): "Clients who are already regular / been consulted just log in using the same invoice email to block out
+  their booking day with a £15 deposit?"** Feasible on what exists (customer sign-in by emailed code at `/account`, the Diary availability
+  calendar, bank-transfer pre-order pattern, `Client` match by email). Proposed shape: a "Reserve my date" step in the account for clients flagged
+  consulted/regular → pick an open date → a `held` Booking + a £15 bank-transfer deposit awaiting payment → she marks it received → confirmed, the
+  day shows as taken on the public calendar. **Decisions needed from her before building:** what counts as "regular" (a Client tag she sets?),
+  whether the £15 is refundable/off the final bill, how long an unpaid hold lasts, which services it covers, and card vs bank transfer.
+
 ### DEPLOYING THE CATERING SITE (Cloudflare Pages — Ellice does this once; ~10 minutes)
 1. Cloudflare dashboard (the **jill+quinton** account) → Workers & Pages → Create → Pages → **Connect to Git** → repo
    `ellicenweje1-ux/creatistecommand`, production branch **`main`**.
