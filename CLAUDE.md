@@ -764,6 +764,33 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
   **Diary blocks drive the reserve calendar** (verified: a whole-day block or holiday run removes those dates from the client calendar, refuses a hold on them, and
   shows the day as full on the public calendar; a part-day block leaves the day holdable). NB the ICS calendar feed carries bookings (so live holds show on her phone
   calendar) but NOT diary blocks, and nothing is read back from her Google/Apple calendar: a two-way sync is possible but not built.
+- **CALENDAR SYNC, her option 2 ("busy times in my main calendar close dates in Command automatically") + REVIEWS highlight (fifteenth batch, same session).**
+  - **`backend/app/calsync.py`** (new). She pastes her calendar's private ICS link once in **Diary → "Your other calendar"** (`CalendarCard` in `Diary.jsx`, with Google /
+    Apple / Outlook steps). Command reads it on connect, every 10 min (daemon loop started from `scheduler.py`, like the holds loop), on "Read it again now", and just
+    before a date hold is placed (`holds.place_hold`, if the last read is over 5 min old). Events become **`diary_blocks` rows with `source='calendar'`** (additive
+    columns `source`, `ext_uid`; ONE new `diary_blocks` key in `ensure_columns`; migration drilled on an existing table): all-day → kind `off` (day = Full) unless her
+    toggle "An all-day event closes the whole day" is off (then `busy`, day = Limited); timed → `busy` window in Europe/London (UTC and floating times converted,
+    BST correct, overnight events split across both days); weekly/recurring events expanded (`icalendar` + `recurring-ical-events`, both added to `requirements.txt`);
+    ignored: `TRANSP:TRANSPARENT` (marked free), `STATUS:CANCELLED`, Outlook BUSYSTATUS FREE, and **any UID ending `@creatistecommand`** (our own ICS export, so subscribing
+    Command's feed into the same calendar can't loop back). Blocks are replaced wholesale each sync; a failed fetch/parse keeps the last good blocks and records
+    `last_error`; typed blocks (`source=''`) are never touched; the week view shows calendar blocks read-only ("from your calendar"). Settings live in
+    `users.diary_rules["calendar"]` {url, all_day_closes, last_synced, last_error, count} (no new users column); **the link is a secret: `rules_for` strips it and
+    `GET /api/diary/calendar` returns only the host**. Endpoints: `GET/PUT /api/diary/calendar` (PUT {url} proves the link works before saving, {url:""} disconnects and
+    removes every calendar block, {all_day_closes} alone re-syncs), `POST /api/diary/calendar/sync`. **SSRF guard:** http/https/webcal(s) only, every host and every
+    redirect hop must resolve to public IPs (`CALENDAR_ALLOW_PRIVATE=1` env exists for tests only), 8 MB cap, 12 s timeout. Verified: calsync suite 35/35
+    (`test_calsync.py`: timed, all-day, 3-day holiday, free/cancelled/own-export ignored, weekly x3, BST, floating, overnight, beyond horizon, idempotent, move reopens
+    old date, failure keeps blocks, toggle, typed blocks survive, not-a-calendar refused, disconnect, SSRF), real HTTP fetch incl. a redirect, Playwright 23/23.
+    **Caveat to keep telling her: Google caches its secret ICS link for hours, so a new Google event can take a while to arrive; Apple/iCloud is quicker.** A true
+    instant sync would need the Google Calendar API (OAuth free/busy), not built. Command to her calendar the other way (blocks in her ICS export) is NOT built
+    and would need to exclude `source='calendar'` blocks to avoid a loop.
+  - **Reviews: two-step visibility.** She asked where new review entries appear and how approval works. Website reviews (and ones typed on a client card) land on
+    **Reviews (`/app/reviews`)** in "Awaiting approval" (website ones also email her). **Approve** puts them on the site's **Our Portfolio, Client testimonials**.
+    New: additive **`client_reviews.featured`** (BOOLEAN, in the model + the single `client_reviews` key) + a **"Feature on home page" / "Remove from home page"**
+    button on approved reviews (`PATCH /api/reviews/{id} {featured}`; 422 unless approved; hiding or un-approving clears it) and an "On your home page" badge; the public
+    reviews endpoint returns `featured`. **Site Home `KindWords`** now shows the featured reviews as a rotating highlight (8 s, dots, stars, name · event, "Read more
+    testimonials" link), falling back to the standing quote when none is featured. The Reviews page has a "Where reviews go" guide card. FAQs (rule #3): Support
+    "Can my Google or Apple calendar close dates…" + the reviews FAQ extended; public `/faq` calendar Q&A.
+  - Preview artifact NOT republished this batch (the artifact tools were disconnected in this session): the live site is the reference. Republish Version 19 next time.
 - **Portfolio heading (her correction, same day):** the eyebrow is now one line, "Selected work · 01 · Private Catering" (same font and size, umbrella in
   `[data-work-umbrella]`), the big gold heading is the **service** (`[data-work-service]`, e.g. Corporate Curations), then the client row and description. The italic
   service line is gone.

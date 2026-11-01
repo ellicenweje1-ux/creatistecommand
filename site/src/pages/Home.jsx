@@ -200,14 +200,33 @@ function Process() {
   )
 }
 
+/* Home highlight: the reviews she has approved AND chosen to feature in Command (Reviews page), rotating; her own quote stands in until then. */
+const REVIEWS_API = SETTINGS.apiBase && SETTINGS.enquiryToken ? `${SETTINGS.apiBase}/api/public/reviews/${SETTINGS.enquiryToken}` : ''
 function KindWords() {
-  const q = KIND_WORDS.quotes[0]
+  const [live, setLive] = useState([])
+  const [i, setI] = useState(0)
+  useEffect(() => {
+    if (!REVIEWS_API) return
+    fetch(REVIEWS_API).then((r) => (r.ok ? r.json() : null)).then((j) => j && setLive((j.reviews || []).filter((x) => x.featured && x.comment))).catch(() => {})
+  }, [])
+  const quotes = live.length
+    ? live.map((r) => ({ text: r.comment, who: [r.reviewer_name, r.event_name].filter(Boolean).join(' · '), rating: r.rating }))
+    : KIND_WORDS.quotes.slice(0, 1)
+  useEffect(() => {
+    if (quotes.length < 2) return undefined
+    const t = setInterval(() => setI((n) => (n + 1) % quotes.length), 8000)
+    return () => clearInterval(t)
+  }, [quotes.length])
+  const q = quotes[i % quotes.length]
   return (
     <Section ground="ivory" tight id="testimonials">
       <Reveal className="text-center"><Eyebrow className="text-gold-deep">{KIND_WORDS.eyebrow}</Eyebrow><Heading size="md" className="mt-4">{KIND_WORDS.title}</Heading></Reveal>
-      <Reveal delay={1} className="mx-auto mt-10 max-w-3xl text-center">
-        <p className="font-display text-[24px] leading-snug text-ink/90 sm:text-[30px]">“{q.text}”</p>
+      <Reveal delay={1} className="mx-auto mt-10 max-w-3xl text-center" data-home-testimonial>
+        {q.rating ? <p className="mb-3 text-gold-deep" aria-label={`${q.rating} out of 5`}>{'★'.repeat(q.rating)}{'☆'.repeat(5 - q.rating)}</p> : null}
+        <p className="font-display text-[24px] leading-snug text-ink/90 sm:text-[30px]" data-home-quote>“{q.text}”</p>
         <p className="mt-6 font-body text-[11px] uppercase tracking-eyebrow text-stone">{q.who}</p>
+        {quotes.length > 1 ? <div className="mt-6 flex justify-center gap-2" role="tablist" aria-label="Choose a testimonial">{quotes.map((_, n) => <button key={n} type="button" onClick={() => setI(n)} aria-label={`Testimonial ${n + 1}`} aria-selected={n === i % quotes.length} className={`h-1.5 w-6 transition-colors ${n === i % quotes.length ? 'bg-gold-deep' : 'bg-sand'}`} />)}</div> : null}
+        <Link to="/portfolio#testimonials" className="link-under mt-6 inline-block font-body text-[11px] uppercase tracking-wide text-gold-deep">Read more testimonials</Link>
       </Reveal>
     </Section>
   )

@@ -110,10 +110,17 @@ export default function Diary() {
                 ))}
                 {d.blocks.map((b) => (
                   <li key={`k${b.id}`}>
+                    {b.source === 'calendar' ? (
+                      <div className="rounded border border-sky-400/40 bg-sky-400/10 px-2 py-1.5 text-xs" data-calendar-block title="Read from your connected calendar. Change it there.">
+                        <p className="font-medium leading-snug">{b.title || 'Busy'}</p>
+                        <p className="text-fg/60">{b.start_time ? `${hhmm(b.start_time)}${b.end_time ? ` – ${hhmm(b.end_time)}` : ''}` : 'All day'} · from your calendar</p>
+                      </div>
+                    ) : (
                     <button type="button" onClick={() => setEditing({ ...blank(iso), ...b, weekdays: b.weekdays || [] })} className={`block w-full rounded border px-2 py-1.5 text-left text-xs hover:border-fg/40 ${b.kind === 'off' ? 'border-red-400/40 bg-red-400/10' : b.kind === 'prep' ? 'border-amber-400/40 bg-amber-400/10' : 'border-line bg-parchment'}`} data-block>
                       <p className="font-medium leading-snug">{b.title || KIND_LABEL[b.kind]}</p>
                       <p className="text-fg/60">{b.start_time ? `${hhmm(b.start_time)}${b.end_time ? ` – ${hhmm(b.end_time)}` : ''}` : 'All day'}{b.repeat === 'weekly' ? ' · weekly' : ''}</p>
                     </button>
+                    )}
                   </li>
                 ))}
                 {d.prep_for?.length ? <li className="rounded border border-dashed border-amber-400/40 px-2 py-1.5 text-[11px] text-fg/60">Prep for: {d.prep_for.join(', ')}</li> : null}
@@ -206,11 +213,60 @@ export default function Diary() {
         <p className="mt-3 text-xs text-fg/50">Your website reads availability from your enquiry token (Settings → App & integrations), the same one the enquiry form uses.</p>
       </Card>
 
+      <CalendarCard onChanged={load} />
+
       <BlockModal form={editing} onClose={() => setEditing(null)} onSave={saveBlock} onDelete={removeBlock} />
       <Modal open={!!booking} onClose={() => setBooking(null)} title="New booking" wide>
         {booking ? <BookingForm initial={booking} onClose={() => setBooking(null)} onSaved={() => { setBooking(null); toast('Booking added to your diary'); load() }} /> : null}
       </Modal>
     </div>
+  )
+}
+
+function CalendarCard({ onChanged }) {
+  const [st, setSt] = useState(null)
+  const [url, setUrl] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [help, setHelp] = useState(false)
+  const load = () => api.get('/diary/calendar').then(setSt).catch(toastErr)
+  useEffect(() => { load() }, [])
+  const act = async (fn, msg) => { setBusy(true); try { const r = await fn(); setSt(r); if (msg) toast(msg); onChanged() } catch (e) { toastErr(e) } finally { setBusy(false) } }
+  const ago = (iso) => { if (!iso) return 'not yet'; const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000)); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : `${Math.round(m / 60)}h ago` }
+  if (!st) return null
+  return (
+    <Card className="p-5" data-calendar-card>
+      <p className="font-display text-lg">Your other calendar</p>
+      <p className="mt-1 text-sm text-fg/70">Connect your Google, Apple or Outlook calendar and anything busy in it closes those dates here, and on your website, automatically. A whole-day event closes the day; an event with times makes the day limited. You never have to block the same day twice.</p>
+      {st.connected ? (
+        <div className="mt-4 space-y-3" data-calendar-connected>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone={st.last_error ? 'amber' : 'green'}>{st.last_error ? 'Needs attention' : 'Connected'}</Badge>
+            <span className="text-sm text-fg/70" data-calendar-status>{st.host} · {st.count} {st.count === 1 ? 'busy period' : 'busy periods'} read · updated {ago(st.last_synced)}</span>
+          </div>
+          {st.last_error ? <p className="text-sm text-amber-500" data-calendar-error>{st.last_error} We keep the dates we last read until it works again.</p> : null}
+          <Toggle checked={st.all_day_closes} onChange={(v) => act(() => api.put('/diary/calendar', { all_day_closes: v }), v ? 'All-day events now close the day' : 'All-day events now only make the day limited')} label="An all-day event closes the whole day" />
+          <p className="text-xs text-fg/50">Turn this off if your calendar holds things like birthdays or reminders that shouldn’t close a date. Events you’ve marked “free” and cancelled events are always ignored.</p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" disabled={busy} onClick={() => act(() => api.post('/diary/calendar/sync'), 'Calendar read')} data-calendar-sync>Read it again now</Button>
+            <Button size="sm" variant="ghost" disabled={busy} onClick={() => { if (window.confirm('Disconnect your calendar? The dates it closed will open up again.')) act(() => api.put('/diary/calendar', { url: '' }), 'Calendar disconnected') }} data-calendar-disconnect>Disconnect</Button>
+          </div>
+        </div>
+      ) : (
+        <form className="mt-4 space-y-3" onSubmit={(e) => { e.preventDefault(); act(() => api.put('/diary/calendar', { url }), 'Calendar connected').then(() => setUrl('')) }} data-calendar-form>
+          <Field label="Your calendar’s private link" hint="Paste the iCal address from your calendar (steps below). Treat it like a password."><Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" required /></Field>
+          <Button type="submit" disabled={busy || !url.trim()}>{busy ? 'Connecting…' : 'Connect calendar'}</Button>
+        </form>
+      )}
+      <button type="button" onClick={() => setHelp(!help)} className="mt-4 text-xs font-medium text-copper underline-offset-2 hover:underline" data-calendar-help-toggle>{help ? 'Hide the steps' : 'Where do I find this link?'}</button>
+      {help ? (
+        <div className="mt-3 space-y-3 text-sm text-fg/75" data-calendar-help>
+          <div><p className="font-medium">Google Calendar (on a computer)</p><ol className="list-decimal pl-5"><li>Open calendar.google.com, hover your calendar on the left, tap the three dots, then Settings and sharing.</li><li>Scroll to “Integrate calendar” and copy <strong>Secret address in iCal format</strong>.</li><li>Paste it above. (Google can take several hours to show a new event on this link; it is Google’s delay, not ours.)</li></ol></div>
+          <div><p className="font-medium">Apple Calendar / iCloud</p><ol className="list-decimal pl-5"><li>In Calendar on a Mac, right-click your calendar and choose Share Calendar, then tick <strong>Public Calendar</strong>.</li><li>Copy the link it shows (it starts with webcal://) and paste it above.</li></ol></div>
+          <div><p className="font-medium">Outlook / Microsoft 365</p><ol className="list-decimal pl-5"><li>Outlook on the web: Settings, Calendar, Shared calendars, then Publish a calendar.</li><li>Choose “Can view all details” and copy the <strong>ICS</strong> link.</li></ol></div>
+          <p className="text-xs text-fg/50">Tip: if you subscribe to your Command calendar link inside the same calendar, that’s fine. Bookings Command itself exported are ignored here, so nothing is counted twice.</p>
+        </div>
+      ) : null}
+    </Card>
   )
 }
 

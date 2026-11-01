@@ -40,6 +40,8 @@ APP_URL = os.getenv("APP_URL", "http://localhost:8000")
 DATE_HOLD_DEPOSIT = float(os.getenv("DATE_HOLD_DEPOSIT", "15"))
 DATE_HOLD_HOURS = float(os.getenv("DATE_HOLD_HOURS", "12"))
 DATE_HOLD_MIN_DAYS = int(os.getenv("DATE_HOLD_MIN_DAYS", "7"))          # personal chef bookings need at least a week
+# Calendar sync (app/calsync.py) refuses links that resolve to private addresses; only tests need this on.
+CALENDAR_ALLOW_PRIVATE = os.getenv("CALENDAR_ALLOW_PRIVATE", "0") == "1"
 DATE_HOLD_WINDOW_DAYS = int(os.getenv("DATE_HOLD_WINDOW_DAYS", "30"))    # a date can only be held within this many days from today
 DATE_HOLD_MAX_ACTIVE = int(os.getenv("DATE_HOLD_MAX_ACTIVE", "3"))      # unpaid holds one customer may have at once
 # Days of the week a hold can be placed on (Monday = 0). Default Sun to Thu, the published personal chef days.

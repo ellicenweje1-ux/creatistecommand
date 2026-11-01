@@ -434,6 +434,12 @@ export function Faq() {
           hours, then confirmed when you tap that the deposit has arrived, or released if it has not.
         </p>
       </Section>
+      <Section heading="Can my own calendar close dates automatically?">
+        <p>
+          Yes. Connect your Google, Apple or Outlook calendar once and anything busy in it closes those dates in
+          your Diary and on your website, so you only ever keep one calendar up to date.
+        </p>
+      </Section>
       <Section heading="Can my customers have an account on my website?">
         <p>
           Yes. Visitors sign in with a code sent to their email (no passwords to forget) and see their own

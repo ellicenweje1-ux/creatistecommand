@@ -166,6 +166,7 @@ class ClientReview(OwnedMixin, Base):
     reviewer_name: Mapped[str] = mapped_column(String(160), default="")
     event_name: Mapped[str] = mapped_column(String(200), default="")
     email: Mapped[str] = mapped_column(String(255), default="")
+    featured: Mapped[bool] = mapped_column(Boolean, default=False)       # approved AND chosen for the website's home-page highlight
 
 
 class Recipe(OwnedMixin, Base):
@@ -262,6 +263,8 @@ class DiaryBlock(OwnedMixin, Base):
     until: Mapped[str] = mapped_column(String(10), default="")         # last date a weekly repeat applies
     booking_id: Mapped[int] = mapped_column(Integer, nullable=True)
     notes: Mapped[str] = mapped_column(Text, default="")
+    source: Mapped[str] = mapped_column(String(16), default="")        # '' = typed in the Diary | calendar = read from her main calendar (app/calsync.py)
+    ext_uid: Mapped[str] = mapped_column(String(200), default="")
 
 
 class SiteCustomer(OwnedMixin, Base):

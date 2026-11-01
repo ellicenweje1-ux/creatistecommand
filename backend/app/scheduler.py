@@ -170,4 +170,7 @@ def start_scheduler():
     from .routers.holds import start_expiry_loop
 
     start_expiry_loop()  # releases lapsed date holds every few minutes
+    from .calsync import start_loop as start_calendar_loop
+
+    start_calendar_loop()  # reads each chef's connected calendar every ten minutes
     log.info("scheduler started (every %.1fh)", config.SCHEDULER_INTERVAL_HOURS)

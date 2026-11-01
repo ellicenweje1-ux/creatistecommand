@@ -5,7 +5,7 @@ Public (no login, identified by the chef's enquiry token, like the enquiry form)
   GET  /api/public/reviews/{token}  the approved reviews, for the chef's site to display
 Chef:
   GET    /api/reviews               every review (public + chef-entered) with the client name
-  PATCH  /api/reviews/{id}          {status: approved|hidden|pending|''}
+  PATCH  /api/reviews/{id}          {status: approved|hidden|pending|''} and/or {featured: bool} (home-page highlight; approved only)
   DELETE /api/reviews/{id}
 """
 from datetime import date as _date
@@ -22,7 +22,7 @@ from ..utils import EMAIL_RE, to_dict, ws_id
 public_router = APIRouter(prefix="/public", tags=["public"])
 router = APIRouter(prefix="/reviews", tags=["reviews"], dependencies=[Depends(require_plan(2))])
 
-PUBLIC_FIELDS = ("id", "rating", "comment", "date", "reviewer_name", "event_name", "created_at")
+PUBLIC_FIELDS = ("id", "rating", "comment", "date", "reviewer_name", "event_name", "created_at", "featured")
 STATUSES = ("", "pending", "approved", "hidden")
 
 
@@ -134,10 +134,17 @@ def set_status(review_id: int, payload: dict = Body(...), db: Session = Depends(
     r = db.get(ClientReview, review_id)
     if not r or r.user_id != ws_id(user):
         raise HTTPException(404, "Review not found")
-    status = (payload.get("status") or "").strip()
-    if status not in STATUSES:
-        raise HTTPException(422, "Unknown status")
-    r.status = status
+    if "status" in payload:
+        status = (payload.get("status") or "").strip()
+        if status not in STATUSES:
+            raise HTTPException(422, "Unknown status")
+        r.status = status
+        if status != "approved":
+            r.featured = False            # only an approved review can be a highlight
+    if "featured" in payload:
+        if bool(payload["featured"]) and r.status != "approved":
+            raise HTTPException(422, "Approve the review first, then feature it on your home page.")
+        r.featured = bool(payload["featured"])
     db.commit()
     d = to_dict(r)
     return d

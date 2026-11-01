@@ -25,6 +25,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
+from .. import calsync
 from ..auth import require_active
 from ..database import get_db
 from ..models import Booking, DiaryBlock, User
@@ -86,6 +87,7 @@ def rules_for(owner: User) -> dict:
     r["horizon_days"] = max(14, min(int(r.get("horizon_days") or 90), 365))
     r["public"] = bool(r.get("public", True))
     r["kinds"] = _clean_kinds(r.get("kinds")) if "kinds" in (owner.diary_rules or {}) else [dict(k) for k in DEFAULT_KINDS]
+    r.pop("calendar", None)  # the calendar link is a secret: it has its own endpoint and is never echoed back
     return r
 
 
@@ -213,6 +215,49 @@ def save_rules(payload: dict = Body(...), db: Session = Depends(get_db), user: U
     owner.diary_rules = dict(cur)  # fresh object so SQLAlchemy persists the JSON
     db.commit()
     return rules_for(owner)
+
+
+@router.get("/calendar")
+def get_calendar(db: Session = Depends(get_db), user: User = Depends(require_active)):
+    return calsync.public_cfg(db.get(User, ws_id(user)))
+
+
+@router.put("/calendar")
+def save_calendar(payload: dict = Body(...), db: Session = Depends(get_db), user: User = Depends(require_active)):
+    """{url} connects (or replaces) the link and reads it straight away; {url: ""} disconnects; {all_day_closes} alone changes the setting."""
+    owner = db.get(User, ws_id(user))
+    cfg = calsync.get_cfg(owner)
+    if "url" in payload:
+        url = (payload.get("url") or "").strip()
+        if not url:
+            calsync.disconnect(db, owner)
+            return calsync.public_cfg(owner)
+        try:
+            url = calsync.normalise_url(url)
+            data = calsync.fetch_ics(url)  # prove it works before saving anything
+            calsync.parse_busy(data, _date.today(), _date.today() + timedelta(days=30))
+        except calsync.CalendarError as exc:
+            raise HTTPException(422, str(exc))
+        cfg = {"url": url, "all_day_closes": bool(payload.get("all_day_closes", cfg.get("all_day_closes", True)))}
+        calsync._save_cfg(owner, cfg)
+        db.commit()
+        return calsync.sync_user(db, owner, data)
+    if not cfg.get("url"):
+        raise HTTPException(422, "Connect a calendar first.")
+    if "all_day_closes" in payload:
+        cfg["all_day_closes"] = bool(payload["all_day_closes"])
+        calsync._save_cfg(owner, cfg)
+        db.commit()
+        return calsync.sync_user(db, owner)
+    return calsync.public_cfg(owner)
+
+
+@router.post("/calendar/sync")
+def sync_calendar(db: Session = Depends(get_db), user: User = Depends(require_active)):
+    owner = db.get(User, ws_id(user))
+    if not calsync.get_cfg(owner).get("url"):
+        raise HTTPException(422, "Connect a calendar first.")
+    return calsync.sync_user(db, owner)
 
 
 @router.get("/days")

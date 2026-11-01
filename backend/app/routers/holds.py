@@ -31,7 +31,7 @@ from fastapi import APIRouter, Body, Depends, Header, HTTPException, Request
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from .. import config, mailer, ratelimit
+from .. import calsync, config, mailer, ratelimit
 from ..auth import require_active
 from ..database import SessionLocal, get_db
 from ..models import Booking, Client, User
@@ -265,6 +265,8 @@ def place_hold(request: Request, token: str, payload: dict = Body(...), authoriz
         raise HTTPException(429, "A few holds have been placed from here already. Please wait a little while.")
     ratelimit.record(f"hold:{ip}", 600)
     expire_holds(db, owner.id)
+    if calsync.stale(owner, 300):  # a date just blocked in her main calendar shouldn't be holdable
+        calsync.sync_user(db, owner)
     client = regular_client(db, owner.id, cus.email)
     if not client:
         raise HTTPException(403, "Reserving a date online is for regular and already-consulted clients. Please enquire and we'll be in touch.")

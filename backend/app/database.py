@@ -65,11 +65,13 @@ def ensure_columns():
             "deposit_amount": "FLOAT DEFAULT 0", "deposit_applied": "BOOLEAN DEFAULT 0",
         },
         "clients": {"regular": "BOOLEAN DEFAULT 0"},
+        "diary_blocks": {"source": "VARCHAR(16) DEFAULT ''", "ext_uid": "VARCHAR(200) DEFAULT ''"},
         "preorders": {"pay_method": "VARCHAR(20) DEFAULT 'stripe'"},
         "supplier_prices": {"quantity": "FLOAT DEFAULT 0"},
         "client_reviews": {
             "source": "VARCHAR(16) DEFAULT 'chef'", "status": "VARCHAR(16) DEFAULT ''",
             "reviewer_name": "VARCHAR(160) DEFAULT ''", "event_name": "VARCHAR(200) DEFAULT ''", "email": "VARCHAR(255) DEFAULT ''",
+            "featured": "BOOLEAN DEFAULT 0",
         },
         "expenses": {"items": "JSON"},
         "onboarding_sessions": {
