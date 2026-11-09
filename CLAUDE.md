@@ -828,6 +828,11 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
     `test_holds.py` (single-date, 12h-from-request flow) is obsolete. **Harness gotcha:** `fuser -k` prints PIDs to stdout, so `./reset.sh | tail -1` can capture them into the enquiry token; read the token from the API instead.
   - **Open items for Ellice:** confirm the default shares (batch half, in-home full, event full, Clean Dream half) and `week_max` 5; **she must give each older invoice a service day** (Diary ->
     "Invoices not in your Diary yet"); Clean Dream standing block still only marks days "limited". Church Sunday drop-offs are not modelled: a Sunday booking can be entered by her but clients can't request Sundays.
+- **"Sites not loading" / Diary spinner on one device (2026-11-09):** Ellice's laptop showed "You're offline and this hasn't been viewed yet" on the Diary while the phone worked.
+  Cause: `api.js` refused to call the server when `navigator.onLine` was false (wrong on VPNs / Wi-Fi hand-offs / stuck DevTools Offline), so only previously cached pages
+  appeared to work. Fix: GETs now always try the network first and only fall back to the cache on a real `TypeError`; the message says "can't reach the server from this
+  device" when the browser claims to be online. Writes no longer queue just because `onLine` is false. Diagnosis tip: works on phone but not laptop = device-side
+  (VPN, ad blocker, network filter, stale service-worker cache); check a private window first. The backend was verified clean on an old-schema DB (boot, migration, diary endpoints).
 - **Soulfood Friday 2.0 flyer on What's Up (sixteenth batch):** her flyer (`site/public/flyers/soulfood-friday-2.webp`, 1080x1350) now has a **featured block** on
   `/whats-up` (`Featured` in `WhatsOn.jsx`, `[data-featured="pop-up"]`, id `pop-up` so the nav "Pop-ups & events" link still lands): flyer beside the details, the
   flyer itself and the gold **"RSVP now"** button both link to her Partiful page (`NOW.items[1].cta.href`, new tab, `rel=noreferrer`). **Time and location are marked
