@@ -427,11 +427,11 @@ export function Faq() {
           only ever as open, limited or full per day, so enquiries arrive for dates you can actually take.
         </p>
       </Section>
-      <Section heading="Can my regular clients book a date themselves?">
+      <Section heading="Can my clients book dates in advance?">
         <p>
-          Yes. Mark a client as regular or already consulted and they can sign in on your website, choose a free
-          personal chef date and hold it with a small deposit paid by bank transfer. The date is held for a few
-          hours, then confirmed when you tap that the deposit has arrived, or released if it has not.
+          Yes. Regular clients, and anyone who has already paid you, can sign in on your website, choose a service and tick
+          every date they need. Each date is held for them straight away, you confirm you are free, and a small deposit
+          locks it in. Your diary measures each day in shares of a day, so it only ever offers dates that genuinely fit.
         </p>
       </Section>
       <Section heading="Can my own calendar close dates automatically?">

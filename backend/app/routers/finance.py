@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from .. import config, mailer
 from ..auth import require_active
 from ..database import get_db
-from ..models import Client, Expense, Invoice, User
+from ..models import Booking, Client, Expense, Invoice, User
 from ..utils import crud_router, effective_doc_format, get_owned, log_activity, next_doc_seq, render_doc_number, to_dict, ws_id
 
 invoices = crud_router(
@@ -184,7 +184,8 @@ def duplicate_invoice(invoice_id: int, db: Session = Depends(get_db), user=Depen
     seq = next_doc_seq(db, Invoice, ws_id(user))
     fmt = effective_doc_format(owner, "invoice") if owner else "INV-{YYYY}-{nnn}"
     dup = Invoice(
-        user_id=ws_id(user), booking_id=src.booking_id, client_id=src.client_id,
+        # An invoice that put its own booking in the Diary isn't linked to it again: the copy gets its own date and booking.
+        user_id=ws_id(user), booking_id=None if src.service_date else src.booking_id, client_id=src.client_id, service_type=src.service_type,
         number=render_doc_number(fmt, seq), status="draft",
         issue_date=date.today().isoformat(), due_date="", paid_date="",
         items=[dict(i) for i in (src.items or [])],
@@ -244,3 +245,52 @@ def export_expenses(db: Session = Depends(get_db), user=Depends(require_active))
         ["Date", "Category", "Description", "Supplier", "Amount"],
         rows,
     )
+
+
+@invoices.post("/{invoice_id}/sync-booking")
+def sync_booking(invoice_id: int, db: Session = Depends(get_db), user=Depends(require_active)):
+    """Invoice-first: an invoice with a client and a service date keeps one booking in step with it, so the Diary,
+    capacity, shopping, tasks and deposit credit all see work that was only ever invoiced. Nothing to enter twice:
+
+      * no booking yet  -> one is created (quoted while the invoice is a draft, confirmed once it is sent or paid);
+      * a request or pencilled booking for that client and day -> it is adopted, not duplicated;
+      * already linked  -> its date, type and price follow the invoice (unless another invoice shares that booking).
+    A booking that is further on than the invoice (confirmed, in prep, completed) is never moved back."""
+    inv = get_owned(db, Invoice, invoice_id, ws_id(user))
+    if not inv.service_date or not inv.client_id:
+        return {"ok": False, "reason": "Add the service date and the client to put this invoice in your Diary."}
+    client = db.get(Client, inv.client_id)
+    st = (inv.service_type or "").strip()
+    total = invoice_total(inv)
+    want = "confirmed" if inv.status in ("sent", "paid", "overdue") else "quoted"
+    uid = ws_id(user)
+    bk = db.get(Booking, inv.booking_id) if inv.booking_id else None
+    if bk and bk.user_id != uid:
+        bk = None
+    created = False
+    if bk:
+        shared = db.query(Invoice.id).filter(Invoice.user_id == uid, Invoice.booking_id == bk.id, Invoice.id != inv.id).first()
+        if shared:
+            return {"ok": True, "booking_id": bk.id, "created": False, "shared": True}
+    else:
+        bk = (db.query(Booking).filter(Booking.user_id == uid, Booking.client_id == inv.client_id, Booking.date == inv.service_date,
+                                       Booking.status.in_(["enquiry", "quoted", "confirmed", "in_prep"])).order_by(Booking.id.asc()).first())
+    if not bk:
+        bk = Booking(user_id=uid, client_id=inv.client_id, title=f"{client.name if client else 'Client'} · {st or 'Booking'}",
+                     event_type=st, status=want, date=inv.service_date, quoted_price=total, notes="Created from an invoice.")
+        db.add(bk)
+        created = True
+    else:
+        bk.date = inv.service_date
+        bk.quoted_price = total
+        if st and not bk.date_hold:
+            bk.event_type = st
+        unpaid_request = bk.date_hold and not bk.deposit_paid
+        if not unpaid_request:
+            order = {"enquiry": 0, "quoted": 1, "confirmed": 2, "in_prep": 3, "completed": 4, "cancelled": 0}
+            if order.get(want, 0) > order.get(bk.status, 0):
+                bk.status = want
+    db.flush()
+    inv.booking_id = bk.id
+    db.commit()
+    return {"ok": True, "booking_id": bk.id, "created": created}

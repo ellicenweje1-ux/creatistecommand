@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls, fmtDate, fmtMoney, INVOICE_STATUSES, INVOICE_TONES, invoiceTotal, SYMBOLS, todayISO, uid } from '../format'
-import { Badge, Button, Card, EmptyState, Field, IconButton, Input, Modal, PageHeader, SearchInput, Select, Spinner, StatCard, Tabs, Textarea, toast, toastErr } from '../ui'
+import { Badge, Button, Card, ComboInput, EmptyState, Field, IconButton, Input, Modal, PageHeader, SearchInput, Select, Spinner, StatCard, Tabs, Textarea, toast, toastErr } from '../ui'
 import ExampleCard from '../examples'
 import { QuotesPanel } from './Quotes'
 import { ChargesMenu } from '../charges'
@@ -16,7 +16,7 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
   const { user } = useAuth()
   const blank = {
     number: '', status: 'draft', issue_date: todayISO(), due_date: '', paid_date: '',
-    items: [], tax_rate: 0, discount: 0, deposit_type: '', deposit_value: 0, notes: '',
+    items: [], tax_rate: 0, discount: 0, deposit_type: '', deposit_value: 0, notes: '', service_date: '', service_type: '',
   }
   const [form, setForm] = useState(blank)
   const [clients, setClients] = useState([])
@@ -127,7 +127,12 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
   }
   const persist = () => (savedId ? api.patch(`/invoices/${savedId}`, buildPayload()) : api.post('/invoices', buildPayload()))
     .then(async (inv) => {
-      setSavedId(inv.id); setSavedMidEdit(true); await syncMenuToBooking(inv)
+      setSavedId(inv.id); setSavedMidEdit(true)
+      // Invoice-first: a client + a service date puts this work in the Diary (a linked booking is created or kept in step).
+      if (inv.service_date && inv.client_id) {
+        try { const r = await api.post(`/invoices/${inv.id}/sync-booking`); if (r?.booking_id) { inv = { ...inv, booking_id: r.booking_id }; setForm((f) => ({ ...f, booking_id: r.booking_id })) } } catch { /* best-effort */ }
+      }
+      await syncMenuToBooking(inv)
       // A date-hold deposit credited on this invoice is now spent: don't offer it again on the next one.
       if (linkedBooking && !linkedBooking.deposit_applied && (form.items || []).some((it) => it.deposit_credit)) {
         try { const b = await api.patch(`/bookings/${linkedBooking.id}`, { deposit_applied: true }); setLinkedBooking(b) } catch { /* best-effort */ }
@@ -204,6 +209,12 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
               </Select>
             </Field>
           )}
+          <Field label="Service day" hint={form.service_date ? 'Counts in your Diary.' : 'The day you are cooking or delivering. Add it so this counts in your Diary.'}>
+            <Input type="date" value={form.service_date || ''} onChange={set('service_date')} data-service-date className={!form.service_date && form.client_id ? 'ring-1 ring-amber-400/60' : ''} />
+          </Field>
+          <Field label="Service" hint="Decides how much of the day it takes.">
+            <ComboInput value={form.service_type || ''} onChange={set('service_type')} options={[...new Set([...(user?.services || []), 'Batchfully Made', 'The Home Edit', 'Sorted & Served', 'Private catering', 'The Loaded Bar', 'Corporate Curations', 'Private & Personal', 'The Creatiste Table'])]} data-service-type />
+          </Field>
           {form.status === 'paid' && <Field label="Paid on"><Input type="date" value={form.paid_date || ''} onChange={set('paid_date')} /></Field>}
         </div>
 

@@ -5,12 +5,13 @@ import { useAuth } from '../auth'
 import { BOOKING_STATUSES, BOOKING_TONES, cls, fmtDate, fmtMoney, label, relDays, todayISO } from '../format'
 import { Badge, Button, EmptyState, Field, Icon, Input, Modal, PageHeader, Select, Spinner, Textarea, toast, toastErr } from '../ui'
 import ExampleCard from '../examples'
+import PencilIn from '../pencil'
 import { EmailPreview, PreviewModal } from '../receiptpreview'
 
 export function BookingForm({ initial = {}, onSaved, onClose }) {
   const [form, setForm] = useState({
     title: '', event_type: '', status: 'enquiry', date: todayISO(), start_time: '', end_time: '',
-    venue_name: '', venue_address: '', guest_count: 0, quoted_price: 0, client_id: '', menu_type: '',
+    venue_name: '', venue_address: '', guest_count: 0, quoted_price: 0, client_id: '', menu_type: '', day_load: 0,
     dietary_notes: '', setup_notes: '', notes: '', ...initial,
   })
   const [clients, setClients] = useState([])
@@ -28,7 +29,7 @@ export function BookingForm({ initial = {}, onSaved, onClose }) {
     e.preventDefault()
     setBusy(true)
     try {
-      const payload = { ...form, client_id: form.client_id ? Number(form.client_id) : null, guest_count: Number(form.guest_count) || 0, quoted_price: Number(form.quoted_price) || 0 }
+      const payload = { ...form, day_load: Number(form.day_load) || 0, client_id: form.client_id ? Number(form.client_id) : null, guest_count: Number(form.guest_count) || 0, quoted_price: Number(form.quoted_price) || 0 }
       const saved = initial.id ? await api.patch(`/bookings/${initial.id}`, payload) : await api.post('/bookings', payload)
       onSaved(saved)
     } catch (err) { toastErr(err) } finally { setBusy(false) }
@@ -57,6 +58,11 @@ export function BookingForm({ initial = {}, onSaved, onClose }) {
         <Field label="Guests"><Input type="number" min="0" value={form.guest_count} onChange={set('guest_count')} /></Field>
         <Field label="Quoted price"><Input type="number" min="0" step="0.01" value={form.quoted_price} onChange={set('quoted_price')} /></Field>
       </div>
+      <Field label="How much of the day this takes" hint="Leave as usual unless this one is different, e.g. a half-day house-share cook.">
+        <Select value={String(form.day_load || 0)} onChange={(e) => setForm({ ...form, day_load: Number(e.target.value) })} data-day-load>
+          <option value="0">As usual for this service</option><option value="0.25">A light slice</option><option value="0.5">Half a day</option><option value="1">The whole day, my only booking</option>
+        </Select>
+      </Field>
       <Field label="Menu">
         <Input list="cc-booking-menus" value={form.menu_type} onChange={set('menu_type')} placeholder="Link one of your set menus" />
         {menus.length > 0 && <datalist id="cc-booking-menus">{menus.map((m) => <option key={m.id} value={m.title} />)}</datalist>}
@@ -147,7 +153,7 @@ function PipelineCard({ booking, currency, onEdit, onAdvance }) {
   const next = NEXT_STATUS[b.status]
   return (
     <div className="rounded-xl border border-line bg-card p-3 shadow-card transition-all hover:border-copper/40">
-      {b.date_hold && <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-copper">{b.deposit_paid ? 'Date held · deposit paid' : 'Date hold · awaiting deposit'}</p>}
+      {b.date_hold && <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-copper">{b.deposit_paid ? 'Date held · deposit paid' : b.hold_stage === 'requested' ? 'Date request · waiting for you' : 'Date hold · awaiting deposit'}</p>}
       <div className="flex items-start justify-between gap-2">
         <Link to={`/app/bookings/${b.id}`} className="min-w-0 flex-1 truncate text-sm font-medium hover:text-copper">{b.title}</Link>
         {b.quoted_price > 0 && <span className="shrink-0 text-xs font-semibold">{fmtMoney(b.quoted_price, currency)}</span>}
@@ -215,11 +221,13 @@ function PipelineView({ bookings, currency, onEdit, onAdvance, onNew }) {
   )
 }
 
-/* Date holds: regular clients who reserved a day online and owe the deposit. Each shows how long is left;
-   "received" previews the confirmation email first, then confirms the booking and sends it. */
+/* Date requests. Clients hold the dates they need on your website; the day is held for them straight away.
+   Step 1 (waiting for you): confirm you are free, which asks them for the deposit, or say you can't.
+   Step 2 (waiting for the deposit): when the money lands, mark it received and the date is locked in. */
 function HoldsStrip({ holds, currency, onChanged }) {
   const [now, setNow] = useState(Date.now())
-  const [preview, setPreview] = useState(null) // { hold, customer, chef }
+  const [preview, setPreview] = useState(null) // { kind: 'confirm' | 'paid', hold, customer }
+  const [decline, setDecline] = useState(null) // { hold, reason }
   const [busy, setBusy] = useState(false)
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t) }, [])
   if (!holds.length) return null
@@ -229,39 +237,85 @@ function HoldsStrip({ holds, currency, onChanged }) {
     const m = Math.floor(ms / 60000)
     return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m left` : `${m}m left`
   }
-  const open = async (h) => {
-    try { const p = await api.get(`/holds/${h.id}/paid-preview`); setPreview({ hold: h, ...p }) } catch (e) { toastErr(e) }
+  const wanting = holds.filter((h) => h.stage === 'requested')
+  const deposits = holds.filter((h) => h.stage !== 'requested')
+  const open = async (kind, h) => {
+    try { const p = await api.get(`/holds/${h.id}/${kind === 'confirm' ? 'confirm-preview' : 'paid-preview'}`); setPreview({ kind, hold: h, ...p }) } catch (e) { toastErr(e) }
   }
   const confirm = async () => {
     setBusy(true)
-    try { await api.post(`/holds/${preview.hold.id}/paid`); toast('Deposit received. The date is confirmed and the client has been emailed.', 'sage'); setPreview(null); onChanged() }
-    catch (e) { toastErr(e) } finally { setBusy(false) }
+    try {
+      if (preview.kind === 'confirm') { await api.post(`/holds/${preview.hold.id}/confirm`); toast('Confirmed. They have been asked for the deposit.', 'sage') }
+      else { await api.post(`/holds/${preview.hold.id}/paid`); toast('Deposit received. The date is locked in and the client has been emailed.', 'sage') }
+      setPreview(null); onChanged()
+    } catch (e) { toastErr(e) } finally { setBusy(false) }
+  }
+  const sendDecline = async () => {
+    setBusy(true)
+    try { await api.post(`/holds/${decline.hold.id}/decline`, { reason: decline.reason }); toast('Released. They have been told.'); setDecline(null); onChanged() } catch (e) { toastErr(e) } finally { setBusy(false) }
   }
   const release = async (h) => {
     if (!window.confirm(`Release ${h.client_name}'s hold on ${fmtDate(h.date)}? The date opens up again.`)) return
     try { await api.post(`/holds/${h.id}/release`); toast('Hold released'); onChanged() } catch (e) { toastErr(e) }
   }
   return (
-    <div className="mb-5 rounded-xl border border-copper/50 bg-copper/5 p-4" data-holds-strip>
-      <PreviewModal open={!!preview} onClose={() => setPreview(null)} title="Deposit received? Confirm and email the client" confirmLabel="Confirm date & send" onConfirm={confirm} busy={busy}>
+    <div className="mb-5 space-y-4" data-holds-strip>
+      <PreviewModal open={!!preview} onClose={() => setPreview(null)}
+        title={preview?.kind === 'confirm' ? 'Confirm you are free, and ask for the deposit' : 'Deposit received? Lock the date in'}
+        confirmLabel={preview?.kind === 'confirm' ? 'Confirm & send' : 'Confirm date & send'} onConfirm={confirm} busy={busy}>
         {preview ? <EmailPreview to={preview.customer?.to} subject={preview.customer?.subject} body={preview.customer?.body}
-          note={`Check the ${fmtMoney(preview.hold.amount, currency)} from ${preview.hold.client_name} (reference ${preview.hold.reference}) has landed. On confirm, ${fmtDate(preview.hold.date)} becomes a confirmed booking and this email goes to them.`} /> : null}
+          note={preview.kind === 'confirm'
+            ? `You are saying you are free on ${fmtDate(preview.hold.date)}. This email asks ${preview.hold.client_name} for the ${fmtMoney(preview.hold.amount, currency)} deposit, and they then have 12 hours to pay it before the date is released.`
+            : `Check the ${fmtMoney(preview.hold.amount, currency)} from ${preview.hold.client_name} (reference ${preview.hold.reference}) has landed. On confirm, ${fmtDate(preview.hold.date)} becomes a confirmed booking and this email goes to them.`} /> : null}
       </PreviewModal>
-      <p className="font-display text-lg">Date holds <span className="text-sm text-fg/55">· waiting for the deposit</span></p>
-      <ul className="mt-2 divide-y divide-line">
-        {holds.map((h) => (
-          <li key={h.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5" data-hold-row={h.id}>
-            <div className="min-w-0">
-              <p className="text-sm font-medium">{h.client_name} <span className="text-fg/55">· {fmtDate(h.date)} · {h.service}</span></p>
-              <p className="text-xs text-fg/55">Reference <strong>{h.reference}</strong> · {fmtMoney(h.amount, currency)} · <span className="font-medium text-copper" data-hold-left>{left(h)}</span></p>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={() => open(h)} data-hold-received>{fmtMoney(h.amount, currency)} received</Button>
-              <Button size="sm" variant="ghost" onClick={() => release(h)} data-hold-release>Release</Button>
-            </div>
-          </li>
-        ))}
-      </ul>
+      <PreviewModal open={!!decline} onClose={() => setDecline(null)} title="Can't do that day" confirmLabel="Release & tell them" onConfirm={sendDecline} busy={busy}>
+        {decline ? (
+          <div className="space-y-3 text-sm">
+            <p>This releases {fmtDate(decline.hold.date)} for {decline.hold.client_name} and emails them that you can't do it. They haven't paid anything.</p>
+            <Field label="A line for them (optional)"><Textarea rows={3} value={decline.reason} onChange={(e) => setDecline({ ...decline, reason: e.target.value })} placeholder="e.g. I'm away that day. Could you do the Thursday instead?" data-decline-reason /></Field>
+          </div>
+        ) : null}
+      </PreviewModal>
+      {wanting.length ? (
+        <div className="rounded-xl border border-copper/60 bg-copper/10 p-4" data-requests>
+          <p className="font-display text-lg">Date requests <span className="text-sm text-fg/55">· waiting for you</span></p>
+          <p className="mt-0.5 text-xs text-fg/60">Already held on your diary and website. Confirm if you are free, or release it.</p>
+          <ul className="mt-2 divide-y divide-line">
+            {wanting.map((h) => (
+              <li key={h.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5" data-hold-row={h.id} data-hold-stage="requested">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{h.client_name} <span className="text-fg/55">· {fmtDate(h.date)} · {h.service}</span></p>
+                  <p className="text-xs text-fg/55">{h.phone || h.email}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => open('confirm', h)} data-hold-confirm>I'm free · Confirm</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setDecline({ hold: h, reason: '' })} data-hold-decline>Can't do it</Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {deposits.length ? (
+        <div className="rounded-xl border border-line bg-card p-4" data-deposits>
+          <p className="font-display text-lg">Waiting for the deposit</p>
+          <p className="mt-0.5 text-xs text-fg/60">You have confirmed these. When the money lands, press received.</p>
+          <ul className="mt-2 divide-y divide-line">
+            {deposits.map((h) => (
+              <li key={h.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5" data-hold-row={h.id} data-hold-stage="awaiting_deposit">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">{h.client_name} <span className="text-fg/55">· {fmtDate(h.date)} · {h.service}</span></p>
+                  <p className="text-xs text-fg/55">Reference <strong>{h.reference}</strong> · {fmtMoney(h.amount, currency)} · <span className="font-medium text-copper" data-hold-left>{left(h)}</span></p>
+                </div>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => open('paid', h)} data-hold-received>{fmtMoney(h.amount, currency)} received</Button>
+                  <Button size="sm" variant="ghost" onClick={() => release(h)} data-hold-release>Release</Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -274,6 +328,7 @@ export default function Bookings() {
   const [view, setView] = useState('list')
   const [filter, setFilter] = useState('upcoming')
   const [creating, setCreating] = useState(false)
+  const [pencil, setPencil] = useState(false)
   const [editing, setEditing] = useState(null)
 
   // Holds first: asking for them also releases any whose time ran out, so the bookings list below is up to date.
@@ -311,7 +366,8 @@ export default function Bookings() {
                 </button>
               ))}
             </div>
-            <Button icon="plus" onClick={() => setCreating(true)}>New booking</Button>
+            <Button icon="plus" onClick={() => setPencil(true)} data-pencil-open>Pencil in</Button>
+            <Button variant="ghost" icon="plus" onClick={() => setCreating(true)}>New booking</Button>
           </>
         }
       />
@@ -353,7 +409,7 @@ export default function Bookings() {
                   </div>
                   <div className="flex items-center gap-3">
                     {b.quoted_price > 0 && <span className="text-sm font-medium">{fmtMoney(b.quoted_price, user?.currency)}</span>}
-                    {b.date_hold && !b.deposit_paid && b.status === 'enquiry' && <Badge tone="copper">Date hold</Badge>}
+                    {b.date_hold && !b.deposit_paid && b.status === 'enquiry' && <Badge tone="copper">{b.hold_stage === 'requested' ? 'Date request' : 'Awaiting deposit'}</Badge>}
                     {b.date_hold && b.deposit_paid && <Badge tone="green">Deposit paid</Badge>}
                     <Badge tone={BOOKING_TONES[b.status]}>{label(b.status)}</Badge>
                   </div>
@@ -364,6 +420,7 @@ export default function Bookings() {
         </>
       )}
 
+      <PencilIn open={pencil} onClose={() => setPencil(false)} onSaved={() => { setPencil(false); load() }} />
       <Modal open={creating} onClose={() => setCreating(false)} title="New booking">
         <BookingForm onClose={() => setCreating(false)} onSaved={(b) => { setCreating(false); navigate(`/app/bookings/${b.id}`) }} />
       </Modal>

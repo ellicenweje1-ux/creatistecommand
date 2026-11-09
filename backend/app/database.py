@@ -63,6 +63,7 @@ def ensure_columns():
             "menu_type": "VARCHAR(80) DEFAULT ''",
             "date_hold": "BOOLEAN DEFAULT 0", "hold_expires_at": "VARCHAR(19) DEFAULT ''",
             "deposit_amount": "FLOAT DEFAULT 0", "deposit_applied": "BOOLEAN DEFAULT 0",
+            "hold_stage": "VARCHAR(16) DEFAULT ''", "day_load": "FLOAT DEFAULT 0",
         },
         "clients": {"regular": "BOOLEAN DEFAULT 0"},
         "diary_blocks": {"source": "VARCHAR(16) DEFAULT ''", "ext_uid": "VARCHAR(200) DEFAULT ''"},
@@ -83,6 +84,7 @@ def ensure_columns():
             "file_url": "VARCHAR(500) DEFAULT ''", "file_name": "VARCHAR(255) DEFAULT ''",
             "public_token": "VARCHAR(64) DEFAULT ''",
             "deposit_type": "VARCHAR(10) DEFAULT ''", "deposit_value": "FLOAT DEFAULT 0",
+            "service_date": "VARCHAR(10) DEFAULT ''", "service_type": "VARCHAR(80) DEFAULT ''",
         },
     }
     inspector = sa.inspect(engine)

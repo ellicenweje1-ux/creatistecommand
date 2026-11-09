@@ -239,7 +239,11 @@ class Booking(OwnedMixin, Base):
     date_hold: Mapped[bool] = mapped_column(Boolean, default=False)
     hold_expires_at: Mapped[str] = mapped_column(String(19), default="")
     deposit_amount: Mapped[float] = mapped_column(Float, default=0)      # the deposit asked for / received
-    deposit_applied: Mapped[bool] = mapped_column(Boolean, default=False)  # already taken off an invoice
+    deposit_applied: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Where a date request is: requested (held, waiting for the chef) | awaiting_deposit (chef confirmed, client to pay) | '' (not a request).
+    hold_stage: Mapped[str] = mapped_column(String(16), default="")
+    # The chef's own call on how much of a day this booking takes: 0 = the service's default, else 0.25 / 0.5 / 1.
+    day_load: Mapped[float] = mapped_column(Float, default=0)  # already taken off an invoice
     menu: Mapped[list] = mapped_column(JSON, default=list)       # [{id,course,name,recipe_id,notes}]
     equipment: Mapped[list] = mapped_column(JSON, default=list)  # [str]
     dietary_notes: Mapped[str] = mapped_column(Text, default="")
@@ -372,6 +376,9 @@ class Invoice(OwnedMixin, Base):
     file_name: Mapped[str] = mapped_column(String(255), default="")
     # Shareable read-only link for the in-app invoice document (like the public quote page).
     public_token: Mapped[str] = mapped_column(String(64), default="", index=True)
+    # The day the work happens (cook / event day). It puts this invoice in the Diary: saving the invoice keeps a linked booking in step.
+    service_date: Mapped[str] = mapped_column(String(10), default="")
+    service_type: Mapped[str] = mapped_column(String(80), default="")
 
 
 class Expense(OwnedMixin, Base):

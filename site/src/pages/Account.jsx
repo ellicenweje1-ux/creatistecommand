@@ -83,17 +83,19 @@ function useCountdown(iso) {
 }
 
 function HoldRow({ h, bank }) {
-  const left = useCountdown(h.paid ? '' : h.expires_at)
+  const left = useCountdown(h.stage === 'awaiting_deposit' ? h.expires_at : '')
   const [copied, setCopied] = useState(false)
   const text = `${bank.name}\n${bank.bank}\nAccount number ${bank.account}\nSort code ${bank.sort}\nReference ${h.reference}\nAmount ${money(h.amount)}`
   const copy = async () => { try { await navigator.clipboard.writeText(text); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {} }
+  const label = { requested: 'Held for you, waiting for us to confirm', awaiting_deposit: 'We are free. Send your deposit', confirmed: 'Locked in' }[h.stage] || h.stage
   return (
-    <li className="py-5" data-hold data-hold-status={h.paid ? 'confirmed' : 'awaiting'}>
-      <p className="font-display text-[20px]">{fmt(h.date)} <span className="font-body text-[12px] uppercase tracking-wide text-gold-deep">· {h.paid ? 'Confirmed' : 'Awaiting your deposit'}</span></p>
-      <p className="mt-1 font-body text-[13px] text-stone">{h.service} · {money(h.amount)} deposit{h.paid ? ' received' : ''}{!h.paid && left ? ` · ${left}` : ''}</p>
-      {!h.paid && left !== 'expired' ? (
+    <li className="py-5" data-hold data-hold-status={h.stage}>
+      <p className="font-display text-[20px]">{fmt(h.date)} <span className="font-body text-[12px] uppercase tracking-wide text-gold-deep">· {label}</span></p>
+      <p className="mt-1 font-body text-[13px] text-stone">{h.service}{h.stage === 'confirmed' ? ` · ${money(h.amount)} deposit received` : ''}{h.stage === 'awaiting_deposit' && left && left !== 'expired' ? ` · ${left}` : ''}</p>
+      {h.stage === 'requested' ? <p className="mt-2 font-body text-[13px] font-light text-ink/75" data-hold-note>Nothing to pay yet. We will email you the moment we have confirmed this date.</p> : null}
+      {h.stage === 'awaiting_deposit' && left !== 'expired' ? (
         <div className="mt-4 border border-sand bg-ivory p-5" data-hold-bank>
-          <p className="font-body text-[11px] uppercase tracking-eyebrow text-gold-deep">Pay {money(h.amount)} by bank transfer</p>
+          <p className="font-body text-[11px] uppercase tracking-eyebrow text-gold-deep">Pay {money(h.amount)} by bank transfer to lock this date in</p>
           <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-5 gap-y-1 font-body text-[14px]">
             <dt className="text-stone">Name</dt><dd>{bank.name}</dd>
             <dt className="text-stone">Bank</dt><dd>{bank.bank}</dd>
@@ -105,16 +107,16 @@ function HoldRow({ h, bank }) {
           <button type="button" onClick={copy} className="mt-4 font-body text-[11px] uppercase tracking-wide text-gold-deep link-under">{copied ? 'Copied' : 'Copy the details'}</button>
         </div>
       ) : null}
-      {!h.paid && left === 'expired' ? <p className="mt-3 font-body text-[13px] text-stone">This hold has run out and the date has been released. You are welcome to hold it again if it is still free.</p> : null}
+      {h.stage === 'awaiting_deposit' && left === 'expired' ? <p className="mt-3 font-body text-[13px] text-stone">The deposit time has run out and the date has been released. You are welcome to ask for it again if it is still free.</p> : null}
     </li>
   )
 }
 
-/* A real month calendar for the next N days: only those days are drawn; free ones are gold and tappable, the rest are muted. */
+/* A real month calendar over the booking window. Free days for the chosen service are gold and tappable (any number, up to the limit); everything else is muted. */
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const pad2 = (n) => String(n).padStart(2, '0')
 const isoOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
-function HoldCalendar({ dates, minDays, windowDays, value, onChange }) {
+function HoldCalendar({ dates, windowDays, picked, onToggle, max }) {
   const today = new Date(); today.setHours(12, 0, 0, 0)
   const last = new Date(today); last.setDate(last.getDate() + windowDays)
   const free = new Set(dates)
@@ -123,11 +125,12 @@ function HoldCalendar({ dates, minDays, windowDays, value, onChange }) {
   const [idx, setIdx] = useState(0)
   const m = months[Math.min(idx, months.length - 1)]
   const first = new Date(m.getFullYear(), m.getMonth(), 1)
-  const lead = (first.getDay() + 6) % 7 // Monday first
+  const lead = (first.getDay() + 6) % 7
   const days = new Date(m.getFullYear(), m.getMonth() + 1, 0).getDate()
   const cells = []
   for (let i = 0; i < lead; i++) cells.push(null)
   for (let d = 1; d <= days; d++) cells.push(new Date(m.getFullYear(), m.getMonth(), d, 12))
+  const full = picked.length >= max
   return (
     <div className="mt-3 max-w-md border border-sand bg-ivory p-4 sm:p-5" data-hold-calendar>
       <div className="flex items-center justify-between">
@@ -142,64 +145,72 @@ function HoldCalendar({ dates, minDays, windowDays, value, onChange }) {
           const key = isoOf(d)
           const inWindow = d >= new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0) && d <= last
           if (!inWindow) return <span key={key} className="py-2 font-body text-[13px] text-ink/10" aria-hidden="true">{d.getDate()}</span>
-          const ok = free.has(key), on = value === key
+          const ok = free.has(key), on = picked.includes(key)
           return (
-            <button key={key} type="button" disabled={!ok} onClick={() => onChange(on ? '' : key)} data-cal-day={key} data-cal-state={on ? 'selected' : ok ? 'free' : 'unavailable'}
+            <button key={key} type="button" disabled={!ok || (!on && full)} onClick={() => onToggle(key)} data-cal-day={key} data-cal-state={on ? 'selected' : ok ? 'free' : 'unavailable'}
               aria-label={`${fmt(key)}${ok ? ', free' : ', not available'}`} aria-pressed={on}
-              className={`py-2 font-body text-[14px] transition-colors ${on ? 'bg-ink text-ivory' : ok ? 'border border-gold-deep/70 text-ink hover:bg-gold/20' : 'text-ink/30 line-through decoration-ink/20'}`}>{d.getDate()}</button>
+              className={`py-2 font-body text-[14px] transition-colors ${on ? 'bg-ink text-ivory' : ok ? 'border border-gold-deep/70 text-ink hover:bg-gold/20 disabled:opacity-40' : 'text-ink/30 line-through decoration-ink/20'}`}>{d.getDate()}</button>
           )
         })}
       </div>
-      <p className="mt-3 font-body text-[11px] text-stone">Showing the next {windowDays} days. Dates need at least {minDays} days’ notice.</p>
+      <p className="mt-3 font-body text-[11px] text-stone">Showing the next {windowDays} days. Tick as many as you need, up to {max} at a time.</p>
     </div>
   )
 }
 
 function ReserveDate() {
   const [info, setInfo] = useState(null)
-  const [f, setF] = useState({ date: '', service: '', note: '' })
+  const [f, setF] = useState({ service: '', picked: [], note: '' })
   const [state, setState] = useState({ status: 'idle', error: '' })
   const load = () => accountFetch('/holds').then(setInfo).catch(() => setInfo({ eligible: false }))
   useEffect(() => { load() }, [])
   if (!info || !info.eligible) return null
   const bank = CLEAN_DREAM.bank
+  const dates = (info.dates_by_service || {})[f.service] || []
+  const toggle = (d) => setF((p) => ({ ...p, picked: p.picked.includes(d) ? p.picked.filter((x) => x !== d) : [...p.picked, d].sort() }))
   const submit = async (e) => {
     e.preventDefault(); setState({ status: 'sending', error: '' })
-    try { await accountFetch('/hold', { method: 'POST', body: JSON.stringify(f) }); setF({ date: '', service: '', note: '' }); setState({ status: 'idle', error: '' }); await load() } catch (err) { setState({ status: 'error', error: err.message }); load() }
+    try { await accountFetch('/hold', { method: 'POST', body: JSON.stringify({ dates: f.picked, service: f.service, note: f.note }) }); setF({ service: f.service, picked: [], note: '' }); setState({ status: 'idle', error: '' }); await load() } catch (err) { setState({ status: 'error', error: err.message }); load() }
   }
-  const dateOptions = info.dates || []
+  const order = { awaiting_deposit: 0, requested: 1, confirmed: 2 }
+  const holds = [...(info.holds || [])].sort((a, b) => (order[a.stage] ?? 3) - (order[b.stage] ?? 3) || a.date.localeCompare(b.date))
+  const n = f.picked.length
   return (
     <section data-reserve className="border border-gold/60 bg-linen p-7 sm:p-9">
       <Eyebrow className="text-gold-deep">{DATE_HOLD.eyebrow}</Eyebrow>
       <Heading size="md" className="mt-3">{DATE_HOLD.title}</Heading>
       <p className="mt-4 max-w-2xl font-body text-[15px] font-light leading-relaxed text-ink/80">{DATE_HOLD.intro}</p>
-      <form onSubmit={submit} className="mt-7 grid gap-5 sm:grid-cols-2" data-reserve-form>
-        <div className="sm:col-span-2" data-date-picker>
-          <p className="font-body text-[11px] uppercase tracking-eyebrow text-ink/70">Choose a date <span className="text-gold-deep">*</span></p>
-          <HoldCalendar dates={dateOptions} minDays={info.min_days ?? 7} windowDays={info.window_days ?? 30} value={f.date} onChange={(d) => setF({ ...f, date: d })} />
-          <p className="mt-3 font-body text-[13px] text-ink/80" data-picked>{f.date ? <>Selected: <strong>{fmt(f.date)}</strong></> : dateOptions.length ? `Free dates in the next ${info.window_days ?? 30} days are marked in gold.` : `No free dates in the next ${info.window_days ?? 30} days. Message us and we will find one.`}</p>
-        </div>
-        <div>
-          <label htmlFor="r-service" className="font-body text-[11px] uppercase tracking-eyebrow text-ink/70">Service <span className="text-gold-deep">*</span></label>
-          <select id="r-service" className="field-ivory mt-1" value={f.service} onChange={(e) => setF({ ...f, service: e.target.value })} required>
+      <form onSubmit={submit} className="mt-7 space-y-6" data-reserve-form>
+        <div className="max-w-sm">
+          <label htmlFor="r-service" className="font-body text-[11px] uppercase tracking-eyebrow text-ink/70">1. What do you need? <span className="text-gold-deep">*</span></label>
+          <select id="r-service" className="field-ivory mt-1" value={f.service} onChange={(e) => setF({ service: e.target.value, picked: [], note: f.note })} required>
             <option value="">Choose a service</option>
             {(info.services || []).map((x) => <option key={x} value={x}>{x}</option>)}
           </select>
         </div>
-        <div className="sm:col-span-2">
-          <label htmlFor="r-note" className="font-body text-[11px] uppercase tracking-eyebrow text-ink/70">Anything we should know (optional)</label>
-          <input id="r-note" className="field-ivory mt-1" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} maxLength={500} />
-        </div>
-        {state.error ? <p className="font-body text-[13px] text-red-700 sm:col-span-2" data-reserve-error>{state.error}</p> : null}
-        <div className="sm:col-span-2"><Button type="submit" variant="ink" disabled={state.status === 'sending' || !f.date}>{state.status === 'sending' ? 'Holding your date…' : `Hold this date for ${money(info.amount)}`} <Arrow /></Button></div>
+        {f.service ? (
+          <div data-date-picker>
+            <p className="font-body text-[11px] uppercase tracking-eyebrow text-ink/70">2. Tick your dates <span className="text-gold-deep">*</span></p>
+            <HoldCalendar dates={dates} windowDays={info.window_days ?? 60} picked={f.picked} onToggle={toggle} max={info.max_dates ?? 6} />
+            <p className="mt-3 font-body text-[13px] text-ink/80" data-picked>{n ? <>Selected: <strong>{f.picked.map((d) => fmt(d)).join(' · ')}</strong></> : dates.length ? 'Free dates for this service are outlined in gold.' : 'No free dates for this service right now. Message us and we will find one.'}</p>
+          </div>
+        ) : null}
+        {f.service ? (
+          <div className="max-w-xl">
+            <label htmlFor="r-note" className="font-body text-[11px] uppercase tracking-eyebrow text-ink/70">Anything we should know (optional)</label>
+            <input id="r-note" className="field-ivory mt-1" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} maxLength={500} />
+          </div>
+        ) : null}
+        {state.error ? <p className="font-body text-[13px] text-red-700" data-reserve-error>{state.error}</p> : null}
+        <div><Button type="submit" variant="ink" disabled={state.status === 'sending' || !n}>{state.status === 'sending' ? 'Holding your dates…' : n ? `Hold ${n} ${n === 1 ? 'date' : 'dates'} for me` : 'Choose a date to hold'} <Arrow /></Button></div>
       </form>
       <ul className="mt-6 grid gap-1 font-body text-[13px] font-light leading-relaxed text-ink/75" data-reserve-rules>
         {DATE_HOLD.rules.map((r) => <li key={r} className="flex gap-3"><span className="mt-[9px] h-px w-3 shrink-0 bg-gold-deep" aria-hidden="true" />{r}</li>)}
       </ul>
-      {info.holds?.length ? (
+      {holds.length ? (
         <div className="mt-8" data-holds>
-          <Eyebrow className="text-gold-deep">Your held dates</Eyebrow>
-          <ul className="mt-2 divide-y divide-sand border-y border-sand">{info.holds.map((h) => <HoldRow key={h.id} h={h} bank={bank} />)}</ul>
+          <Eyebrow className="text-gold-deep">Your dates</Eyebrow>
+          <ul className="mt-2 divide-y divide-sand border-y border-sand">{holds.map((h) => <HoldRow key={h.id} h={h} bank={bank} />)}</ul>
           <p className="mt-4 font-body text-[12px] text-stone">{DATE_HOLD.moveNote}</p>
         </div>
       ) : null}

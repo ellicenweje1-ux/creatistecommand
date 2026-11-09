@@ -1,25 +1,32 @@
-"""Date holds: a regular client reserves a personal chef date online for a small non-refundable deposit.
+"""Date requests: a client holds the dates they need in advance; the chef confirms; the deposit locks them in.
 
-The chef marks a client as **regular / consulted** on their profile (Clients). That client signs in on the
-chef's website with the same email as their invoices, picks a free date, and a hold is placed:
+Who can ask: a client the chef has marked **regular / already consulted**, or any client who has already paid an invoice
+(no tagging needed: past paying clients are trusted automatically). They sign in on the chef's website with the email
+on their invoices, choose the service, then tick one or more free dates on a calendar. Only dates that service genuinely
+fits are offered (the Diary measures each day in shares of a day, so a morning of batch cooking leaves room for a Clean
+Dream order, but an in-home day is the only booking).
 
-  * the hold is a Booking with status 'enquiry' and `date_hold` set; it counts as a booking in the diary, so the
-    day is taken on the public calendar straight away (`diary.compute_days`);
-  * the client pays the deposit (default £15) by bank transfer within DATE_HOLD_HOURS (default 12);
-  * the chef marks the deposit received (a preview of the email first) → the booking becomes 'confirmed',
-    `deposit_paid` is set, and the deposit is taken off the final invoice (Finance offers it as a credit line);
-  * if the 12 hours pass first, the hold is released (status 'cancelled') and the client is told.
+The life of a request (a Booking with status 'enquiry', `date_hold` set, `hold_stage` saying where it is):
 
-The deposit is non-refundable but can be moved to a later date on request. Personal chef bookings only.
+  requested          held the moment it is asked, so it vanishes from everyone else's calendar. Nothing to pay yet.
+                     No clock runs: the chef confirms she is free, or says she can't.
+  awaiting_deposit   the chef pressed Confirm. Now the client is told to send the deposit (default £15) by bank transfer
+                     within DATE_HOLD_HOURS (default 12). If it doesn't arrive the date is released.
+  confirmed          the chef marked the deposit received: the booking is confirmed, the deposit comes off the final invoice.
+
+The deposit is non-refundable but can be moved to a later date. The deposit is per date.
 
 Public (the chef's enquiry token + the customer's sign-in token, as for /public/customer):
-  GET  /api/public/customer/{token}/holds   eligibility, the free dates, the client's holds
-  POST /api/public/customer/{token}/hold    {date, service, note?}  → places a hold
+  GET  /api/public/customer/{token}/holds   eligibility, the free dates per service, the client's requests
+  POST /api/public/customer/{token}/hold    {dates: [..], service, note?} -> requests every date
 Chef:
-  GET  /api/holds                      holds awaiting their deposit (sweeps expired ones first)
-  GET  /api/holds/{id}/paid-preview    the emails "deposit received" will send
-  POST /api/holds/{id}/paid            confirm the booking + email the client
-  POST /api/holds/{id}/release         let the date go
+  GET  /api/holds                       requests waiting for her, and confirmed ones waiting for their deposit
+  GET  /api/holds/{id}/confirm-preview  the email Confirm will send
+  POST /api/holds/{id}/confirm          "I'm free that day": starts the deposit clock and emails the client
+  POST /api/holds/{id}/decline          {reason?}: releases the date and tells the client
+  GET  /api/holds/{id}/paid-preview     the email "deposit received" will send
+  POST /api/holds/{id}/paid             deposit received: confirmed
+  POST /api/holds/{id}/release          let the date go quietly
 """
 import logging
 import threading
@@ -34,10 +41,10 @@ from sqlalchemy.orm import Session
 from .. import calsync, config, mailer, ratelimit
 from ..auth import require_active
 from ..database import SessionLocal, get_db
-from ..models import Booking, Client, User
+from ..models import Booking, Client, Invoice, User
 from ..utils import get_owned, ws_id
 from .customers import _owner, current_customer
-from .diary import compute_days, kind_of, rules_for
+from .diary import compute_days, kind_of, load_of, rules_for
 
 log = logging.getLogger("creatiste.holds")
 public_router = APIRouter(prefix="/public/customer", tags=["public"])
@@ -101,62 +108,112 @@ def _biz(owner: User) -> str:
     return owner.business_name or owner.name or "us"
 
 
-def regular_client(db: Session, owner_id: int, email: str) -> Client | None:
-    """The chef's Client record for this email, if the chef has marked them regular / consulted."""
-    return (db.query(Client).filter(Client.user_id == owner_id, func.lower(Client.email) == (email or "").lower(),
-                                    Client.regular == True)  # noqa: E712
-            .order_by(Client.id.asc()).first())
+def eligible_client(db: Session, owner_id: int, email: str) -> Client | None:
+    """The chef's Client record for this email, if that client may request dates: marked regular, or has paid an invoice."""
+    em = (email or "").lower()
+    if not em:
+        return None
+    clients = db.query(Client).filter(Client.user_id == owner_id, func.lower(Client.email) == em).order_by(Client.id.asc()).all()
+    for c in clients:
+        if c.regular:
+            return c
+    for c in clients:
+        if db.query(Invoice.id).filter(Invoice.user_id == owner_id, Invoice.client_id == c.id, Invoice.status == "paid").first():
+            return c
+    return None
+
+
+regular_client = eligible_client  # the old name
+
+
+def stage_of(bk: Booking) -> str:
+    if bk.deposit_paid:
+        return "confirmed"
+    if bk.status == "cancelled":
+        return "cancelled"
+    return bk.hold_stage or "awaiting_deposit"   # rows from before the stages existed were all waiting for a deposit
 
 
 def hold_dict(bk: Booking, name: str = "") -> dict:
-    return {"id": bk.id, "date": bk.date, "service": _service_of(bk), "status": bk.status, "paid": bool(bk.deposit_paid),
+    stage = stage_of(bk)
+    return {"id": bk.id, "date": bk.date, "service": _service_of(bk), "status": bk.status, "paid": bool(bk.deposit_paid), "stage": stage,
             "amount": bk.deposit_amount or config.DATE_HOLD_DEPOSIT,
-            "expires_at": (bk.hold_expires_at + "Z") if (bk.hold_expires_at and not bk.deposit_paid) else "",
+            "expires_at": (bk.hold_expires_at + "Z") if (bk.hold_expires_at and stage == "awaiting_deposit") else "",
             "reference": _reference(name, bk.date)}
 
 
-# ───────────────────────────── which dates can be held ─────────────────────────────
-def open_hold_dates(db: Session, owner: User, today: _date | None = None) -> list[str]:
-    """Days a personal chef booking can still go on: not full, personal chef not at its own cap, on a personal
-    chef weekday, at least DATE_HOLD_MIN_DAYS ahead and no further than DATE_HOLD_WINDOW_DAYS (30) out. Straight from the diary engine, so it matches the public calendar."""
+# ───────────────────────────── which dates can be requested ─────────────────────────────
+def hold_calendar(db: Session, owner: User, today: _date | None = None) -> tuple[dict, list[dict]]:
+    """The Diary's days between the minimum notice and the booking window, plus the rules they were measured under."""
     today = today or _date.today()
     rules = rules_for(owner)
-    kind = kind_of(rules["kinds"], Booking(event_type="Personal chef", title="Date hold"))
     start = today + timedelta(days=config.DATE_HOLD_MIN_DAYS)
     end = today + timedelta(days=min(rules["horizon_days"], config.DATE_HOLD_WINDOW_DAYS))
-    out = []
-    for d in compute_days(db, owner.id, rules, start, end, detail=True):
-        if d["state"] == "full" or _date.fromisoformat(d["date"]).weekday() not in config.DATE_HOLD_WEEKDAYS:
-            continue
-        if kind and d["counts"].get(kind["id"], 0) >= kind["max_per_day"]:
-            continue
-        out.append(d["date"])
-    return out
+    return rules, compute_days(db, owner.id, rules, start, end, detail=True)
+
+
+def dates_for_service(rules: dict, rows: list[dict], service: str) -> list[str]:
+    """Days this service still fits: a working day, not full, and its share of the day is still free."""
+    add = load_of(rules, Booking(event_type=f"Personal chef · {service}", title="Date request"))
+    return [d["date"] for d in rows if d["workday"] and d["state"] != "full" and d["load"] + add <= 1.0001]
+
+
+def open_hold_dates(db: Session, owner: User, service: str = "", today: _date | None = None) -> list[str]:
+    rules, rows = hold_calendar(db, owner, today)
+    return dates_for_service(rules, rows, service)
 
 
 # ───────────────────────────── the emails (pure: nothing is sent here) ─────────────────────────────
-def hold_emails(owner: User, bk: Booking, client: Client) -> dict:
-    """Sent when a hold is placed: the client's payment instructions, and a note to the chef."""
-    amount, ref, when = _money(bk.deposit_amount), _reference(client.name, bk.date), _pretty_date(bk.date)
-    hours = f"{config.DATE_HOLD_HOURS:g}"
+def _first(client: Client | None) -> str:
+    return client.name.split()[0] if client and client.name else "there"
+
+
+def _dates_text(dates: list[str]) -> str:
+    return "\n".join(f"  · {_pretty_date(d)}" for d in sorted(dates))
+
+
+def requested_emails(owner: User, bks: list[Booking], client: Client) -> dict:
+    """Sent when a client asks for dates: we are holding them; nothing to pay yet. And a nudge to the chef."""
+    dates = [b.date for b in bks]
+    svc = _service_of(bks[0])
     return {
         "customer": {
-            "to": client.email, "subject": f"Your date is held: {when}",
-            "body": (f"Hi {client.name.split()[0] if client.name else 'there'},\n\nWe are holding {when} for you ({_service_of(bk)}).\n\n"
-                     f"To keep it, please send the {amount} deposit by bank transfer within {hours} hours, by {_local_time(bk.hold_expires_at)}.\n\n"
-                     f"Pay to: {_bank_text(owner)}\nReference: {ref}\nAmount: {amount}\n\n"
-                     f"Your date is confirmed once we have received it, and we will email you then. If it hasn't arrived in time, "
-                     f"the date is released.\n\nThe deposit is non-refundable, but it can be moved to a later date if you need to change, "
-                     f"and it is taken off your final invoice.\n\n{_biz(owner)}"),
+            "to": client.email, "subject": f"We're holding your {'dates' if len(dates) > 1 else 'date'}: {_pretty_date(dates[0]) if len(dates) == 1 else str(len(dates)) + ' dates'}",
+            "body": (f"Hi {_first(client)},\n\nThank you. We are holding {'these dates' if len(dates) > 1 else 'this date'} for you ({svc}) while we check them:\n\n"
+                     f"{_dates_text(dates)}\n\nThere is nothing to pay yet. As soon as we have confirmed we are free, we will email you the details to send your "
+                     f"{_money(config.DATE_HOLD_DEPOSIT)} deposit for each date, and that locks it in. If we can't do one of them we will tell you straight away.\n\n{_biz(owner)}"),
         },
         "chef": {
-            "to": owner.email, "subject": f"Date hold: {client.name} · {when} · awaiting {amount}",
-            "body": (f"{client.name} ({client.email}) has held {when} for {_service_of(bk)}.\n\nThey have until {_local_time(bk.hold_expires_at)} "
-                     f"to send {amount} (reference {ref}).\n\nWhen it lands, open Bookings in The Creatiste Command and press "
-                     f"\"{amount} received\" on the hold; that confirms the date and emails them. If nothing arrives, the date is released automatically.\n\n"
-                     f"— The Creatiste Command"),
+            "to": owner.email, "subject": f"Date request: {client.name} · {len(dates)} date{'s' if len(dates) > 1 else ''} · {svc}",
+            "body": (f"{client.name} ({client.email}) has asked for {svc} on:\n\n{_dates_text(dates)}\n\nThe dates are held on your diary and your website "
+                     f"calendar already. Open Bookings in The Creatiste Command and press Confirm if you are free (that asks them for the deposit) or "
+                     f"\"Can't do it\" to release the date.\n\n— The Creatiste Command"),
         },
     }
+
+
+def confirm_emails(owner: User, bk: Booking, client: Client) -> dict:
+    """Sent when the chef confirms she is free: pay the deposit now to lock the date in."""
+    amount, ref, when = _money(bk.deposit_amount or config.DATE_HOLD_DEPOSIT), _reference(client.name, bk.date), _pretty_date(bk.date)
+    hours = f"{config.DATE_HOLD_HOURS:g}"
+    deadline = _local_time(bk.hold_expires_at) if bk.hold_expires_at else f"within {hours} hours"
+    return {"customer": {
+        "to": client.email, "subject": f"Good news, {when} is free: send your deposit to lock it in",
+        "body": (f"Hi {_first(client)},\n\nWe are free on {when} ({_service_of(bk)}).\n\n"
+                 f"To lock it in, please send the {amount} deposit by bank transfer within {hours} hours, by {deadline}.\n\n"
+                 f"Pay to: {_bank_text(owner)}\nReference: {ref}\nAmount: {amount}\n\n"
+                 f"Your date is confirmed once we have received it, and we will email you then. If it hasn't arrived in time the date is released.\n\n"
+                 f"The deposit is non-refundable, but it can be moved to a later date if you need to change, and it is taken off your final invoice.\n\n{_biz(owner)}")}}
+
+
+def declined_emails(owner: User, bk: Booking, client: Client | None, reason: str = "") -> dict:
+    when = _pretty_date(bk.date)
+    if not (client and client.email):
+        return {}
+    extra = f"\n\n{reason.strip()}" if reason.strip() else ""
+    return {"customer": {"to": client.email, "subject": f"We can't do {when}",
+                         "body": (f"Hi {_first(client)},\n\nI'm sorry, we can't do {when} after all, so we have released it.{extra}\n\n"
+                                  f"You haven't paid anything. Please choose another date from your account and we will hold it for you, or message us and we'll sort it out together.\n\n{_biz(owner)}")}}
 
 
 def paid_emails(owner: User, bk: Booking, client: Client) -> dict:
@@ -165,7 +222,7 @@ def paid_emails(owner: User, bk: Booking, client: Client) -> dict:
     return {
         "customer": {
             "to": client.email, "subject": f"Deposit received: your date is confirmed for {when}",
-            "body": (f"Hi {client.name.split()[0] if client.name else 'there'},\n\nThank you, we have received your {amount} deposit and "
+            "body": (f"Hi {_first(client)},\n\nThank you, we have received your {amount} deposit and "
                      f"your date is confirmed.\n\nDate: {when}\nService: {_service_of(bk)}\nDeposit received: {amount}\n\n"
                      f"The deposit is non-refundable, but it can be moved to a later date if you need to change (just message us). "
                      f"It will be taken off your final invoice.\n\nThis email is your receipt.\n\n{_biz(owner)}"),
@@ -179,12 +236,12 @@ def paid_emails(owner: User, bk: Booking, client: Client) -> dict:
 
 def expired_emails(owner: User, bk: Booking, client: Client | None) -> dict:
     when, amount = _pretty_date(bk.date), _money(bk.deposit_amount or config.DATE_HOLD_DEPOSIT)
-    out = {"chef": {"to": owner.email, "subject": f"Date hold released: {(client.name if client else 'client')} · {when}",
+    out = {"chef": {"to": owner.email, "subject": f"Date released: {(client.name if client else 'client')} · {when}",
                     "body": f"The {amount} deposit didn't arrive within {config.DATE_HOLD_HOURS:g} hours, so the hold on {when} has been released and the date is open again.\n\n— The Creatiste Command"}}
     if client and client.email:
-        out["customer"] = {"to": client.email, "subject": f"Your date hold has been released: {when}",
-                           "body": (f"Hi {client.name.split()[0] if client.name else 'there'},\n\nWe didn't receive the {amount} deposit within {config.DATE_HOLD_HOURS:g} hours, "
-                                    f"so the hold on {when} has been released.\n\nIf you still want it and it's free, you can reserve it again from your account.\n\n{_biz(owner)}")}
+        out["customer"] = {"to": client.email, "subject": f"Your date has been released: {when}",
+                           "body": (f"Hi {_first(client)},\n\nWe didn't receive the {amount} deposit within {config.DATE_HOLD_HOURS:g} hours, "
+                                    f"so {when} has been released.\n\nIf you still want it and it's free, you can request it again from your account.\n\n{_biz(owner)}")}
     return out
 
 
@@ -200,7 +257,8 @@ def _send(mails: dict, *which):
 
 # ───────────────────────────── expiry ─────────────────────────────
 def expire_holds(db: Session, owner_id: int | None = None) -> int:
-    """Release every unpaid hold whose time is up (status → cancelled, the day opens, everyone is told). Idempotent."""
+    """Release every confirmed-but-unpaid request whose deposit time is up (status -> cancelled, the day opens, everyone is told).
+    A request still waiting for the chef has no clock and is never released here. Idempotent."""
     q = db.query(Booking).filter(Booking.date_hold == True, Booking.status == "enquiry",  # noqa: E712
                                  Booking.deposit_paid == False, Booking.hold_expires_at != "",  # noqa: E712
                                  Booking.hold_expires_at < _iso(_now()))
@@ -209,7 +267,7 @@ def expire_holds(db: Session, owner_id: int | None = None) -> int:
     rows = q.all()
     for bk in rows:
         bk.status = "cancelled"
-        bk.notes = f"{bk.notes or ''}\nDate hold released: the deposit didn't arrive within {config.DATE_HOLD_HOURS:g} hours.".strip()
+        bk.notes = f"{bk.notes or ''}\nDate released: the deposit didn't arrive within {config.DATE_HOLD_HOURS:g} hours.".strip()
     if rows:
         db.commit()
     for bk in rows:
@@ -244,15 +302,21 @@ def my_holds(token: str, authorization: str = Header(default=""), db: Session = 
     owner = _owner(db, token)
     cus = current_customer(owner, db, authorization)
     expire_holds(db, owner.id)
-    client = regular_client(db, owner.id, cus.email)
+    client = eligible_client(db, owner.id, cus.email)
     clients = db.query(Client).filter(Client.user_id == owner.id, func.lower(Client.email) == cus.email.lower()).all()
     cids = [c.id for c in clients]
     mine = (db.query(Booking).filter(Booking.user_id == owner.id, Booking.client_id.in_(cids), Booking.date_hold == True,  # noqa: E712
                                      Booking.status.in_(["enquiry", "confirmed"]), Booking.date >= _date.today().isoformat())
             .order_by(Booking.date.asc()).all()) if cids else []
+    by_service: dict[str, list[str]] = {}
+    if client:
+        rules, rows = hold_calendar(db, owner)
+        mine_days = {b.date for b in mine}
+        for svc in SERVICES:
+            by_service[svc] = [d for d in dates_for_service(rules, rows, svc) if d not in mine_days]
     return {"eligible": bool(client), "amount": config.DATE_HOLD_DEPOSIT, "hours": config.DATE_HOLD_HOURS,
-            "min_days": config.DATE_HOLD_MIN_DAYS, "window_days": config.DATE_HOLD_WINDOW_DAYS, "services": SERVICES,
-            "dates": [d for d in open_hold_dates(db, owner) if d not in {b.date for b in mine}] if client else [],
+            "min_days": config.DATE_HOLD_MIN_DAYS, "window_days": config.DATE_HOLD_WINDOW_DAYS, "max_dates": config.DATE_HOLD_MAX_PER_REQUEST,
+            "services": SERVICES, "dates_by_service": by_service,
             "holds": [hold_dict(b, cus.name or (client.name if client else "")) for b in mine]}
 
 
@@ -262,88 +326,145 @@ def place_hold(request: Request, token: str, payload: dict = Body(...), authoriz
     cus = current_customer(owner, db, authorization)
     ip = ratelimit.client_ip(request)
     if ratelimit.count(f"hold:{ip}", 600) >= 8:
-        raise HTTPException(429, "A few holds have been placed from here already. Please wait a little while.")
+        raise HTTPException(429, "A few requests have been placed from here already. Please wait a little while.")
     ratelimit.record(f"hold:{ip}", 600)
     expire_holds(db, owner.id)
-    if calsync.stale(owner, 300):  # a date just blocked in her main calendar shouldn't be holdable
+    if calsync.stale(owner, 300):  # a date just blocked in her main calendar shouldn't be requestable
         calsync.sync_user(db, owner)
-    client = regular_client(db, owner.id, cus.email)
+    client = eligible_client(db, owner.id, cus.email)
     if not client:
-        raise HTTPException(403, "Reserving a date online is for regular and already-consulted clients. Please enquire and we'll be in touch.")
-    day = (payload.get("date") or "").strip()[:10]
+        raise HTTPException(403, "Booking dates online is for regular and already-consulted clients. Please enquire and we'll be in touch.")
+    raw = payload.get("dates")
+    if raw is None and payload.get("date"):
+        raw = [payload.get("date")]
+    days = sorted({str(d).strip()[:10] for d in (raw or []) if str(d).strip()})
     service = (payload.get("service") or "").strip()
     if service not in SERVICES:
-        raise HTTPException(422, "Choose which personal chef service this is for")
-    if day not in open_hold_dates(db, owner):
-        raise HTTPException(422, "That date isn't available to hold. Please pick one of the dates shown.")
+        raise HTTPException(422, "Choose which service these dates are for")
+    if not days:
+        raise HTTPException(422, "Choose at least one date")
+    if len(days) > config.DATE_HOLD_MAX_PER_REQUEST:
+        raise HTTPException(422, f"You can ask for up to {config.DATE_HOLD_MAX_PER_REQUEST} dates at a time")
+    allowed = set(open_hold_dates(db, owner, service))
+    bad = [d for d in days if d not in allowed]
+    if bad:
+        raise HTTPException(422, f"{_pretty_date(bad[0])} isn't available for that. Please pick from the dates shown.")
     cids = [c.id for c in db.query(Client).filter(Client.user_id == owner.id, func.lower(Client.email) == cus.email.lower()).all()]
     active = (db.query(Booking).filter(Booking.user_id == owner.id, Booking.client_id.in_(cids), Booking.date_hold == True,  # noqa: E712
                                        Booking.status == "enquiry", Booking.deposit_paid == False).all())  # noqa: E712
-    if any(b.date == day for b in active) or (db.query(Booking).filter(Booking.user_id == owner.id, Booking.client_id.in_(cids), Booking.date_hold == True,  # noqa: E712
-                                                                      Booking.status == "confirmed", Booking.date == day).first()):
-        raise HTTPException(422, "You already have that date held.")
-    if len(active) >= config.DATE_HOLD_MAX_ACTIVE:
-        raise HTTPException(422, f"You have {len(active)} holds waiting for their deposit. Please pay or let them lapse before holding more.")
+    if {b.date for b in active} & set(days):
+        raise HTTPException(422, "You already have one of those dates held.")
+    if len(active) + len(days) > config.DATE_HOLD_MAX_ACTIVE:
+        raise HTTPException(422, f"You have {len(active)} dates waiting already. Please let us confirm those before asking for more.")
     note = (payload.get("note") or "").strip()[:500]
-    bk = Booking(
-        user_id=owner.id, client_id=client.id, title=f"Date hold · {client.name}", event_type=f"Personal chef · {service}",
-        status="enquiry", date=day, date_hold=True, deposit_amount=config.DATE_HOLD_DEPOSIT, deposit_paid=False,
-        hold_expires_at=_iso(_now() + timedelta(hours=config.DATE_HOLD_HOURS)),
-        notes=f"Date hold placed online. Deposit {_money(config.DATE_HOLD_DEPOSIT)} by bank transfer, reference {_reference(client.name, day)}."
-              + (f"\nClient note: {note}" if note else ""),
-    )
-    db.add(bk)
+    made = []
+    for day in days:
+        bk = Booking(
+            user_id=owner.id, client_id=client.id, title=f"Date request · {client.name}", event_type=f"Personal chef · {service}",
+            status="enquiry", date=day, date_hold=True, hold_stage="requested", deposit_amount=config.DATE_HOLD_DEPOSIT, deposit_paid=False,
+            hold_expires_at="",
+            notes=f"Date requested online, held until confirmed. Deposit {_money(config.DATE_HOLD_DEPOSIT)} by bank transfer once confirmed, reference {_reference(client.name, day)}."
+                  + (f"\nClient note: {note}" if note else ""),
+        )
+        db.add(bk)
+        made.append(bk)
     db.commit()
-    db.refresh(bk)
-    _send(hold_emails(owner, bk, client), "customer", "chef")
-    return {"hold": hold_dict(bk, client.name), "bank": {"name": owner.bank_account_name, "bank": owner.bank_name,
-                                                          "sort": owner.bank_sort_code, "account": owner.bank_account_number}}
+    for bk in made:
+        db.refresh(bk)
+    _send(requested_emails(owner, made, client), "customer", "chef")
+    return {"holds": [hold_dict(b, client.name) for b in made],
+            "bank": {"name": owner.bank_account_name, "bank": owner.bank_name, "sort": owner.bank_sort_code, "account": owner.bank_account_number}}
 
 
 # ───────────────────────────── chef ─────────────────────────────
 def _hold(db: Session, user, hold_id: int) -> Booking:
     bk = get_owned(db, Booking, hold_id, ws_id(user))
     if not bk.date_hold:
-        raise HTTPException(404, "That booking isn't a date hold")
+        raise HTTPException(404, "That booking isn't a date request")
     return bk
+
+
+def _client_of(db: Session, bk: Booking) -> Client | None:
+    return db.get(Client, bk.client_id) if bk.client_id else None
 
 
 @router.get("")
 def list_holds(db: Session = Depends(get_db), user: User = Depends(require_active)):
     expire_holds(db, ws_id(user))
     rows = (db.query(Booking).filter(Booking.user_id == ws_id(user), Booking.date_hold == True, Booking.status == "enquiry",  # noqa: E712
-                                     Booking.deposit_paid == False).order_by(Booking.hold_expires_at.asc()).all())  # noqa: E712
+                                     Booking.deposit_paid == False).order_by(Booking.date.asc()).all())  # noqa: E712
     out = []
     for b in rows:
-        c = db.get(Client, b.client_id) if b.client_id else None
+        c = _client_of(db, b)
         out.append({**hold_dict(b, c.name if c else ""), "client_id": b.client_id, "client_name": c.name if c else "",
-                    "email": c.email if c else "", "phone": c.phone if c else ""})
+                    "email": c.email if c else "", "phone": c.phone if c else "", "notes": b.notes or ""})
     return out
+
+
+@router.get("/{hold_id}/confirm-preview")
+def confirm_preview(hold_id: int, db: Session = Depends(get_db), user: User = Depends(require_active)):
+    bk = _hold(db, user, hold_id)
+    owner, client = db.get(User, ws_id(user)), _client_of(db, bk)
+    if not client:
+        raise HTTPException(422, "This request has no client attached")
+    probe = Booking(date=bk.date, event_type=bk.event_type, deposit_amount=bk.deposit_amount,
+                    hold_expires_at=_iso(_now() + timedelta(hours=config.DATE_HOLD_HOURS)))
+    return {"stage": stage_of(bk), **confirm_emails(owner, probe, client)}
+
+
+@router.post("/{hold_id}/confirm")
+def confirm_available(hold_id: int, db: Session = Depends(get_db), user: User = Depends(require_active)):
+    """The chef is free that day: ask the client for the deposit and start its clock."""
+    bk = _hold(db, user, hold_id)
+    if bk.deposit_paid or bk.status != "enquiry":
+        raise HTTPException(422, "This one is already settled")
+    owner, client = db.get(User, ws_id(user)), _client_of(db, bk)
+    bk.hold_stage = "awaiting_deposit"
+    bk.hold_expires_at = _iso(_now() + timedelta(hours=config.DATE_HOLD_HOURS))
+    db.commit()
+    if client:
+        _send(confirm_emails(owner, bk, client), "customer")
+    return {"ok": True, "expires_at": bk.hold_expires_at + "Z"}
+
+
+@router.post("/{hold_id}/decline")
+def decline(hold_id: int, payload: dict = Body(default={}), db: Session = Depends(get_db), user: User = Depends(require_active)):
+    bk = _hold(db, user, hold_id)
+    if bk.deposit_paid:
+        raise HTTPException(422, "The deposit has been received, so this is a confirmed booking. Cancel or move it from Bookings.")
+    owner, client = db.get(User, ws_id(user)), _client_of(db, bk)
+    bk.status, bk.hold_stage = "cancelled", ""
+    bk.notes = f"{bk.notes or ''}\nDeclined by the chef.".strip()
+    db.commit()
+    _send(declined_emails(owner, bk, client, (payload or {}).get("reason") or ""), "customer")
+    return {"ok": True}
 
 
 @router.get("/{hold_id}/paid-preview")
 def paid_preview(hold_id: int, db: Session = Depends(get_db), user: User = Depends(require_active)):
     bk = _hold(db, user, hold_id)
-    owner, client = db.get(User, ws_id(user)), db.get(Client, bk.client_id)
+    owner, client = db.get(User, ws_id(user)), _client_of(db, bk)
     if not client:
-        raise HTTPException(422, "This hold has no client attached")
+        raise HTTPException(422, "This request has no client attached")
     return {"status": bk.status, **paid_emails(owner, bk, client)}
 
 
 @router.post("/{hold_id}/paid")
 def mark_received(hold_id: int, db: Session = Depends(get_db), user: User = Depends(require_active)):
     bk = _hold(db, user, hold_id)
-    owner, client = db.get(User, ws_id(user)), (db.get(Client, bk.client_id) if bk.client_id else None)
+    owner, client = db.get(User, ws_id(user)), _client_of(db, bk)
     if bk.deposit_paid:
         return {"ok": True, "already": True}
     if bk.status == "cancelled":
         # The money arrived after the hold lapsed: confirm it only if nobody has taken the day since.
         rules = rules_for(owner)
-        day = compute_days(db, owner.id, rules, _date.fromisoformat(bk.date), _date.fromisoformat(bk.date), detail=False)
-        if not day or day[0]["state"] == "full":
+        day = compute_days(db, owner.id, rules, _date.fromisoformat(bk.date), _date.fromisoformat(bk.date), detail=True)
+        add = load_of(rules, bk)
+        if not day or day[0]["state"] == "full" or day[0]["load"] + add > 1.0001:
             raise HTTPException(409, "That date has been taken since the hold lapsed. Offer the client another date (their deposit can move).")
-    bk.status, bk.deposit_paid, bk.hold_expires_at = "confirmed", True, ""
+    bk.status, bk.deposit_paid, bk.hold_expires_at, bk.hold_stage = "confirmed", True, "", ""
     bk.deposit_amount = bk.deposit_amount or config.DATE_HOLD_DEPOSIT
+    bk.title = (bk.title or "").replace("Date request ·", "Booking ·", 1)
     bk.notes = f"{bk.notes or ''}\n{_money(bk.deposit_amount)} deposit received {_date.today().isoformat()}: non-refundable, can move to a later date, comes off the final invoice.".strip()
     db.commit()
     if client:
@@ -356,7 +477,7 @@ def release(hold_id: int, db: Session = Depends(get_db), user: User = Depends(re
     bk = _hold(db, user, hold_id)
     if bk.deposit_paid:
         raise HTTPException(422, "The deposit has been received, so this is a confirmed booking. Cancel or move it from Bookings.")
-    bk.status = "cancelled"
-    bk.notes = f"{bk.notes or ''}\nDate hold released by the chef.".strip()
+    bk.status, bk.hold_stage = "cancelled", ""
+    bk.notes = f"{bk.notes or ''}\nDate released by the chef.".strip()
     db.commit()
     return {"ok": True}

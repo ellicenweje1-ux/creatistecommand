@@ -791,6 +791,43 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
     testimonials" link), falling back to the standing quote when none is featured. The Reviews page has a "Where reviews go" guide card. FAQs (rule #3): Support
     "Can my Google or Apple calendar close dates…" + the reviews FAQ extended; public `/faq` calendar Q&A.
   - Preview artifact NOT republished this batch (the artifact tools were disconnected in this session): the live site is the reference. Republish Version 19 next time.
+- **CAPACITY OVERHAUL (seventeenth batch, 2026-11-09) — Ellice: "it feels over complicated, I still use my notepad, my books are filling up and I need clients to lock in dates in advance".**
+  What she told us: she **invoices first and never creates bookings** (one invoice = one client's service; weekly batch clients get one invoice a week); she **never works Sundays**
+  (church drop-offs aside); capacity is **not a count**: a morning of batch cooking leaves room for a Clean Dream order, an in-home day (4 hours) should be her only
+  booking, an event is one a day, house-share cooks can sit with a batch drop-off; every job has a **shop day, prep day, cook day and drop-off**; a requested date must be
+  **held straight away**, then **she confirms she is free, THEN the client pays the deposit**. Root causes found: invoices carried no service date so the Diary never saw her
+  real work; enquiries/pencilled promises didn't count; there was no weekly limit; a booking was a 15-field form. Built:
+  - **Day-share engine (`diary.py`, replaces max_per_day / prep_days / blocks_day).** Every booking takes a share of its day: `kinds` = `{id,label,match[],load,before1,before2}`
+    (shares are quarters 0.25..1). Defaults: **Clean Dream** half; **Batch cooking & meal prep** (batchfully, sorted & served) half, day-before 0.25; **In-home cooking** (home edit,
+    in-home, house share) full, day-before 0.25; **Private catering & events** full, day-before 0.5, two-days-before 0.25; unmatched = `default_load` half. A booking can override
+    its own share with new **`bookings.day_load`** (0 = default). A day is **full at 1.0**, on a day-off block, or on a **non-working day**; `rules.work_days` (default Mon to Sat,
+    **Sundays off**), `rules.week_max` (default 5, the weekly meter warns, never blocks). Shopping/prep slices **shift back off non-working days** (a Monday event preps on Saturday).
+    Old saved `kinds` migrate on read (blocks_day -> full, prep_days -> slices). Day rows (chef view) now carry `load`, `free`, `workday`; `GET /api/diary/check?date&service&load`
+    answers "would this fit?" with a plain reason. **Counting statuses** unchanged (quoted/confirmed/in_prep) **plus live date requests**.
+  - **Pencil in** (`frontend/src/pencil.jsx`, buttons on Diary + Bookings + each Diary day): name, day, service, optional share; live yes/no from `/diary/check`; saves a `quoted`
+    booking ("Pencilled in.") that counts at once. An invoice for the same client + day **adopts** it.
+  - **Invoice-first.** New additive **`invoices.service_date` + `invoices.service_type`** (added to the single `invoices` key). The invoice editor has "Service day" + "Service"; saving
+    calls **`POST /api/invoices/{id}/sync-booking`** which creates/keeps one linked booking (quoted while draft, confirmed once sent/paid, never moved backwards; adopts a matching
+    pencilled/request booking; leaves a booking shared by another invoice alone; duplicates drop the link). Diary card **"Invoices not in your Diary yet"** backfills old unpaid invoices
+    in one tap each. FAQ: "Do I have to create a booking before I invoice?" (rule #3).
+  - **Date requests rewritten (`holds.py`).** Eligible = **Regular tag OR any client who has paid an invoice** (`eligible_client`; no tagging chore). The client picks the **service first**,
+    then **ticks several dates** (up to 6, window **60 days**, min notice 7, max 8 open): only days that service fits are offered (`dates_by_service`). Stages via new additive
+    **`bookings.hold_stage`**: `requested` (held at once, no clock, never auto-expires, emails both) -> chef presses **"I'm free · Confirm"** (preview email, starts the **12-hour deposit
+    clock**, emails bank details) or **"Can't do it"** (releases, optional line to the client) -> `awaiting_deposit` -> **"£15 received"** -> confirmed (existing receipt + deposit
+    credit on the invoice). Unpaid awaiting rows expire after 12 h (`expire_holds`); legacy rows with no stage count as awaiting. Chef UI: Bookings "Date requests · waiting for you" and
+    "Waiting for the deposit" panels; Diary banner counts requests. Site `Account.jsx`: service select, multi-select month calendar, per-stage cards. Config:
+    `DATE_HOLD_WINDOW_DAYS=60`, `DATE_HOLD_MAX_ACTIVE=8`, `DATE_HOLD_MAX_PER_REQUEST=6` (`DATE_HOLD_WEEKDAYS` is gone: the Diary's `work_days` decides).
+  - **Diary UI:** weekly meter ("This week: 2.5 of 5 days of work"), per-day load bar, "held" tag, one plain "How your days work" card (work-day chips, most days a week, a kinds table with
+    On the day / Day before / Two days before). The old per-day count boxes are gone. Booking form gets "How much of the day this takes".
+  - **Corrections to earlier notes:** my fourteenth-batch default "Sun to Thu" for date holds was WRONG (she never works Sundays); it is now Mon to Sat via `work_days`. The £15 is **per date**.
+    The pencilled/held rule means website **enquiry-form leads still do not count** (only date requests, pencilled bookings and invoiced work do).
+  - **Verified:** backend `test_capacity.py` **60/60** (her exact day shapes: batch+Clean Dream fills a day, in-home is the only booking, house-share half-day override, pencilled counts,
+    event prep skips Sunday, work-day setting, legacy kinds migrate; eligibility by paid invoice; multi-date request; requested never expires; confirm/decline/paid/expiry; invoice sync create/
+    update/adopt/duplicate), `test_calsync.py` 35/35, migration drill (hold_stage, day_load, service_date, service_type on existing tables) , Playwright **31/31** (Diary rules/meter, pencil-in
+    yes/no, invoice editor saves a booking, undated card, site service->calendar->two dates, Bookings confirm/decline/received, site stages incl. bank panel, zero JS errors). The old
+    `test_holds.py` (single-date, 12h-from-request flow) is obsolete. **Harness gotcha:** `fuser -k` prints PIDs to stdout, so `./reset.sh | tail -1` can capture them into the enquiry token; read the token from the API instead.
+  - **Open items for Ellice:** confirm the default shares (batch half, in-home full, event full, Clean Dream half) and `week_max` 5; **she must give each older invoice a service day** (Diary ->
+    "Invoices not in your Diary yet"); Clean Dream standing block still only marks days "limited". Church Sunday drop-offs are not modelled: a Sunday booking can be entered by her but clients can't request Sundays.
 - **Soulfood Friday 2.0 flyer on What's Up (sixteenth batch):** her flyer (`site/public/flyers/soulfood-friday-2.webp`, 1080x1350) now has a **featured block** on
   `/whats-up` (`Featured` in `WhatsOn.jsx`, `[data-featured="pop-up"]`, id `pop-up` so the nav "Pop-ups & events" link still lands): flyer beside the details, the
   flyer itself and the gold **"RSVP now"** button both link to her Partiful page (`NOW.items[1].cta.href`, new tab, `rel=noreferrer`). **Time and location are marked

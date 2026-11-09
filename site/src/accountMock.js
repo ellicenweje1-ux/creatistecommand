@@ -6,13 +6,14 @@ const ref = (day) => { const d = new Date(`${day}T12:00:00`); return `Rita ${d.g
 
 // free dates: Sunday to Thursday, from a week ahead
 const free = []
-for (let i = 8; i <= 30; i++) { const d = new Date(); d.setDate(d.getDate() + i); if ([0, 1, 2, 3, 4].includes(d.getDay())) free.push(iso(d)) }
+for (let i = 8; i <= 60; i++) { const d = new Date(); d.setDate(d.getDate() + i); if ([0, 1, 2, 3, 4].includes(d.getDay())) free.push(iso(d)) }
 
 const holds = [
-  { id: 1, date: free[1], service: 'The Home Edit', status: 'enquiry', paid: false, amount: 15, expires_at: new Date(Date.now() + 7.5 * 3600000).toISOString(), reference: ref(free[1]) },
-  { id: 2, date: free[8], service: 'Batchfully Made', status: 'confirmed', paid: true, amount: 15, expires_at: '', reference: ref(free[6]) },
+  { id: 1, date: free[1], service: 'The Home Edit', status: 'enquiry', paid: false, stage: 'awaiting_deposit', amount: 15, expires_at: new Date(Date.now() + 7.5 * 3600000).toISOString(), reference: ref(free[1]) },
+  { id: 2, date: free[4], service: 'Batchfully Made', status: 'enquiry', paid: false, stage: 'requested', amount: 15, expires_at: '', reference: ref(free[4]) },
+  { id: 3, date: free[8], service: 'Batchfully Made', status: 'confirmed', paid: true, stage: 'confirmed', amount: 15, expires_at: '', reference: ref(free[8]) },
 ]
-let nextId = 3
+let nextId = 4
 const wait = (ms) => new Promise((r) => setTimeout(r, ms))
 
 export async function mockFetch(path, opts = {}) {
@@ -23,12 +24,14 @@ export async function mockFetch(path, opts = {}) {
   if (path === '/verify') return { token: 'mock', customer: { name: 'Rita Regular', email: body.email || 'rita@example.com', phone: '' } }
   if (path === '/holds') {
     const taken = new Set(holds.map((h) => h.date))
-    return { eligible: true, amount: 15, hours: 12, min_days: 7, window_days: 30, services: ['Batchfully Made', 'The Home Edit', 'Sorted & Served'], dates: free.filter((d) => !taken.has(d)), holds: [...holds].sort((a, b) => a.date.localeCompare(b.date)) }
+    const open = free.filter((d) => !taken.has(d))
+    return { eligible: true, amount: 15, hours: 12, min_days: 7, window_days: 60, max_dates: 6, services: ['Batchfully Made', 'The Home Edit', 'Sorted & Served'],
+      dates_by_service: { 'Batchfully Made': open, 'The Home Edit': open.filter((_, i) => i % 2 === 0), 'Sorted & Served': open }, holds: [...holds].sort((a, b) => a.date.localeCompare(b.date)) }
   }
   if (path === '/hold' && method === 'POST') {
-    if (!body.date || !body.service) throw new Error('Choose a date and a service.')
-    holds.push({ id: nextId++, date: body.date, service: body.service, status: 'enquiry', paid: false, amount: 15, expires_at: new Date(Date.now() + 12 * 3600000).toISOString(), reference: ref(body.date) })
-    return { hold: holds[holds.length - 1] }
+    if (!(body.dates || []).length || !body.service) throw new Error('Choose a service and at least one date.')
+    for (const d of body.dates) holds.push({ id: nextId++, date: d, service: body.service, status: 'enquiry', paid: false, stage: 'requested', amount: 15, expires_at: '', reference: ref(d) })
+    return { holds: [] }
   }
   if (path === '/me' && method === 'PATCH') return { name: body.name, email: 'rita@example.com', phone: body.phone }
   if (path === '/me') return {
