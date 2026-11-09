@@ -53,11 +53,8 @@ async function request(path, opts = {}) {
   const method = opts.method || 'GET'
 
   if (method === 'GET') {
-    if (!navigator.onLine) {
-      const cached = await cacheGet(path)
-      if (cached !== undefined) return cached
-      throw offlineError("You're offline and this hasn't been viewed yet — reconnect to load it.")
-    }
+    // Always try the server first: navigator.onLine is often wrong (VPNs, Wi-Fi hand-offs, a
+    // stuck DevTools "Offline" setting) and would wrongly hide a perfectly reachable server.
     try {
       const data = await networkRequest(path, opts)
       cachePut(path, data)
@@ -66,7 +63,11 @@ async function request(path, opts = {}) {
       if (!isNetworkError(e)) throw e
       const cached = await cacheGet(path)
       if (cached !== undefined) return cached
-      throw offlineError("You're offline and this hasn't been viewed yet — reconnect to load it.")
+      throw offlineError(
+        navigator.onLine
+          ? "We can't reach the server from this device right now, and this page hasn't been viewed yet. Check your connection, VPN or ad blocker, then try again."
+          : "You're offline and this hasn't been viewed yet — reconnect to load it.",
+      )
     }
   }
 
@@ -80,7 +81,6 @@ async function request(path, opts = {}) {
   }
 
   const canQueue = queueable(path)
-  if (!navigator.onLine && canQueue) return queueMutation(method, path, opts.body)
   try {
     const data = await networkRequest(path, opts)
     processOutbox() // clearly online — flush anything still waiting
