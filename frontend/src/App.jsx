@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Outlet, Route, Routes, useNavigate } from 'react-router-dom'
+import { Link, Navigate, NavLink, Outlet, Route, Routes, useNavigate } from 'react-router-dom'
 import { RequireActive, RequireAdmin, RequireAuth, useAuth } from './auth'
 import { cls } from './format'
 import { useOfflineState } from './offline'
@@ -26,7 +26,7 @@ import ResetPassword from './pages/ResetPassword'
 import Orders from './pages/Orders'
 import Preorders from './pages/Preorders'
 import Reviews from './pages/Reviews'
-import Diary from './pages/Diary'
+import CalendarPage from './pages/Calendar'
 import Packing from './pages/Packing'
 import PublicEnquiry from './pages/PublicEnquiry'
 import PublicInvoice from './pages/PublicInvoice'
@@ -52,8 +52,8 @@ const NAV_GROUPS = [
     items: [
       { to: '/app', icon: 'home', label: 'Home', end: true },
       { to: '/app/dashboard', icon: 'pulse', label: 'Dashboard' },
+      { to: '/app/calendar', icon: 'clock', label: 'Calendar' },
       { to: '/app/bookings', icon: 'calendar', label: 'Bookings' },
-      { to: '/app/diary', icon: 'clock', label: 'Diary' },
       { to: '/app/preorders', icon: 'cart', label: 'Pre-orders', min: 2 },
       { to: '/app/clients', icon: 'users', label: 'Clients', min: 2 },
       { to: '/app/tastings', icon: 'fork', label: 'Tastings', min: 2 },
@@ -87,7 +87,7 @@ const NAV_GROUPS = [
 ]
 
 // Bottom-nav quick links (mobile) — referenced by path so the reorder above can't break them.
-const QUICK_PATHS = ['/app/dashboard', '/app/bookings', '/app/tasks', '/app/shopping']
+const QUICK_PATHS = ['/app/dashboard', '/app/calendar', '/app/tasks', '/app/shopping']
 
 const PLAN_NAMES = { 2: 'Pro Caterer', 3: 'Elite Kitchen' }
 
@@ -318,7 +318,8 @@ export default function App() {
         <Route path="orders" element={<Orders />} />
         <Route path="preorders" element={<Preorders />} />
         <Route path="reviews" element={<Reviews />} />
-        <Route path="diary" element={<Diary />} />
+        <Route path="calendar" element={<CalendarPage />} />
+        <Route path="diary" element={<Navigate to="/app/calendar" replace />} />
         <Route path="allergens" element={<Allergens />} />
         <Route path="suppliers" element={<Suppliers />} />
         <Route path="tasks" element={<Tasks />} />

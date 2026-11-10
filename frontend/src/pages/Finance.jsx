@@ -10,13 +10,15 @@ import { MenuItemsMenu, fetchMenuItems } from '../menulines'
 import { PriceBookSearch } from '../pricebook'
 import { GripHandle, SortableList } from '../sortable'
 import { DocPreview, PreviewModal } from '../receiptpreview'
+import { parseTime, showTime, timeHint, addHours } from '../timeinput'
 
 /* ------------------------------ invoice editor ------------------------------ */
-export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, bookingId = null, clientId = null, prefillItems = null, currency = 'GBP' }) {
+export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, bookingId = null, clientId = null, prefillItems = null, prefill = null, currency = 'GBP' }) {
   const { user } = useAuth()
   const blank = {
     number: '', status: 'draft', issue_date: todayISO(), due_date: '', paid_date: '',
     items: [], tax_rate: 0, discount: 0, deposit_type: '', deposit_value: 0, notes: '', service_date: '', service_type: '',
+    service_time: '', service_package: '', service_days: [],
   }
   const [form, setForm] = useState(blank)
   const [clients, setClients] = useState([])
@@ -28,19 +30,23 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
   // saves PATCH it (no accidental duplicates) and closing refreshes the parent list.
   const [savedId, setSavedId] = useState(null)
   const [savedMidEdit, setSavedMidEdit] = useState(false)
+  const [services, setServices] = useState([])   // how each service runs (Calendar → Your services): names, packages
+  const [timeText, setTimeText] = useState('')    // the time on the day, as typed ("12", "4:30pm")
 
   useEffect(() => {
     if (!open) return
     setSavedId(initial?.id || null)
     setSavedMidEdit(false)
     api.get('/clients').then(setClients).catch(() => {})
+    api.get('/jobs/setup').then((r) => setServices(r.services || [])).catch(() => {})
     if (!bookingId) api.get('/bookings').then(setBookings).catch(() => {})
-    if (initial) setForm({ ...blank, ...initial, items: (initial.items || []).map((it) => ({ ...it, id: it.id || uid() })) })
+    setTimeText(showTime(initial?.service_time || prefill?.service_time || ''))
+    if (initial) setForm({ ...blank, ...initial, service_days: initial.service_days || [], items: (initial.items || []).map((it) => ({ ...it, id: it.id || uid() })) })
     else {
       // Seed a new invoice with the chef's saved defaults (notes + deposit) from Settings → Invoices,
       // plus any prefilled line items (e.g. "Build an invoice from this menu").
       const seeded = {
-        ...blank, client_id: clientId,
+        ...blank, ...(prefill || {}), client_id: clientId ?? prefill?.client_id ?? null,
         items: prefillItems || [],
         notes: user?.invoice_notes_default || '',
         deposit_type: user?.invoice_deposit_percent ? 'percent' : '',
@@ -66,6 +72,25 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
   }, [open, form.booking_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
+  // The service decides the job's shop / prep steps; a package can cover several days and sets how long each runs.
+  const svc = services.find((x) => x.name.toLowerCase() === (form.service_type || '').trim().toLowerCase())
+  const svcPackage = (svc?.packages || []).find((p) => p.name === form.service_package)
+  const multiDay = !!svcPackage && svcPackage.days > 1
+  const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const weekOf = (iso) => { const d = new Date(`${iso}T00:00:00`); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return ymd(d) }
+  const plusDays = (iso, n) => { const d = new Date(`${iso}T00:00:00`); d.setDate(d.getDate() + n); return ymd(d) }
+  const spread = (week, n) => (n === 3 ? [0, 2, 4] : n === 5 ? [0, 1, 2, 3, 4] : [...Array(Math.min(n, 7)).keys()]).map((i) => plusDays(week, i))
+  const pickPackage = (name) => {
+    const p = (svc?.packages || []).find((x) => x.name === name)
+    const days = p && p.days > 1 ? spread(weekOf(form.service_date || todayISO()), p.days) : []
+    setForm({ ...form, service_package: name, service_days: days, service_date: days[0] || form.service_date })
+  }
+  const toggleServiceDay = (iso) => {
+    const cur = form.service_days || []
+    const days = (cur.includes(iso) ? cur.filter((d) => d !== iso) : [...cur, iso]).sort()
+    setForm({ ...form, service_days: days, service_date: days[0] || form.service_date })
+  }
+  const parsedStart = parseTime(timeText)
   const items = form.items || []
   const setItem = (i, key, value) => setForm({ ...form, items: items.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)) })
   const addItem = (line) => setForm({ ...form, items: [...items, line] })
@@ -90,6 +115,9 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
 
   const buildPayload = () => ({
     ...form, tax_rate: Number(form.tax_rate) || 0, discount: Number(form.discount) || 0,
+    service_time: parseTime(timeText) || '',
+    service_days: multiDay ? [...(form.service_days || [])].sort() : [],
+    service_package: svcPackage ? svcPackage.name : '',
     deposit_type: form.deposit_type || '', deposit_value: Number(form.deposit_value) || 0,
     client_id: form.client_id ? Number(form.client_id) : null,
     booking_id: bookingId ?? (form.booking_id ? Number(form.booking_id) : null),
@@ -209,12 +237,35 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
               </Select>
             </Field>
           )}
-          <Field label="Service day" hint={form.service_date ? 'Counts in your Diary.' : 'The day you are cooking or delivering. Add it so this counts in your Diary.'}>
-            <Input type="date" value={form.service_date || ''} onChange={set('service_date')} data-service-date className={!form.service_date && form.client_id ? 'ring-1 ring-amber-400/60' : ''} />
+          <Field label={multiDay ? 'First day' : 'Service day'} hint={form.service_date ? 'Puts this job on your calendar, with its shop and prep.' : 'The day you are cooking or delivering. Add it to put this job on your calendar.'}>
+            <Input type="date" value={form.service_date || ''} onChange={(e) => setForm({ ...form, service_date: e.target.value, service_days: multiDay && e.target.value ? spread(weekOf(e.target.value), svcPackage.days) : form.service_days })} data-service-date className={!form.service_date && form.client_id ? 'ring-1 ring-amber-400/60' : ''} />
           </Field>
-          <Field label="Service" hint="Decides how much of the day it takes.">
-            <ComboInput value={form.service_type || ''} onChange={set('service_type')} options={[...new Set([...(user?.services || []), 'Batchfully Made', 'The Home Edit', 'Sorted & Served', 'Private catering', 'The Loaded Bar', 'Corporate Curations', 'Private & Personal', 'The Creatiste Table'])]} data-service-type />
+          <Field label="Service" hint="Sets the shop and prep steps on your calendar.">
+            <ComboInput value={form.service_type || ''} onChange={(e) => setForm({ ...form, service_type: e.target.value, service_package: '', service_days: [] })} options={[...new Set([...services.map((x) => x.name), ...(user?.services || [])])]} data-service-type />
           </Field>
+          {svc?.packages?.length ? (
+            <Field label="Package" hint={svcPackage ? `${svcPackage.days} day${svcPackage.days > 1 ? 's' : ''} · ${svcPackage.hours} hours a day` : 'Optional'}>
+              <Select value={form.service_package || ''} onChange={(e) => pickPackage(e.target.value)} data-service-package>
+                <option value="">No package</option>
+                {svc.packages.map((p) => <option key={p.id || p.name} value={p.name}>{p.name}</option>)}
+              </Select>
+            </Field>
+          ) : null}
+          <Field label="Time on the day (optional)" hint={parsedStart && svcPackage ? `Shows as ${showTime(parsedStart)} to ${showTime(addHours(parsedStart, svcPackage.hours))}.` : timeHint(timeText, 'Type it how you like, e.g. 12 or 4:30pm. You can add it later.')}>
+            <Input value={timeText} onChange={(e) => setTimeText(e.target.value)} placeholder="e.g. 12 or 4:30pm" data-service-time className={parsedStart === null ? 'ring-1 ring-amber-400/60' : ''} />
+          </Field>
+          {multiDay ? (
+            <div className="col-span-2" data-service-days>
+              <p className="label">Which days <span className="normal-case tracking-normal text-fg/45">({(form.service_days || []).length} of {svcPackage.days} for {svcPackage.name})</span></p>
+              <div className="flex flex-wrap gap-1.5">
+                {Array.from({ length: 7 }, (_, i) => plusDays(weekOf(form.service_date || todayISO()), i)).map((iso) => {
+                  const on = (form.service_days || []).includes(iso)
+                  return <button key={iso} type="button" onClick={() => toggleServiceDay(iso)} aria-pressed={on} data-service-day={iso}
+                    className={cls('rounded-full border px-3 py-1 text-xs', on ? 'border-copper bg-copper text-ink' : 'border-line text-fg/65 hover:border-copper/60')}>{fmtDate(iso)}</button>
+                })}
+              </div>
+            </div>
+          ) : null}
           {form.status === 'paid' && <Field label="Paid on"><Input type="date" value={form.paid_date || ''} onChange={set('paid_date')} /></Field>}
         </div>
 

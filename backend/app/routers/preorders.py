@@ -18,7 +18,7 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from .. import config, mailer, ratelimit
+from .. import config, mailer, notify, ratelimit
 from ..auth import require_plan
 from ..database import get_db
 from ..models import Booking, Client, PreOrder, User
@@ -296,6 +296,10 @@ def mark_paid(db: Session, order: PreOrder, payment_intent: str = ""):
     mails = receipt_emails(owner, order)
     mailer.send_email(mails["customer"]["to"], mails["customer"]["subject"], mails["customer"]["body"])
     mailer.send_email(mails["chef"]["to"], mails["chef"]["subject"], mails["chef"]["body"])
+    if order.pay_method != "bank":  # a bank order is marked paid by the chef, so there's nothing to tell them
+        notify.notify(db, owner, "orders", f"New {order.offer_title} order · £{order.subtotal:.2f} paid",
+                      f"{order.customer_name} · {_pretty_date(order.for_date)} · {len(order.boxes or [])} box(es)",
+                      url="/app/preorders", tag=f"order-{order.public_id}")
 
 
 @public_router.get("/receipt/{public_id}")
@@ -432,6 +436,9 @@ def place_bank_order(request: Request, token: str, payload: dict = Body(...), db
     mails = awaiting_emails(owner, order)
     mailer.send_email(mails["chef"]["to"], mails["chef"]["subject"], mails["chef"]["body"])
     mailer.send_email(mails["customer"]["to"], mails["customer"]["subject"], mails["customer"]["body"])
+    notify.notify(db, owner, "orders", f"New {order.offer_title} order · £{order.subtotal:.2f}",
+                  f"{order.customer_name} · {_pretty_date(order.for_date)} · {len(order.boxes or [])} box(es). Paying by bank transfer: mark it paid once it lands.",
+                  url="/app/preorders", tag=f"order-{order.public_id}")
     return {"ok": True, "public_id": order.public_id, "status": order.status, "total": order.subtotal}
 
 

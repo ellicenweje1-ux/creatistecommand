@@ -97,6 +97,8 @@ class User(Base):
     # The chef's public pre-order offer (menu, slots, delivery policy) — see routers/preorders.py.
     preorder_offer: Mapped[dict] = mapped_column(JSON, default=dict)
     diary_rules: Mapped[dict] = mapped_column(JSON, default=dict)  # {max_per_day, prep_days, public, horizon_days}
+    job_setup: Mapped[dict] = mapped_column(JSON, default=dict)     # {services:[...], remind_unplanned}: how each service runs (routers/jobs.py)
+    notify_prefs: Mapped[dict] = mapped_column(JSON, default=dict)  # which pop-up notifications this business gets (app/notify.py)
     admin_notes: Mapped[str] = mapped_column(Text, default="")
     # Password reset: a short-lived token emailed to the user (see routers/auth_router.py)
     reset_token: Mapped[str] = mapped_column(String(64), default="")
@@ -244,6 +246,9 @@ class Booking(OwnedMixin, Base):
     hold_stage: Mapped[str] = mapped_column(String(16), default="")
     # The chef's own call on how much of a day this booking takes: 0 = the service's default, else 0.25 / 0.5 / 1.
     day_load: Mapped[float] = mapped_column(Float, default=0)  # already taken off an invoice
+    # The job plan (invoice-first calendar): {service, package, days:[iso...], steps:[{kind,name,from,to,sessions:[{day,time,sent?}]}],
+    # built, sent:[...]}. Built from the chef's service setup (routers/jobs.py); shop / prep sessions are planned by the chef.
+    job_plan: Mapped[dict] = mapped_column(JSON, default=dict)
     menu: Mapped[list] = mapped_column(JSON, default=list)       # [{id,course,name,recipe_id,notes}]
     equipment: Mapped[list] = mapped_column(JSON, default=list)  # [str]
     dietary_notes: Mapped[str] = mapped_column(Text, default="")
@@ -379,6 +384,9 @@ class Invoice(OwnedMixin, Base):
     # The day the work happens (cook / event day). It puts this invoice in the Diary: saving the invoice keeps a linked booking in step.
     service_date: Mapped[str] = mapped_column(String(10), default="")
     service_type: Mapped[str] = mapped_column(String(80), default="")
+    service_time: Mapped[str] = mapped_column(String(5), default="")      # start time on the day, HH:MM (optional)
+    service_package: Mapped[str] = mapped_column(String(80), default="")  # a package of the service (sets days a week + hours)
+    service_days: Mapped[list] = mapped_column(JSON, default=list)        # every day a multi-day package covers (first = service_date)
 
 
 class Expense(OwnedMixin, Base):

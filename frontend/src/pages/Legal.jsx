@@ -422,22 +422,30 @@ export function Faq() {
       </Section>
       <Section heading="Can my website show which dates I have free?">
         <p>
-          Yes. The Diary gives you a Monday-to-Sunday week with every booking’s time window, your standing
-          services, prep days and days off. Your own website can show that as a live availability calendar,
-          only ever as open, limited or full per day, so enquiries arrive for dates you can actually take.
+          Yes. The Calendar gives you a Monday-to-Sunday week with every job, its shop and prep, and your days
+          off. Your own website can show that as a live availability calendar, only ever as open, limited or
+          full per day, so enquiries arrive for dates you can actually take.
         </p>
       </Section>
       <Section heading="Can my clients book dates in advance?">
         <p>
           Yes. Regular clients, and anyone who has already paid you, can sign in on your website, choose a service and tick
           every date they need. Each date is held for them straight away, you confirm you are free, and a small deposit
-          locks it in. Your diary measures each day in shares of a day, so it only ever offers dates that genuinely fit.
+          locks it in. Your calendar only ever offers dates that genuinely fit.
         </p>
       </Section>
       <Section heading="Can my own calendar close dates automatically?">
         <p>
           Yes. Connect your Google, Apple or Outlook calendar once and anything busy in it closes those dates in
-          your Diary and on your website, so you only ever keep one calendar up to date.
+          your Command calendar and on your website, so you only ever keep one calendar up to date.
+        </p>
+      </Section>
+      <Section heading="Can I just invoice, and have the rest planned for me?">
+        <p>
+          Yes. Every job starts from an invoice. Save it with the service, the day and the time, and the job lands
+          on your calendar with its shopping and prep waiting to be given a day and a time, inside the windows you set
+          for each service. The same calendar shows on your phone, and pop-up notifications tell you about new date
+          requests, orders, reviews and enquiries, and remind you before each shop, prep and job.
         </p>
       </Section>
       <Section heading="Can my customers have an account on my website?">

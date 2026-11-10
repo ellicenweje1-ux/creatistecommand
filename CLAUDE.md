@@ -833,6 +833,53 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
   appeared to work. Fix: GETs now always try the network first and only fall back to the cache on a real `TypeError`; the message says "can't reach the server from this
   device" when the browser claims to be online. Writes no longer queue just because `onLine` is false. Diagnosis tip: works on phone but not laptop = device-side
   (VPN, ad blocker, network filter, stale service-worker cache); check a private window first. The backend was verified clean on an old-schema DB (boot, migration, diary endpoints).
+- **INVOICE-FIRST CALENDAR + POP-UP NOTIFICATIONS (eighteenth batch, 2026-11-10) — Ellice: "restart the booking/service/invoice/client system… my phone
+  calendar should have the same content as my working calendar… invoicing is the easiest way to get underway… my calendar will show me when to shop, prep,
+  cook/deliver".** She approved a clickable mock-up first (artifact "Command Calendar Mock-up" https://claude.ai/artifact/2fm5LCEZd8kkZmnECsE7cK), then asked for the
+  build to stay generic for every chef with her own settings applied only to her account, all invoice features kept, and phone pop-ups "like a real app".
+  - **Model:** every job is a Booking with additive **`bookings.job_plan`** JSON {service, package, days[], steps[{kind shop|prep|custom, name, from, to,
+    sessions[{day, time, sent?}]}], built, sent[]} (single `bookings` key in `ensure_columns`). Steps come from the chef's service setup in additive
+    **`users.job_setup`** JSON {services[{id,name,category,day_label,usual_start,usual_end,requestable,steps[],packages[{name,days,hours}]}], remind_unplanned}.
+    Invoices gain additive **`service_time`, `service_package`, `service_days`** (in the single `invoices` key); duplicate copies package + time.
+    `finance.sync_booking` now calls **`jobs.apply_invoice`** (days from the package, start/end time from the invoice + package hours, plan rebuilt). Bookings
+    without a plan (old invoices, pre-order days, manual bookings) get one lazily when the calendar, feed or reminders read them.
+  - **`backend/app/routers/jobs.py`:** generic **category templates** (sameday shop 0→0 · delivered shop/prep 2→1 · inhome shop 1→0, prep off · event shop 7→1,
+    prep 4→1 · other) matched by generic words only; `setup_for` adds unsaved defaults for names the chef already uses (Business services, invoice service types,
+    their pre-order offer title). **`OWNER_PRESET`** (her eight services, windows exactly as she gave them, Home Edit's four packages with days/hours, Clean Dream
+    usual 1–4pm, Sorted & Served shop OFF because clients send ingredients, requestable = Batchfully / Sorted & Served / Home Edit) is loaded once at boot by
+    `apply_owner_preset` onto **the platform owner's account (ADMIN_EMAIL, role admin) only, and only while it has no saved setup**. Endpoints: `GET /jobs/calendar`
+    (days with entries: job days, step sessions, diary blocks incl. calendar-sourced, live date holds; `to_plan`; `requests`), `GET/PUT /jobs/setup` (owner only),
+    `GET /jobs/{id}` (+invoice, work_days), `PATCH/POST/DELETE /jobs/{id}/session` (plan a day+time inside the window, add/remove runs), `PATCH /jobs/{id}`
+    {date (single-day, not pre-orders), start} — the linked invoice's service day/time follow; sessions outside the new window go back to To plan.
+  - **Date requests:** holds' hardcoded `SERVICES` list is gone; offered services = setup services ticked "Regular clients can request dates for this"
+    (`holds.requestable`). Website availability (`diary.compute_days`) now counts every day of a multi-day package.
+  - **Phone calendar (ICS):** `calendar_feed` emits planned jobs via `jobs.feed_events`: one event per job day ("Cook & deliver · Rita M."), each planned session
+    ("Shop · Rita M.", timed = 1 hour), and optional all-day "To plan: …" on the last day of unplanned steps (`remind_unplanned`, default on). Plain website
+    enquiries no longer go to the phone. UIDs all end `@creatistecommand` (calsync ignores them, no loop).
+  - **Pop-up notifications (`backend/app/notify.py`, Web Push, VAPID already live):** per-business `users.notify_prefs` {requests, orders, reviews, enquiries,
+    reminders, lead_minutes 0/15/30/60/90/120, default all on + 60}. Sent on a website date request (holds), a new review (reviews), a bank pre-order placed and a
+    card pre-order paid (preorders), a website enquiry (public). **Reminder loop** (`jobs.start_reminder_loop`, every minute, started from the scheduler):
+    timed session/job day → lead minutes before; untimed → 8am on the day; unplanned whose last day is tomorrow → 6pm nudge; each sent once (`sent` keys in the plan).
+    Tapping opens `/app/calendar?job=<id>` (or Reviews / Pre-orders / Bookings). `GET/PUT /push/prefs`. iPhone needs the app added to the Home Screen.
+  - **Frontend:** new **`pages/Calendar.jsx`** (`/app/calendar`, nav "Calendar" after Dashboard, also in the phone bottom bar; `/app/diary` redirects) with tabs
+    **Calendar** (date requests strip = Bookings' `HoldsStrip`, now exported with `onPaid` → "£15 received" opens the invoice prefilled for that day with the
+    deposit credit; To plan cards; Mon–Sun week; job modal with inline day chips + "write the time however you like" box, add/remove runs, move day, time on the
+    day, Open/Make invoice; Block time; Invoices not on your calendar yet), **Your services** (steps on/off + from/to windows, custom steps, day label, usual times,
+    packages, requestable toggle, add a service from a template, working days + "show free dates on my website"; sticky save bar) and **Phone & notifications**
+    (NotificationsCard + new NotifyPrefs, CalendarFeedCard with iPhone steps, unplanned-reminders toggle, Your other calendar). `pages/Diary.jsx` deleted (its
+    block modal, other-calendar card and undated-invoices card moved into Calendar.jsx); the shares-of-day rules UI is gone (engine unchanged, still feeds the
+    website). **Invoice editor** (`Finance.jsx`): service options now come from the chef's setup (no hardcoded brand names), plus Package select, "Which days"
+    chips for multi-day packages and a typed "Time on the day" (`timeinput.js`: "8", "930", "2pm" → HH:MM; 1–6 without am/pm read as pm). `/jobs/` added to the
+    offline NO_QUEUE. FAQ (rule #3): Support "Can Command send pop-up notifications…", "How does the Calendar work?", "How do I set up how my services run?",
+    "Can my iPhone calendar show my jobs and shop times?", date-request + invoice-first answers updated; public `/faq` "Can I just invoice…"; Home guide + example card.
+  - **Verified:** `scratchpad/test_jobs.py` **66/66** (templates, owner preset only on the owner, setup cleaning, invoice→job, windows, planning validation, runs,
+    calendar entries + To plan, moving clears sessions + invoice follows, 3-day package, availability counts package days, duplicate keeps package, pre-order plans,
+    ICS content + UIDs + reminders toggle, enquiry/review pop-ups + prefs, reminder timing/once-only/8am/6pm nudge, requestable services); `test_capacity.py` 60/60
+    (now ticks requestable services first); `test_preorders.py` 36/36; `test_calsync.py` 34/35 and `test_reviews.py` 22/23, `test_batch7/8` = the same out-of-date
+    checks that fail on the previous commit (date drift / pre-overhaul engine), not regressions. Migration drill on a DB made by the previous commit: columns added,
+    preset loaded, old booking gets a plan, finance/invoices/bookings/diary 200. Playwright `scratchpad/cal_e2e/verify_cal.py` **34/34**, zero page errors.
+  - **For Ellice to do once:** on her iPhone add Command to the Home Screen, open it from there, Calendar → Phone & notifications → switch on "Notify me on this
+    device"; copy the calendar link into iPhone Calendar (steps on that tab). Old invoices without a service day: Calendar → "Invoices not on your calendar yet".
 - **Soulfood Friday 2.0 flyer on What's Up (sixteenth batch):** her flyer (`site/public/flyers/soulfood-friday-2.webp`, 1080x1350) now has a **featured block** on
   `/whats-up` (`Featured` in `WhatsOn.jsx`, `[data-featured="pop-up"]`, id `pop-up` so the nav "Pop-ups & events" link still lands): flyer beside the details, the
   flyer itself and the gold **"RSVP now"** button both link to her Partiful page (`NOW.items[1].cta.href`, new tab, `rel=noreferrer`). **Time and location are marked

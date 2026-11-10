@@ -224,7 +224,7 @@ function PipelineView({ bookings, currency, onEdit, onAdvance, onNew }) {
 /* Date requests. Clients hold the dates they need on your website; the day is held for them straight away.
    Step 1 (waiting for you): confirm you are free, which asks them for the deposit, or say you can't.
    Step 2 (waiting for the deposit): when the money lands, mark it received and the date is locked in. */
-function HoldsStrip({ holds, currency, onChanged }) {
+export function HoldsStrip({ holds, currency, onChanged, onPaid }) {
   const [now, setNow] = useState(Date.now())
   const [preview, setPreview] = useState(null) // { kind: 'confirm' | 'paid', hold, customer }
   const [decline, setDecline] = useState(null) // { hold, reason }
@@ -247,7 +247,9 @@ function HoldsStrip({ holds, currency, onChanged }) {
     try {
       if (preview.kind === 'confirm') { await api.post(`/holds/${preview.hold.id}/confirm`); toast('Confirmed. They have been asked for the deposit.', 'sage') }
       else { await api.post(`/holds/${preview.hold.id}/paid`); toast('Deposit received. The date is locked in and the client has been emailed.', 'sage') }
+      const paid = preview.kind === 'paid' ? preview.hold : null
       setPreview(null); onChanged()
+      if (paid && onPaid) onPaid(paid)
     } catch (e) { toastErr(e) } finally { setBusy(false) }
   }
   const sendDecline = async () => {
@@ -279,7 +281,7 @@ function HoldsStrip({ holds, currency, onChanged }) {
       {wanting.length ? (
         <div className="rounded-xl border border-copper/60 bg-copper/10 p-4" data-requests>
           <p className="font-display text-lg">Date requests <span className="text-sm text-fg/55">· waiting for you</span></p>
-          <p className="mt-0.5 text-xs text-fg/60">Already held on your diary and website. Confirm if you are free, or release it.</p>
+          <p className="mt-0.5 text-xs text-fg/60">Already held on your calendar and website. Confirm if you are free, or release it.</p>
           <ul className="mt-2 divide-y divide-line">
             {wanting.map((h) => (
               <li key={h.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5" data-hold-row={h.id} data-hold-stage="requested">

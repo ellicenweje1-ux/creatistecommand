@@ -38,7 +38,7 @@ from fastapi import APIRouter, Body, Depends, Header, HTTPException, Request
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from .. import calsync, config, mailer, ratelimit
+from .. import calsync, config, mailer, notify, ratelimit
 from ..auth import require_active
 from ..database import SessionLocal, get_db
 from ..models import Booking, Client, Invoice, User
@@ -50,7 +50,10 @@ log = logging.getLogger("creatiste.holds")
 public_router = APIRouter(prefix="/public/customer", tags=["public"])
 router = APIRouter(prefix="/holds", tags=["holds"])
 
-SERVICES = ["Batchfully Made", "The Home Edit", "Sorted & Served"]  # the personal chef services (mirrors the site)
+def requestable(db: Session, owner: User) -> list[str]:
+    """The services regular clients may request dates for: ticked under Calendar → Your services."""
+    from .jobs import requestable_services
+    return requestable_services(db, owner)
 
 
 # ───────────────────────────── small helpers ─────────────────────────────
@@ -312,11 +315,11 @@ def my_holds(token: str, authorization: str = Header(default=""), db: Session = 
     if client:
         rules, rows = hold_calendar(db, owner)
         mine_days = {b.date for b in mine}
-        for svc in SERVICES:
+        for svc in requestable(db, owner):
             by_service[svc] = [d for d in dates_for_service(rules, rows, svc) if d not in mine_days]
     return {"eligible": bool(client), "amount": config.DATE_HOLD_DEPOSIT, "hours": config.DATE_HOLD_HOURS,
             "min_days": config.DATE_HOLD_MIN_DAYS, "window_days": config.DATE_HOLD_WINDOW_DAYS, "max_dates": config.DATE_HOLD_MAX_PER_REQUEST,
-            "services": SERVICES, "dates_by_service": by_service,
+            "services": requestable(db, owner), "dates_by_service": by_service,
             "holds": [hold_dict(b, cus.name or (client.name if client else "")) for b in mine]}
 
 
@@ -339,7 +342,7 @@ def place_hold(request: Request, token: str, payload: dict = Body(...), authoriz
         raw = [payload.get("date")]
     days = sorted({str(d).strip()[:10] for d in (raw or []) if str(d).strip()})
     service = (payload.get("service") or "").strip()
-    if service not in SERVICES:
+    if service not in requestable(db, owner):
         raise HTTPException(422, "Choose which service these dates are for")
     if not days:
         raise HTTPException(422, "Choose at least one date")
@@ -372,6 +375,9 @@ def place_hold(request: Request, token: str, payload: dict = Body(...), authoriz
     for bk in made:
         db.refresh(bk)
     _send(requested_emails(owner, made, client), "customer", "chef")
+    notify.notify(db, owner, "requests", f"New date request from {client.name}",
+                  f"{service}: " + ", ".join(_pretty_date(b.date) for b in made) + ". Tap to say if you're free.",
+                  url="/app/calendar", tag=f"request-{made[0].id}")
     return {"holds": [hold_dict(b, client.name) for b in made],
             "bank": {"name": owner.bank_account_name, "bank": owner.bank_name, "sort": owner.bank_sort_code, "account": owner.bank_account_number}}
 

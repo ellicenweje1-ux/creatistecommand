@@ -169,7 +169,8 @@ def compute_days(db: Session, owner_id: int, rules: dict, start: _date, end: _da
     span = (end - start).days + 1
     if span <= 0:
         return []
-    q_from, q_to = start.isoformat(), (end + timedelta(days=8)).isoformat()  # later bookings can put shopping / prep inside the window
+    # later bookings can put shopping / prep inside the window; earlier ones can cover several days (a package)
+    q_from, q_to = (start - timedelta(days=7)).isoformat(), (end + timedelta(days=8)).isoformat()
     # A date request that is still held (waiting for the chef, or for its deposit) counts like a booking.
     now_iso = datetime.utcnow().replace(microsecond=0).isoformat()
     live_hold = and_(Booking.date_hold == True, Booking.status == "enquiry", Booking.deposit_paid == False,  # noqa: E712
@@ -187,8 +188,12 @@ def compute_days(db: Session, owner_id: int, rules: dict, start: _date, end: _da
             d0 = _date.fromisoformat(bk.date)
         except ValueError:
             continue
-        by_day.setdefault(bk.date, []).append(bk)
-        load[bk.date] = load.get(bk.date, 0.0) + load_of(rules, bk)
+        # A package that covers several days (e.g. three days a week) takes each of them.
+        on_days = [d for d in ((bk.job_plan or {}).get("days") or []) if isinstance(d, str) and len(d) == 10] or [bk.date]
+        share = load_of(rules, bk)
+        for d in on_days:
+            by_day.setdefault(d, []).append(bk)
+            load[d] = load.get(d, 0.0) + share
         k = kind_of(kinds, bk)
         for n, share in ((1, k["before1"]), (2, k["before2"])) if k else ():
             if share > 0:

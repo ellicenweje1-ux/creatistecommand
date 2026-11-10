@@ -13,7 +13,7 @@ from datetime import date as _date
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from .. import config, mailer, ratelimit
+from .. import config, mailer, notify, ratelimit
 from ..auth import get_current_user, require_plan
 from ..database import get_db
 from ..models import Client, ClientReview, User
@@ -107,6 +107,8 @@ def leave_review(request: Request, token: str, payload: dict = Body(...), db: Se
         f"{stars}\n{name}{(' · ' + event_name) if event_name else ''}{(' · ' + when) if when else ''}\n\n{comment}\n\n"
         f"Approve or hide it under Reviews in The Creatiste Command. Reviews only appear on your site once approved.",
     )
+    notify.notify(db, owner, "reviews", f"New review from {name} ({rating}/5)",
+                  (comment[:150] + ("…" if len(comment) > 150 else "")) + " Tap to approve it.", url="/app/reviews", tag=f"review-{review.id}")
     return {"ok": True, "message": "Thank you — your review has been sent for approval."}
 
 

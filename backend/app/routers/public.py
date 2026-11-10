@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
-from .. import config, mailer, ratelimit
+from .. import config, mailer, notify, ratelimit
 from ..database import get_db
 from ..models import ActivityLog, Booking, Client, Invoice, Quote, User
 from ..utils import EMAIL_RE, to_dict
@@ -181,6 +181,8 @@ def submit_enquiry(request: Request, token: str, payload: dict = Body(...), db: 
         f"{details}\n\nDate: {booking.date or 'TBC'} · Guests: {booking.guest_count or '?'}\n"
         f"It's waiting in your Bookings as an enquiry.\n\n— The Creatiste Command",
     )
+    notify.notify(db, owner, "enquiries", f"New enquiry from {name}",
+                  f"{booking.event_type or 'Enquiry'} · {booking.date or 'date to be confirmed'}", url="/app/bookings", tag=f"enquiry-{booking.id}")
     return {"ok": True, "message": "Thank you — your enquiry has been sent."}
 
 

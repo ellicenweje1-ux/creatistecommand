@@ -32,12 +32,24 @@ def calendar_feed(token: str, db: Session = Depends(get_db)):
     clients = {c.id: c.name for c in db.query(Client).filter(Client.user_id == owner.id).all()}
     events: list[list[str]] = []
 
+    # Planned jobs (the invoice-first calendar): each day of the job plus its shop / prep sessions.
+    from .jobs import feed_events
+
+    planned, covered = feed_events(db, owner)
+    for e in planned:
+        events.append(ics.event(
+            uid=f"{e['uid']}@creatistecommand", summary=e["summary"], date_str=e["date"], start_time=e["start"],
+            end_time=e["end"], location=e["location"], description=e["desc"], status=e["status"], stamp=e["stamp"],
+        ))
+
     bookings = (
         db.query(Booking)
         .filter(Booking.user_id == owner.id, Booking.status != "cancelled", Booking.date != "")
         .all()
     )
     for b in bookings:
+        if b.id in covered or (b.status == "enquiry" and not b.date_hold):
+            continue  # planned jobs are above; plain website enquiries stay off the phone until they're a job
         client = clients.get(b.client_id)
         desc = " · ".join(filter(None, [
             f"{b.guest_count} guests" if b.guest_count else "",

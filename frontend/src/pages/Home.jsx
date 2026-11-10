@@ -237,19 +237,19 @@ const GROUPS = [
     label: 'Grow the business',
     modules: [
       {
-        key: 'diary', icon: 'clock', label: 'Diary', title: 'Diary — your week, and what your website shows as free', to: '/app/diary',
-        blurb: 'Monday to Sunday with every booking’s time window, your standing services, prep days and days off, feeding a live availability calendar on your own site.',
+        key: 'diary', icon: 'clock', label: 'Calendar', title: 'Calendar — invoice, and the rest is planned', to: '/app/calendar',
+        blurb: 'Every job starts from an invoice and lands on its day, with its shop and prep waiting for a day and a time. The same week shows on your phone.',
         benefits: [
-          'See at a glance where a second job still fits on a day that already has one',
-          'Prep days are kept automatically before each confirmed event',
-          'Your website shows open, limited or full per day, never the detail, so enquiries land on dates you can take',
+          'No second place to write things: the invoice puts the job, its shopping and its prep on your calendar',
+          'You type the times the way you would on a pad, and your phone reminds you before each one',
+          'Your website shows open, limited or full per day, never the detail, so requests land on dates you can take',
         ],
         how: [
-          'Give bookings a start and end time so the day shows what’s really committed',
-          'Block a standing weekly service, a prep day or a holiday with “Block time”',
-          'Set how many events a day can hold and how many prep days each event needs, then switch “show on my website” on',
+          'Under Your services, set each service’s shop and prep windows (and packages, if you sell them)',
+          'Write the invoice with the service, the day and the time; the job appears straight away',
+          'Work through To plan: pick each shop and prep day, type the time, and turn on notifications under Phone & notifications',
         ],
-        tip: 'A Sunday drop-off with two prep days keeps Friday and Saturday as limited, so nobody books your cooking days out from under you.',
+        tip: 'Add your calendar link to your iPhone once and every job, shop and prep you plan here appears there too, with a pop-up before each.',
       },
       {
         key: 'clients', icon: 'users', label: 'Clients', title: 'Clients — your portfolio', to: '/app/clients', min: 2,

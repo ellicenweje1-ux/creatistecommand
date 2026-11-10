@@ -4,10 +4,11 @@ no-ops/clear errors when push isn't configured on the server."""
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from .. import push
+from .. import notify, push
 from ..auth import get_current_user
 from ..database import get_db
 from ..models import PushSubscription, User
+from ..utils import ws_id
 
 router = APIRouter(prefix="/push", tags=["push"])
 
@@ -64,9 +65,28 @@ def test_push(db: Session = Depends(get_db), user: User = Depends(get_current_us
         raise HTTPException(503, "Phone notifications aren't configured on the server yet.")
     sent = push.notify_user(
         db, user.id, "The Creatiste Command",
-        "Notifications are on — you'll get a heads-up before a task is due.",
+        "Notifications are on. New requests, orders and reviews, and your shop and prep times, will pop up here.",
         url="/app/tasks", tag="cc-test",
     )
     if not sent:
         raise HTTPException(400, "No device is subscribed on this account yet. Turn the toggle on first.")
     return {"sent": sent}
+
+
+@router.get("/prefs")
+def get_prefs(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Which pop-ups this business gets, plus whether this account has a device subscribed."""
+    owner = db.get(User, ws_id(user))
+    devices = db.query(PushSubscription).filter(PushSubscription.user_id == user.id).count()
+    return {**notify.prefs(owner), "types": notify.TYPES, "lead_choices": list(notify.LEAD_CHOICES),
+            "enabled": push.push_enabled(), "devices": devices}
+
+
+@router.put("/prefs")
+def save_prefs(payload: dict = Body(...), db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    owner = db.get(User, ws_id(user))
+    if user.role == "staff":
+        raise HTTPException(403, "Only the business owner can change these")
+    owner.notify_prefs = {**(owner.notify_prefs or {}), **notify.clean_prefs(payload)}
+    db.commit()
+    return get_prefs(db, user)

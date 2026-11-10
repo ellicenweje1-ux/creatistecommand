@@ -56,6 +56,7 @@ def ensure_columns():
             "examples_hidden": "JSON",
             "preorder_offer": "JSON", "diary_rules": "JSON",
             "invoice_tax_label": "VARCHAR(20) DEFAULT ''",
+            "job_setup": "JSON", "notify_prefs": "JSON",
         },
         "platform_settings": {"founders": "JSON"},
         "tasks": {"assignee_id": "INTEGER", "due_reminder_for": "VARCHAR(20) DEFAULT ''"},
@@ -64,6 +65,7 @@ def ensure_columns():
             "date_hold": "BOOLEAN DEFAULT 0", "hold_expires_at": "VARCHAR(19) DEFAULT ''",
             "deposit_amount": "FLOAT DEFAULT 0", "deposit_applied": "BOOLEAN DEFAULT 0",
             "hold_stage": "VARCHAR(16) DEFAULT ''", "day_load": "FLOAT DEFAULT 0",
+            "job_plan": "JSON",
         },
         "clients": {"regular": "BOOLEAN DEFAULT 0"},
         "diary_blocks": {"source": "VARCHAR(16) DEFAULT ''", "ext_uid": "VARCHAR(200) DEFAULT ''"},
@@ -85,6 +87,7 @@ def ensure_columns():
             "public_token": "VARCHAR(64) DEFAULT ''",
             "deposit_type": "VARCHAR(10) DEFAULT ''", "deposit_value": "FLOAT DEFAULT 0",
             "service_date": "VARCHAR(10) DEFAULT ''", "service_type": "VARCHAR(80) DEFAULT ''",
+            "service_time": "VARCHAR(5) DEFAULT ''", "service_package": "VARCHAR(80) DEFAULT ''", "service_days": "JSON",
         },
     }
     inspector = sa.inspect(engine)

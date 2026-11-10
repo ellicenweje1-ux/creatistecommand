@@ -92,23 +92,23 @@ const EXAMPLES = {
   },
 
   diary: {
-    title: 'A week with your time blocked out',
-    blurb: 'Bookings show with their time window; your own entries sit beside them. This is what a standing service looks like:',
+    title: 'One invoice, planned out',
+    blurb: 'Saving an invoice put this job on its day. Its shop is planned; its prep is still waiting in To plan:',
     item: (
       <MockItem
-        title="Clean Dream lunch service"
-        badges={<Badge tone="amber">Limited</Badge>}
+        title="Jane Doe · Weekly meal prep"
+        badges={<Badge tone="copper">Cook & deliver · Thu 12pm</Badge>}
         metas={[
-          <Meta key="d" icon="clock">Mon to Fri · 09:00 – 14:00 · weekly</Meta>,
-          <Meta key="p" icon="calendar">Prep day before each confirmed event</Meta>,
+          <Meta key="s" icon="cart">Shop · Tue 9:30am</Meta>,
+          <Meta key="p" icon="clock">Prep · any day Tue to Wed · to plan</Meta>,
         ]}
-        note="Your website shows this day as limited (a slot may still fit), never the title."
+        note="Each of these shows on your phone calendar too, with a pop-up before it."
       />
     ),
     tips: [
-      'Give every booking a start and end time, then a second job on the same day is an honest yes or no.',
-      'Block a holiday with an end date and the whole run shows as full on your site.',
-      'Turn “show on my website” on under the rules once the week looks right.',
+      'Set each service’s shop and prep windows once under Your services; every invoice uses them.',
+      'Type times the way you would on a pad: 8, 930 or 2pm all work. Leave it blank for any time that day.',
+      'Add your calendar link to your phone once (Phone & notifications) and switch on notifications on the device.',
     ],
   },
   clients: {

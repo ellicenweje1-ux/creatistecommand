@@ -925,15 +925,15 @@ function MobileAppCard() {
 }
 
 /* Calendar feed: a private ICS link to subscribe to in any phone/desktop calendar. */
-function CalendarFeedCard({ token }) {
+export function CalendarFeedCard({ token }) {
   const httpsUrl = `${window.location.origin}/api/calendar/${token}.ics`
   const webcalUrl = `webcal://${window.location.host}/api/calendar/${token}.ics`
   return (
-    <Card title="Calendar subscription">
+    <Card title="Calendar subscription" data-feed-card>
       <p className="mb-3 text-sm text-fg/65">
-        Subscribe to your bookings &amp; tastings from your phone or desktop calendar — they
+        Your jobs, their shop and prep times, and your tastings, in your phone or desktop calendar. They
         appear alongside your life and <span className="font-medium text-fg">update automatically</span> as
-        you add or change events here. It's read-only and the link is private to you.
+        you plan here. It's read-only and the link is private to you.
       </p>
       <div className="flex gap-2">
         <Input readOnly value={httpsUrl} onFocus={(e) => e.target.select()} />
@@ -944,6 +944,10 @@ function CalendarFeedCard({ token }) {
         <p className="text-fg/55">
           <a href={webcalUrl} className="font-medium text-copper hover:underline">Add to Apple Calendar (one tap) →</a>
           <span className="text-fg/40"> — on iPhone, iPad or Mac it opens straight into “Subscribe to Calendar”.</span>
+        </p>
+        <p className="text-fg/55">
+          <span className="font-medium text-fg/70">iPhone, by hand</span>
+          <span className="text-fg/40"> — Settings → Apps → Calendar → Calendar Accounts → Add Account → Other → <span className="font-medium text-fg/60">Add Subscribed Calendar</span> → paste the link above → Next → Save.</span>
         </p>
         <p className="text-fg/55">
           <span className="font-medium text-fg/70">Google Calendar</span>
@@ -997,13 +1001,15 @@ function DataExportCard({ user }) {
   )
 }
 
-/* Phone notifications (Web Push): a heads-up before a task is due, on your phone. */
-function NotificationsCard() {
+/* Phone notifications (Web Push): pop-up banners for new requests, orders, reviews and enquiries, and reminders before
+   shop / prep / job times and tasks. Which kinds arrive is the business owner's choice (NotifyPrefs). */
+export function NotificationsCard() {
   const [cfg, setCfg] = useState(null)          // {enabled, public_key} from the server
   const [on, setOn] = useState(false)           // this device subscribed?
   const [busy, setBusy] = useState(false)
   const [perm, setPerm] = useState(permissionState())
   const supported = pushSupported()
+  const { user } = useAuth()
 
   useEffect(() => {
     getPushConfig().then(setCfg).catch(() => setCfg({ enabled: false }))
@@ -1023,10 +1029,10 @@ function NotificationsCard() {
   }
 
   return (
-    <Card title="Phone notifications">
+    <Card title="Phone notifications" data-notify-card>
       <p className="mb-3 text-sm text-fg/65">
-        Get a heads-up on your phone before a task is due — even when the app is closed. Turn it
-        on for each device you want pinged.
+        Pop-up banners on your phone, like any app, even when Command is closed: a new date request, order, review
+        or enquiry, and a reminder before each shop, prep and job time. Turn it on for each device you want pinged.
       </p>
 
       {!supported ? (
@@ -1062,9 +1068,41 @@ function NotificationsCard() {
             </p>
           )}
           {on && <Button size="sm" variant="secondary" icon="bell" onClick={test}>Send a test notification</Button>}
+          {!user?.is_staff && <NotifyPrefs />}
         </div>
       )}
     </Card>
+  )
+}
+
+/* Which pop-ups arrive, and how long before a shop / prep / job time the reminder comes. */
+function NotifyPrefs() {
+  const [p, setP] = useState(null)
+  useEffect(() => { api.get('/push/prefs').then(setP).catch(() => {}) }, [])
+  if (!p) return null
+  const save = async (patch) => {
+    setP({ ...p, ...patch })
+    try { setP(await api.put('/push/prefs', patch)) } catch (e) { toastErr(e) }
+  }
+  const leadLabel = (n) => (n === 0 ? 'At the time' : n < 60 ? `${n} minutes before` : n === 60 ? '1 hour before' : `${n / 60} hours before`)
+  return (
+    <div className="rounded-lg border border-line px-3 py-3" data-notify-prefs>
+      <p className="text-sm font-medium">What pops up</p>
+      <div className="mt-2 space-y-2">
+        {Object.entries(p.types || {}).map(([k, label]) => (
+          <div key={k} className="flex items-center justify-between gap-3" data-notify-type={k}>
+            <span className="text-sm text-fg/75">{label}</span>
+            <Toggle checked={!!p[k]} onChange={(v) => save({ [k]: v })} />
+          </div>
+        ))}
+      </div>
+      <Field label="Remind me before a timed shop, prep or job" className="mt-3">
+        <Select value={p.lead_minutes} onChange={(e) => save({ lead_minutes: Number(e.target.value) })} data-notify-lead>
+          {(p.lead_choices || []).map((n) => <option key={n} value={n}>{leadLabel(n)}</option>)}
+        </Select>
+      </Field>
+      <p className="mt-1.5 text-xs text-fg/45">Steps with no time set pop up at 8am on their day. Anything still unplanned gets a nudge at 6pm the evening before its last day.</p>
+    </div>
   )
 }
 

@@ -186,6 +186,7 @@ def duplicate_invoice(invoice_id: int, db: Session = Depends(get_db), user=Depen
     dup = Invoice(
         # An invoice that put its own booking in the Diary isn't linked to it again: the copy gets its own date and booking.
         user_id=ws_id(user), booking_id=None if src.service_date else src.booking_id, client_id=src.client_id, service_type=src.service_type,
+        service_package=src.service_package, service_time=src.service_time,
         number=render_doc_number(fmt, seq), status="draft",
         issue_date=date.today().isoformat(), due_date="", paid_date="",
         items=[dict(i) for i in (src.items or [])],
@@ -290,6 +291,9 @@ def sync_booking(invoice_id: int, db: Session = Depends(get_db), user=Depends(re
             order = {"enquiry": 0, "quoted": 1, "confirmed": 2, "in_prep": 3, "completed": 4, "cancelled": 0}
             if order.get(want, 0) > order.get(bk.status, 0):
                 bk.status = want
+    # The job's plan (days, start time, shop / prep steps) follows the invoice's service, package, days and time.
+    from .jobs import apply_invoice
+    apply_invoice(db, db.get(User, uid), bk, inv)
     db.flush()
     inv.booking_id = bk.id
     db.commit()

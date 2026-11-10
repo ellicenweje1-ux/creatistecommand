@@ -173,4 +173,7 @@ def start_scheduler():
     from .calsync import start_loop as start_calendar_loop
 
     start_calendar_loop()  # reads each chef's connected calendar every ten minutes
+    from .routers.jobs import start_reminder_loop
+
+    start_reminder_loop()  # shop / prep / job-day reminders, checked every minute
     log.info("scheduler started (every %.1fh)", config.SCHEDULER_INTERVAL_HOURS)

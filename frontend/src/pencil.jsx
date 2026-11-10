@@ -4,7 +4,7 @@ import { useAuth } from './auth'
 import { Button, ComboInput, Field, Input, Modal, Select, toast, toastErr } from './ui'
 import { fmtDate } from './format'
 
-/* "Pencil in": the notepad line. Who, which day, what for. It counts in your Diary the moment you save, and tells you
+/* "Pencil in": the notepad line. Who, which day, what for. It counts on your calendar the moment you save, and tells you
    straight away whether the day can take it. Replaces writing a promise down: an invoice for the same client and day
    later adopts it instead of doubling up. */
 const SERVICES = ['Batchfully Made', 'The Home Edit', 'Sorted & Served', 'Clean Dream', 'Private catering', 'The Loaded Bar', 'Corporate Curations', 'Private & Personal', 'The Creatiste Table']
@@ -37,7 +37,7 @@ export default function PencilIn({ open, date, onClose, onSaved }) {
         title: `${f.name.trim()} · ${f.service}`, event_type: f.service, date: f.date, status: 'quoted', client_id: client ? client.id : null,
         day_load: Number(f.load) || 0, notes: `Pencilled in.${f.note.trim() ? ` ${f.note.trim()}` : ''}`,
       })
-      toast(`Pencilled in for ${fmtDate(f.date)}. It counts in your Diary now.`)
+      toast(`Pencilled in for ${fmtDate(f.date)}. It's on your calendar now.`)
       onSaved?.(b)
     } catch (err) { toastErr(err) } finally { setBusy(false) }
   }
