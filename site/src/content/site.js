@@ -640,6 +640,13 @@ export const DATE_HOLD = {
     'Personal chef services only: Batchfully Made, The Home Edit and Sorted & Served. Sundays are not available.',
   ],
   moveNote: 'Need to move a date or its deposit? Message us on WhatsApp or reply to your confirmation email.',
+  // Shown to a signed-in visitor who isn't a regular yet, so they can see where booking ahead will live.
+  locked: {
+    title: 'Book your dates ahead.',
+    body: 'Once you are one of our regulars, this is where you lock in the dates you need, weeks in advance: choose the service, tick your dates, and we hold them for you straight away. It opens after your first consultation or once you have booked with us.',
+    hint: 'Already a client? Sign in with the email address your invoices go to, or message us and we will link it up.',
+    cta: 'Enquire now',
+  },
 }
 
 export const LEGAL = {

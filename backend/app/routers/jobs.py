@@ -509,6 +509,17 @@ def _job(db: Session, user: User, job_id: int) -> tuple[User, Booking]:
     return db.get(User, uid), bk
 
 
+@router.get("/phone-status")
+def phone_status(db: Session = Depends(get_db), user: User = Depends(require_active)):
+    """Both directions of the phone link: when a calendar app last collected Command's feed, and the calendars read back in."""
+    from .. import calsync
+
+    owner = db.get(User, ws_id(user))
+    feed = (owner.diary_rules or {}).get("feed") or {}
+    return {"feed": {"last": feed.get("last", ""), "device": feed.get("device", ""), "devices": feed.get("devices") or []},
+            "other": calsync.public_cfg(owner)}
+
+
 @router.get("/{job_id}")
 def get_job(job_id: int, db: Session = Depends(get_db), user: User = Depends(require_active)):
     owner, bk = _job(db, user, job_id)

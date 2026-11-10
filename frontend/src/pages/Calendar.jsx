@@ -527,7 +527,12 @@ function PhoneTab() {
   const toggleRemind = async (v) => {
     try { setSetup(await api.put('/jobs/setup', { services: setup.services, remind_unplanned: v })); toast(v ? 'Unplanned steps will show on your phone' : 'Only planned steps will show on your phone') } catch (e) { toastErr(e) }
   }
+  const [status, setStatus] = useState(null)
+  const loadStatus = () => api.get('/jobs/phone-status').then(setStatus).catch(() => {})
+  useEffect(() => { if (owner) loadStatus() }, [owner])
   return (
+    <div className="space-y-5">
+    {owner ? <PhoneStatus status={status} /> : null}
     <div className="grid gap-5 lg:grid-cols-2">
       <div className="space-y-5">
         <NotificationsCard />
@@ -549,9 +554,52 @@ function PhoneTab() {
             <p className="mt-1.5 text-xs text-fg/50">Anything still in To plan appears on its last possible day, so it isn’t forgotten.</p>
           </Card>
         ) : null}
-        {owner ? <CalendarCard onChanged={() => {}} /> : null}
+        {owner ? <CalendarCard onChanged={loadStatus} /> : null}
       </div>
     </div>
+    </div>
+  )
+}
+
+const ago = (iso) => {
+  if (!iso) return ''
+  const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000))
+  return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 48 * 60 ? `${Math.round(m / 60)} hours ago` : `${Math.round(m / 1440)} days ago`
+}
+
+/* Both directions of the phone link at a glance, so "is it working?" never needs a guess. */
+function PhoneStatus({ status }) {
+  if (!status) return null
+  const feed = status.feed || {}
+  const other = status.other || {}
+  const fresh = feed.last && Date.now() - new Date(feed.last).getTime() < 3 * 86400000
+  const go = (sel) => document.querySelector(sel)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const Row = ({ ok, warn, title, line, action, data }) => (
+    <div className="flex flex-wrap items-center gap-3 py-3" data-phone-row={data}>
+      <span className={cls('h-2.5 w-2.5 shrink-0 rounded-full', ok ? 'bg-sage' : warn ? 'bg-amber-500' : 'bg-fg/25')} aria-hidden="true" />
+      <div className="min-w-0 flex-1"><p className="text-sm font-medium">{title}</p><p className="text-xs text-fg/60">{line}</p></div>
+      {action}
+    </div>
+  )
+  const errs = (other.links || []).filter((l) => l.last_error)
+  return (
+    <Card className="p-4" data-phone-status>
+      <p className="font-display text-lg">Your two calendars</p>
+      <p className="mt-1 text-sm text-fg/65">Command and your phone’s calendar are linked in two separate directions. Each needs setting up once.</p>
+      <div className="mt-2 divide-y divide-line">
+        <Row data="to-phone" ok={fresh} warn={!!feed.last && !fresh}
+          title="Command → your phone"
+          line={feed.last ? `${feed.device || 'Your calendar app'} last collected your jobs, shop and prep ${ago(feed.last)}.${fresh ? '' : ' It should check at least every few hours: open the subscription on your phone and check it’s still there.'}`
+            : 'Not set up yet. Your phone hasn’t collected your Command calendar. Add the link below once and your jobs, shop and prep appear in your phone’s calendar.'}
+          action={!feed.last ? <Button size="sm" variant="secondary" onClick={() => go('[data-feed-card]')}>Show me how</Button> : null} />
+        <Row data="from-phone" ok={other.connected && !errs.length} warn={other.connected && errs.length > 0}
+          title="Your phone → Command"
+          line={other.connected
+            ? `${(other.links || []).map((l) => l.name).join(', ')} connected · ${other.count} busy ${other.count === 1 ? 'time' : 'times'} read · updated ${ago(other.last_synced) || 'not yet'}.${errs.length ? ` Needs attention: ${errs.map((l) => l.name).join(', ')}.` : ''}`
+            : 'Not connected. Your own phone events (church, appointments, time off) don’t show here yet. Share your phone calendar’s link below once.'}
+          action={!other.connected ? <Button size="sm" variant="secondary" onClick={() => go('[data-calendar-card]')}>Show me how</Button> : null} />
+      </div>
+    </Card>
   )
 }
 
@@ -642,47 +690,63 @@ function UndatedInvoices({ onChanged }) {
   )
 }
 
-/* Read your other calendar (Google / Apple / Outlook) back in: busy times there close dates here. */
+/* Read your own calendars (iPhone / Google / Outlook) back in: busy times there show here and close dates on your website. */
 function CalendarCard({ onChanged }) {
   const [st, setSt] = useState(null)
   const [url, setUrl] = useState('')
+  const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
-  const [help, setHelp] = useState(false)
-  const load = () => api.get('/diary/calendar').then(setSt).catch(() => {})
+  const [help, setHelp] = useState(true)
+  const load = () => api.get('/diary/calendar').then((r) => { setSt(r); if (r.connected) setHelp(false) }).catch(() => {})
   useEffect(() => { load() }, [])
-  const act = async (fn, msg) => { setBusy(true); try { const r = await fn(); setSt(r); if (msg) toast(msg); onChanged() } catch (e) { toastErr(e) } finally { setBusy(false) } }
-  const ago = (iso) => { if (!iso) return 'not yet'; const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000)); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : `${Math.round(m / 60)}h ago` }
+  const act = async (fn, msg) => { setBusy(true); try { const r = await fn(); setSt(r); if (msg) toast(msg); onChanged(); return true } catch (e) { toastErr(e); return false } finally { setBusy(false) } }
+  const add = async (e) => {
+    e.preventDefault()
+    if (await act(() => api.put('/diary/calendar', { url, name }), 'Calendar connected. Its busy times now show on your Calendar.')) { setUrl(''); setName('') }
+  }
   if (!st) return null
+  const links = st.links || []
   return (
     <Card className="p-5" data-calendar-card>
-      <p className="font-display text-lg">Your other calendar</p>
-      <p className="mt-1 text-sm text-fg/70">Connect your Google, Apple or Outlook calendar and anything busy in it shows here and closes those dates on your website, automatically. You never have to block the same day twice.</p>
-      {st.connected ? (
-        <div className="mt-4 space-y-3" data-calendar-connected>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={st.last_error ? 'amber' : 'sage'}>{st.last_error ? 'Needs attention' : 'Connected'}</Badge>
-            <span className="text-sm text-fg/70" data-calendar-status>{st.host} · {st.count} {st.count === 1 ? 'busy period' : 'busy periods'} read · updated {ago(st.last_synced)}</span>
-          </div>
-          {st.last_error ? <p className="text-sm text-amber-500" data-calendar-error>{st.last_error} We keep the dates we last read until it works again.</p> : null}
+      <p className="font-display text-lg">Your phone’s calendar → Command</p>
+      <p className="mt-1 text-sm text-fg/70">Connect the calendars you keep on your phone and anything busy in them shows on your Command calendar and closes those dates on your website. Command reads them every ten minutes.</p>
+      {links.length ? (
+        <ul className="mt-4 divide-y divide-line rounded-lg border border-line" data-calendar-links>
+          {links.map((l) => (
+            <li key={l.id} className="flex flex-wrap items-center gap-2 px-3 py-2.5" data-calendar-link={l.name}>
+              <Badge tone={l.last_error ? 'amber' : 'sage'}>{l.last_error ? 'Needs attention' : 'Connected'}</Badge>
+              <span className="min-w-0 flex-1 text-sm"><span className="font-medium">{l.name}</span> <span className="text-fg/55">· {l.count} busy {l.count === 1 ? 'time' : 'times'} · {ago(l.last_synced) || 'not read yet'}</span>
+                {l.last_error ? <span className="block text-xs text-amber-600 dark:text-amber-400">{l.last_error} We keep what we last read until it works again.</span> : null}</span>
+              <Button size="sm" variant="ghost" disabled={busy} onClick={() => { if (window.confirm(`Disconnect ${l.name}? The dates it closed open up again.`)) act(() => api.put('/diary/calendar', { remove: l.id }), `${l.name} disconnected`) }}>Remove</Button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {links.length ? (
+        <div className="mt-3 space-y-2">
           <Toggle checked={st.all_day_closes} onChange={(v) => act(() => api.put('/diary/calendar', { all_day_closes: v }), v ? 'All-day events now close the day' : 'All-day events now only make the day limited')} label="An all-day event closes the whole day" />
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="secondary" disabled={busy} onClick={() => act(() => api.post('/diary/calendar/sync'), 'Calendar read')} data-calendar-sync>Read it again now</Button>
-            <Button size="sm" variant="ghost" disabled={busy} onClick={() => { if (window.confirm('Disconnect your calendar? The dates it closed will open up again.')) act(() => api.put('/diary/calendar', { url: '' }), 'Calendar disconnected') }} data-calendar-disconnect>Disconnect</Button>
-          </div>
+          <Button size="sm" variant="secondary" disabled={busy} onClick={() => act(() => api.post('/diary/calendar/sync'), 'Calendars read')} data-calendar-sync>Read them again now</Button>
         </div>
-      ) : (
-        <form className="mt-4 space-y-3" onSubmit={(e) => { e.preventDefault(); act(() => api.put('/diary/calendar', { url }), 'Calendar connected').then(() => setUrl('')) }} data-calendar-form>
-          <Field label="Your calendar’s private link" hint="Paste the iCal address from your calendar (steps below). Treat it like a password."><Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://calendar.google.com/calendar/ical/…/basic.ics" required /></Field>
-          <Button type="submit" disabled={busy || !url.trim()}>{busy ? 'Connecting…' : 'Connect calendar'}</Button>
+      ) : null}
+      {links.length < 5 ? (
+        <form className="mt-4 grid gap-3" onSubmit={add} data-calendar-form>
+          <Field label="Name it"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder={links.length ? 'e.g. Work' : 'e.g. Home'} /></Field>
+          <Field label={links.length ? 'Add another calendar’s link' : 'Your calendar’s shared link'}><Input value={url} onChange={(e) => setUrl(e.target.value)} placeholder="webcal://p01-caldav.icloud.com/published/…" required /></Field>
+          <div><Button type="submit" disabled={busy || !url.trim()}>{busy ? 'Connecting…' : 'Connect'}</Button></div>
         </form>
-      )}
+      ) : null}
       <button type="button" onClick={() => setHelp(!help)} className="mt-4 text-xs font-medium text-copper underline-offset-2 hover:underline" data-calendar-help-toggle>{help ? 'Hide the steps' : 'Where do I find this link?'}</button>
       {help ? (
         <div className="mt-3 space-y-3 text-sm text-fg/75" data-calendar-help>
-          <div><p className="font-medium">Apple Calendar / iCloud</p><ol className="list-decimal pl-5"><li>In Calendar on a Mac, right-click your calendar and choose Share Calendar, then tick <strong>Public Calendar</strong>.</li><li>Copy the link it shows (it starts with webcal://) and paste it above.</li></ol></div>
-          <div><p className="font-medium">Google Calendar (on a computer)</p><ol className="list-decimal pl-5"><li>Open calendar.google.com, hover your calendar on the left, tap the three dots, then Settings and sharing.</li><li>Scroll to “Integrate calendar” and copy <strong>Secret address in iCal format</strong>.</li><li>Paste it above. (Google can take several hours to show a new event on this link; that delay is Google’s.)</li></ol></div>
+          <div><p className="font-medium">iPhone (iCloud calendars)</p><ol className="list-decimal space-y-0.5 pl-5">
+            <li>Open the <strong>Calendar</strong> app and tap <strong>Calendars</strong> at the bottom.</li>
+            <li>Tap the <strong>ⓘ</strong> beside the calendar you put your events in (often “Home”).</li>
+            <li>Switch on <strong>Public Calendar</strong>, tap <strong>Share Link…</strong>, then <strong>Copy</strong>.</li>
+            <li>Paste it above, name it (e.g. Home) and tap Connect. Do the same for each calendar you use, such as Work.</li>
+          </ol><p className="mt-1 text-xs text-fg/50">“Public” only means anyone with that exact link can view it. It isn’t listed anywhere, and Command keeps the link private.</p></div>
+          <div><p className="font-medium">Calendars from Gmail on your iPhone</p><ol className="list-decimal pl-5"><li>On a computer, open calendar.google.com, hover the calendar on the left, tap the three dots, then Settings and sharing.</li><li>Copy <strong>Secret address in iCal format</strong> and paste it above. Google can take several hours to pass on a new event; that delay is Google’s.</li></ol></div>
           <div><p className="font-medium">Outlook / Microsoft 365</p><ol className="list-decimal pl-5"><li>Outlook on the web: Settings, Calendar, Shared calendars, then Publish a calendar.</li><li>Choose “Can view all details” and copy the <strong>ICS</strong> link.</li></ol></div>
-          <p className="text-xs text-fg/50">Subscribing to your Command calendar inside the same calendar is fine: anything Command exported is ignored here, so nothing is counted twice.</p>
+          <p className="text-xs text-fg/50">Not sure which you use? In the iPhone Calendar app tap Calendars: each list has a heading such as ICLOUD, GMAIL or OUTLOOK. Your Command calendar can sit in the same app: anything Command sends to your phone is ignored here, so nothing is counted twice.</p>
         </div>
       ) : null}
     </Card>

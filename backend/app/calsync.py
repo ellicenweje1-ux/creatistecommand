@@ -12,7 +12,10 @@ Command reads it on a timer and turns what is busy into Diary blocks tagged sour
 
 The blocks are replaced wholesale on each sync, so removing or moving an event in the calendar reopens the date.
 A failed fetch or parse keeps the previous blocks and records the error; it never wipes the diary.
-Settings live in users.diary_rules["calendar"] (no new column): {url, all_day_closes, last_synced, last_error, count}.
+Settings live in users.diary_rules["calendar"] (no new column): {links:[{id, name, url, count, last_error, last_synced}],
+all_day_closes, last_synced, last_error, count}. Several calendars can be connected (an iPhone usually has Home and Work);
+each block's ext_uid is "<link id>|<event uid>" so one link failing keeps its own last good blocks. An older single
+{url} setting reads as one link with id "main" (its blocks carry plain uids until the next sync).
 Google caches its secret ICS link for hours, so a change there can take a while to arrive; iCloud is quicker.
 """
 import ipaddress
@@ -35,6 +38,7 @@ from .models import DiaryBlock, User
 log = logging.getLogger("creatiste.calsync")
 
 KEY = "calendar"
+MAX_LINKS = 5
 MAX_BYTES = 8 * 1024 * 1024
 MAX_BLOCKS = 3000
 SYNC_EVERY = 600  # seconds between background syncs
@@ -59,13 +63,22 @@ def _save_cfg(owner: User, cfg: dict | None) -> None:
     owner.diary_rules = rules  # a fresh object so SQLAlchemy persists the JSON
 
 
+def links_of(cfg: dict) -> list[dict]:
+    links = [dict(x) for x in cfg.get("links") or [] if x.get("url")]
+    if not links and cfg.get("url"):
+        links = [{"id": "main", "name": "My calendar", "url": cfg["url"]}]
+    return links
+
+
 def public_cfg(owner: User) -> dict:
-    """What the chef's screen may see: never the secret link itself, only a hint of where it points."""
+    """What the chef's screen may see: never the secret links themselves, only a hint of where each points."""
     c = get_cfg(owner)
-    url = c.get("url") or ""
-    host = urllib.parse.urlparse(url).hostname or ""
-    return {"connected": bool(url), "host": host, "all_day_closes": bool(c.get("all_day_closes", True)),
-            "last_synced": c.get("last_synced", ""), "last_error": c.get("last_error", ""), "count": int(c.get("count") or 0)}
+    links = [{"id": x["id"], "name": x.get("name") or "My calendar", "host": urllib.parse.urlparse(x["url"]).hostname or "",
+              "count": int(x.get("count") or 0), "last_error": x.get("last_error", ""), "last_synced": x.get("last_synced", "")}
+             for x in links_of(c)]
+    return {"connected": bool(links), "host": links[0]["host"] if links else "", "links": links,
+            "all_day_closes": bool(c.get("all_day_closes", True)), "last_synced": c.get("last_synced", ""),
+            "last_error": c.get("last_error", ""), "count": int(c.get("count") or 0)}
 
 
 # ───────────────────────────── fetching ─────────────────────────────
@@ -196,46 +209,104 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0, tzinfo=None).isoformat() + "Z"
 
 
-def sync_user(db: Session, owner: User, data: bytes | None = None) -> dict:
-    """Fetch (unless `data` is given), parse and replace this chef's calendar-sourced blocks. Never raises:
-    the outcome is recorded on the settings and returned."""
+def _link_blocks(db: Session, owner: User, link_ids: list[str]):
+    """The calendar blocks that came from these links (plain-uid blocks predate per-link tags and go with any of them)."""
+    from sqlalchemy import or_
+
+    conds = [DiaryBlock.ext_uid.like(f"{lid}|%") for lid in link_ids] + [~DiaryBlock.ext_uid.contains("|")]
+    return db.query(DiaryBlock).filter(DiaryBlock.user_id == owner.id, DiaryBlock.source == "calendar", or_(*conds))
+
+
+def sync_user(db: Session, owner: User, data: bytes | None = None, link_id: str | None = None) -> dict:
+    """Fetch (unless `data` is given for `link_id`), parse and replace this chef's calendar-sourced blocks, link by link.
+    Never raises: the outcome is recorded on the settings and returned. A link that fails keeps its last good blocks."""
     cfg = get_cfg(owner)
-    if not cfg.get("url"):
+    links = links_of(cfg)
+    if not links:
         return public_cfg(owner)
     from .routers.diary import rules_for  # local import: diary imports nothing from here
 
+    today = _date.today()
+    horizon = today + timedelta(days=rules_for(owner)["horizon_days"])
+    all_day = bool(cfg.get("all_day_closes", True))
+    ok, rows, errors = [], [], []
+    for ln in links:
+        try:
+            raw = data if (data is not None and (link_id or links[0]["id"]) == ln["id"]) else fetch_ics(ln["url"])
+            items = parse_busy(raw, today, horizon, all_day)
+            ok.append(ln["id"])
+            rows += [(ln["id"], it) for it in items]
+            ln.update(last_error="", count=len(items), last_synced=_now_iso())
+        except CalendarError as exc:
+            ln["last_error"] = str(exc)
+            errors.append(f"{ln.get('name') or 'Your calendar'}: {exc}")
+        except Exception as exc:  # never let one chef's odd calendar stop the loop
+            log.warning("calendar sync failed for user %s: %s", owner.id, exc)
+            ln["last_error"] = "We couldn't read that calendar. Check the link and try again."
+            errors.append(f"{ln.get('name') or 'Your calendar'}: {ln['last_error']}")
     try:
-        raw = data if data is not None else fetch_ics(cfg["url"])
-        today = _date.today()
-        horizon = today + timedelta(days=rules_for(owner)["horizon_days"])
-        items = parse_busy(raw, today, horizon, bool(cfg.get("all_day_closes", True)))
-        db.query(DiaryBlock).filter(DiaryBlock.user_id == owner.id, DiaryBlock.source == "calendar").delete(synchronize_session=False)
-        for it in items:
-            db.add(DiaryBlock(user_id=owner.id, source="calendar", ext_uid=it["uid"][:200], title=it["title"], kind=it["kind"],
-                              date=it["date"], end_date=it["end_date"], start_time=it["start_time"], end_time=it["end_time"],
-                              notes="From your calendar"))
-        cfg.update(last_synced=_now_iso(), last_error="", count=len(items))
-    except CalendarError as exc:
+        if ok:
+            _link_blocks(db, owner, ok).delete(synchronize_session=False)
+            for lid, it in rows[:MAX_BLOCKS]:
+                db.add(DiaryBlock(user_id=owner.id, source="calendar", ext_uid=f"{lid}|{it['uid']}"[:200], title=it["title"],
+                                  kind=it["kind"], date=it["date"], end_date=it["end_date"], start_time=it["start_time"],
+                                  end_time=it["end_time"], notes="From your calendar"))
+            cfg["last_synced"] = _now_iso()
+    except Exception as exc:
+        log.warning("calendar blocks for user %s not saved: %s", owner.id, exc)
         db.rollback()
-        cfg.update(last_error=str(exc))
-    except Exception as exc:  # never let one chef's odd calendar stop the loop
-        log.warning("calendar sync failed for user %s: %s", owner.id, exc)
-        db.rollback()
-        cfg.update(last_error="We couldn't read that calendar. Check the link and try again.")
+        errors.append("We couldn't save what we read. We'll try again shortly.")
+    cfg.pop("url", None)
+    cfg.update(links=links, last_error="; ".join(errors), count=sum(int(x.get("count") or 0) for x in links))
     _save_cfg(owner, cfg)
     db.commit()
     return public_cfg(owner)
 
 
-def disconnect(db: Session, owner: User) -> None:
-    db.query(DiaryBlock).filter(DiaryBlock.user_id == owner.id, DiaryBlock.source == "calendar").delete(synchronize_session=False)
-    _save_cfg(owner, None)
+def add_link(db: Session, owner: User, url: str, name: str = "", all_day_closes: bool | None = None) -> dict:
+    """Check a new calendar link works, save it beside any others, and read it straight away. Raises CalendarError."""
+    import secrets
+
+    cfg = get_cfg(owner)
+    links = links_of(cfg)
+    url = normalise_url(url)
+    if any(x["url"] == url for x in links):
+        raise CalendarError("That calendar is already connected.")
+    if len(links) >= MAX_LINKS:
+        raise CalendarError(f"You can connect up to {MAX_LINKS} calendars. Remove one first.")
+    data = fetch_ics(url)  # prove it works before saving anything
+    parse_busy(data, _date.today(), _date.today() + timedelta(days=30))
+    lid = secrets.token_hex(3)
+    links.append({"id": lid, "name": (name or "").strip()[:40] or ("My calendar" if not links else f"Calendar {len(links) + 1}"), "url": url})
+    cfg.pop("url", None)
+    cfg["links"] = links
+    if all_day_closes is not None:
+        cfg["all_day_closes"] = bool(all_day_closes)
+    _save_cfg(owner, cfg)
+    db.commit()
+    return sync_user(db, owner, data, lid)
+
+
+def disconnect(db: Session, owner: User, link_id: str | None = None) -> None:
+    """Forget one link (and the dates it closed), or every link when no id is given."""
+    cfg = get_cfg(owner)
+    links = links_of(cfg)
+    if link_id and len(links) > 1:
+        db.query(DiaryBlock).filter(DiaryBlock.user_id == owner.id, DiaryBlock.source == "calendar",
+                                    DiaryBlock.ext_uid.like(f"{link_id}|%")).delete(synchronize_session=False)
+        cfg.pop("url", None)
+        cfg["links"] = [x for x in links if x["id"] != link_id]
+        cfg["count"] = sum(int(x.get("count") or 0) for x in cfg["links"])
+        _save_cfg(owner, cfg)
+    else:
+        db.query(DiaryBlock).filter(DiaryBlock.user_id == owner.id, DiaryBlock.source == "calendar").delete(synchronize_session=False)
+        _save_cfg(owner, None)
     db.commit()
 
 
 def stale(owner: User, seconds: int = 300) -> bool:
     c = get_cfg(owner)
-    if not c.get("url"):
+    if not links_of(c):
         return False
     ls = c.get("last_synced") or ""
     if not ls:
@@ -249,7 +320,7 @@ def stale(owner: User, seconds: int = 300) -> bool:
 def sync_all(db: Session) -> int:
     n = 0
     for owner in db.query(User).filter(User.role.in_(["chef", "admin"])).all():
-        if get_cfg(owner).get("url"):
+        if links_of(get_cfg(owner)):
             sync_user(db, owner)
             n += 1
     return n

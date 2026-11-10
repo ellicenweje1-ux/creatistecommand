@@ -158,13 +158,31 @@ function HoldCalendar({ dates, windowDays, picked, onToggle, max }) {
   )
 }
 
+function ReserveLocked({ amount }) {
+  const L = DATE_HOLD.locked
+  return (
+    <section data-reserve-locked className="border border-sand bg-linen p-7 sm:p-9">
+      <Eyebrow className="text-gold-deep">{DATE_HOLD.eyebrow}</Eyebrow>
+      <Heading size="md" className="mt-3">{L.title}</Heading>
+      <p className="mt-4 max-w-2xl font-body text-[15px] font-light leading-relaxed text-ink/80">{L.body}</p>
+      <ul className="mt-5 grid gap-1 font-body text-[13px] font-light leading-relaxed text-ink/75">
+        {DATE_HOLD.how.map((r) => <li key={r} className="flex gap-3"><span className="mt-[9px] h-px w-3 shrink-0 bg-gold-deep" aria-hidden="true" />{r}</li>)}
+        <li className="flex gap-3"><span className="mt-[9px] h-px w-3 shrink-0 bg-gold-deep" aria-hidden="true" />The deposit is {money(amount)} per date, taken off your final invoice.</li>
+      </ul>
+      <p className="mt-5 font-body text-[13px] text-stone">{L.hint}</p>
+      <div className="mt-6"><Button to="/enquire" variant="ink">{L.cta} <Arrow /></Button></div>
+    </section>
+  )
+}
+
 function ReserveDate() {
   const [info, setInfo] = useState(null)
   const [f, setF] = useState({ service: '', picked: [], note: '' })
   const [state, setState] = useState({ status: 'idle', error: '' })
   const load = () => accountFetch('/holds').then(setInfo).catch(() => setInfo({ eligible: false }))
   useEffect(() => { load() }, [])
-  if (!info || !info.eligible) return null
+  if (!info) return null
+  if (!info.eligible) return (info.services || []).length ? <ReserveLocked amount={info.amount} /> : null
   const bank = CLEAN_DREAM.bank
   const dates = (info.dates_by_service || {})[f.service] || []
   const toggle = (d) => setF((p) => ({ ...p, picked: p.picked.includes(d) ? p.picked.filter((x) => x !== d) : [...p.picked, d].sort() }))
@@ -202,7 +220,10 @@ function ReserveDate() {
           </div>
         ) : null}
         {state.error ? <p className="font-body text-[13px] text-red-700" data-reserve-error>{state.error}</p> : null}
-        <div><Button type="submit" variant="ink" disabled={state.status === 'sending' || !n}>{state.status === 'sending' ? 'Holding your dates…' : n ? `Hold ${n} ${n === 1 ? 'date' : 'dates'} for me` : 'Choose a date to hold'} <Arrow /></Button></div>
+        <div>
+          <Button type="submit" variant="ink" disabled={state.status === 'sending' || !n}>{state.status === 'sending' ? 'Holding your dates…' : n ? `Hold ${n} ${n === 1 ? 'date' : 'dates'} for me` : 'Choose a date to hold'} <Arrow /></Button>
+          <p className="mt-2 font-body text-[12px] text-stone" data-deposit-note>Nothing to pay yet. Once we confirm we are free, the deposit is {money(info.amount)} per date{n > 1 ? ` (${money(info.amount * n)} for these ${n})` : ''}.</p>
+        </div>
       </form>
       <ul className="mt-6 grid gap-1 font-body text-[13px] font-light leading-relaxed text-ink/75" data-reserve-rules>
         {DATE_HOLD.rules.map((r) => <li key={r} className="flex gap-3"><span className="mt-[9px] h-px w-3 shrink-0 bg-gold-deep" aria-hidden="true" />{r}</li>)}

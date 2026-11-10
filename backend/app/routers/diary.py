@@ -122,7 +122,7 @@ def rules_for(owner: User) -> dict:
     r["horizon_days"] = max(14, min(int(r.get("horizon_days") or 90), 365))
     r["public"] = bool(r.get("public", True))
     r["kinds"] = _clean_kinds(r.get("kinds")) if "kinds" in stored else [dict(k) for k in DEFAULT_KINDS]
-    for gone in ("calendar", "max_per_day", "prep_days"):
+    for gone in ("calendar", "feed", "max_per_day", "prep_days"):
         r.pop(gone, None)  # the calendar link is a secret (own endpoint); the old per-day counts no longer exist
     return r
 
@@ -314,25 +314,24 @@ def get_calendar(db: Session = Depends(get_db), user: User = Depends(require_act
 
 @router.put("/calendar")
 def save_calendar(payload: dict = Body(...), db: Session = Depends(get_db), user: User = Depends(require_active)):
-    """{url} connects (or replaces) the link and reads it straight away; {url: ""} disconnects; {all_day_closes} alone changes the setting."""
+    """{url, name?} adds a calendar (checked and read straight away; up to five); {remove: id} forgets one;
+    {url: ""} disconnects them all; {all_day_closes} alone changes the setting and re-reads."""
     owner = db.get(User, ws_id(user))
     cfg = calsync.get_cfg(owner)
+    if payload.get("remove"):
+        calsync.disconnect(db, owner, str(payload["remove"]))
+        return calsync.public_cfg(owner)
     if "url" in payload:
         url = (payload.get("url") or "").strip()
         if not url:
             calsync.disconnect(db, owner)
             return calsync.public_cfg(owner)
         try:
-            url = calsync.normalise_url(url)
-            data = calsync.fetch_ics(url)  # prove it works before saving anything
-            calsync.parse_busy(data, _date.today(), _date.today() + timedelta(days=30))
+            return calsync.add_link(db, owner, url, payload.get("name") or "",
+                                    payload.get("all_day_closes") if "all_day_closes" in payload else None)
         except calsync.CalendarError as exc:
             raise HTTPException(422, str(exc))
-        cfg = {"url": url, "all_day_closes": bool(payload.get("all_day_closes", cfg.get("all_day_closes", True)))}
-        calsync._save_cfg(owner, cfg)
-        db.commit()
-        return calsync.sync_user(db, owner, data)
-    if not cfg.get("url"):
+    if not calsync.links_of(cfg):
         raise HTTPException(422, "Connect a calendar first.")
     if "all_day_closes" in payload:
         cfg["all_day_closes"] = bool(payload["all_day_closes"])
@@ -345,7 +344,7 @@ def save_calendar(payload: dict = Body(...), db: Session = Depends(get_db), user
 @router.post("/calendar/sync")
 def sync_calendar(db: Session = Depends(get_db), user: User = Depends(require_active)):
     owner = db.get(User, ws_id(user))
-    if not calsync.get_cfg(owner).get("url"):
+    if not calsync.links_of(calsync.get_cfg(owner)):
         raise HTTPException(422, "Connect a calendar first.")
     return calsync.sync_user(db, owner)
 

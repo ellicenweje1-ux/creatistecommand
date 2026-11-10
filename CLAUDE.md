@@ -880,6 +880,31 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
     preset loaded, old booking gets a plan, finance/invoices/bookings/diary 200. Playwright `scratchpad/cal_e2e/verify_cal.py` **34/34**, zero page errors.
   - **For Ellice to do once:** on her iPhone add Command to the Home Screen, open it from there, Calendar → Phone & notifications → switch on "Notify me on this
     device"; copy the calendar link into iPhone Calendar (steps on that tab). Old invoices without a service day: Calendar → "Invoices not on your calendar yet".
+- **PHONE ↔ COMMAND, BOTH DIRECTIONS MADE VISIBLE + "BOOK AHEAD" SHOWN TO NON-REGULARS (nineteenth batch, 2026-11-10).** Ellice: "my main phone calendar
+  isn't showing up on my client one and vice versa", "is it £15 per date", "I can't see where clients make calendar holds (I've logged in)".
+  - **Diagnosis:** both directions need a one-time setup and nothing told her whether either was working; the read-back card only had Mac/Google/Outlook
+    steps (no iPhone); and the site's `ReserveDate` returned null for anyone not eligible, so signed in as herself she saw nothing.
+  - **Command → phone:** `calendar_feed._note_fetch` records which calendar app last collected the ICS feed (`users.diary_rules["feed"]` {last, device,
+    devices}; UA → "iPhone or iPad" (dataaccessd/iOS), "Mac Calendar", "Google Calendar", "Outlook"; a browser opening the link doesn't count; written at most
+    every 5 min). `rules_for` strips `feed`. `CalendarFeedCard` (Settings.jsx, exported) is now "Command → your phone's calendar" with numbered iPhone steps.
+  - **Phone → Command, several calendars:** `calsync` now keeps `links[{id,name,url,count,last_error,last_synced}]` (max 5; an old single `{url}` reads as link
+    "main" and is upgraded on the next sync). Block `ext_uid` = `"<link id>|<uid>"`, so a failing link keeps its own last good blocks and Remove drops only its
+    dates. `add_link` validates before saving; `PUT /diary/calendar` {url, name} adds, {remove: id} forgets one, {url: ""} disconnects all. The card leads with
+    **iPhone (iCloud) steps**: Calendar app → Calendars → ⓘ → Public Calendar → Share Link → Copy (per calendar, e.g. Home + Work).
+  - **"Your two calendars" panel** at the top of Calendar → Phone & notifications (`GET /api/jobs/phone-status`): green/amber/grey per direction with when the
+    phone last collected the feed and which calendars are read in, plus "Show me how" jump buttons.
+  - **Site:** a signed-in visitor who isn't eligible now sees **`ReserveLocked`** (`[data-reserve-locked]`: "Book your dates ahead.", the how-steps, "The
+    deposit is £15.00 per date", sign-in-with-your-invoice-email hint, Enquire now; copy in `DATE_HOLD.locked`), shown only when the chef offers requestable
+    services. The eligible form gains `[data-deposit-note]`: "Nothing to pay yet… £15.00 per date (£30.00 for these 2)". **Yes, £15 is per date** (config
+    `DATE_HOLD_DEPOSIT`). To see the full form as Ellice: add a client with her own email ticked Regular, then sign in on the site with that email.
+  - FAQ (rule #3): Support "Can my own phone calendar close dates…" (iPhone steps, several calendars, status panel), iPhone feed answer, date-request answer
+    (where clients go, £15 per date, how to preview it).
+  - **Verified:** `scratchpad/test_phone.py` **19/19** (two iCloud links, duplicates refused, one failing keeps its days, removal drops only its days, five max,
+    legacy single-link upgrade without doubling, rules never leak calendar/feed, browser UA ignored, iPhone + Google recorded, status endpoint);
+    `test_calsync.py` **35/35** (its Sunday date-drift check now tests "no imported block"), `test_jobs.py` 66/66, `test_capacity.py` 60/60, `test_preorders.py`
+    36/36; Playwright `scratchpad/e2e/verify_phone.py` **18/18** desktop + phone (locked card + £15 per date, regular form deposit note, status panel before and
+    after an iPhone collects the feed, no sideways scroll, zero page errors). Harness notes: accounts seeded after boot have no `calendar_token` until the next
+    boot (set it in the DB); the customer sign-in limit (6 per 10 min per IP) trips on repeated runs, so reuse one sign-in per email.
 - **Soulfood Friday 2.0 flyer on What's Up (sixteenth batch):** her flyer (`site/public/flyers/soulfood-friday-2.webp`, 1080x1350) now has a **featured block** on
   `/whats-up` (`Featured` in `WhatsOn.jsx`, `[data-featured="pop-up"]`, id `pop-up` so the nav "Pop-ups & events" link still lands): flyer beside the details, the
   flyer itself and the gold **"RSVP now"** button both link to her Partiful page (`NOW.items[1].cta.href`, new tab, `rel=noreferrer`). **Time and location are marked
