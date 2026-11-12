@@ -365,6 +365,10 @@ const BEFORE = [30, 21, 14, 10, 7, 6, 5, 4, 3, 2, 1, 0]
 const beforeLabel = (n) => (n === 0 ? 'on the day' : n === 1 ? 'the day before' : `${n} days before`)
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
+const NOTICE = [0, 1, 2, 3, 5, 7, 10, 14, 21, 28]
+const noticeLabel = (n) => (n === 0 ? 'None (same day)' : n === 1 ? '1 day' : n % 7 === 0 ? `${n / 7} week${n > 7 ? 's' : ''}` : `${n} days`)
+const WEEK = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+
 function ServicesTab() {
   const [setup, setSetup] = useState(null)
   const [dirty, setDirty] = useState(false)
@@ -392,6 +396,7 @@ function ServicesTab() {
     if (services.some((s) => s.name.toLowerCase() === name.toLowerCase())) return toast('You already have a service with that name')
     const cat = setup.categories.find((c) => c.id === adding.category) || setup.categories[0]
     put([...services, { id: `new-${Date.now()}`, name, category: cat.id, day_label: cat.day_label, usual_start: '', usual_end: '', requestable: false,
+      notice_days: cat.notice_days ?? 7, request_days: [],
       steps: cat.steps.map((s, i) => ({ ...s, id: `${s.kind}-${i}` })), packages: [] }])
     setAdding({ name: '', category: adding.category })
   }
@@ -458,8 +463,36 @@ function ServicesTab() {
             ) : <p className="text-xs text-fg/45">None. Add one if this service is sold as packages (it sets how many days go on the calendar and how long each runs).</p>}
             <button type="button" className="mt-1 text-xs font-medium text-copper hover:underline" onClick={() => upd(i, { packages: [...s.packages, { id: `p-${Date.now()}`, name: 'New package', days: 1, hours: 4 }] })}>+ Add a package</button>
 
-            <div className="mt-4 border-t border-line pt-3">
+            <div className="mt-4 border-t border-line pt-3" data-request-block>
               <Toggle checked={!!s.requestable} onChange={(v) => upd(i, { requestable: v })} label="Regular clients can request dates for this on my website" />
+              {s.requestable ? (
+                <div className="mt-3 grid gap-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-start">
+                  <Field label="Notice they must give">
+                    <Select value={s.notice_days ?? 7} onChange={(e) => upd(i, { notice_days: Number(e.target.value) })} data-notice>
+                      {[...new Set([...NOTICE, s.notice_days ?? 7])].sort((a, b) => a - b).map((n) => <option key={n} value={n}>{noticeLabel(n)}</option>)}
+                    </Select>
+                  </Field>
+                  <div>
+                    <p className="label">Days they can ask for</p>
+                    <div className="mt-1 flex flex-wrap gap-1" data-request-days>
+                      {WEEK.map((d, k) => {
+                        const on = !(s.request_days || []).length || s.request_days.includes(k)
+                        return (
+                          <button key={d} type="button" aria-pressed={on} data-request-day={k}
+                            className={cls('h-8 w-10 rounded-md border text-xs font-medium', on ? 'border-copper bg-copper/15 text-fg' : 'border-line text-fg/40')}
+                            onClick={() => {
+                              const cur = (s.request_days || []).length ? s.request_days : [0, 1, 2, 3, 4, 5, 6]
+                              const next = on ? cur.filter((x) => x !== k) : [...cur, k].sort()
+                              if (!next.length) return toast('Leave at least one day')
+                              upd(i, { request_days: next.length === 7 ? [] : next })
+                            }}>{d}</button>
+                        )
+                      })}
+                    </div>
+                    <p className="mt-1 text-xs text-fg/45">Days you don’t work (set at the bottom of this page) are never offered.</p>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </Card>
         ))}

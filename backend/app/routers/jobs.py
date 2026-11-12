@@ -61,15 +61,27 @@ CATEGORIES = {
               "steps": [_step("shop", "Shop", True, 2, 1), _step("prep", "Prep", True, 1, 1)]},
 }
 CATEGORY_ORDER = ("sameday", "delivered", "inhome", "event")
+# How much notice a client must give when they request a date on the chef's website (each service can change it).
+CATEGORY_NOTICE = {"event": 14}
+NOTICE_MAX = 90
+# Share of a day a requested date takes when the Diary's own kinds don't recognise the service (see holds.request_load).
+CATEGORY_LOAD = {"event": 1.0, "inhome": 1.0}
+# What a website date request is called in the Bookings list, by category: "Private catering · Corporate Curations".
+CATEGORY_PREFIX = {"event": "Private catering", "sameday": "Same-day order"}
+
+
+def notice_default(category: str) -> int:
+    return CATEGORY_NOTICE.get(category, config.DATE_HOLD_MIN_DAYS)
 
 
 # ───────────────────────────── the business owner's own setup ─────────────────────────────
 # Pre-loaded once on the platform owner's account (The Creatiste Catering), and on nobody else's. Ellice can change any of it
 # under Calendar → Your services; it is only applied while that account has no saved setup.
-def _svc(name, category, steps, day_label=None, packages=(), requestable=False, usual=("", "")):
+def _svc(name, category, steps, day_label=None, packages=(), requestable=True, usual=("", ""), notice=None, days=()):
     return {"id": re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-"), "name": name, "category": category,
             "day_label": day_label or CATEGORIES[category]["day_label"], "usual_start": usual[0], "usual_end": usual[1],
-            "requestable": requestable,
+            "requestable": requestable, "notice_days": notice_default(category) if notice is None else notice,
+            "request_days": list(days),
             "steps": [{"id": f"{s['kind']}-{i}", **s} for i, s in enumerate(steps)],
             "packages": [{"id": re.sub(r"[^a-z0-9]+", "-", p[0].lower()).strip("-"), "name": p[0], "days": p[1], "hours": p[2]} for p in packages]}
 
@@ -77,28 +89,49 @@ def _svc(name, category, steps, day_label=None, packages=(), requestable=False, 
 OWNER_PRESET_ID = "creatiste-catering-1"
 OWNER_PRESET = {
     "services": [
-        _svc("Batchfully Made", "delivered", [_step("shop", "Shop", True, 2, 1), _step("prep", "Prep", True, 2, 1)], requestable=True),
-        _svc("Sorted & Served", "delivered", [_step("shop", "Shop", False, 2, 1), _step("prep", "Prep", True, 2, 1)], requestable=True),
+        _svc("Batchfully Made", "delivered", [_step("shop", "Shop", True, 2, 1), _step("prep", "Prep", True, 2, 1)]),
+        _svc("Sorted & Served", "delivered", [_step("shop", "Shop", False, 2, 1), _step("prep", "Prep", True, 2, 1)]),
         _svc("The Home Edit", "inhome", [_step("shop", "Shop", True, 1, 0), _step("prep", "Prep", False, 1, 1)],
-             day_label="Cook at client's home", requestable=True,
+             day_label="Cook at client's home",
              packages=[("The Full Table", 5, 6), ("The Daily Dinner", 5, 2.5), ("The Half Week", 3, 4), ("The Prep Day", 1, 8)]),
         _svc("Corporate Curations", "event", [_step("shop", "Shop", True, 7, 1), _step("prep", "Prep", True, 4, 1)]),
         _svc("Private & Personal", "event", [_step("shop", "Shop", True, 7, 1), _step("prep", "Prep", True, 4, 1)]),
         _svc("The Loaded Bar", "event", [_step("shop", "Shop", True, 7, 1), _step("prep", "Prep", True, 4, 1)]),
         _svc("The Creatiste Table", "event", [_step("shop", "Shop", True, 7, 1), _step("prep", "Prep", True, 4, 1)], day_label="Dinner"),
         _svc("Clean Dream", "sameday", [_step("shop", "Shop", True, 0, 0), _step("prep", "Prep", False, 1, 1)],
-             day_label="Deliver", usual=("13:00", "16:00")),
+             day_label="Deliver", usual=("13:00", "16:00"), days=(0, 1, 2, 3, 4)),   # the weekday lunch service
     ],
     "remind_unplanned": True,
 }
+# One-off changes to the owner's saved setup, each applied once (recorded in job_setup["applied"]) so a later untick sticks.
+OWNER_UPDATES = ("all-requestable-1",)
 
 
 def apply_owner_preset(db: Session) -> bool:
     """Load The Creatiste Catering's service setup on the platform owner's account, once, if it has none yet."""
     owner = db.query(User).filter(User.email == config.ADMIN_EMAIL.lower(), User.role == "admin").first()
-    if not owner or owner.job_setup:
+    if not owner:
         return False
-    owner.job_setup = {**OWNER_PRESET, "preset": OWNER_PRESET_ID}
+    if not owner.job_setup:
+        owner.job_setup = {**OWNER_PRESET, "preset": OWNER_PRESET_ID, "applied": list(OWNER_UPDATES)}
+        db.commit()
+        return True
+    setup = dict(owner.job_setup)
+    applied = list(setup.get("applied") or [])
+    if "all-requestable-1" not in applied:
+        # Ellice, 12 Nov 2026: every service can be requested by regular clients, Clean Dream included (on its weekdays).
+        services = []
+        for s in setup.get("services") or []:
+            s = {**s, "requestable": True}
+            if s.get("name", "").strip().lower() == "clean dream" and not s.get("request_days"):
+                s["request_days"] = [0, 1, 2, 3, 4]
+            services.append(s)
+        setup["services"] = services
+        applied.append("all-requestable-1")
+    if applied == list(setup.get("applied") or []):
+        return False
+    setup["applied"] = applied
+    owner.job_setup = setup
     db.commit()
     return True
 
@@ -132,7 +165,7 @@ def default_service(name: str, category: str | None = None) -> dict:
     cid = category if category in CATEGORIES else category_for(name)
     cat = CATEGORIES[cid]
     return {"id": "new-" + _slug(name), "name": name, "category": cid, "day_label": cat["day_label"], "usual_start": "",
-            "usual_end": "", "requestable": False, "steps": [{"id": f"{s['kind']}-{i}", **s} for i, s in enumerate(cat["steps"])],
+            "usual_end": "", "requestable": False, "notice_days": notice_default(cid), "request_days": [], "steps": [{"id": f"{s['kind']}-{i}", **s} for i, s in enumerate(cat["steps"])],
             "packages": []}
 
 
@@ -158,10 +191,15 @@ def clean_service(raw: dict) -> dict | None:
         except (TypeError, ValueError):
             hours = 1.0
         packages.append({"id": str(p.get("id") or _slug(pname))[:40], "name": pname, "days": _int(p.get("days"), 1, 7, 1), "hours": hours})
+    days = raw.get("request_days")
+    days = sorted({int(d) for d in (days if isinstance(days, list) else []) if str(d).isdigit() and 0 <= int(d) <= 6})
     return {"id": str(raw.get("id") or _slug(name))[:40], "name": name, "category": cat,
             "day_label": str(raw.get("day_label") or CATEGORIES[cat]["day_label"]).strip()[:60],
             "usual_start": _clean_time(raw.get("usual_start")), "usual_end": _clean_time(raw.get("usual_end")),
-            "requestable": bool(raw.get("requestable")), "steps": steps, "packages": packages}
+            "requestable": bool(raw.get("requestable")),
+            "notice_days": _int(raw.get("notice_days"), 0, NOTICE_MAX, notice_default(cat)),
+            "request_days": [] if len(days) == 7 else days,
+            "steps": steps, "packages": packages}
 
 
 def clean_setup(raw: dict) -> dict:
@@ -194,12 +232,18 @@ def setup_for(db: Session, owner: User) -> dict:
             services.append(default_service(name, cat))
             have.add(name.lower())
     return {"services": services, "remind_unplanned": saved["remind_unplanned"], "saved": bool(owner.job_setup),
-            "categories": [{"id": k, "label": v["label"], "day_label": v["day_label"], "steps": v["steps"]} for k, v in CATEGORIES.items()]}
+            "categories": [{"id": k, "label": v["label"], "day_label": v["day_label"], "steps": v["steps"],
+                            "notice_days": notice_default(k)} for k, v in CATEGORIES.items()]}
+
+
+def requestable_setup(db: Session, owner: User) -> list[dict]:
+    """The services regular clients may ask dates for on the chef's website, with their notice and days."""
+    return [s for s in setup_for(db, owner)["services"] if s.get("requestable")]
 
 
 def requestable_services(db: Session, owner: User) -> list[str]:
     """Services regular clients may ask dates for on the chef's website (Your services → "Clients can request dates")."""
-    return [s["name"] for s in setup_for(db, owner)["services"] if s.get("requestable")]
+    return [s["name"] for s in requestable_setup(db, owner)]
 
 
 def match_service(services: list[dict], *texts: str) -> dict | None:
@@ -497,7 +541,7 @@ def save_setup(payload: dict = Body(...), db: Session = Depends(get_db), user: U
     if user.role == "staff":
         raise HTTPException(403, "Only the business owner can change how services run")
     cleaned = clean_setup(payload)
-    keep = {k: v for k, v in (owner.job_setup or {}).items() if k == "preset"}
+    keep = {k: v for k, v in (owner.job_setup or {}).items() if k in ("preset", "applied")}
     owner.job_setup = {**keep, **cleaned}
     db.commit()
     return setup_for(db, owner)

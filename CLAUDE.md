@@ -905,6 +905,30 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
     36/36; Playwright `scratchpad/e2e/verify_phone.py` **18/18** desktop + phone (locked card + £15 per date, regular form deposit note, status panel before and
     after an iPhone collects the feed, no sideways scroll, zero page errors). Harness notes: accounts seeded after boot have no `calendar_token` until the next
     boot (set it in the DB); the customer sign-in limit (6 per 10 min per IP) trips on repeated runs, so reuse one sign-in per email.
+- **EVERY SERVICE BOOKABLE AHEAD + PER-SERVICE NOTICE (twentieth batch, 2026-11-12).** Ellice: "I need ALL service types applied to the calendar
+  including Clean Dream" and "Iva can't secure next week Tuesday but the other dates worked, why?". **Answer: the notice rule** — date requests needed
+  `DATE_HOLD_MIN_DAYS=7` days' notice; Tuesday 17 Nov was 5 days from Thursday 12 Nov, so the site struck it through with no explanation.
+  - **Per-service request settings in `users.job_setup` services** (no schema change): `notice_days` (0–90, default `CATEGORY_NOTICE`: event 14, else
+    `config.DATE_HOLD_MIN_DAYS`=7) and `request_days` (weekday list, `[]` = any working day; a full week is stored as `[]`). Edited under **Calendar →
+    Your services** in the "Regular clients can request dates" block (`[data-request-block]`: `[data-notice]` select, `[data-request-day]` chips).
+  - **Her account:** `OWNER_PRESET` now has every service `requestable` (Clean Dream `request_days` Mon–Fri) and a **one-off owner update**
+    `"all-requestable-1"` (`jobs.OWNER_UPDATES`, recorded in `job_setup["applied"]`, kept by `PUT /jobs/setup`) ticks every service on her SAVED setup
+    once at boot, so a later untick sticks. Other chefs are untouched (still opt in per service).
+  - **`holds.py`:** `hold_calendar` now measures from today; `dates_for_service(rules, rows, svc)` filters by the service's first date (today + notice),
+    its `request_days`, working days, room. A request's label follows the service category (`jobs.CATEGORY_PREFIX`: "Private catering · …",
+    "Same-day order · …", else "Personal chef · …") so the Diary's kinds recognise events (whole day). A service the kinds don't recognise stores its
+    share on `bookings.day_load` from `jobs.CATEGORY_LOAD` (event/in-home 1.0, else the default half). Too-soon requests 422 with "is too soon: X needs at
+    least N days' notice. The first date you can ask for is …". `GET …/holds` adds `service_rules {name: {notice_days, first_date, days}}` + `work_days`.
+  - **Site `Account.jsx`:** a notice line under the service ("needs at least 7 days' notice, so the first date you can ask for is …", plus the days it runs),
+    and every date is tappable: unavailable days explain themselves in `[data-cal-why]` (`soon` / `closed` (non-working day or a day the service doesn't
+    run) / `taken` / `mine` = the client's own held date, gold-underlined). Copy: `DATE_HOLD.rules`, the terms "Reserving a date" and the site FAQ no
+    longer say "personal chef only". Command FAQs (rule #3) updated (Support: services setup + date requests; public `/faq`).
+  - **Verified:** `scratchpad/test_requests_all.py` **30/30** (all eight requestable, notices, Clean Dream weekdays, one-off migration + untick sticks +
+    marker survives save, cleaning, website rules, too-soon 422 wording, Clean Dream Saturday refused, Corporate/Private & Personal take the whole day,
+    Clean Dream half, unknown in-home service stores day_load 1, chef sees all); `test_jobs.py` 66/66 (two checks updated to the new rule),
+    `test_phone` 19/19, `test_preorders` 36/36; `test_capacity` 59/60 and `test_calsync` 33/35 fail identically on the previous commit (date drift in
+    those tests, not regressions). Playwright `scratchpad/req_e2e/verify_req.py` **31/31** desktop + phone against Command booted as the owner account.
+    Harness: aria-disabled buttons can't be clicked by Playwright, so unavailable days carry no aria-disabled (they do something: explain).
 - **Soulfood Friday 2.0 flyer on What's Up (sixteenth batch):** her flyer (`site/public/flyers/soulfood-friday-2.webp`, 1080x1350) now has a **featured block** on
   `/whats-up` (`Featured` in `WhatsOn.jsx`, `[data-featured="pop-up"]`, id `pop-up` so the nav "Pop-ups & events" link still lands): flyer beside the details, the
   flyer itself and the gold **"RSVP now"** button both link to her Partiful page (`NOW.items[1].cta.href`, new tab, `rel=noreferrer`). **Time and location are marked

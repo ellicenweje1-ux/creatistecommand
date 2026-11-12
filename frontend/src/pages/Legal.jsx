@@ -431,7 +431,8 @@ export function Faq() {
         <p>
           Yes. Regular clients, and anyone who has already paid you, can sign in on your website, choose a service and tick
           every date they need. Each date is held for them straight away, you confirm you are free, and a small deposit
-          locks it in. Your calendar only ever offers dates that genuinely fit.
+          locks it in. Your calendar only ever offers dates that genuinely fit, and you choose how much notice each service
+          needs and which days it can be asked for.
         </p>
       </Section>
       <Section heading="Can my own calendar close dates automatically?">

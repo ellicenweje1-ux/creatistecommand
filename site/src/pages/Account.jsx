@@ -112,17 +112,30 @@ function HoldRow({ h, bank }) {
   )
 }
 
-/* A real month calendar over the booking window. Free days for the chosen service are gold and tappable (any number, up to the limit); everything else is muted. */
+/* A real month calendar over the booking window. Free days for the chosen service are gold and tappable (any number, up to the limit).
+   Every other day says why when tapped: too soon (the service's notice), a day it doesn't run, or already booked. */
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const DAY_NAMES = ['Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays', 'Sundays']
 const pad2 = (n) => String(n).padStart(2, '0')
 const isoOf = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
-function HoldCalendar({ dates, windowDays, picked, onToggle, max }) {
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`
+function whyNot(key, { service, rule, workDays, mine }) {
+  if (mine && mine.includes(key)) return { kind: 'mine', text: `You already have ${fmt(key)} held. It is listed under Your dates below.` }
+  const wd = (new Date(`${key}T12:00:00`).getDay() + 6) % 7
+  if (rule && key < rule.first_date) return { kind: 'soon', text: `${fmt(key)} is too soon. ${service} needs at least ${plural(rule.notice_days, 'day')}’ notice, so the first date you can ask for is ${fmt(rule.first_date)}. For anything sooner, message us on WhatsApp.` }
+  if (workDays && !workDays.includes(wd)) return { kind: 'closed', text: `We don’t work on ${DAY_NAMES[wd]}.` }
+  if (rule && (rule.days || []).length && !rule.days.includes(wd)) return { kind: 'closed', text: `${service} runs on ${rule.days.map((d) => DAY_NAMES[d]).join(', ').replace(/, ([^,]*)$/, ' and $1')} only.` }
+  return { kind: 'taken', text: `${fmt(key)} is already booked up for ${service}. Please pick another date, or message us and we will see what we can do.` }
+}
+function HoldCalendar({ dates, windowDays, picked, onToggle, max, service, rule, workDays, mine }) {
   const today = new Date(); today.setHours(12, 0, 0, 0)
   const last = new Date(today); last.setDate(last.getDate() + windowDays)
   const free = new Set(dates)
   const months = []
   for (let m = new Date(today.getFullYear(), today.getMonth(), 1); m <= last; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) months.push(m)
   const [idx, setIdx] = useState(0)
+  const [why, setWhy] = useState(null)
+  useEffect(() => { setWhy(null) }, [service])
   const m = months[Math.min(idx, months.length - 1)]
   const first = new Date(m.getFullYear(), m.getMonth(), 1)
   const lead = (first.getDay() + 6) % 7
@@ -131,6 +144,7 @@ function HoldCalendar({ dates, windowDays, picked, onToggle, max }) {
   for (let i = 0; i < lead; i++) cells.push(null)
   for (let d = 1; d <= days; d++) cells.push(new Date(m.getFullYear(), m.getMonth(), d, 12))
   const full = picked.length >= max
+  const style = { soon: 'text-ink/30', closed: 'text-ink/25', taken: 'text-ink/30 line-through decoration-ink/20', mine: 'text-gold-deep underline decoration-gold-deep/60 underline-offset-4' }
   return (
     <div className="mt-3 max-w-md border border-sand bg-ivory p-4 sm:p-5" data-hold-calendar>
       <div className="flex items-center justify-between">
@@ -146,14 +160,17 @@ function HoldCalendar({ dates, windowDays, picked, onToggle, max }) {
           const inWindow = d >= new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0) && d <= last
           if (!inWindow) return <span key={key} className="py-2 font-body text-[13px] text-ink/10" aria-hidden="true">{d.getDate()}</span>
           const ok = free.has(key), on = picked.includes(key)
+          const no = ok ? null : whyNot(key, { service, rule, workDays, mine })
+          const tap = () => { if (ok) { setWhy(null); if (on || !full) onToggle(key) } else setWhy({ key, ...no }) }
           return (
-            <button key={key} type="button" disabled={!ok || (!on && full)} onClick={() => onToggle(key)} data-cal-day={key} data-cal-state={on ? 'selected' : ok ? 'free' : 'unavailable'}
-              aria-label={`${fmt(key)}${ok ? ', free' : ', not available'}`} aria-pressed={on}
-              className={`py-2 font-body text-[14px] transition-colors ${on ? 'bg-ink text-ivory' : ok ? 'border border-gold-deep/70 text-ink hover:bg-gold/20 disabled:opacity-40' : 'text-ink/30 line-through decoration-ink/20'}`}>{d.getDate()}</button>
+            <button key={key} type="button" onClick={tap} data-cal-day={key} data-cal-state={on ? 'selected' : ok ? 'free' : no.kind}
+              aria-disabled={ok && !on && full} aria-label={`${fmt(key)}${ok ? ', free' : ', not available'}`} aria-pressed={on}
+              className={`py-2 font-body text-[14px] transition-colors ${on ? 'bg-ink text-ivory' : ok ? `border border-gold-deep/70 text-ink hover:bg-gold/20 ${full ? 'opacity-40' : ''}` : style[no.kind]} ${why?.key === key ? 'ring-1 ring-gold-deep' : ''}`}>{d.getDate()}</button>
           )
         })}
       </div>
-      <p className="mt-3 font-body text-[11px] text-stone">Showing the next {windowDays} days. Tick as many as you need, up to {max} at a time.</p>
+      {why ? <p className="mt-3 border-l-2 border-gold-deep pl-3 font-body text-[13px] leading-relaxed text-ink/80" data-cal-why={why.kind}>{why.text}</p> : null}
+      <p className="mt-3 font-body text-[11px] text-stone">Gold outline: free. Underlined in gold: already yours. Faded: too soon, or a day we don’t do this. Struck through: booked up. Tap any date to see why. Tick as many as you need, up to {max} at a time.</p>
     </div>
   )
 }
@@ -185,6 +202,7 @@ function ReserveDate() {
   if (!info.eligible) return (info.services || []).length ? <ReserveLocked amount={info.amount} /> : null
   const bank = CLEAN_DREAM.bank
   const dates = (info.dates_by_service || {})[f.service] || []
+  const rule = (info.service_rules || {})[f.service]
   const toggle = (d) => setF((p) => ({ ...p, picked: p.picked.includes(d) ? p.picked.filter((x) => x !== d) : [...p.picked, d].sort() }))
   const submit = async (e) => {
     e.preventDefault(); setState({ status: 'sending', error: '' })
@@ -209,7 +227,8 @@ function ReserveDate() {
         {f.service ? (
           <div data-date-picker>
             <p className="font-body text-[11px] uppercase tracking-eyebrow text-ink/70">2. Tick your dates <span className="text-gold-deep">*</span></p>
-            <HoldCalendar dates={dates} windowDays={info.window_days ?? 60} picked={f.picked} onToggle={toggle} max={info.max_dates ?? 6} />
+            {rule ? <p className="mt-1 font-body text-[13px] text-ink/75" data-notice-line>{rule.notice_days ? <>{f.service} needs at least {plural(rule.notice_days, 'day')}’ notice, so the first date you can ask for is <strong>{fmt(rule.first_date)}</strong>.</> : <>{f.service} can be asked for from today.</>}{(rule.days || []).length ? ` It runs on ${rule.days.map((d) => DAY_NAMES[d]).join(', ').replace(/, ([^,]*)$/, ' and $1')}.` : ''}</p> : null}
+            <HoldCalendar dates={dates} windowDays={info.window_days ?? 60} picked={f.picked} onToggle={toggle} max={info.max_dates ?? 6} service={f.service} rule={rule} workDays={info.work_days} mine={(info.holds || []).filter((h) => h.stage !== 'cancelled').map((h) => h.date)} />
             <p className="mt-3 font-body text-[13px] text-ink/80" data-picked>{n ? <>Selected: <strong>{f.picked.map((d) => fmt(d)).join(' · ')}</strong></> : dates.length ? 'Free dates for this service are outlined in gold.' : 'No free dates for this service right now. Message us and we will find one.'}</p>
           </div>
         ) : null}

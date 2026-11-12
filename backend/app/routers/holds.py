@@ -56,6 +56,28 @@ def requestable(db: Session, owner: User) -> list[str]:
     return requestable_services(db, owner)
 
 
+def requestable_setup(db: Session, owner: User) -> dict[str, dict]:
+    """Those services by name, with their notice (days) and the weekdays they can be asked for (empty = any working day)."""
+    from .jobs import requestable_setup as rs
+    return {s["name"]: s for s in rs(db, owner)}
+
+
+def request_label(svc: dict) -> str:
+    """What a request is called in Bookings: 'Personal chef · Batchfully Made', 'Private catering · Corporate Curations'."""
+    from .jobs import CATEGORY_PREFIX
+    return f"{CATEGORY_PREFIX.get(svc.get('category'), 'Personal chef')} · {svc['name']}"
+
+
+def request_load(rules: dict, svc: dict) -> tuple[float, float]:
+    """(share of the day this request takes, the share to store on the booking or 0 when the Diary's kinds already know it)."""
+    from .jobs import CATEGORY_LOAD
+    probe = Booking(event_type=request_label(svc), title="Date request")
+    if kind_of(rules["kinds"], probe):
+        return load_of(rules, probe), 0.0
+    own = CATEGORY_LOAD.get(svc.get("category"), rules["default_load"])
+    return own, own
+
+
 # ───────────────────────────── small helpers ─────────────────────────────
 def _now() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None, microsecond=0)
@@ -147,23 +169,35 @@ def hold_dict(bk: Booking, name: str = "") -> dict:
 
 # ───────────────────────────── which dates can be requested ─────────────────────────────
 def hold_calendar(db: Session, owner: User, today: _date | None = None) -> tuple[dict, list[dict]]:
-    """The Diary's days between the minimum notice and the booking window, plus the rules they were measured under."""
+    """The Diary's days from today to the end of the booking window, plus the rules they were measured under."""
     today = today or _date.today()
     rules = rules_for(owner)
-    start = today + timedelta(days=config.DATE_HOLD_MIN_DAYS)
     end = today + timedelta(days=min(rules["horizon_days"], config.DATE_HOLD_WINDOW_DAYS))
-    return rules, compute_days(db, owner.id, rules, start, end, detail=True)
+    return rules, compute_days(db, owner.id, rules, today, end, detail=True)
 
 
-def dates_for_service(rules: dict, rows: list[dict], service: str) -> list[str]:
-    """Days this service still fits: a working day, not full, and its share of the day is still free."""
-    add = load_of(rules, Booking(event_type=f"Personal chef · {service}", title="Date request"))
-    return [d["date"] for d in rows if d["workday"] and d["state"] != "full" and d["load"] + add <= 1.0001]
+def _notice(svc: dict | None) -> int:
+    return int((svc or {}).get("notice_days", config.DATE_HOLD_MIN_DAYS))
+
+
+def first_date(svc: dict | None, today: _date | None = None) -> _date:
+    """The earliest day a client may ask for this service: today plus the service's notice."""
+    return (today or _date.today()) + timedelta(days=_notice(svc))
+
+
+def dates_for_service(rules: dict, rows: list[dict], svc: dict | None, today: _date | None = None) -> list[str]:
+    """Days this service still fits: far enough ahead, a day it runs, a working day, not full, and its share of the day free."""
+    svc = svc or {"name": "", "category": "other"}
+    add, _ = request_load(rules, svc)
+    first = first_date(svc, today).isoformat()
+    runs = set(svc.get("request_days") or [])
+    return [d["date"] for d in rows if d["date"] >= first and d["workday"] and d["state"] != "full" and d["load"] + add <= 1.0001
+            and (not runs or _date.fromisoformat(d["date"]).weekday() in runs)]
 
 
 def open_hold_dates(db: Session, owner: User, service: str = "", today: _date | None = None) -> list[str]:
     rules, rows = hold_calendar(db, owner, today)
-    return dates_for_service(rules, rows, service)
+    return dates_for_service(rules, rows, requestable_setup(db, owner).get(service), today)
 
 
 # ───────────────────────────── the emails (pure: nothing is sent here) ─────────────────────────────
@@ -311,15 +345,22 @@ def my_holds(token: str, authorization: str = Header(default=""), db: Session = 
     mine = (db.query(Booking).filter(Booking.user_id == owner.id, Booking.client_id.in_(cids), Booking.date_hold == True,  # noqa: E712
                                      Booking.status.in_(["enquiry", "confirmed"]), Booking.date >= _date.today().isoformat())
             .order_by(Booking.date.asc()).all()) if cids else []
+    setups = requestable_setup(db, owner)
     by_service: dict[str, list[str]] = {}
+    rules = rules_for(owner)
     if client:
         rules, rows = hold_calendar(db, owner)
         mine_days = {b.date for b in mine}
-        for svc in requestable(db, owner):
-            by_service[svc] = [d for d in dates_for_service(rules, rows, svc) if d not in mine_days]
+        for name, svc in setups.items():
+            by_service[name] = [d for d in dates_for_service(rules, rows, svc) if d not in mine_days]
+    # Why a day can't be picked, so the website can say so: too soon (notice), a day the service doesn't run, or booked up.
+    rules_by_service = {name: {"notice_days": _notice(svc), "first_date": first_date(svc).isoformat(),
+                               "days": list(svc.get("request_days") or [])} for name, svc in setups.items()}
     return {"eligible": bool(client), "amount": config.DATE_HOLD_DEPOSIT, "hours": config.DATE_HOLD_HOURS,
-            "min_days": config.DATE_HOLD_MIN_DAYS, "window_days": config.DATE_HOLD_WINDOW_DAYS, "max_dates": config.DATE_HOLD_MAX_PER_REQUEST,
-            "services": requestable(db, owner), "dates_by_service": by_service,
+            "min_days": min([r["notice_days"] for r in rules_by_service.values()] or [config.DATE_HOLD_MIN_DAYS]),
+            "window_days": config.DATE_HOLD_WINDOW_DAYS, "max_dates": config.DATE_HOLD_MAX_PER_REQUEST,
+            "work_days": rules["work_days"], "service_rules": rules_by_service,
+            "services": list(setups), "dates_by_service": by_service,
             "holds": [hold_dict(b, cus.name or (client.name if client else "")) for b in mine]}
 
 
@@ -342,7 +383,8 @@ def place_hold(request: Request, token: str, payload: dict = Body(...), authoriz
         raw = [payload.get("date")]
     days = sorted({str(d).strip()[:10] for d in (raw or []) if str(d).strip()})
     service = (payload.get("service") or "").strip()
-    if service not in requestable(db, owner):
+    svc = requestable_setup(db, owner).get(service)
+    if not svc:
         raise HTTPException(422, "Choose which service these dates are for")
     if not days:
         raise HTTPException(422, "Choose at least one date")
@@ -351,6 +393,10 @@ def place_hold(request: Request, token: str, payload: dict = Body(...), authoriz
     allowed = set(open_hold_dates(db, owner, service))
     bad = [d for d in days if d not in allowed]
     if bad:
+        if bad[0] < first_date(svc).isoformat():
+            n = _notice(svc)
+            raise HTTPException(422, f"{_pretty_date(bad[0])} is too soon: {service} needs at least {n} day{'s' if n != 1 else ''}' notice. "
+                                     f"The first date you can ask for is {_pretty_date(first_date(svc).isoformat())}. For anything sooner, please message us.")
         raise HTTPException(422, f"{_pretty_date(bad[0])} isn't available for that. Please pick from the dates shown.")
     cids = [c.id for c in db.query(Client).filter(Client.user_id == owner.id, func.lower(Client.email) == cus.email.lower()).all()]
     active = (db.query(Booking).filter(Booking.user_id == owner.id, Booking.client_id.in_(cids), Booking.date_hold == True,  # noqa: E712
@@ -360,10 +406,11 @@ def place_hold(request: Request, token: str, payload: dict = Body(...), authoriz
     if len(active) + len(days) > config.DATE_HOLD_MAX_ACTIVE:
         raise HTTPException(422, f"You have {len(active)} dates waiting already. Please let us confirm those before asking for more.")
     note = (payload.get("note") or "").strip()[:500]
+    _, own_load = request_load(rules_for(owner), svc)
     made = []
     for day in days:
         bk = Booking(
-            user_id=owner.id, client_id=client.id, title=f"Date request · {client.name}", event_type=f"Personal chef · {service}",
+            user_id=owner.id, client_id=client.id, title=f"Date request · {client.name}", event_type=request_label(svc), day_load=own_load,
             status="enquiry", date=day, date_hold=True, hold_stage="requested", deposit_amount=config.DATE_HOLD_DEPOSIT, deposit_paid=False,
             hold_expires_at="",
             notes=f"Date requested online, held until confirmed. Deposit {_money(config.DATE_HOLD_DEPOSIT)} by bank transfer once confirmed, reference {_reference(client.name, day)}."
