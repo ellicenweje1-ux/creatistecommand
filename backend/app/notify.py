@@ -20,9 +20,11 @@ TYPES = {
     "reviews": "New reviews waiting for approval",
     "enquiries": "New enquiries",
     "reminders": "Reminders for shop, prep and job times",
+    "brief": "A morning summary of your day",
 }
 LEAD_CHOICES = (0, 15, 30, 60, 90, 120)
-DEFAULTS = {**{k: True for k in TYPES}, "lead_minutes": 60}
+BRIEF_TIMES = tuple(f"{h:02d}:{m:02d}" for h in range(5, 11) for m in (0, 30))   # 05:00 to 10:30
+DEFAULTS = {**{k: True for k in TYPES}, "lead_minutes": 60, "brief_time": "07:30"}
 
 
 def prefs(owner: User | None) -> dict:
@@ -35,6 +37,8 @@ def prefs(owner: User | None) -> dict:
                 p[k] = int(v) if int(v) in LEAD_CHOICES else DEFAULTS[k]
             except (TypeError, ValueError):
                 pass
+        elif k == "brief_time" and v in BRIEF_TIMES:
+            p[k] = v
     return p
 
 
@@ -50,6 +54,8 @@ def clean_prefs(raw: dict) -> dict:
                 out["lead_minutes"] = n
         except (TypeError, ValueError):
             pass
+    if (raw or {}).get("brief_time") in BRIEF_TIMES:
+        out["brief_time"] = raw["brief_time"]
     return out
 
 

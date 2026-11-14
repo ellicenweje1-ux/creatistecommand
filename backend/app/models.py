@@ -94,6 +94,8 @@ class User(Base):
     # Worked-example cards shown at the top of each module for new chefs — page keys the
     # user has dismissed ("all" hides every card). NB existing rows migrate as NULL.
     examples_hidden: Mapped[list] = mapped_column(JSON, default=list)
+    # Menu items this login has tucked away under "More tools" (paths like /app/routes). NULL / [] = the full menu.
+    nav_hidden: Mapped[list] = mapped_column(JSON, default=list)
     # The chef's public pre-order offer (menu, slots, delivery policy) — see routers/preorders.py.
     preorder_offer: Mapped[dict] = mapped_column(JSON, default=dict)
     diary_rules: Mapped[dict] = mapped_column(JSON, default=dict)  # {max_per_day, prep_days, public, horizon_days}

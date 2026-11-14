@@ -83,7 +83,8 @@ def _svc(name, category, steps, day_label=None, packages=(), requestable=True, u
             "requestable": requestable, "notice_days": notice_default(category) if notice is None else notice,
             "request_days": list(days),
             "steps": [{"id": f"{s['kind']}-{i}", **s} for i, s in enumerate(steps)],
-            "packages": [{"id": re.sub(r"[^a-z0-9]+", "-", p[0].lower()).strip("-"), "name": p[0], "days": p[1], "hours": p[2]} for p in packages]}
+            "packages": [{"id": re.sub(r"[^a-z0-9]+", "-", p[0].lower()).strip("-"), "name": p[0], "days": p[1], "hours": p[2],
+                          "price": p[3] if len(p) > 3 else 0} for p in packages]}
 
 
 OWNER_PRESET_ID = "creatiste-catering-1"
@@ -93,7 +94,7 @@ OWNER_PRESET = {
         _svc("Sorted & Served", "delivered", [_step("shop", "Shop", False, 2, 1), _step("prep", "Prep", True, 2, 1)]),
         _svc("The Home Edit", "inhome", [_step("shop", "Shop", True, 1, 0), _step("prep", "Prep", False, 1, 1)],
              day_label="Cook at client's home",
-             packages=[("The Full Table", 5, 6), ("The Daily Dinner", 5, 2.5), ("The Half Week", 3, 4), ("The Prep Day", 1, 8)]),
+             packages=[("The Full Table", 5, 6, 690), ("The Daily Dinner", 5, 2.5, 287.5), ("The Half Week", 3, 4, 276), ("The Prep Day", 1, 8, 184)]),
         _svc("Corporate Curations", "event", [_step("shop", "Shop", True, 7, 1), _step("prep", "Prep", True, 4, 1)]),
         _svc("Private & Personal", "event", [_step("shop", "Shop", True, 7, 1), _step("prep", "Prep", True, 4, 1)]),
         _svc("The Loaded Bar", "event", [_step("shop", "Shop", True, 7, 1), _step("prep", "Prep", True, 4, 1)]),
@@ -104,19 +105,27 @@ OWNER_PRESET = {
     "remind_unplanned": True,
 }
 # One-off changes to the owner's saved setup, each applied once (recorded in job_setup["applied"]) so a later untick sticks.
-OWNER_UPDATES = ("all-requestable-1",)
+OWNER_UPDATES = ("all-requestable-1", "package-prices-1", "simple-menu-1")
+OWNER_PACKAGE_PRICES = {"the full table": 690, "the daily dinner": 287.5, "the half week": 276, "the prep day": 184}   # as on her website
+
+
+# Her everyday menu (2026-11-12, "streamline what isn't being used"): everything else sits under "More tools", one tap
+# away, and she can bring any of it back under Settings → Appearance → Your menu.
+OWNER_NAV_HIDDEN = ["/app/dashboard", "/app/guide", "/app/tastings", "/app/routes", "/app/team", "/app/recipes", "/app/allergens",
+                    "/app/inventory", "/app/orders", "/app/designs", "/app/ideas"]
 
 
 def apply_owner_preset(db: Session) -> bool:
-    """Load The Creatiste Catering's service setup on the platform owner's account, once, if it has none yet."""
+    """Load The Creatiste Catering's own setup on the platform owner's account: the services (once, if there are none yet)
+    and each later one-off change (recorded in job_setup["applied"], so anything she changes afterwards sticks)."""
     owner = db.query(User).filter(User.email == config.ADMIN_EMAIL.lower(), User.role == "admin").first()
     if not owner:
         return False
-    if not owner.job_setup:
-        owner.job_setup = {**OWNER_PRESET, "preset": OWNER_PRESET_ID, "applied": list(OWNER_UPDATES)}
-        db.commit()
-        return True
-    setup = dict(owner.job_setup)
+    setup = dict(owner.job_setup or {})
+    changed = False
+    if not setup:
+        setup = {**OWNER_PRESET, "preset": OWNER_PRESET_ID, "applied": ["all-requestable-1", "package-prices-1"]}
+        changed = True
     applied = list(setup.get("applied") or [])
     if "all-requestable-1" not in applied:
         # Ellice, 12 Nov 2026: every service can be requested by regular clients, Clean Dream included (on its weekdays).
@@ -128,7 +137,20 @@ def apply_owner_preset(db: Session) -> bool:
             services.append(s)
         setup["services"] = services
         applied.append("all-requestable-1")
-    if applied == list(setup.get("applied") or []):
+    if "package-prices-1" not in applied:
+        # Packages can carry a price (so an invoice for one fills itself in). Hers are the ones on her website.
+        services = []
+        for s in setup.get("services") or []:
+            pkgs = [{**p, "price": p.get("price") or OWNER_PACKAGE_PRICES.get(str(p.get("name", "")).strip().lower(), 0)}
+                    for p in s.get("packages") or []]
+            services.append({**s, "packages": pkgs})
+        setup["services"] = services
+        applied.append("package-prices-1")
+    if "simple-menu-1" not in applied:
+        owner.nav_hidden = list(OWNER_NAV_HIDDEN)
+        owner.examples_hidden = ["all"]
+        applied.append("simple-menu-1")
+    if not changed and applied == list(setup.get("applied") or []):
         return False
     setup["applied"] = applied
     owner.job_setup = setup
@@ -190,7 +212,12 @@ def clean_service(raw: dict) -> dict | None:
             hours = round(max(0.25, min(16.0, float(p.get("hours") or 0))), 2)
         except (TypeError, ValueError):
             hours = 1.0
-        packages.append({"id": str(p.get("id") or _slug(pname))[:40], "name": pname, "days": _int(p.get("days"), 1, 7, 1), "hours": hours})
+        try:
+            price = round(max(0.0, min(100000.0, float(p.get("price") or 0))), 2)
+        except (TypeError, ValueError):
+            price = 0.0
+        packages.append({"id": str(p.get("id") or _slug(pname))[:40], "name": pname, "days": _int(p.get("days"), 1, 7, 1), "hours": hours,
+                         "price": price})
     days = raw.get("request_days")
     days = sorted({int(d) for d in (days if isinstance(days, list) else []) if str(d).isdigit() and 0 <= int(d) <= 6})
     return {"id": str(raw.get("id") or _slug(name))[:40], "name": name, "category": cat,
@@ -209,7 +236,8 @@ def clean_setup(raw: dict) -> dict:
         if s and s["name"].lower() not in seen:
             seen.add(s["name"].lower())
             services.append(s)
-    return {"services": services, "remind_unplanned": bool((raw or {}).get("remind_unplanned", True))}
+    return {"services": services, "remind_unplanned": bool((raw or {}).get("remind_unplanned", True)),
+            "todos_in_feed": bool((raw or {}).get("todos_in_feed", True))}
 
 
 def _known_names(db: Session, owner: User) -> list[tuple[str, str | None]]:
@@ -231,7 +259,8 @@ def setup_for(db: Session, owner: User) -> dict:
         if name and name.lower() not in have:
             services.append(default_service(name, cat))
             have.add(name.lower())
-    return {"services": services, "remind_unplanned": saved["remind_unplanned"], "saved": bool(owner.job_setup),
+    return {"services": services, "remind_unplanned": saved["remind_unplanned"], "todos_in_feed": saved["todos_in_feed"],
+            "saved": bool(owner.job_setup),
             "categories": [{"id": k, "label": v["label"], "day_label": v["day_label"], "steps": v["steps"],
                             "notice_days": notice_default(k)} for k, v in CATEGORIES.items()]}
 
@@ -291,6 +320,17 @@ def window(anchor: str, st: dict) -> tuple[str, str]:
     return (a - timedelta(days=int(st.get("from") or 0))).isoformat(), (a - timedelta(days=int(st.get("to") or 0))).isoformat()
 
 
+def suggest_day(win: tuple[str, str], work_days: list[int]) -> str:
+    """Where a step sits until the chef says otherwise: the last working day of its window (the latest it can be done)."""
+    lo, hi = (_date.fromisoformat(x) for x in win)
+    d = hi
+    while d >= lo:
+        if d.weekday() in work_days:
+            return d.isoformat()
+        d -= timedelta(days=1)
+    return hi.isoformat()
+
+
 def plan_days(bk: Booking) -> list[str]:
     days = [d for d in (bk.job_plan or {}).get("days") or [] if _valid_day(d)]
     return days or ([bk.date] if _valid_day(bk.date) else [])
@@ -308,9 +348,14 @@ def ensure_plan(db: Session, owner: User, bk: Booking, setup: dict | None = None
                 package: str | None = None, days: list[str] | None = None) -> dict:
     """Give a booking its plan, or bring it in step with its day(s) and service. Returns {changed, cleared}.
 
-    A planned shop / prep session that no longer fits its window (the day moved) goes back to unplanned."""
+    Every shop / prep session always has a day, so nothing hides off the calendar: until the chef picks one it sits on a
+    suggested day (`auto`: the last working day of its window) and follows the job if that moves. A session the chef placed
+    herself that no longer fits its window (the day moved) goes back to the suggested day (counted in `cleared`)."""
     if not _valid_day(bk.date):
         return {"changed": False, "cleared": 0}
+    from .diary import rules_for
+
+    work = rules_for(owner)["work_days"]
     setup = setup or setup_for(db, owner)
     plan = dict(bk.job_plan or {})
     svc = service_of(setup, bk, service)
@@ -337,10 +382,14 @@ def ensure_plan(db: Session, owner: User, bk: Booking, setup: dict | None = None
     for st in steps:
         a, b = window(new_days[0], st)
         for s in st["sessions"]:
-            if s.get("day") and not (a <= s["day"] <= b):
+            if s.get("day") and not s.get("auto") and not (a <= s["day"] <= b):
                 s.update(day="", time="")
-                s.pop("sent", None)
                 cleared += 1
+            if not s.get("day") or s.get("auto"):
+                want = suggest_day((a, b), work)
+                if s.get("day") != want:
+                    s.pop("sent", None)
+                s.update(day=want, time="" if not s.get("day") else s.get("time", ""), auto=True)
     new = {"service": svc["name"], "package": package if package is not None else plan.get("package", ""), "days": new_days,
            "steps": steps, "built": True, "sent": list(plan.get("sent") or [])}
     if new != plan:
@@ -431,7 +480,7 @@ def job_detail(db: Session, owner: User, bk: Booking, setup: dict | None = None)
     for st in plan.get("steps") or []:
         a, b = window(days[0], st)
         steps.append({"kind": st["kind"], "name": st["name"], "from": st["from"], "to": st["to"], "window": [a, b],
-                      "sessions": [{"day": s.get("day", ""), "time": s.get("time", "")} for s in st.get("sessions") or []]})
+                      "sessions": [{"day": s.get("day", ""), "time": s.get("time", ""), "auto": bool(s.get("auto"))} for s in st.get("sessions") or []]})
     pkg = package_of(svc, plan.get("package", ""))
     return {
         "id": bk.id, "title": bk.title, "who": who_of(bk, names), "status": bk.status, "date": bk.date, "days": days,
@@ -452,17 +501,15 @@ def _parse_day(s: str, fallback: _date) -> _date:
         return fallback
 
 
-@router.get("/calendar")
-def calendar(from_date: str = "", to_date: str = "", db: Session = Depends(get_db), user: User = Depends(require_active)):
+def calendar_days(db: Session, owner: User, start: _date, end: _date, *, today: _date | None = None, personal: bool = True) -> dict:
+    """Everything on each day from `start` to `end`: job days, their shop / prep sessions, blocked-out time, held date
+    requests and dated to-dos (overdue ones gather on today). `personal=False` leaves the owner's personal to-dos out
+    (staff). One builder for the Calendar page, the Today page, the assistant and the morning summary."""
     from .diary import _block_on, _is_work, rules_for
+    from ..models import Task
 
-    uid = ws_id(user)
-    owner = db.get(User, uid)
-    today = _date.today()
-    start = _parse_day(from_date, today - timedelta(days=today.weekday()))
-    end = _parse_day(to_date, start + timedelta(days=6))
-    if end < start or (end - start).days > 62:
-        end = start + timedelta(days=6)
+    uid = owner.id
+    today = today or _date.today()
     setup = setup_for(db, owner)
     rules = rules_for(owner)
     names = _names(db, uid)
@@ -477,6 +524,17 @@ def calendar(from_date: str = "", to_date: str = "", db: Session = Depends(get_d
     svc_of = {bid: service_of(setup, bk) for bid, bk in seen.items()}
     holds = _live_holds(db, uid, start.isoformat(), end.isoformat())
     blocks = db.query(DiaryBlock).filter(DiaryBlock.user_id == uid).all()
+    t_iso = today.isoformat()
+    # Dated to-dos: on their own day; anything overdue and still open gathers on today instead (when today is in view).
+    tasks = (db.query(Task).filter(Task.user_id == uid, Task.due_date != "", Task.due_date <= end.isoformat(),
+                                   or_(Task.status != "done", Task.due_date >= start.isoformat())).all())
+    tasks = [t for t in tasks if (personal or (t.category or "") != "personal")
+             and (t.due_date >= start.isoformat() or start <= today <= end)]
+
+    def todo_entry(t: Task, overdue: bool = False) -> dict:
+        return {"kind": "todo", "time": t.due_time or "", "end": "", "label": "To-do", "who": t.title, "task_id": t.id,
+                "sub": "Personal" if (t.category or "") == "personal" else "", "personal": (t.category or "") == "personal",
+                "done": t.status == "done", "overdue": overdue, "due": t.due_date}
 
     days_out = []
     for i in range((end - start).days + 1):
@@ -494,7 +552,8 @@ def calendar(from_date: str = "", to_date: str = "", db: Session = Depends(get_d
                 for ii, se in enumerate(st.get("sessions") or []):
                     if se.get("day") == iso:
                         entries.append({"kind": st["kind"], "time": se.get("time", ""), "end": "", "label": st["name"], "who": who,
-                                        "sub": svc["name"], "job_id": bk.id, "si": si, "ii": ii})
+                                        "sub": svc["name"], "job_id": bk.id, "si": si, "ii": ii, "auto": bool(se.get("auto")),
+                                        "job_date": plan_days(bk)[0]})
         for b in blocks:
             if _block_on(b, day):
                 entries.append({"kind": "calendar" if b.source == "calendar" else "block", "time": b.start_time or "",
@@ -507,8 +566,13 @@ def calendar(from_date: str = "", to_date: str = "", db: Session = Depends(get_d
                 entries.append({"kind": "held", "time": "", "end": "", "label": "Held", "who": names.get(h.client_id) or h.title,
                                 "sub": "Waiting for their deposit" if h.hold_stage == "awaiting_deposit" else "Date request, waiting for you",
                                 "hold_id": h.id})
-        order = {"held": 0}
-        entries.sort(key=lambda e: (order.get(e["kind"], 1), e["time"] or "99:99"))
+        for t in tasks:
+            if t.due_date == iso and (t.status == "done" or iso >= t_iso):
+                entries.append(todo_entry(t))
+            elif iso == t_iso and t.due_date < t_iso and t.status != "done":
+                entries.append(todo_entry(t, overdue=True))
+        order = {"held": 0, "todo": 2}
+        entries.sort(key=lambda e: (order.get(e["kind"], 1), e.get("done", False), e["time"] or "99:99"))
         days_out.append({"date": iso, "workday": _is_work(rules, day), "entries": entries})
 
     to_plan = []
@@ -524,9 +588,22 @@ def calendar(from_date: str = "", to_date: str = "", db: Session = Depends(get_d
                     to_plan.append({"job_id": bk.id, "si": si, "ii": ii, "kind": st["kind"], "name": st["name"], "who": who_of(bk, names),
                                     "service": svc["name"], "job_date": days[0], "window": [a, b]})
     to_plan.sort(key=lambda t: (t["window"][1], t["job_date"]))
+    return {"days": days_out, "to_plan": to_plan}
+
+
+@router.get("/calendar")
+def calendar(from_date: str = "", to_date: str = "", db: Session = Depends(get_db), user: User = Depends(require_active)):
+    uid = ws_id(user)
+    owner = db.get(User, uid)
+    today = _date.today()
+    start = _parse_day(from_date, today - timedelta(days=today.weekday()))
+    end = _parse_day(to_date, start + timedelta(days=6))
+    if end < start or (end - start).days > 62:
+        end = start + timedelta(days=6)
+    cal = calendar_days(db, owner, start, end, today=today, personal=user.role != "staff")
     requested = db.query(Booking.id).filter(Booking.user_id == uid, Booking.date_hold == True, Booking.status == "enquiry",  # noqa: E712
                                             Booking.hold_stage == "requested", Booking.deposit_paid == False).count()  # noqa: E712
-    return {"from": start.isoformat(), "to": end.isoformat(), "today": today.isoformat(), "days": days_out, "to_plan": to_plan,
+    return {"from": start.isoformat(), "to": end.isoformat(), "today": today.isoformat(), "days": cal["days"], "to_plan": cal["to_plan"],
             "requests": requested}
 
 
@@ -540,8 +617,9 @@ def save_setup(payload: dict = Body(...), db: Session = Depends(get_db), user: U
     owner = db.get(User, ws_id(user))
     if user.role == "staff":
         raise HTTPException(403, "Only the business owner can change how services run")
-    cleaned = clean_setup(payload)
-    keep = {k: v for k, v in (owner.job_setup or {}).items() if k in ("preset", "applied")}
+    was = owner.job_setup or {}
+    cleaned = clean_setup({**{k: was[k] for k in ("remind_unplanned", "todos_in_feed") if k in was}, **(payload or {})})
+    keep = {k: v for k, v in was.items() if k in ("preset", "applied")}
     owner.job_setup = {**keep, **cleaned}
     db.commit()
     return setup_for(db, owner)
@@ -600,9 +678,11 @@ def plan_session(job_id: int, payload: dict = Body(...), db: Session = Depends(g
         a, b = window(plan_days(bk)[0], st)
         if not (a <= day <= b):
             raise HTTPException(422, f"Pick a day between {a} and {b}")
-    sess.update(day=day, time=t if day else "")
     sess.pop("sent", None)
+    sess.pop("auto", None)
+    sess.update(day=day, time=t if day else "")   # a blank day goes back to the suggested day (ensure_plan below)
     bk.job_plan = plan
+    ensure_plan(db, owner, bk)
     db.commit()
     return job_detail(db, owner, bk)
 
@@ -620,6 +700,7 @@ def add_session(job_id: int, payload: dict = Body(...), db: Session = Depends(ge
         raise HTTPException(422, "That's plenty for one step")
     plan["steps"][si]["sessions"].append({"day": "", "time": ""})
     bk.job_plan = plan
+    ensure_plan(db, owner, bk)
     db.commit()
     return job_detail(db, owner, bk)
 
@@ -638,6 +719,7 @@ def remove_session(job_id: int, si: int, ii: int, db: Session = Depends(get_db),
     else:
         sessions.pop(ii)
     bk.job_plan = plan
+    ensure_plan(db, owner, bk)
     db.commit()
     return job_detail(db, owner, bk)
 
@@ -756,6 +838,30 @@ def run_reminders(db: Session, now: datetime | None = None) -> int:
     names: dict[int, dict] = {}
     sent = 0
 
+    # The morning summary: once a day at the time the owner chose (not after midday if the server was asleep).
+    for oid in owner_ids:
+        owner = owners.setdefault(oid, db.get(User, oid))
+        if not owner or owner.role == "staff":
+            continue
+        p = notify.prefs(owner)
+        if not p["brief"] or now.strftime("%H:%M") < p["brief_time"] or now.hour >= 12:
+            continue
+        stored = dict(owner.notify_prefs or {})
+        if stored.get("brief_sent") == t_iso:
+            continue
+        try:
+            from . import today as today_mod
+
+            title, body = today_mod.brief_text(today_mod.snapshot(db, owner, today=today, days=1), owner)
+            sent += notify.notify(db, owner, "brief", title, body, url="/app", tag="brief") > 0
+        except Exception as exc:
+            log.warning("morning summary for %s failed: %s", oid, exc)
+        stored["brief_sent"] = t_iso
+        owner.notify_prefs = stored
+        db.commit()
+
+    untimed_pings = True
+
     def due(day_iso: str, t: str, lead: int) -> bool:
         if day_iso != t_iso:
             return False
@@ -763,7 +869,7 @@ def run_reminders(db: Session, now: datetime | None = None) -> int:
             h, m = (int(x) for x in t.split(":"))
             at = datetime(today.year, today.month, today.day, h, m, tzinfo=tz)
             return at - timedelta(minutes=lead) <= now <= at + timedelta(hours=2)
-        return 8 <= now.hour < 21
+        return untimed_pings and 8 <= now.hour < 21
 
     for bk in rows:
         owner = owners.get(bk.user_id) or owners.setdefault(bk.user_id, db.get(User, bk.user_id))
@@ -773,6 +879,7 @@ def run_reminders(db: Session, now: datetime | None = None) -> int:
         if not p["reminders"]:
             continue
         lead = p["lead_minutes"]
+        untimed_pings = not p["brief"]   # with the morning summary on, things with no time are in it instead of pinging one by one
         setup = setups.get(owner.id) or setups.setdefault(owner.id, setup_for(db, owner))
         nm = names.get(owner.id) or names.setdefault(owner.id, _names(db, owner.id))
         ensure_plan(db, owner, bk, setup)
