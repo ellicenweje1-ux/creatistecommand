@@ -1001,6 +1001,7 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
     with captions + a **tofu card** in her style (`SlideCard`, sizes in `cqw` via `.slide-card` CSS; swap `card` for `img` when she sends a
     tofu slide), tap → `Viewer` (arrows/swipe/Escape). Old `soulfood-menu.webp` removed. Pre-orders page says "paid into your Creatiste
     Command Stripe account"; Support FAQ no longer mentions the env var.
+  - **Time + place announced (follow-up):** 6.30pm till late, East Croydon, "Live updates via Partiful" on What's Up (meta + footnote), the pop-up hero, the collect note and the offer slot; `rev` 3 fills her saved slot only if it was still unset/"to be announced" and swaps the old Instagram collect note. Cover replaced with her version ending "/ soulfood".
   - Verified: `test_popup.py` 53/53, new `test_stripe_command.py` 28/28 (Command key, gating, forged/unknown sessions refused, Command
     webhook settles + idempotent, subscriptions still activate, rev-2 migration keeps her settings, own key takes over),
     `test_preorders.py` 37/37 (webhook tests now mark the fake session paid first); Playwright `pop_e2e/verify_pop.py` 78/78 with Command

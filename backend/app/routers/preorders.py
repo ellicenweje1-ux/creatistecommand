@@ -142,7 +142,7 @@ SOULFOOD_OFFER = {
     "currency": "GBP",
     "date": "2026-11-20",
     "closes": "2026-11-18T09:00",             # local time; after this the page shows that pre-orders have closed
-    "rev": 2,                                 # bump to push a menu or closing-time change onto the saved copy once (apply_owner_offers)
+    "rev": 3,                                 # bump to push a menu or closing-time change onto the saved copy once (apply_owner_offers)
     "pay": "card",                            # card through Stripe when it is connected; bank transfer until then
     "capacity": 0,                            # most boxes to take (0 = no limit)
     "paused": False,
@@ -163,10 +163,10 @@ SOULFOOD_OFFER = {
          "groups": [{"id": "dessert", "label": "Dessert", "pick": "whipped cream or custard", "min": 1, "max": 1,
                      "options": [{"name": n} for n in _SF_DESSERTS]}]},
     ],
-    "slots": [{"id": "popup", "label": "Collect at the pop-up", "place": "London, location to be announced", "time": ""}],
+    "slots": [{"id": "popup", "label": "Collect at the pop-up", "place": "East Croydon", "time": "6.30pm till late"}],
     "delivery": {"enabled": False},
-    "collect_note": "Collect under your name at the pop-up on Friday 20 November. The time and location are announced on our "
-                    "Instagram and we will message you before the night.",
+    "collect_note": "Collect under your name at the pop-up in East Croydon on Friday 20 November, from 6.30pm. Live updates "
+                    "via Partiful, and we will message you before the night.",
     "allergens_note": "Please tell us about any allergies before you pay. Vegetarian? Choose the deep fried smoked tofu.",
 }
 
@@ -928,7 +928,19 @@ def apply_owner_offers(db: Session) -> bool:
         owner.preorder_offers = extras
         changed = True
     elif idx is not None and int(extras[idx].get("rev") or 1) < SOULFOOD_OFFER["rev"]:
-        extras[idx] = {**extras[idx], **{k: copy.deepcopy(SOULFOOD_OFFER[k]) for k in ("items", "closes", "allergens_note", "rev")}}
+        cur = extras[idx]
+        upd = {k: copy.deepcopy(SOULFOOD_OFFER[k]) for k in ("items", "closes", "allergens_note", "rev")}
+        # rev 3: the time and place were announced. Fill them in unless she has already typed her own.
+        slot = dict((cur.get("slots") or [{}])[0])
+        if not slot.get("place") or "to be announced" in slot.get("place", ""):
+            slot["place"] = SOULFOOD_OFFER["slots"][0]["place"]
+        if not slot.get("time"):
+            slot["time"] = SOULFOOD_OFFER["slots"][0]["time"]
+        if slot.get("id"):
+            upd["slots"] = [slot] + list((cur.get("slots") or [])[1:])
+        if "announced on our" in (cur.get("collect_note") or ""):
+            upd["collect_note"] = SOULFOOD_OFFER["collect_note"]
+        extras[idx] = {**cur, **upd}
         owner.preorder_offers = extras
         changed = True
     main = dict(owner.preorder_offer or {})
