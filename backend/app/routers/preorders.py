@@ -31,7 +31,7 @@ from .. import config, mailer, notify, ratelimit
 from ..auth import require_plan
 from ..database import get_db
 from ..models import Booking, Client, PreOrder, User
-from ..utils import ws_id
+from ..utils import stripe_plain, ws_id
 from ..utils import EMAIL_RE
 
 public_router = APIRouter(prefix="/public/preorder", tags=["preorders"])
@@ -553,7 +553,7 @@ def settle_session(db: Session, session_id: str, public_id: str = "") -> PreOrde
     if not session_id or not payments_enabled():
         return None
     try:
-        session = _stripe().checkout.Session.retrieve(session_id)
+        session = stripe_plain(_stripe().checkout.Session.retrieve(session_id))
     except Exception:
         return None
     pid = (session.get("metadata") or {}).get("public_id") or ""
@@ -590,6 +590,7 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
     else:
         import json
         event = json.loads(body)
+    event = stripe_plain(event)
     if event["type"] == "checkout.session.completed":
         settle_session(db, event["data"]["object"].get("id") or "")
     return {"ok": True}
@@ -749,6 +750,16 @@ def place_order(request: Request, token: str, payload: dict = Body(...), db: Ses
 
 @router.get("")
 def list_orders(from_date: str = "", to_date: str = "", db: Session = Depends(get_db), user: User = Depends(require_plan(2))):
+    # Card orders still marked unpaid: ask Stripe now, so a payment whose confirmation never arrived shows as paid.
+    if payments_enabled():
+        stuck = (db.query(PreOrder).filter(PreOrder.user_id == ws_id(user), PreOrder.status == "pending_payment",
+                                           PreOrder.pay_method != "bank", PreOrder.stripe_session_id != "")
+                 .order_by(PreOrder.created_at.desc()).limit(15).all())
+        for o in stuck:
+            try:
+                settle_session(db, o.stripe_session_id, o.public_id)
+            except Exception:
+                db.rollback()
     q = db.query(PreOrder).filter(PreOrder.user_id == ws_id(user))
     if from_date:
         q = q.filter(PreOrder.for_date >= from_date[:10])

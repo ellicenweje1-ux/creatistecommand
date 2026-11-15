@@ -215,3 +215,14 @@ def extract_json(text: str):
             except json.JSONDecodeError:
                 continue
     raise ValueError("No JSON found in AI response")
+
+
+def stripe_plain(obj) -> dict:
+    """A Stripe response or event as a plain dict. Newer Stripe libraries (v8+) return objects that are NOT dicts
+    (no .get), so every read of a Stripe object goes through this. Plain dicts (tests, unsigned events) pass through."""
+    if obj is None:
+        return {}
+    if isinstance(obj, dict):
+        return obj
+    conv = getattr(type(obj), "to_dict_recursive", None) or getattr(type(obj), "to_dict", None)
+    return conv(obj) if conv else dict(obj)

@@ -161,7 +161,7 @@ export default function Preorders() {
   const [orders, setOrders] = useState(null)
   const [offer, setOffer] = useState(null)
   const [json, setJson] = useState('')
-  const [from, setFrom] = useState(todayISO())
+  const [tab, setTab] = useState('upcoming') // upcoming | past
   const [showPending, setShowPending] = useState(false)
   const [editing, setEditing] = useState(false)
   const [paidPreview, setPaidPreview] = useState(null) // {o, customer:{to,subject,body}, chef:{…}}
@@ -171,20 +171,24 @@ export default function Preorders() {
 
   const load = async () => {
     try {
-      const [o, f, p] = await Promise.all([api.get(`/preorders?from_date=${from}`), api.get('/preorders/offer'), api.get('/preorders/offers')])
+      const [o, f, p] = await Promise.all([api.get('/preorders'), api.get('/preorders/offer'), api.get('/preorders/offers')])
       setOrders(o); setOffer(f); setJson(JSON.stringify(f.offer, null, 2)); setPages(p)
     } catch (e) { toastErr(e) }
   }
   const addPopup = async () => { try { await api.post('/preorders/offers', { template: 'soulfood' }); toast('Pop-up added. Set its date, place and closing time below.'); load() } catch (e) { toastErr(e) } }
-  useEffect(() => { load() }, [from]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const groups = useMemo(() => {
     // Bank-transfer orders are real orders waiting for the money to land, so they always show; card attempts that never paid are hidden unless asked for.
-    const vis = (orders || []).filter((o) => showPending || o.status !== 'pending_payment' || o.pay_method === 'bank')
+    const today = todayISO()
+    const vis = (orders || []).filter((o) => (showPending || o.status !== 'pending_payment' || o.pay_method === 'bank')
+      && (tab === 'past' ? o.date < today : o.date >= today))
     const by = {}
     vis.forEach((o) => { (by[`${o.date}|${o.title || ''}`] ||= []).push(o) })
-    return Object.entries(by).sort(([a], [b]) => a.localeCompare(b)).map(([k, rows]) => [k.split('|')[0], rows, k.split('|')[1]])
-  }, [orders, showPending])
+    // Upcoming: soonest first. Past: most recent first.
+    return Object.entries(by).sort(([a], [b]) => (tab === 'past' ? b.localeCompare(a) : a.localeCompare(b))).map(([k, rows]) => [k.split('|')[0], rows, k.split('|')[1]])
+  }, [orders, showPending, tab])
+  const pastCount = (orders || []).filter((o) => o.date < todayISO() && (o.status === 'paid' || o.status === 'collected')).length
 
   // The WhatsApp receipt opens as an editable preview first; copy when it reads right.
   const copyReceipt = (o) => setWaPreview({ o, text: receiptText(o, user?.receipt_whatsapp_template || '', user?.business_name || user?.name || 'The Creatiste Catering') })
@@ -216,8 +220,9 @@ export default function Preorders() {
   const useTemplate = () => { if (offer?.template) setJson(JSON.stringify(offer.template, null, 2)) }
 
   if (!orders || !offer) return <div className="py-20 text-center"><Spinner /></div>
-  const paidCount = orders.filter((o) => o.status === 'paid').length
-  const boxCount = orders.filter((o) => o.status === 'paid').reduce((s, o) => s + (o.boxes?.length || 0), 0)
+  const upcomingPaid = orders.filter((o) => o.status === 'paid' && o.date >= todayISO())
+  const paidCount = upcomingPaid.length
+  const boxCount = upcomingPaid.reduce((s, o) => s + (o.boxes?.length || 0), 0)
 
   return (
     <div className="space-y-6">
@@ -257,10 +262,14 @@ export default function Preorders() {
 
       <Card className="p-4">
         <div className="flex flex-wrap items-end gap-4">
-          <Field label="From"><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
+          <div className="flex rounded-lg border border-line p-0.5 text-sm" data-order-tabs>
+            {[['upcoming', 'Upcoming'], ['past', `Past orders${pastCount ? ` (${pastCount})` : ''}`]].map(([k, l]) => (
+              <button key={k} type="button" onClick={() => setTab(k)} className={`rounded-md px-3 py-1.5 ${tab === k ? 'bg-copper text-ink' : 'text-fg/70'}`} data-order-tab={k}>{l}</button>
+            ))}
+          </div>
           <label className="flex items-center gap-2 pb-2 text-sm text-fg/80"><input type="checkbox" checked={showPending} onChange={(e) => setShowPending(e.target.checked)} /> Show unpaid attempts</label>
           <div className="ml-auto flex gap-6 pb-2 text-sm text-fg/70">
-            <span><strong className="text-fg">{paidCount}</strong> paid orders</span>
+            <span><strong className="text-fg">{paidCount}</strong> paid orders coming up</span>
             <span><strong className="text-fg">{boxCount}</strong> boxes</span>
             <span>Card payments: <Badge tone={pages?.card_ready ? 'green' : 'amber'}>{pages?.card_ready ? (pages.stripe_account === 'command' ? 'Stripe connected (Command account)' : 'Stripe connected') : 'Stripe not connected'}</Badge></span>
           </div>
@@ -268,7 +277,7 @@ export default function Preorders() {
       </Card>
 
       {groups.length === 0 ? (
-        <EmptyState icon="cart" title="No orders yet" hint={offer.payments === 'stripe' ? 'Orders from your site will appear here, grouped by day.' : 'Orders from your site appear here grouped by day. Bank-transfer orders arrive as “awaiting bank transfer”: mark each paid once the money lands and it becomes a confirmed booking. Switch a page to Card (Stripe) above to take card payments as well.'} />
+        <EmptyState icon="cart" title={tab === 'past' ? 'No past orders' : 'No upcoming orders'} hint={tab === 'past' ? 'Orders from earlier days appear here, most recent first.' : offer.payments === 'stripe' ? 'Orders from your site will appear here, grouped by day.' : 'Orders from your site appear here grouped by day. Bank-transfer orders arrive as “awaiting bank transfer”: mark each paid once the money lands and it becomes a confirmed booking. Switch a page to Card (Stripe) above to take card payments as well.'} />
       ) : groups.map(([date, rows, title]) => (
         <Card key={`${date}|${title}`} className="p-0" data-order-day={date}>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">

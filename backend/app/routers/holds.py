@@ -232,14 +232,12 @@ def requested_emails(owner: User, bks: list[Booking], client: Client) -> dict:
 def confirm_emails(owner: User, bk: Booking, client: Client) -> dict:
     """Sent when the chef confirms she is free: pay the deposit now to lock the date in."""
     amount, ref, when = _money(bk.deposit_amount or config.DATE_HOLD_DEPOSIT), _reference(client.name, bk.date), _pretty_date(bk.date)
-    hours = f"{config.DATE_HOLD_HOURS:g}"
-    deadline = _local_time(bk.hold_expires_at) if bk.hold_expires_at else f"within {hours} hours"
     return {"customer": {
-        "to": client.email, "subject": f"Good news, {when} is free: send your deposit to lock it in",
-        "body": (f"Hi {_first(client)},\n\nWe are free on {when} ({_service_of(bk)}).\n\n"
-                 f"To lock it in, please send the {amount} deposit by bank transfer within {hours} hours, by {deadline}.\n\n"
+        "to": client.email, "subject": f"Good news, you're booked in for {when}",
+        "body": (f"Hi {_first(client)},\n\nWe are free on {when} ({_service_of(bk)}), so it's booked in for you.\n\n"
+                 f"Please send the {amount} deposit by bank transfer when you can to secure it.\n\n"
                  f"Pay to: {_bank_text(owner)}\nReference: {ref}\nAmount: {amount}\n\n"
-                 f"Your date is confirmed once we have received it, and we will email you then. If it hasn't arrived in time the date is released.\n\n"
+                 f"We will email you to confirm once it has arrived.\n\n"
                  f"The deposit is non-refundable, but it can be moved to a later date if you need to change, and it is taken off your final invoice.\n\n{_biz(owner)}")}}
 
 
@@ -294,24 +292,32 @@ def _send(mails: dict, *which):
 
 # ───────────────────────────── expiry ─────────────────────────────
 def expire_holds(db: Session, owner_id: int | None = None) -> int:
-    """Release every confirmed-but-unpaid request whose deposit time is up (status -> cancelled, the day opens, everyone is told).
-    A request still waiting for the chef has no clock and is never released here. Idempotent."""
+    """Nothing is released automatically any more (Ellice: an accepted date belongs in the diary). This only moves
+    dates accepted under the old 12-hour rule, still waiting for a deposit, into the diary as booked, deposit owed.
+    A request still waiting for the chef stays a request. Idempotent; returns how many were moved."""
     q = db.query(Booking).filter(Booking.date_hold == True, Booking.status == "enquiry",  # noqa: E712
-                                 Booking.deposit_paid == False, Booking.hold_expires_at != "",  # noqa: E712
-                                 Booking.hold_expires_at < _iso(_now()))
+                                 Booking.deposit_paid == False, Booking.hold_stage != "requested")  # noqa: E712
     if owner_id:
         q = q.filter(Booking.user_id == owner_id)
     rows = q.all()
     for bk in rows:
-        bk.status = "cancelled"
-        bk.notes = f"{bk.notes or ''}\nDate released: the deposit didn't arrive within {config.DATE_HOLD_HOURS:g} hours.".strip()
+        _book_in(bk)
     if rows:
         db.commit()
-    for bk in rows:
-        owner, client = db.get(User, bk.user_id), (db.get(Client, bk.client_id) if bk.client_id else None)
-        if owner:
-            _send(expired_emails(owner, bk, client), "customer", "chef")
     return len(rows)
+
+
+def _book_in(bk: Booking) -> None:
+    """An accepted date: in the diary as booked, deposit owed, no clock."""
+    bk.status, bk.hold_stage, bk.hold_expires_at = "confirmed", "awaiting_deposit", ""
+    bk.title = (bk.title or "").replace("Date request ·", "Booking ·", 1).replace("Date hold ·", "Booking ·", 1)
+
+
+def _lapsed(bk: Booking) -> bool:
+    """Released by the old 12-hour rule (not by the chef), date still to come."""
+    notes = bk.notes or ""
+    return (bk.status == "cancelled" and not bk.deposit_paid and "Date released: the deposit didn't arrive" in notes
+            and "released by the chef" not in notes and (bk.date or "") >= _date.today().isoformat())
 
 
 def start_expiry_loop():
@@ -444,12 +450,20 @@ def _client_of(db: Session, bk: Booking) -> Client | None:
 @router.get("")
 def list_holds(db: Session = Depends(get_db), user: User = Depends(require_active)):
     expire_holds(db, ws_id(user))
-    rows = (db.query(Booking).filter(Booking.user_id == ws_id(user), Booking.date_hold == True, Booking.status == "enquiry",  # noqa: E712
+    rows = (db.query(Booking).filter(Booking.user_id == ws_id(user), Booking.date_hold == True,  # noqa: E712
+                                     Booking.status.in_(["enquiry", "confirmed", "cancelled"]),
                                      Booking.deposit_paid == False).order_by(Booking.date.asc()).all())  # noqa: E712
     out = []
     for b in rows:
+        if b.status == "cancelled" and not _lapsed(b):
+            continue
+        if b.status == "confirmed" and b.hold_stage != "awaiting_deposit":
+            continue
         c = _client_of(db, b)
-        out.append({**hold_dict(b, c.name if c else ""), "client_id": b.client_id, "client_name": c.name if c else "",
+        d = hold_dict(b, c.name if c else "")
+        if b.status == "cancelled":
+            d["stage"] = "lapsed"
+        out.append({**d, "client_id": b.client_id, "client_name": c.name if c else "",
                     "email": c.email if c else "", "phone": c.phone if c else "", "notes": b.notes or ""})
     return out
 
@@ -469,15 +483,19 @@ def confirm_preview(hold_id: int, db: Session = Depends(get_db), user: User = De
 def confirm_available(hold_id: int, db: Session = Depends(get_db), user: User = Depends(require_active)):
     """The chef is free that day: ask the client for the deposit and start its clock."""
     bk = _hold(db, user, hold_id)
-    if bk.deposit_paid or bk.status != "enquiry":
-        raise HTTPException(422, "This one is already settled")
     owner, client = db.get(User, ws_id(user)), _client_of(db, bk)
-    bk.hold_stage = "awaiting_deposit"
-    bk.hold_expires_at = _iso(_now() + timedelta(hours=config.DATE_HOLD_HOURS))
+    if bk.deposit_paid or not (bk.status == "enquiry" or _lapsed(bk)):
+        raise HTTPException(422, "This one is already settled")
+    if bk.status == "cancelled":   # putting a lapsed date back: only if nobody has taken the day since
+        rules = rules_for(owner)
+        day = compute_days(db, owner.id, rules, _date.fromisoformat(bk.date), _date.fromisoformat(bk.date), detail=True)
+        if not day or day[0]["state"] == "full" or day[0]["load"] + load_of(rules, bk) > 1.0001:
+            raise HTTPException(409, "That date has been taken since. Offer the client another date.")
+    _book_in(bk)
     db.commit()
     if client:
         _send(confirm_emails(owner, bk, client), "customer")
-    return {"ok": True, "expires_at": bk.hold_expires_at + "Z"}
+    return {"ok": True, "booking_id": bk.id}
 
 
 @router.post("/{hold_id}/decline")

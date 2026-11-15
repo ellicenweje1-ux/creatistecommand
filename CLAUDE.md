@@ -1006,6 +1006,31 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
     webhook settles + idempotent, subscriptions still activate, rev-2 migration keeps her settings, own key takes over),
     `test_preorders.py` 37/37 (webhook tests now mark the fake session paid first); Playwright `pop_e2e/verify_pop.py` 78/78 with Command
     in Command-account mode (slides load, phone uses -600 copies, tofu card fits, viewer, Wednesday 9am, card flow, zero errors).
+- **AUDIT + STEP 1 FIXES (2026-11-16) — Ellice: "Command is an absolute mess… Soulfood pre-orders paid on Stripe but not showing, can't
+  see previous Clean Dream orders, accepted date holds don't land in my diary".** Full audit given in chat; she approved step 1 only (usage
+  limited until Wednesday). Plan agreed: (1) these fixes ✅; (2) simple mode for her account: ~6 nav items + "More tools", one Today screen
+  (she will send the list of sections she actually uses — ASK before building); (3) Calendar as the single home for dates; (4) resume the
+  paused assistant. Built in step 1:
+  - **ROOT CAUSE of the missing Soulfood orders: Render installs `stripe>=8.0` = v16, whose objects are NOT dicts (no `.get`).** Every
+    `session.get(...)`/`data.get(...)` on a Stripe object raised, so `/confirm` and BOTH webhooks crashed: paid card orders stayed
+    `pending_payment` (hidden behind "Show unpaid attempts"), and chef subscription confirm/webhooks were broken too. Old tests passed
+    because the fakes were dicts. Fix: `utils.stripe_plain(obj)` (to_dict) wraps every Stripe read in billing.py (confirm, cancel,
+    change_plan, webhook) and preorders.py (settle_session, webhook). The chef order list now also **asks Stripe about up to 15 stuck card
+    orders each time it loads**, so stranded paid orders settle themselves (emails go out then). Stripe also retries failed webhooks for 3
+    days. New `scratchpad/test_stripe_real.py` uses real `stripe.StripeObject`s (8/8; the old code crashes on it).
+  - **Pre-orders page:** the "From" date (default today, which hid every past order) is replaced by **Upcoming / Past orders tabs**
+    (`[data-order-tabs]`; past = most recent first, count shown); the summary counts upcoming paid orders only.
+  - **Date holds:** pressing "I'm free · Confirm" now **books the date straight into the diary** (`holds._book_in`: status `confirmed`,
+    `hold_stage` `awaiting_deposit`, no `hold_expires_at`, title "Booking ·"), email "you're booked in, please send the deposit".
+    **Nothing auto-releases any more**: `expire_holds` only moves old-rule waiting holds into the diary. Holds the old 12-hour rule already
+    cancelled (note "Date released: the deposit didn't arrive…", date still ahead) show as **"Dates that lapsed"** with "Put back in diary"
+    (re-confirm, checks the day still has room) / "Leave it" (release). Bookings strip: "Deposit owed · in your diary"; Calendar job
+    subtitle adds "deposit owed" (`jobs.sub_of`). Site + terms + Support FAQ copy lose the 12-hour rule.
+  - **Invoices:** "− Deduct a deposit…" dropdown beside Add line (`[data-deduct-deposit]`): £15 date-hold deposit, the linked booking's
+    deposit if different, or "Another amount…" (prompt). Adds a minus "Deposit already paid" line; marked `deposit_credit` when the linked
+    booking has an unapplied paid deposit.
+  - Verified: capacity 66/66 (rewritten hold checks), requests 30/30, jobs 66/66, phone 19/19, popup 53/53, stripe-command 29/29,
+    preorders 37/37, real-Stripe 8/8; Playwright `pop_e2e/verify_step1.py` 6/6 (tabs, past order, invoice deposit lines, zero errors).
 - **ASSISTANT + simpler app: PAUSED (2026-11-14, her call: "pause the personal assistant job").** Backend-only work-in-progress is
   committed as **`b7c0c8e`** and immediately **reverted by `5eb4cfc`**, so nothing of it is deployed. It holds: `routers/assistant.py`
   (Mise as an assistant: tools for to-dos business/personal, notes, draft invoices with package prices, mark paid, pencil in, block time,

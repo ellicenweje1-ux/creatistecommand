@@ -153,7 +153,7 @@ function PipelineCard({ booking, currency, onEdit, onAdvance }) {
   const next = NEXT_STATUS[b.status]
   return (
     <div className="rounded-xl border border-line bg-card p-3 shadow-card transition-all hover:border-copper/40">
-      {b.date_hold && <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-copper">{b.deposit_paid ? 'Date held · deposit paid' : b.hold_stage === 'requested' ? 'Date request · waiting for you' : 'Date hold · awaiting deposit'}</p>}
+      {b.date_hold && <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-copper">{b.deposit_paid ? 'Date held · deposit paid' : b.hold_stage === 'requested' ? 'Date request · waiting for you' : 'Booked · deposit owed'}</p>}
       <div className="flex items-start justify-between gap-2">
         <Link to={`/app/bookings/${b.id}`} className="min-w-0 flex-1 truncate text-sm font-medium hover:text-copper">{b.title}</Link>
         {b.quoted_price > 0 && <span className="shrink-0 text-xs font-semibold">{fmtMoney(b.quoted_price, currency)}</span>}
@@ -225,20 +225,13 @@ function PipelineView({ bookings, currency, onEdit, onAdvance, onNew }) {
    Step 1 (waiting for you): confirm you are free, which asks them for the deposit, or say you can't.
    Step 2 (waiting for the deposit): when the money lands, mark it received and the date is locked in. */
 export function HoldsStrip({ holds, currency, onChanged, onPaid }) {
-  const [now, setNow] = useState(Date.now())
   const [preview, setPreview] = useState(null) // { kind: 'confirm' | 'paid', hold, customer }
   const [decline, setDecline] = useState(null) // { hold, reason }
   const [busy, setBusy] = useState(false)
-  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(t) }, [])
   if (!holds.length) return null
-  const left = (h) => {
-    const ms = new Date(h.expires_at).getTime() - now
-    if (ms <= 0) return 'time is up'
-    const m = Math.floor(ms / 60000)
-    return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m left` : `${m}m left`
-  }
   const wanting = holds.filter((h) => h.stage === 'requested')
-  const deposits = holds.filter((h) => h.stage !== 'requested')
+  const deposits = holds.filter((h) => h.stage === 'awaiting_deposit')
+  const lapsed = holds.filter((h) => h.stage === 'lapsed')
   const open = async (kind, h) => {
     try { const p = await api.get(`/holds/${h.id}/${kind === 'confirm' ? 'confirm-preview' : 'paid-preview'}`); setPreview({ kind, hold: h, ...p }) } catch (e) { toastErr(e) }
   }
@@ -263,11 +256,11 @@ export function HoldsStrip({ holds, currency, onChanged, onPaid }) {
   return (
     <div className="mb-5 space-y-4" data-holds-strip>
       <PreviewModal open={!!preview} onClose={() => setPreview(null)}
-        title={preview?.kind === 'confirm' ? 'Confirm you are free, and ask for the deposit' : 'Deposit received? Lock the date in'}
-        confirmLabel={preview?.kind === 'confirm' ? 'Confirm & send' : 'Confirm date & send'} onConfirm={confirm} busy={busy}>
+        title={preview?.kind === 'confirm' ? 'Book it in, and ask for the deposit' : 'Deposit received? Lock the date in'}
+        confirmLabel={preview?.kind === 'confirm' ? 'Book in & send' : 'Confirm date & send'} onConfirm={confirm} busy={busy}>
         {preview ? <EmailPreview to={preview.customer?.to} subject={preview.customer?.subject} body={preview.customer?.body}
           note={preview.kind === 'confirm'
-            ? `You are saying you are free on ${fmtDate(preview.hold.date)}. This email asks ${preview.hold.client_name} for the ${fmtMoney(preview.hold.amount, currency)} deposit, and they then have 12 hours to pay it before the date is released.`
+            ? `You are saying you are free on ${fmtDate(preview.hold.date)}. This email asks ${preview.hold.client_name} for the ${fmtMoney(preview.hold.amount, currency)} deposit, and the date goes straight into your diary as booked (deposit owed). Nothing is released automatically.`
             : `Check the ${fmtMoney(preview.hold.amount, currency)} from ${preview.hold.client_name} (reference ${preview.hold.reference}) has landed. On confirm, ${fmtDate(preview.hold.date)} becomes a confirmed booking and this email goes to them.`} /> : null}
       </PreviewModal>
       <PreviewModal open={!!decline} onClose={() => setDecline(null)} title="Can't do that day" confirmLabel="Release & tell them" onConfirm={sendDecline} busy={busy}>
@@ -300,18 +293,35 @@ export function HoldsStrip({ holds, currency, onChanged, onPaid }) {
       ) : null}
       {deposits.length ? (
         <div className="rounded-xl border border-line bg-card p-4" data-deposits>
-          <p className="font-display text-lg">Waiting for the deposit</p>
-          <p className="mt-0.5 text-xs text-fg/60">You have confirmed these. When the money lands, press received.</p>
+          <p className="font-display text-lg">Deposit owed</p>
+          <p className="mt-0.5 text-xs text-fg/60">These are booked in your diary. When the money lands, press received.</p>
           <ul className="mt-2 divide-y divide-line">
             {deposits.map((h) => (
               <li key={h.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5" data-hold-row={h.id} data-hold-stage="awaiting_deposit">
                 <div className="min-w-0">
                   <p className="text-sm font-medium">{h.client_name} <span className="text-fg/55">· {fmtDate(h.date)} · {h.service}</span></p>
-                  <p className="text-xs text-fg/55">Reference <strong>{h.reference}</strong> · {fmtMoney(h.amount, currency)} · <span className="font-medium text-copper" data-hold-left>{left(h)}</span></p>
+                  <p className="text-xs text-fg/55">Reference <strong>{h.reference}</strong> · {fmtMoney(h.amount, currency)} · <span className="font-medium text-copper" data-hold-left>in your diary</span></p>
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" onClick={() => open('paid', h)} data-hold-received>{fmtMoney(h.amount, currency)} received</Button>
                   <Button size="sm" variant="ghost" onClick={() => release(h)} data-hold-release>Release</Button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+      {lapsed.length ? (
+        <div className="rounded-xl border border-line bg-card p-4" data-lapsed>
+          <p className="font-display text-lg">Dates that lapsed</p>
+          <p className="mt-0.5 text-xs text-fg/60">You accepted these, but the old 12-hour deposit rule released them. Put one back if it should be in your diary.</p>
+          <ul className="mt-2 divide-y divide-line">
+            {lapsed.map((h) => (
+              <li key={h.id} className="flex flex-wrap items-center justify-between gap-3 py-2.5" data-hold-row={h.id} data-hold-stage="lapsed">
+                <p className="text-sm font-medium">{h.client_name} <span className="text-fg/55">· {fmtDate(h.date)} · {h.service}</span></p>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={() => open('confirm', h)} data-hold-restore>Put back in diary</Button>
+                  <Button size="sm" variant="ghost" onClick={() => release(h)}>Leave it</Button>
                 </div>
               </li>
             ))}
@@ -411,7 +421,7 @@ export default function Bookings() {
                   </div>
                   <div className="flex items-center gap-3">
                     {b.quoted_price > 0 && <span className="text-sm font-medium">{fmtMoney(b.quoted_price, user?.currency)}</span>}
-                    {b.date_hold && !b.deposit_paid && b.status === 'enquiry' && <Badge tone="copper">{b.hold_stage === 'requested' ? 'Date request' : 'Awaiting deposit'}</Badge>}
+                    {b.date_hold && !b.deposit_paid && b.status !== 'cancelled' && <Badge tone="copper">{b.hold_stage === 'requested' ? 'Date request' : 'Deposit owed'}</Badge>}
                     {b.date_hold && b.deposit_paid && <Badge tone="green">Deposit paid</Badge>}
                     <Badge tone={BOOKING_TONES[b.status]}>{label(b.status)}</Badge>
                   </div>

@@ -99,6 +99,19 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
   const [uploadingReceipt, setUploadingReceipt] = useState(false)
   // Grocery reimbursement (personal chef services): upload the shop receipt and it becomes a line
   // the client can open from the invoice. The chef types the amount; the receipt link rides on the line.
+  // A deposit the client has already paid, taken off as a minus line. If this invoice's booking has a paid deposit,
+  // the line is marked so saving the invoice records the deposit as used.
+  const deductDeposit = (v) => {
+    if (!v) return
+    let amt = Number(v)
+    if (v === 'other') {
+      const typed = window.prompt('Deposit amount already paid')
+      amt = Number(String(typed || '').replace(/[^0-9.]/g, ''))
+    }
+    if (!(amt > 0)) return
+    const credit = !!(linkedBooking?.deposit_paid && !linkedBooking.deposit_applied && !items.some((it) => it.deposit_credit))
+    addItem({ id: uid(), description: 'Deposit already paid', qty: 1, unit_price: -amt, ...(credit ? { deposit_credit: true } : {}) })
+  }
   const uploadReceipt = (e) => {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -306,6 +319,12 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
             <Button type="button" size="sm" variant="ghost" icon="menu" onClick={() => addItem({ id: uid(), description: '', section: true })}>Add break</Button>
             <MenuItemsMenu items={menuItems} currency={currency} className="w-auto" onAdd={addItem} />
             <ChargesMenu saved={user?.service_charges || []} className="w-auto" onAdd={addItem} />
+            <select value="" onChange={(e) => deductDeposit(e.target.value)} className="rounded-lg border border-fg/15 bg-transparent px-2.5 py-1 text-xs font-medium" aria-label="Deduct a deposit" data-deduct-deposit>
+              <option value="">− Deduct a deposit…</option>
+              {linkedBooking?.deposit_amount > 0 && Number(linkedBooking.deposit_amount) !== 15 ? <option value={String(linkedBooking.deposit_amount)}>{fmtMoney(linkedBooking.deposit_amount, currency)} deposit paid</option> : null}
+              <option value="15">{fmtMoney(15, currency)} date-hold deposit</option>
+              <option value="other">Another amount…</option>
+            </select>
             <label className={cls('inline-flex cursor-pointer items-center gap-1 rounded-lg border border-fg/15 px-2.5 py-1 text-xs font-medium hover:bg-fg/5', uploadingReceipt && 'opacity-60')} title="Grocery reimbursement: attach the shop receipt as a line the client can open">
               <input type="file" accept=".pdf,.png,.jpg,.jpeg,.webp" className="sr-only" onChange={uploadReceipt} disabled={uploadingReceipt} data-receipt-upload />
               {uploadingReceipt ? 'Uploading…' : '+ Upload a grocery receipt'}

@@ -9,7 +9,7 @@ from .. import config, mailer
 from ..auth import get_current_user
 from ..database import get_db
 from ..models import Payment, PlatformSettings, User
-from ..utils import to_dict
+from ..utils import stripe_plain, to_dict
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
@@ -203,7 +203,7 @@ def confirm(payload: dict = Body(...), db: Session = Depends(get_db), user: User
         raise HTTPException(422, "session_id required")
     stripe = _stripe()
     try:
-        session = stripe.checkout.Session.retrieve(session_id)
+        session = stripe_plain(stripe.checkout.Session.retrieve(session_id))
     except Exception as exc:
         raise HTTPException(502, f"Stripe error: {exc}")
     if str((session.get("metadata") or {}).get("user_id") or "") != str(user.id):
@@ -240,10 +240,10 @@ def cancel(db: Session = Depends(get_db), user: User = Depends(get_current_user)
         # Real subscription: cancel at period end — the chef keeps the access they've
         # paid for, and the webhook flips the account to canceled when Stripe ends it.
         try:
-            sub = _stripe().Subscription.modify(user.stripe_subscription_id, cancel_at_period_end=True)
+            sub = stripe_plain(_stripe().Subscription.modify(user.stripe_subscription_id, cancel_at_period_end=True))
         except Exception as exc:  # surface Stripe errors as API errors
             raise HTTPException(502, f"Stripe error: {exc}")
-        ends = sub.get("current_period_end")
+        ends = sub.get("current_period_end") or (((sub.get("items") or {}).get("data") or [{}])[0].get("current_period_end"))
         ends_at = datetime.fromtimestamp(ends, tz=timezone.utc).strftime("%Y-%m-%d") if ends else None
         _notify_cancel(user, ends_at)
         return {"ok": True, "ends_at": ends_at}
@@ -297,7 +297,7 @@ def change_plan(payload: dict = Body(...), db: Session = Depends(get_db), user: 
         # untouched. Any Stripe error degrades to a clear "use the portal / contact support".
         try:
             stripe = _stripe()
-            sub = stripe.Subscription.retrieve(user.stripe_subscription_id)
+            sub = stripe_plain(stripe.Subscription.retrieve(user.stripe_subscription_id))
             item_id = sub["items"]["data"][0]["id"]
             stripe.Subscription.modify(
                 user.stripe_subscription_id,
@@ -351,6 +351,7 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
 
         event = json.loads(body)
 
+    event = stripe_plain(event)
     etype = event["type"]
     data = event["data"]["object"]
     settings = get_settings(db)

@@ -388,6 +388,8 @@ def sub_of(svc: dict, bk: Booking) -> str:
         bits.append(plan["package"])
     if bk.event_type == "Pre-order" and bk.guest_count:
         bits.append(f"{bk.guest_count} order{'s' if bk.guest_count != 1 else ''}")
+    if bk.date_hold and not bk.deposit_paid:
+        bits.append("deposit owed")
     return " · ".join(bits)
 
 
