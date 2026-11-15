@@ -132,9 +132,11 @@ def bootstrap():
         db.close()
 
     from .routers.jobs import apply_owner_preset  # the platform owner's own service setup, loaded once
+    from .routers.preorders import apply_owner_offers  # and her own order pages (the pop-up)
     pdb = SessionLocal()
     try:
         apply_owner_preset(pdb)
+        apply_owner_offers(pdb)
     finally:
         pdb.close()
     from .scheduler import start_scheduler

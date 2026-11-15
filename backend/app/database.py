@@ -54,7 +54,7 @@ def ensure_columns():
             "invoice_notes_default": "TEXT DEFAULT ''", "invoice_deposit_percent": "INTEGER DEFAULT 0",
             "is_comp": "BOOLEAN DEFAULT 0",
             "examples_hidden": "JSON",
-            "preorder_offer": "JSON", "diary_rules": "JSON",
+            "preorder_offer": "JSON", "preorder_offers": "JSON", "diary_rules": "JSON",
             "invoice_tax_label": "VARCHAR(20) DEFAULT ''",
             "job_setup": "JSON", "notify_prefs": "JSON",
         },

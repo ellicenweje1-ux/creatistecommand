@@ -7,12 +7,18 @@ Payment goes to the chef's own Stripe account (PREORDER_STRIPE_SECRET_KEY) — d
 from the platform's subscription billing. Until the key is set, the site shows the menu and offers
 WhatsApp/email ordering instead (house pattern: inert until configured).
 
+A chef can run more than one order page: the main one (users.preorder_offer, e.g. a weekday lunch service) and any number
+of one-off events (users.preorder_offers, e.g. a pop-up on a single night with a closing time and an optional box limit).
+Every public call names its page by slug (?offer= / "offer" in the order); no slug means the main page.
+
 Paid orders roll up into ONE confirmed Booking per day per offer ("Clean Dream pre-orders"), so they
 show on the chef's calendar, dashboard and ICS feed without flooding the diary, and each customer
 becomes a Client. Both emails (customer confirmation + chef notification) list every box by name so
 labelling is a read-off."""
+import copy
+import re
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import date as _date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
@@ -84,6 +90,83 @@ DEFAULT_OFFER = {
 }
 
 
+# Ellice's Soulfood Friday 2.0 (a one-night Thanksgiving pop-up, Friday 20 November 2026), as on her printed menu:
+# four combos, extras, and the plantain caramel sponge cake. Loaded onto her account once (apply_owner_offers) and
+# offered to any chef as a starting point for their own pop-up. Repeats are allowed (two portions of wings is two proteins).
+_SF_PROTEINS = [
+    {"name": "Smothered cajun butter wings", "desc": "Fried, then baked in a creamy, cajun butter-style sauce with peppers and onions."},
+    {"name": "Jerk pot roast", "desc": "Spicy slow-braised beef with butter beans."},
+    {"name": "Crispy fried shrimp", "desc": "Fried golden, finished with a hot honey drizzle."},
+]
+_SF_VEG = {"name": "Vegetarian option", "desc": "A vegetarian main in place of the meat or seafood."}
+_SF_SIDES = ["Sweet potato yams", "Creamy mac", "Smoked turkey greens", "Garlic parm fried corn", "Honey butter cornbread",
+             "Croissant milk rolls"]
+_SF_DESSERTS = ["Plantain caramel sponge cake, whipped cream", "Plantain caramel sponge cake, custard"]
+_WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 6: "six"}
+
+
+def _sf_extras() -> list[dict]:
+    return [
+        {"id": "extra_protein", "label": "Extra protein", "pick": "optional · £5.50 each", "min": 0, "max": 6, "repeat": True,
+         "options": [{**p, "surcharge": 5.5} for p in _SF_PROTEINS + [_SF_VEG]]},
+        {"id": "extra_side", "label": "Extra side", "pick": "optional · £3.50 each", "min": 0, "max": 12, "repeat": True,
+         "options": [{"name": n, "surcharge": 3.5} for n in _SF_SIDES]},
+        {"id": "dessert", "label": "Dessert", "pick": "optional · £6.50 each", "min": 0, "max": 6, "repeat": True,
+         "desc": "Plantain caramel sponge cake: sweet mascarpone glaze, caramelised apples, with whipped cream or custard.",
+         "options": [{"name": n, "surcharge": 6.5} for n in _SF_DESSERTS]},
+    ]
+
+
+def _sf_combo(cid: str, name: str, price: float, proteins: int, sides: int) -> dict:
+    return {
+        "id": cid, "name": name, "price": price, "desc": f"{proteins} protein{'s' if proteins > 1 else ''} + {sides} sides",
+        "groups": [
+            {"id": "protein", "label": "Protein" if proteins == 1 else "Proteins", "pick": f"choose {_WORDS[proteins]}",
+             "min": proteins, "max": proteins, "repeat": True, "options": [dict(p) for p in _SF_PROTEINS + [_SF_VEG]]},
+            {"id": "sides", "label": "Sides", "pick": f"choose {_WORDS[sides]}", "min": sides, "max": sides, "repeat": True,
+             "options": [{"name": n} for n in _SF_SIDES]},
+            *_sf_extras(),
+        ],
+    }
+
+
+SOULFOOD_OFFER = {
+    "slug": "soulfood-friday-2",
+    "title": "Soulfood Friday 2.0",
+    "kind": "popup",
+    "path": "soulfood",                       # the page on the chef's own site: thecreatistecatering.com/soulfood
+    "intro": "A one-night Thanksgiving soul food pop-up. Pre-order and pay now, then collect under your name on the night.",
+    "currency": "GBP",
+    "date": "2026-11-20",
+    "closes": "2026-11-19T20:00",             # local time; after this the page shows that pre-orders have closed
+    "pay": "card",                            # card through Stripe when it is connected; bank transfer until then
+    "capacity": 0,                            # most boxes to take (0 = no limit)
+    "paused": False,
+    "items": [
+        _sf_combo("combo-1", "Combo 1", 17, 1, 3),
+        _sf_combo("combo-2", "Combo 2", 21, 2, 3),
+        _sf_combo("combo-3", "Combo 3", 23, 2, 4),
+        {"id": "all-in", "name": "All in", "price": 30, "desc": "3 proteins + all sides",
+         "groups": [
+             {"id": "protein", "label": "Proteins", "pick": "all three", "min": 3, "max": 3, "fixed": True,
+              "options": [dict(p) for p in _SF_PROTEINS]},
+             {"id": "sides", "label": "Sides", "pick": "all six", "min": 6, "max": 6, "fixed": True,
+              "options": [{"name": n} for n in _SF_SIDES]},
+             *_sf_extras(),
+         ]},
+        {"id": "dessert-only", "name": "Dessert", "price": 6.5,
+         "desc": "Plantain caramel sponge cake on its own: sweet mascarpone glaze, caramelised apples, with whipped cream or custard.",
+         "groups": [{"id": "dessert", "label": "Dessert", "pick": "whipped cream or custard", "min": 1, "max": 1,
+                     "options": [{"name": n} for n in _SF_DESSERTS]}]},
+    ],
+    "slots": [{"id": "popup", "label": "Collect at the pop-up", "place": "London, location to be announced", "time": ""}],
+    "delivery": {"enabled": False},
+    "collect_note": "Collect under your name at the pop-up on Friday 20 November. The time and location are announced on our "
+                    "Instagram and we will message you before the night.",
+    "allergens_note": "Please tell us about any allergies before you pay. A vegetarian option is available.",
+}
+
+
 def _tz():
     return ZoneInfo(config.ONBOARDING_TZ)
 
@@ -93,9 +176,81 @@ def offer_for(user: User) -> dict:
     return o if o.get("items") else DEFAULT_OFFER
 
 
-def open_dates(offer: dict, now: datetime | None = None) -> list[dict]:
-    """The next bookable days, in the business's local time, honouring the order cut-off."""
+def extra_offers(user: User) -> list[dict]:
+    return [o for o in (user.preorder_offers or []) if isinstance(o, dict) and o.get("items") and o.get("slug")]
+
+
+def all_offers(user: User) -> list[dict]:
+    main = offer_for(user)
+    return [main] + [o for o in extra_offers(user) if o.get("slug") != main.get("slug")]
+
+
+def find_offer(user: User, slug: str = "") -> dict:
+    """The order page a request means: by slug, or the main page when no slug is given."""
+    slug = (slug or "").strip()
+    if not slug:
+        return offer_for(user)
+    for o in all_offers(user):
+        if o.get("slug") == slug:
+            return o
+    raise HTTPException(404, "This order page is not available.")
+
+
+def _closes(offer: dict) -> datetime | None:
+    try:
+        return datetime.fromisoformat(str(offer.get("closes") or "")[:16]).replace(tzinfo=_tz()) if offer.get("closes") else None
+    except ValueError:
+        return None
+
+
+def _pretty_when(dt: datetime) -> str:
+    h = dt.hour % 12 or 12
+    t = f"{h}{':%02d' % dt.minute if dt.minute else ''}{'pm' if dt.hour >= 12 else 'am'}"
+    return f"{dt.strftime('%A')} {dt.day} {dt.strftime('%B')} at {t}"
+
+
+def offer_state(offer: dict, now: datetime | None = None) -> str:
+    """open | paused | closed (pre-orders over) | finished (the day has passed). A lunch service is always open."""
     now = now or datetime.now(_tz())
+    if offer.get("paused"):
+        return "paused"
+    if offer.get("date"):
+        try:
+            if _date.fromisoformat(offer["date"]) < now.date():
+                return "finished"
+        except ValueError:
+            return "closed"
+        closes = _closes(offer)
+        if closes and now >= closes:
+            return "closed"
+    return "open"
+
+
+def card_ready(owner: User | None) -> bool:
+    """Card payments go into one business's Stripe account, so they are only offered on that business's own pages."""
+    if not config.PREORDER_STRIPE_SECRET_KEY or not owner:
+        return False
+    acct = config.PREORDER_STRIPE_ACCOUNT
+    return (owner.email or "").lower() == acct if acct else owner.role == "admin"
+
+
+def payments_for(owner: User | None, offer: dict) -> str:
+    return "stripe" if card_ready(owner) and offer.get("pay", "card") != "bank" else "off"
+
+
+def slot_text(slot: dict) -> str:
+    return f"{slot['label']} | {slot.get('place') or ''}" + (f" @ {slot['time']}" if slot.get("time") else "")
+
+
+def open_dates(offer: dict, now: datetime | None = None) -> list[dict]:
+    """The next bookable days, in the business's local time, honouring the order cut-off. A one-off event (an offer with
+    a `date`) has just that day, while it is open for orders."""
+    now = now or datetime.now(_tz())
+    if offer.get("date"):
+        if offer_state(offer, now) != "open":
+            return []
+        d = _date.fromisoformat(offer["date"])
+        return [{"date": d.isoformat(), "label": f"{DAY_LABELS[d.weekday()]} {d.day} {d.strftime('%b')}"}]
     hh, mm = (offer.get("cutoff") or "10:00").split(":")
     cutoff = now.replace(hour=int(hh), minute=int(mm), second=0, microsecond=0)
     days = set(offer.get("days") or [0, 1, 2, 3, 4])
@@ -143,11 +298,16 @@ def price_box(offer: dict, box: dict) -> dict:
         req = g.get("requires")
         if req and not any(req.get("option") in (choices_in.get(gid) or []) for gid in req.get("groups") or []):
             continue  # the group doesn't apply to this box (e.g. no steak, so no "how cooked")
-        picked = [str(x) for x in (choices_in.get(g["id"]) or []) if str(x).strip()]
         opts = {o["name"]: o for o in g.get("options") or []}
+        if g.get("fixed"):  # everything in the group comes with the item (the "All in" box): nothing to choose
+            picked = list(opts)
+        else:
+            picked = [str(x) for x in (choices_in.get(g["id"]) or []) if str(x).strip()]
         unknown = [p for p in picked if p not in opts]
         if unknown:
             raise HTTPException(422, f"'{unknown[0]}' isn't an option for {g['label']}")
+        if not g.get("repeat") and len(set(picked)) != len(picked):
+            raise HTTPException(422, f"Each {g['label'].lower()} can only be chosen once")
         if len(picked) < int(g.get("min") or 0):
             raise HTTPException(422, f"Choose {g.get('pick') or 'an option'} for {g['label']}")
         hard_cap = int(g.get("max") or 0)
@@ -162,22 +322,49 @@ def price_box(offer: dict, box: dict) -> dict:
                 price += float(o["extra_price"] if o.get("extra_price") is not None else (g.get("extra_premium_price") if o.get("premium") else g.get("extra_price")) or 0)
         if picked:
             choices[g["id"]] = picked
-            summary.append(f"{g['label']}: {', '.join(picked)}")
+            counted = []
+            for name in dict.fromkeys(picked):
+                n = picked.count(name)
+                counted.append(f"{n}× {name}" if n > 1 else name)
+            summary.append(f"{g['label']}: {', '.join(counted)}")
     return {"item": item["name"], "item_id": item["id"], "for": label, "summary": "; ".join(summary), "choices": choices,
             "note": (box.get("note") or "").strip()[:200], "price": round(price, 2)}
 
 
+def boxes_taken(db: Session, owner_id: int, offer: dict, day: str) -> int:
+    """Boxes already sold for an event day: paid ones, and bank-transfer orders waiting for their money (they are real)."""
+    rows = (db.query(PreOrder).filter(PreOrder.user_id == owner_id, PreOrder.offer_slug == (offer.get("slug") or ""),
+                                      PreOrder.for_date == day).all())
+    return sum(len(o.boxes or []) for o in rows
+               if o.status in ("paid", "collected") or (o.status == "pending_payment" and o.pay_method == "bank"))
+
+
+def public_offer(db: Session, owner: User, offer: dict) -> dict:
+    out = {"offer": offer, "dates": open_dates(offer), "payments": payments_for(owner, offer), "state": offer_state(offer),
+           "business": owner.business_name or owner.name}
+    closes = _closes(offer)
+    if closes:
+        out["closes_text"] = _pretty_when(closes)
+    cap = int(offer.get("capacity") or 0)
+    if cap and offer.get("date"):
+        left = max(0, cap - boxes_taken(db, owner.id, offer, offer["date"]))
+        out["boxes_left"] = left
+        if left == 0 and out["state"] == "open":
+            out["state"] = "sold_out"
+            out["dates"] = []
+    return out
+
+
 @public_router.get("/{token}")
-def get_offer(token: str, db: Session = Depends(get_db)):
+def get_offer(token: str, offer: str = "", db: Session = Depends(get_db)):
     owner = _owner(token, db)
-    offer = offer_for(owner)
-    return {"offer": offer, "dates": open_dates(offer), "payments": "stripe" if payments_enabled() else "off",
-            "business": owner.business_name or owner.name}
+    return public_offer(db, owner, find_offer(owner, offer))
 
 
 def _summary(order: PreOrder) -> dict:
     return {
-        "public_id": order.public_id, "status": order.status, "title": order.offer_title, "name": order.customer_name,
+        "public_id": order.public_id, "status": order.status, "title": order.offer_title, "offer_slug": order.offer_slug or "",
+        "pay_method": order.pay_method or "card", "name": order.customer_name,
         "date": order.for_date, "fulfilment": order.fulfilment, "slot": order.slot_label,
         "delivery_address": order.delivery_address, "total": order.subtotal, "currency": order.currency,
         "boxes": [{"for": b["for"], "item": b["item"], "summary": b["summary"], "price": b["price"]} for b in order.boxes or []],
@@ -191,10 +378,20 @@ def _pretty_date(iso: str) -> str:
         return iso or ""
 
 
+def _collect_note(owner: User, order: PreOrder) -> str:
+    """The order page's own note about collecting (a pop-up: under your name, time and place announced), if it has one."""
+    try:
+        return str(find_offer(owner, order.offer_slug or "").get("collect_note") or "").strip()
+    except HTTPException:
+        return ""
+
+
 def awaiting_emails(owner: User, order: PreOrder) -> dict:
     """The two 'awaiting your bank transfer' emails (customer + chef) for a bank-transfer order. Pure: no sending."""
     lines = "\n".join(f"- {b['for']}: {b['item']} ({b['summary']}) £{b['price']:.2f}" for b in order.boxes or [])
     where = order.delivery_address if order.fulfilment == "delivery" else order.slot_label
+    note = _collect_note(owner, order)
+    where = f"{where}\n{note}" if note else where
     return {
         "customer": {
             "to": order.email,
@@ -223,6 +420,9 @@ def receipt_emails(owner: User, order: PreOrder) -> dict:
     pretty_date = _pretty_date(order.for_date)
     box_text = "\n".join(f"  • {b['for']}: {b['item']}, {b['summary']}{' [' + b['note'] + ']' if b.get('note') else ''} (£{b['price']:.2f})" for b in order.boxes or [])
     where = order.slot_label + (f"\n  {order.delivery_address}" if order.delivery_address else "")
+    note = _collect_note(owner, order)
+    if note:
+        where += f"\n{note}"
     biz = owner.business_name or owner.name
     title = f"{order.offer_title} pre-orders"
     return {
@@ -376,7 +576,12 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
 def build_order(owner: User, payload: dict) -> PreOrder:
     """Validate a public order payload against the chef's offer and build the (unsaved) PreOrder.
     Shared by the card path (Stripe Checkout) and the bank-transfer path."""
-    offer = offer_for(owner)
+    offer = find_offer(owner, payload.get("offer") or "")
+    state = offer_state(offer)
+    if state != "open":
+        msg = {"paused": "Orders are paused just now.", "finished": "This event has finished.",
+               "closed": "Pre-orders have closed."}.get(state, "Orders aren't open.")
+        raise HTTPException(422, f"{msg} {offer.get('closed_note') or ''}".strip())
     name = (payload.get("name") or "").strip()[:160]
     email = (payload.get("email") or "").strip().lower()
     phone = (payload.get("phone") or "").strip()[:40]
@@ -386,11 +591,13 @@ def build_order(owner: User, payload: dict) -> PreOrder:
         raise HTTPException(422, "Please give a valid email so we can send your confirmation")
     if not phone:
         raise HTTPException(422, "Please give a phone number so we can reach you about your order")
-    date = (payload.get("date") or "").strip()[:10]
+    date = (payload.get("date") or "").strip()[:10] or (offer.get("date") or "")
     if date not in {d["date"] for d in open_dates(offer)}:
         raise HTTPException(422, "That day isn't open for orders. Pick one of the dates offered.")
     fulfilment = payload.get("fulfilment") or "collection"
     slot_label, slot_id, address = "", "", ""
+    if fulfilment == "collection" and not payload.get("slot_id") and len(offer.get("slots") or []) == 1:
+        payload = {**payload, "slot_id": offer["slots"][0]["id"]}   # one collection point: nothing to choose
     if fulfilment == "delivery":
         if not (offer.get("delivery") or {}).get("enabled"):
             raise HTTPException(422, "Delivery isn't offered")
@@ -403,7 +610,7 @@ def build_order(owner: User, payload: dict) -> PreOrder:
         slot = next((s for s in offer.get("slots") or [] if s["id"] == payload.get("slot_id")), None)
         if not slot:
             raise HTTPException(422, "Choose a collection point")
-        slot_id, slot_label = slot["id"], f"{slot['label']} | {slot['place']} @ {slot['time']}"
+        slot_id, slot_label = slot["id"], slot_text(slot)
     boxes_in = payload.get("boxes") or []
     if not boxes_in or len(boxes_in) > 20:
         raise HTTPException(422, "Add at least one box (and at most twenty)")
@@ -418,6 +625,19 @@ def build_order(owner: User, payload: dict) -> PreOrder:
     )
 
 
+def check_capacity(db: Session, owner: User, order: PreOrder) -> None:
+    """A one-off event can cap how many boxes it takes; refuse an order that would go over, saying how many are left."""
+    offer = find_offer(owner, order.offer_slug or "")
+    cap = int(offer.get("capacity") or 0)
+    if not cap:
+        return
+    left = cap - boxes_taken(db, owner.id, offer, order.for_date)
+    if len(order.boxes or []) > left:
+        if left <= 0:
+            raise HTTPException(422, "Sorry, pre-orders are full. Come down on the night: first come, first served.")
+        raise HTTPException(422, f"Sorry, there {'is' if left == 1 else 'are'} only {left} box{'' if left == 1 else 'es'} left to pre-order.")
+
+
 @public_router.post("/{token}/bank", status_code=201)
 def place_bank_order(request: Request, token: str, payload: dict = Body(...), db: Session = Depends(get_db)):
     """An order paid by bank transfer: recorded as awaiting payment so it shows on the chef's Pre-orders page
@@ -430,6 +650,7 @@ def place_bank_order(request: Request, token: str, payload: dict = Body(...), db
     if (payload.get("company") or "").strip():  # honeypot
         return {"ok": True, "public_id": secrets.token_hex(8), "status": "pending_payment"}
     order = build_order(owner, payload)
+    check_capacity(db, owner, order)
     order.pay_method = "bank"
     db.add(order)
     db.commit()
@@ -466,13 +687,17 @@ def place_order(request: Request, token: str, payload: dict = Body(...), db: Ses
     ratelimit.record(f"preorder:{ip}", 600)
     if (payload.get("company") or "").strip():  # honeypot
         return {"ok": True, "public_id": secrets.token_hex(8), "status": "pending_payment", "url": ""}
-    if not payments_enabled():
-        raise HTTPException(503, "Online payment isn't switched on yet. Order by WhatsApp or email instead.")
+    offer = find_offer(owner, payload.get("offer") or "")
+    if payments_for(owner, offer) != "stripe":
+        raise HTTPException(503, "Card payment isn't switched on for this order page yet. Pay by bank transfer instead.")
 
     order = build_order(owner, payload)
+    check_capacity(db, owner, order)
+    order.pay_method = "stripe"
     db.add(order)
     db.flush()
-    boxes, subtotal, offer = order.boxes, order.subtotal, offer_for(owner)
+    boxes, subtotal = order.boxes, order.subtotal
+    path = re.sub(r"[^a-z0-9-]", "", str(offer.get("path") or "cleandream").lower()) or "cleandream"
 
     return_url = (payload.get("return_url") or "").strip()
     if not return_url.startswith(("http://", "https://")):
@@ -487,9 +712,10 @@ def place_order(request: Request, token: str, payload: dict = Body(...), db: Ses
     } for b in boxes]
     session = stripe.checkout.Session.create(
         mode="payment", line_items=line_items, customer_email=order.email,
-        success_url=f"{return_url}/cleandream/confirmed?order={order.public_id}&session_id={{CHECKOUT_SESSION_ID}}",
-        cancel_url=f"{return_url}/cleandream?cancelled={order.public_id}",
-        metadata={"preorder_id": str(order.id), "public_id": order.public_id},
+        success_url=f"{return_url}/{path}/confirmed?order={order.public_id}&session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{return_url}/{path}?cancelled={order.public_id}",
+        metadata={"preorder_id": str(order.id), "public_id": order.public_id, "offer": offer.get("slug") or ""},
+        payment_intent_data={"description": f"{offer.get('title')} pre-order {order.public_id} · {order.customer_name}"},
     )
     order.stripe_session_id = session.id
     db.commit()
@@ -549,8 +775,140 @@ def receipt_preview(order_id: int, db: Session = Depends(get_db), user: User = D
 def get_my_offer(db: Session = Depends(get_db), user: User = Depends(require_plan(2))):
     owner = db.get(User, ws_id(user))
     return {"offer": offer_for(owner), "is_default": not bool((owner.preorder_offer or {}).get("items")),
-            "dates": open_dates(offer_for(owner)), "payments": "stripe" if payments_enabled() else "off",
+            "dates": open_dates(offer_for(owner)), "payments": payments_for(owner, offer_for(owner)),
             "template": DEFAULT_OFFER, "token": owner.enquiry_token}
+
+
+# ── Order pages (the main one plus one-off events) ─────────────────────────────────────────────────
+
+def _page(db: Session, owner: User, offer: dict, main: bool) -> dict:
+    pub = public_offer(db, owner, offer)
+    return {"slug": offer.get("slug") or "", "title": offer.get("title") or "", "kind": offer.get("kind") or ("lunch" if main else "popup"),
+            "main": main, "path": offer.get("path") or ("cleandream" if main else ""), "date": offer.get("date") or "",
+            "closes": str(offer.get("closes") or "")[:16], "closes_text": pub.get("closes_text", ""), "state": pub["state"],
+            "pay": offer.get("pay", "card"), "payments": pub["payments"], "capacity": int(offer.get("capacity") or 0),
+            "boxes_left": pub.get("boxes_left"), "paused": bool(offer.get("paused")),
+            "slot": (offer.get("slots") or [{}])[0], "collect_note": offer.get("collect_note") or "",
+            "items": [{"id": i["id"], "name": i["name"], "price": i.get("price") or 0} for i in offer.get("items") or []],
+            "offer": offer}
+
+
+@router.get("/offers")
+def list_pages(db: Session = Depends(get_db), user: User = Depends(require_plan(2))):
+    owner = db.get(User, ws_id(user))
+    main = offer_for(owner)
+    return {"pages": [_page(db, owner, main, True)] + [_page(db, owner, o, False) for o in extra_offers(owner) if o.get("slug") != main.get("slug")],
+            "card_ready": card_ready(owner), "stripe_key": bool(config.PREORDER_STRIPE_SECRET_KEY), "token": owner.enquiry_token,
+            "templates": [{"id": "soulfood", "title": SOULFOOD_OFFER["title"], "added": any(o.get("slug") == SOULFOOD_OFFER["slug"] for o in extra_offers(owner))}]}
+
+
+def _clean_offer(offer: dict) -> dict:
+    if not isinstance(offer.get("items"), list) or not offer["items"]:
+        raise HTTPException(422, "The offer needs at least one menu item")
+    for item in offer["items"]:
+        if not item.get("id") or not item.get("name"):
+            raise HTTPException(422, "Every item needs an id and a name")
+        for g in item.get("groups") or []:
+            if not g.get("id") or not g.get("label") or not isinstance(g.get("options"), list):
+                raise HTTPException(422, f"Group on '{item['name']}' needs an id, a label and options")
+    if offer.get("delivery") and not isinstance(offer["delivery"], dict):
+        raise HTTPException(422, "Delivery must be an object")
+    return dict(offer)
+
+
+@router.put("/offers/{slug}")
+def save_page(slug: str, payload: dict = Body(...), db: Session = Depends(get_db), user: User = Depends(require_plan(2))):
+    """Change an order page. The everyday settings come as plain fields (where and when you collect, when pre-orders close,
+    card or bank transfer, a box limit, pause); {offer: {...}} replaces the whole menu (the advanced editor)."""
+    if user.role == "staff":
+        raise HTTPException(403, "Only the business owner can change order pages")
+    owner = db.get(User, ws_id(user))
+    main = offer_for(owner)
+    is_main = slug == (main.get("slug") or "")
+    extras = [dict(o) for o in (owner.preorder_offers or []) if isinstance(o, dict)]
+    idx = next((i for i, o in enumerate(extras) if o.get("slug") == slug), None)
+    if not is_main and idx is None:
+        raise HTTPException(404, "That order page isn't here")
+    cur = copy.deepcopy(main if is_main else extras[idx])
+    if isinstance(payload.get("offer"), dict):
+        cur = _clean_offer({**payload["offer"], "slug": slug})
+    if payload.get("pay") in ("card", "bank"):
+        cur["pay"] = payload["pay"]
+    if "paused" in payload:
+        cur["paused"] = bool(payload["paused"])
+    if "capacity" in payload:
+        try:
+            cur["capacity"] = max(0, min(5000, int(payload.get("capacity") or 0)))
+        except (TypeError, ValueError):
+            raise HTTPException(422, "The box limit should be a number")
+    if "closes" in payload and cur.get("date"):
+        v = str(payload.get("closes") or "").strip()[:16]
+        if v:
+            try:
+                datetime.fromisoformat(v)
+            except ValueError:
+                raise HTTPException(422, "Give the closing date and time")
+        cur["closes"] = v
+    if "date" in payload and cur.get("date"):
+        try:
+            cur["date"] = _date.fromisoformat(str(payload["date"])[:10]).isoformat()
+        except ValueError:
+            raise HTTPException(422, "Give the date of the event")
+    if ("place" in payload or "time" in payload) and cur.get("slots"):
+        slot = dict(cur["slots"][0])
+        if "place" in payload:
+            slot["place"] = str(payload.get("place") or "").strip()[:200]
+        if "time" in payload:
+            slot["time"] = str(payload.get("time") or "").strip()[:60]
+        cur["slots"] = [slot] + list(cur["slots"][1:])
+    if "collect_note" in payload:
+        cur["collect_note"] = str(payload.get("collect_note") or "").strip()[:600]
+    if is_main:
+        owner.preorder_offer = cur
+    else:
+        extras[idx] = cur
+        owner.preorder_offers = extras
+    db.commit()
+    return _page(db, owner, cur, is_main)
+
+
+@router.post("/offers")
+def add_page(payload: dict = Body(...), db: Session = Depends(get_db), user: User = Depends(require_plan(2))):
+    """Add an order page from a template (a pop-up). The copy is the chef's to change."""
+    if user.role == "staff":
+        raise HTTPException(403, "Only the business owner can add order pages")
+    owner = db.get(User, ws_id(user))
+    if payload.get("template") != "soulfood":
+        raise HTTPException(422, "Unknown template")
+    extras = [dict(o) for o in (owner.preorder_offers or []) if isinstance(o, dict)]
+    if any(o.get("slug") == SOULFOOD_OFFER["slug"] for o in extras):
+        raise HTTPException(422, "That pop-up is already one of your order pages")
+    extras.append(copy.deepcopy(SOULFOOD_OFFER))
+    owner.preorder_offers = extras
+    db.commit()
+    return _page(db, owner, extras[-1], False)
+
+
+def apply_owner_offers(db: Session) -> bool:
+    """The business owner's own order pages (The Creatiste Catering, on the platform owner's account only):
+    the Soulfood Friday 2.0 pop-up until its night has passed, and Clean Dream kept on bank transfer as she asked
+    (once; she can switch it to card on the Pre-orders page)."""
+    owner = db.query(User).filter(User.email == config.ADMIN_EMAIL.lower(), User.role == "admin").first()
+    if not owner:
+        return False
+    changed = False
+    extras = [dict(o) for o in (owner.preorder_offers or []) if isinstance(o, dict)]
+    if not any(o.get("slug") == SOULFOOD_OFFER["slug"] for o in extras) and SOULFOOD_OFFER["date"] >= datetime.now(_tz()).date().isoformat():
+        extras.append(copy.deepcopy(SOULFOOD_OFFER))
+        owner.preorder_offers = extras
+        changed = True
+    main = dict(owner.preorder_offer or {})
+    if "pay" not in main:
+        owner.preorder_offer = {**(main if main.get("items") else copy.deepcopy(DEFAULT_OFFER)), "pay": "bank"}
+        changed = True
+    if changed:
+        db.commit()
+    return changed
 
 
 @router.put("/offer")
@@ -567,6 +925,7 @@ def save_my_offer(payload: dict = Body(...), db: Session = Depends(get_db), user
                 raise HTTPException(422, f"Group on '{item['name']}' needs an id, a label and options")
     if offer.get("delivery") and not isinstance(offer["delivery"], dict):
         raise HTTPException(422, "Delivery must be an object")
-    owner.preorder_offer = dict(offer)  # fresh object so SQLAlchemy persists the JSON
+    keep = {k: (owner.preorder_offer or {})[k] for k in ("pay",) if k in (owner.preorder_offer or {}) and k not in offer}
+    owner.preorder_offer = {**dict(offer), **keep}  # fresh object so SQLAlchemy persists the JSON
     db.commit()
     return {"offer": owner.preorder_offer, "dates": open_dates(owner.preorder_offer)}

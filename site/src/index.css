@@ -3,6 +3,9 @@
 @font-face { font-family: 'Jost'; font-style: normal; font-weight: 100 900; font-display: swap; src: url('./fonts/Jost-var.woff2') format('woff2'); }
 @font-face { font-family: 'Lora'; font-style: italic; font-weight: 400 700; font-display: swap; src: url('./fonts/Lora-Italic-var.woff2') format('woff2'); }
 @font-face { font-family: 'Jost'; font-style: italic; font-weight: 100 900; font-display: swap; src: url('./fonts/Jost-Italic-var.woff2') format('woff2'); }
+/* The pop-up pages wear the printed menu's type: Anton for the big words, Oswald for the small lowercase lines. */
+@font-face { font-family: 'Anton'; font-style: normal; font-weight: 400; font-display: swap; src: url('./fonts/Anton-Regular.woff2') format('woff2'); }
+@font-face { font-family: 'Oswald'; font-style: normal; font-weight: 200 700; font-display: swap; src: url('./fonts/Oswald-var.woff2') format('woff2'); }
 
 @tailwind base;
 @tailwind components;

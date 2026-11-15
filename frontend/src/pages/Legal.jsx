@@ -462,7 +462,8 @@ export function Faq() {
           before they count. You set the menu, the choice groups and prices, the collection slots and the order
           cut-off once; every order is priced from that on our side, each box is named by the customer so labelling
           is a read-off, and paid orders land on your calendar and in your inbox. Payments go to your own Stripe
-          account, not ours.
+          account, not ours. A pop-up gets its own order page with a closing time and an optional limit on boxes,
+          and a kitchen list adds up every portion for the night.
         </p>
       </Section>
       <Section heading="What if I delete something by mistake?">

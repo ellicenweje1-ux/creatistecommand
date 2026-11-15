@@ -302,17 +302,17 @@ function Dashboard() {
       <div className="space-y-12 lg:col-span-8">
         <ReserveDate />
         <section data-orders>
-          <div className="flex items-end justify-between gap-4"><Heading size="md">Clean Dream orders</Heading><span className="font-body text-[12px] text-stone">{me.orders.length} {me.orders.length === 1 ? 'order' : 'orders'}</span></div>
+          <div className="flex items-end justify-between gap-4"><Heading size="md">Your orders</Heading><span className="font-body text-[12px] text-stone">{me.orders.length} {me.orders.length === 1 ? 'order' : 'orders'}</span></div>
           {me.orders.length ? (
             <ul className="mt-6 divide-y divide-sand border-y border-sand">
               {me.orders.map((o) => (
                 <li key={o.public_id} className="grid gap-4 py-5 sm:grid-cols-[1fr_auto]">
                   <div>
-                    <p className="font-display text-[20px]">{fmt(o.date)} <span className="font-body text-[12px] uppercase tracking-wide text-gold-deep">· {STATUS[o.status] || o.status}</span></p>
+                    <p className="font-display text-[20px]">{fmt(o.date)} <span className="font-body text-[12px] uppercase tracking-wide text-gold-deep">· {o.title ? `${o.title} · ` : ''}{STATUS[o.status] || o.status}</span></p>
                     <p className="mt-1 font-body text-[13px] text-stone">{o.fulfilment === 'delivery' ? `Delivery to ${o.delivery_address}` : o.slot} · {money(o.total)}</p>
                     <ul className="mt-2 space-y-1">{o.boxes.map((b, i) => <li key={i} className="font-body text-[14px] text-ink/80"><span className="font-display text-[15px]">{b.for}</span> · {b.item} <span className="text-stone">({b.summary})</span></li>)}</ul>
                   </div>
-                  <div className="sm:text-right"><Button variant="ink" onClick={() => reorder(o)} data-reorder>Order this again <Arrow /></Button></div>
+                  {!o.offer_slug || o.offer_slug === 'clean-dream' ? <div className="sm:text-right"><Button variant="ink" onClick={() => reorder(o)} data-reorder>Order this again <Arrow /></Button></div> : null}
                 </li>
               ))}
             </ul>

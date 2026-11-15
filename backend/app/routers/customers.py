@@ -153,7 +153,7 @@ def me(token: str, authorization: str = Header(default=""), db: Session = Depend
     return {
         "customer": _profile(cus),
         "enquiries": enquiries,
-        "orders": [{"public_id": o.public_id, "title": o.offer_title, "date": o.for_date, "status": o.status,
+        "orders": [{"public_id": o.public_id, "title": o.offer_title, "offer_slug": o.offer_slug or "", "date": o.for_date, "status": o.status,
                     "pay_method": o.pay_method or "stripe", "fulfilment": o.fulfilment, "slot": o.slot_label,
                     "delivery_address": o.delivery_address, "total": o.subtotal, "allergies": o.allergies, "note": o.note,
                     "boxes": [{"for": b.get("for"), "item": b.get("item"), "item_id": b.get("item_id"), "summary": b.get("summary"),

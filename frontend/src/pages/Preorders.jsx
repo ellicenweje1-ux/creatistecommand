@@ -46,6 +46,115 @@ function receiptText(o, template = '', business = 'The Creatiste Catering') {
   ].filter((l) => l !== '').join('\n')
 }
 const label = (o) => (o.status === 'pending_payment' && o.pay_method === 'bank' ? 'Awaiting bank transfer' : LABELS[o.status] || o.status)
+const STATE = { open: ['Taking orders', 'green'], closed: ['Pre-orders closed', 'gray'], paused: ['Paused', 'amber'], sold_out: ['Sold out', 'red'], finished: ['Finished', 'gray'] }
+const siteUrl = (user) => {
+  const w = (user?.socials?.website || '').trim()
+  return w ? w.replace(/\/$/, '').replace(/^(?!https?:\/\/)/, 'https://') : ''
+}
+
+/* The kitchen list for one day of one order page: how many of each box and every portion inside them, across the
+   paid orders (bank transfers still waiting are counted separately), so the shop and the cook are a read-off. */
+function KitchenList({ rows }) {
+  const live = rows.filter((o) => o.status === 'paid' || o.status === 'collected')
+  const waiting = rows.filter((o) => o.status === 'pending_payment' && o.pay_method === 'bank')
+  const tally = (list) => {
+    const items = {}, portions = {}
+    list.forEach((o) => (o.boxes || []).forEach((b) => {
+      items[b.item] = (items[b.item] || 0) + 1
+      Object.values(b.choices || {}).forEach((names) => (names || []).forEach((n) => { portions[n] = (portions[n] || 0) + 1 }))
+    }))
+    return { items: Object.entries(items).sort((a, b) => b[1] - a[1]), portions: Object.entries(portions).sort((a, b) => b[1] - a[1]) }
+  }
+  const t = tally(live)
+  const w = tally(waiting)
+  if (!t.items.length && !w.items.length) return null
+  return (
+    <div className="border-b border-line bg-parchment/60 px-5 py-4" data-kitchen-list>
+      <p className="label">Kitchen list{waiting.length ? ' · paid orders' : ''}</p>
+      {t.items.length ? (
+        <>
+          <p className="mt-1 text-sm"><span className="font-medium">Boxes:</span> {t.items.map(([n, c]) => `${c} × ${n}`).join(' · ')}</p>
+          <ul className="mt-2 grid gap-x-6 gap-y-0.5 text-sm sm:grid-cols-2 lg:grid-cols-3">{t.portions.map(([n, c]) => <li key={n} className="flex justify-between gap-3"><span className="text-fg/75">{n}</span><span className="font-medium tabular-nums">{c}</span></li>)}</ul>
+        </>
+      ) : <p className="mt-1 text-sm text-fg/60">Nothing paid yet.</p>}
+      {waiting.length ? <p className="mt-2 text-xs text-fg/55">Plus {waiting.length} order{waiting.length === 1 ? '' : 's'} awaiting bank transfer: {w.items.map(([n, c]) => `${c} × ${n}`).join(' · ')}.</p> : null}
+    </div>
+  )
+}
+
+/* Each order page on the chef's website: its link, whether it is taking orders, card or bank transfer, and for a one-off
+   event the everyday settings (where and when you collect, when pre-orders close, a box limit, pause). */
+function OrderPage({ page, user, cardReady, stripeKey, onSaved }) {
+  const [f, setF] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [menuJson, setMenuJson] = useState('')
+  const [editingMenu, setEditingMenu] = useState(false)
+  useEffect(() => { setF({ date: page.date, closes: page.closes, place: page.slot?.place || '', time: page.slot?.time || '', capacity: page.capacity || '', collect_note: page.collect_note || '' }) }, [page])
+  const save = async (patch, msg = 'Saved') => {
+    setBusy(true)
+    try { await api.put(`/preorders/offers/${page.slug}`, patch); toast(msg); onSaved() } catch (e) { toastErr(e) } finally { setBusy(false) }
+  }
+  const saveMenu = async () => {
+    let parsed
+    try { parsed = JSON.parse(menuJson) } catch { toastErr(new Error('That isn’t valid JSON yet')); return }
+    await save({ offer: parsed }, 'Menu saved'); setEditingMenu(false)
+  }
+  const base = siteUrl(user)
+  const link = page.path ? `${base}/${page.path}` : ''
+  const [stateLabel, tone] = STATE[page.state] || [page.state, 'gray']
+  const copy = async () => { try { await navigator.clipboard.writeText(link); toast('Link copied') } catch { window.prompt('Copy the link:', link) } }
+  if (!f) return null
+  const event = !!page.date
+  return (
+    <Card className="p-5" data-order-page={page.slug}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-display text-lg">{page.title} <span className="ml-1 text-sm font-normal text-fg/55">{event ? `Pop-up · ${fmtDate(page.date)}` : 'Your main order page'}</span></p>
+          {link ? <p className="mt-1 text-sm"><a href={link} target="_blank" rel="noreferrer" className="text-copper hover:underline" data-page-link>{link.replace(/^https?:\/\//, '')}</a> <button type="button" onClick={copy} className="ml-2 text-xs text-fg/55 hover:text-fg">Copy</button></p>
+            : page.path ? <p className="mt-1 text-sm text-fg/60">/{page.path} on your website (add your website under Settings → Business to see the full link)</p> : null}
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone={tone}>{stateLabel}</Badge>
+          {page.boxes_left != null ? <Badge tone="gray">{page.boxes_left} boxes left</Badge> : null}
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-line pt-4 text-sm" data-pay-setting>
+        <span className="text-fg/70">Customers pay by</span>
+        {['card', 'bank'].map((v) => (
+          <button key={v} type="button" disabled={busy || (v === 'card' && !cardReady)} onClick={() => save({ pay: v }, v === 'card' ? 'Card payments on' : 'Bank transfer on')}
+            className={`rounded-full border px-3 py-1 ${page.pay === v ? 'border-copper bg-copper/15 text-fg' : 'border-line text-fg/60'} disabled:opacity-40`} aria-pressed={page.pay === v} data-pay={v}>
+            {v === 'card' ? 'Card (Stripe)' : 'Bank transfer'}
+          </button>
+        ))}
+        <span className="text-xs text-fg/55">
+          {page.payments === 'stripe' ? 'Card payments are live on this page.'
+            : !stripeKey ? 'Card payments switch on once your Stripe key is set on the server (PREORDER_STRIPE_SECRET_KEY). Until then customers pay by bank transfer.'
+            : !cardReady ? 'The Stripe key on the server belongs to a different account, so card payments are not offered here.'
+            : 'Bank transfer: mark each order paid when the money lands.'}
+        </span>
+      </div>
+
+      {event ? (
+        <div className="mt-4 grid gap-3 border-t border-line pt-4 sm:grid-cols-2 lg:grid-cols-3">
+          <Field label="Collection place"><Input value={f.place} onChange={(e) => setF({ ...f, place: e.target.value })} placeholder="e.g. The Yard, 12 Example Street, E1" data-f-place /></Field>
+          <Field label="Collection time"><Input value={f.time} onChange={(e) => setF({ ...f, time: e.target.value })} placeholder="e.g. 5pm to 9pm" data-f-time /></Field>
+          <Field label="Date of the event"><Input type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></Field>
+          <Field label="Pre-orders close"><Input type="datetime-local" value={f.closes} onChange={(e) => setF({ ...f, closes: e.target.value })} data-f-closes /></Field>
+          <Field label="Most boxes to take" hint="Blank for no limit"><Input type="number" min="0" value={f.capacity} onChange={(e) => setF({ ...f, capacity: e.target.value })} data-f-capacity /></Field>
+          <Field label="How to collect (shown to customers)" className="sm:col-span-2 lg:col-span-3"><Textarea rows={2} value={f.collect_note} onChange={(e) => setF({ ...f, collect_note: e.target.value })} /></Field>
+          <div className="flex flex-wrap items-center gap-2 sm:col-span-2 lg:col-span-3">
+            <Button size="sm" disabled={busy} onClick={() => save({ place: f.place, time: f.time, date: f.date, closes: f.closes, capacity: Number(f.capacity) || 0, collect_note: f.collect_note })} data-save-page>Save</Button>
+            <Button size="sm" variant="ghost" disabled={busy} onClick={() => save({ paused: !page.paused }, page.paused ? 'Taking orders again' : 'Orders paused')} data-pause>{page.paused ? 'Start taking orders again' : 'Pause orders'}</Button>
+            <Button size="sm" variant="ghost" onClick={() => { setMenuJson(JSON.stringify(page.offer, null, 2)); setEditingMenu(!editingMenu) }}>{editingMenu ? 'Close menu editor' : 'Edit the menu (advanced)'}</Button>
+            <span className="text-xs text-fg/55">{page.closes_text ? `Closes ${page.closes_text}.` : ''} {page.items.map((i) => `${i.name} ${fmtMoney(i.price)}`).join(' · ')}</span>
+          </div>
+          {editingMenu ? <div className="sm:col-span-2 lg:col-span-3"><Textarea rows={18} className="font-mono text-xs" value={menuJson} onChange={(e) => setMenuJson(e.target.value)} /><div className="mt-2"><Button size="sm" onClick={saveMenu} disabled={busy}>Save menu</Button></div></div> : null}
+        </div>
+      ) : null}
+    </Card>
+  )
+}
 
 export default function Preorders() {
   const { user } = useAuth()
@@ -58,21 +167,23 @@ export default function Preorders() {
   const [paidPreview, setPaidPreview] = useState(null) // {o, customer:{to,subject,body}, chef:{…}}
   const [waPreview, setWaPreview] = useState(null)     // {o, text}
   const [busy, setBusy] = useState(false)
+  const [pages, setPages] = useState(null)
 
   const load = async () => {
     try {
-      const [o, f] = await Promise.all([api.get(`/preorders?from_date=${from}`), api.get('/preorders/offer')])
-      setOrders(o); setOffer(f); setJson(JSON.stringify(f.offer, null, 2))
+      const [o, f, p] = await Promise.all([api.get(`/preorders?from_date=${from}`), api.get('/preorders/offer'), api.get('/preorders/offers')])
+      setOrders(o); setOffer(f); setJson(JSON.stringify(f.offer, null, 2)); setPages(p)
     } catch (e) { toastErr(e) }
   }
+  const addPopup = async () => { try { await api.post('/preorders/offers', { template: 'soulfood' }); toast('Pop-up added. Set its date, place and closing time below.'); load() } catch (e) { toastErr(e) } }
   useEffect(() => { load() }, [from]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const groups = useMemo(() => {
     // Bank-transfer orders are real orders waiting for the money to land, so they always show; card attempts that never paid are hidden unless asked for.
     const vis = (orders || []).filter((o) => showPending || o.status !== 'pending_payment' || o.pay_method === 'bank')
     const by = {}
-    vis.forEach((o) => { (by[o.date] ||= []).push(o) })
-    return Object.entries(by).sort(([a], [b]) => a.localeCompare(b))
+    vis.forEach((o) => { (by[`${o.date}|${o.title || ''}`] ||= []).push(o) })
+    return Object.entries(by).sort(([a], [b]) => a.localeCompare(b)).map(([k, rows]) => [k.split('|')[0], rows, k.split('|')[1]])
   }, [orders, showPending])
 
   // The WhatsApp receipt opens as an editable preview first; copy when it reads right.
@@ -121,6 +232,19 @@ export default function Preorders() {
           <Textarea rows={16} className="font-mono text-xs" value={waPreview.text} onChange={(e) => setWaPreview((p) => ({ ...p, text: e.target.value }))} />
         </div> : null}
       </PreviewModal>
+      {pages ? (
+        <section className="space-y-3" data-order-pages>
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <p className="font-display text-xl">Your order pages</p>
+              <p className="text-sm text-fg/60">Each page on your website that takes orders. Orders from all of them land below, day by day.</p>
+            </div>
+            {pages.templates?.some((t) => !t.added) ? <Button size="sm" variant="ghost" onClick={addPopup} data-add-popup>Add a pop-up page</Button> : null}
+          </div>
+          {pages.pages.map((pg) => <OrderPage key={pg.slug} page={pg} user={user} cardReady={pages.card_ready} stripeKey={pages.stripe_key} onSaved={load} />)}
+        </section>
+      ) : null}
+
       <Card className="p-4" data-customer-preview>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -138,19 +262,20 @@ export default function Preorders() {
           <div className="ml-auto flex gap-6 pb-2 text-sm text-fg/70">
             <span><strong className="text-fg">{paidCount}</strong> paid orders</span>
             <span><strong className="text-fg">{boxCount}</strong> boxes</span>
-            <span>Payments: <Badge tone={offer.payments === 'stripe' ? 'green' : 'amber'}>{offer.payments === 'stripe' ? 'card, live' : 'not configured'}</Badge></span>
+            <span>Card payments: <Badge tone={pages?.card_ready ? 'green' : 'amber'}>{pages?.card_ready ? 'Stripe connected' : 'Stripe not connected'}</Badge></span>
           </div>
         </div>
       </Card>
 
       {groups.length === 0 ? (
         <EmptyState icon="cart" title="No orders yet" hint={offer.payments === 'stripe' ? 'Orders from your site will appear here, grouped by day.' : 'Orders from your site appear here grouped by day. Bank-transfer orders arrive as “awaiting bank transfer”: mark each paid once the money lands and it becomes a confirmed booking. Set PREORDER_STRIPE_SECRET_KEY (your business Stripe account) to take card payments as well.'} />
-      ) : groups.map(([date, rows]) => (
-        <Card key={date} className="p-0">
+      ) : groups.map(([date, rows, title]) => (
+        <Card key={`${date}|${title}`} className="p-0" data-order-day={date}>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
-            <p className="font-display text-lg">{fmtDate(date)}</p>
+            <p className="font-display text-lg">{fmtDate(date)}{title ? <span className="ml-2 text-sm font-normal text-fg/60">{title}</span> : null}</p>
             <p className="text-sm text-fg/60">{rows.filter((o) => o.status !== 'cancelled').reduce((s, o) => s + (o.boxes?.length || 0), 0)} boxes · {fmtMoney(rows.filter((o) => o.status !== 'cancelled').reduce((s, o) => s + (o.total || 0), 0))}</p>
           </div>
+          <KitchenList rows={rows} />
           <ul className="divide-y divide-line">
             {rows.map((o) => (
               <li key={o.id} className="px-5 py-4">

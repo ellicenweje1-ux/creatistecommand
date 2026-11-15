@@ -96,6 +96,8 @@ class User(Base):
     examples_hidden: Mapped[list] = mapped_column(JSON, default=list)
     # The chef's public pre-order offer (menu, slots, delivery policy) — see routers/preorders.py.
     preorder_offer: Mapped[dict] = mapped_column(JSON, default=dict)
+    # More order pages beside the main one: one-off pop-ups and events ([{slug, title, date, closes, items, ...}]).
+    preorder_offers: Mapped[list] = mapped_column(JSON, default=list)
     diary_rules: Mapped[dict] = mapped_column(JSON, default=dict)  # {max_per_day, prep_days, public, horizon_days}
     job_setup: Mapped[dict] = mapped_column(JSON, default=dict)     # {services:[...], remind_unplanned}: how each service runs (routers/jobs.py)
     notify_prefs: Mapped[dict] = mapped_column(JSON, default=dict)  # which pop-up notifications this business gets (app/notify.py)

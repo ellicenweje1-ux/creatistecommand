@@ -929,6 +929,66 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
     `test_phone` 19/19, `test_preorders` 36/36; `test_capacity` 59/60 and `test_calsync` 33/35 fail identically on the previous commit (date drift in
     those tests, not regressions). Playwright `scratchpad/req_e2e/verify_req.py` **31/31** desktop + phone against Command booted as the owner account.
     Harness: aria-disabled buttons can't be clicked by Playwright, so unavailable days carry no aria-disabled (they do something: explain).
+- **SOULFOOD FRIDAY 2.0 PRE-ORDER PAGE, PAID IN ADVANCE (twenty-first batch, 2026-11-15) — live at thecreatistecatering.com/soulfood.**
+  Ellice: "build my preorder page where people can place their order for the pop up and pay in advance. basket build similar to clean
+  dream. menu attached. needs actual payment system like stripe or sumup and the exact page address". Pop-up = Friday 20 Nov 2026.
+  - **Menu (from her printed card + slides):** Combo 1 £17 (1 protein + 3 sides) · Combo 2 £21 (2 + 3) · Combo 3 £23 (2 + 4) · All in £30
+    (all 3 proteins + all 6 sides, `fixed` groups) · Dessert on its own £6.50; extras on every combo: protein £5.50, side £3.50, dessert
+    £6.50. Proteins: smothered cajun butter wings, jerk pot roast, crispy fried shrimp, plus **"Vegetarian option"** (her card says one is
+    available; NAME IT when she says what it is). Sides: sweet potato yams, creamy mac, smoked turkey greens, garlic parm fried corn, honey
+    butter cornbread, croissant milk rolls. Dessert: plantain caramel sponge cake, whipped cream OR custard. Repeats allowed (2× mac = two sides).
+  - **Command (generic "order pages"):** new additive **`users.preorder_offers`** JSON list (model + the single `users` key in
+    `ensure_columns`; migration drilled in a fresh process) beside the main `preorder_offer`. Every public call names its page by slug
+    (`GET /api/public/preorder/{token}?offer=soulfood-friday-2`, `"offer"` in order payloads; none = main page). Offer fields for one-off
+    events: `date`, `closes` (local "YYYY-MM-DDTHH:MM", default **Thu 19 Nov 8pm**), `pay` card|bank, `capacity` (0 = no limit, counts paid +
+    bank-pending boxes), `paused`, `path` (site page; Stripe success/cancel URLs use it), `collect_note` (added to both emails), one slot.
+    `offer_state` = open|paused|closed|finished (+ sold_out). `price_box` gained **`fixed`** groups (all options, auto) and **`repeat`**
+    groups (duplicates allowed; non-repeat groups now refuse duplicates — Clean Dream still passes 36/36). `SOULFOOD_OFFER` constant is
+    loaded onto **her account only** at boot by `apply_owner_offers` (ADMIN_EMAIL + role admin, idempotent by slug, only until the date
+    passes), which also sets her Clean Dream `pay: "bank"` once (her standing choice; switchable). Chef endpoints `GET /api/preorders/offers`,
+    `PUT /api/preorders/offers/{slug}` (place, time, date, closes, capacity, paused, pay, collect_note, or `{offer}` for the whole menu),
+    `POST /api/preorders/offers {template:"soulfood"}` (any chef can start a pop-up from it).
+  - **Card payments are gated to the Stripe key's owner:** `card_ready(owner)` = `PREORDER_STRIPE_SECRET_KEY` set AND (owner email ==
+    new env `PREORDER_STRIPE_ACCOUNT`, or, when that is blank, role admin). Fixes a latent risk: before this, any Pro chef's pre-order page
+    would have taken card payments into Ellice's Stripe account. ⚠️ If her catering business ever turns out NOT to be the admin account,
+    set `PREORDER_STRIPE_ACCOUNT` to its email (the Pre-orders page says "Stripe key belongs to a different account").
+  - **Command UI (Pre-orders):** "Your order pages" cards (link + copy, state badge, Card (Stripe) / Bank transfer switch, and for a pop-up:
+    collection place + time, event date, pre-orders close, box limit, how-to-collect note, Save, Pause, advanced menu JSON) and a
+    **kitchen list per night** (boxes per combo + every portion counted across all choice groups, bank-pending orders listed separately).
+    Orders are grouped by day AND page. "Add a pop-up page" when the template isn't on the account.
+  - **Site:** `site/src/pages/PopUp.jsx` (generic pop-up page, `cfg` = `SOULFOOD` in content): maroon hero in her flyer colours (#5A1D20 /
+    #F8ECD7 / #18100A / #FFA900 / #F24101), **Anton + Oswald self-hosted** (`site/src/fonts/`, from google/fonts via raw.githubusercontent.com
+    — github.com/raw 403s through the proxy; Tailwind `font-anton`/`font-oswald`), her "the menu" cover (`site/public/flyers/soulfood-menu.webp`),
+    the price card, dish tiles set like her slides (`FitLines`: each line fitted to the card width, shrunk together to the height, room kept
+    for descenders), stepped builder (box → proteins → sides → extras (steppers) → name it), basket, checkout (collect at the pop-up; card via
+    Stripe Checkout when live, else bank transfer → `/bank`, else WhatsApp/email), `?preview=1`, closed/sold-out/paused/finished states,
+    `/soulfood/confirmed` (`PopUpConfirmed`). Routes `/soulfood`, `/soulfood/confirmed`, `/soulfoodfriday` + `/soulfood-friday` redirect.
+    What's Up featured pop-up: **Pre-order now** (+ RSVP), flyer links to the page; live bar link → `/soulfood`; nav What's Up sub-link
+    "Pre-order Soulfood Friday" with `until: '2026-11-20'` (nav sub-links now honour `until`). Account page: "Your orders" (titles shown,
+    "Order this again" only for Clean Dream; `/me` orders carry `offer_slug`). Terms "Pop-up pre-orders" (refund before close, none after —
+    my default, flag to her) + site FAQ "How do I pre-order for a pop-up?". Command FAQs (rule #3): Support "Can I take pre-orders for a
+    pop-up?" + public `/faq` line.
+  - **Verified:** backend `scratchpad/test_popup.py` **51/51** (offer + prices, fixed/repeat pricing and refusals, card checkout → /soulfood
+    return URLs, confirm → paid + booking "Soulfood Friday 2.0 pre-orders" + emails with the collect note, bank + box limit + sold out,
+    closing at 8pm / reopen / pause / finished with a fixed clock, Command pages, gating for other chefs, fresh-process migration);
+    `test_preorders.py` 36/36 (it now sets `PREORDER_STRIPE_ACCOUNT=chef@pre.test`); Playwright `scratchpad/pop_e2e/verify_pop.py` **57/57**
+    desktop + phone with a fake Stripe page (fonts load, price card, 7 tiles, steppers 2-of-2, repeats, £31 box, All in, dessert, £67.50 →
+    fake Stripe → confirmed; Command kitchen list; place/time save reaches the page; bank switch → bank order lands; closed state; redirect
+    alias; What's Up button), zero page errors. Harness: the fake Stripe route must be moved ahead of Command's catch-all page route.
+  - **For Ellice (no code):** card payments need the catering business's Stripe account key: Stripe → new account "The Creatiste Catering"
+    (in her organisation, NOT the Command account) → live secret key → Render env **`PREORDER_STRIPE_SECRET_KEY`**; webhook
+    `https://creatistecommand.onrender.com/api/public/preorder/webhook` (event `checkout.session.completed`) → **`PREORDER_STRIPE_WEBHOOK_SECRET`**.
+    Until then the page takes bank transfers (orders land as "awaiting bank transfer"). Then set the place/time in Pre-orders when announced.
+- **ASSISTANT + simpler app: PAUSED (2026-11-14, her call: "pause the personal assistant job").** Backend-only work-in-progress is
+  committed as **`b7c0c8e`** and immediately **reverted by `5eb4cfc`**, so nothing of it is deployed. It holds: `routers/assistant.py`
+  (Mise as an assistant: tools for to-dos business/personal, notes, draft invoices with package prices, mark paid, pencil in, block time,
+  plan shop/prep, move jobs, shopping items, client history, draft messages, undo; voice via `/assistant/transcribe` with ElevenLabs Scribe
+  or OpenAI, keys `ELEVENLABS_API_KEY` / `OPENAI_API_KEY`), `routers/today.py` (Today snapshot + morning summary text), jobs.py
+  "suggested days" (every shop/prep step sits on the last working day of its window until planned; no To plan queue), dated to-dos on
+  the calendar + phone feed, personal to-dos hidden from staff (`crud_router(owner_only=)`), morning summary push (`notify` "brief",
+  `brief_time`), `users.nav_hidden` + her simpler-menu default. No screens were built yet; `scratchpad/test_assistant.py` was written but
+  never run. **To resume: `git revert 5eb4cfc`** (then build the screens: the assistant box with voice, Today page, simplified menu with
+  "More tools", calendar day view), run the test, verify, ship.
 - **Soulfood Friday 2.0 flyer on What's Up (sixteenth batch):** her flyer (`site/public/flyers/soulfood-friday-2.webp`, 1080x1350) now has a **featured block** on
   `/whats-up` (`Featured` in `WhatsOn.jsx`, `[data-featured="pop-up"]`, id `pop-up` so the nav "Pop-ups & events" link still lands): flyer beside the details, the
   flyer itself and the gold **"RSVP now"** button both link to her Partiful page (`NOW.items[1].cta.href`, new tab, `rel=noreferrer`). **Time and location are marked

@@ -59,6 +59,9 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 # the public order page shows the menu but offers WhatsApp/email ordering instead of card payment.
 PREORDER_STRIPE_SECRET_KEY = os.getenv("PREORDER_STRIPE_SECRET_KEY", "")
 PREORDER_STRIPE_WEBHOOK_SECRET = os.getenv("PREORDER_STRIPE_WEBHOOK_SECRET", "")
+# Whose business that Stripe account is. Card payments are only offered on that account's order pages, so no other
+# chef's customers can ever pay into it. Blank = the platform owner's account (role admin, ADMIN_EMAIL).
+PREORDER_STRIPE_ACCOUNT = os.getenv("PREORDER_STRIPE_ACCOUNT", "").strip().lower()
 
 # Bootstrap platform admin (created on first startup)
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@creatistecommand.com")

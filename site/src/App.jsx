@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, NavLink, Route, Routes, useLocation } from 'react-router-dom'
-import { CONTACT, FOOTER, HOURS, NAV_MENU } from './content/site.js'
+import { CONTACT, FOOTER, HOURS, NAV_MENU, SOULFOOD } from './content/site.js'
 import { ScrollToTop, asset, docUrl } from './ui.jsx'
 import Home from './pages/Home.jsx'
 import PersonalChef from './pages/PersonalChef.jsx'
@@ -12,6 +12,7 @@ import Enquire from './pages/Enquire.jsx'
 import Portfolio from './pages/Portfolio.jsx'
 import { Privacy, Terms } from './pages/Legal.jsx'
 import CleanDream, { CleanDreamConfirmed } from './pages/CleanDream.jsx'
+import PopUp, { PopUpConfirmed } from './pages/PopUp.jsx'
 import TableMenuPrint from './pages/TableMenu.jsx'
 import { BatchfullyPrint, HomeEditPrint } from './docs.jsx'
 import Menus from './pages/Menus.jsx'
@@ -19,7 +20,9 @@ import Account from './pages/Account.jsx'
 import Command from './pages/Command.jsx'
 import { useCustomer } from './account.js'
 
-const NAV = NAV_MENU
+// A sub-link with `until` (a one-off event's order page) drops out of the menu by itself the day after.
+const TODAY = new Date().toISOString().slice(0, 10)
+const NAV = NAV_MENU.map((n) => (n.sub ? { ...n, sub: n.sub.filter((s) => !s.until || s.until >= TODAY) } : n))
 
 /* A sub-link: in-site (hash or query) via the router, documents as plain links. */
 function SubLink({ s, className, onClick }) {
@@ -226,6 +229,10 @@ export default function App() {
           <Route path="/the-chef" element={<Chef />} />
           <Route path="/the-gallery" element={<Navigate to="/portfolio#gallery" replace />} />
           <Route path="/gallery" element={<Navigate to="/portfolio#gallery" replace />} />
+          <Route path="/soulfood" element={<PopUp cfg={SOULFOOD} />} />
+          <Route path="/soulfood/confirmed" element={<PopUpConfirmed cfg={SOULFOOD} />} />
+          <Route path="/soulfoodfriday" element={<MovedTo to="/soulfood" />} />
+          <Route path="/soulfood-friday" element={<MovedTo to="/soulfood" />} />
           <Route path="/cleandream" element={<CleanDream />} />
           <Route path="/cleandream/confirmed" element={<CleanDreamConfirmed />} />
           {/* The older dashed address still works (keeps the query string, so a payment return lands correctly). */}

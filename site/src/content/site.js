@@ -53,6 +53,7 @@ export const NAV_MENU = [
     { to: '/whats-up#weekday-lunch-service', label: 'Clean Dream · weekday lunch' },
     { to: '/cleandream', label: 'Order Clean Dream' },
     { to: '/whats-up#pop-up', label: 'Pop-ups & events' },
+    { to: '/soulfood', label: 'Pre-order Soulfood Friday', until: '2026-11-20' },
     { to: '/whats-up#availability', label: 'Our availability' },
     { to: '/whats-up#careers', label: 'Careers' },
   ] },
@@ -386,8 +387,9 @@ export const NOW = {
       detail: 'We’re back. Come. Eat. Be thankful. A one-night Thanksgiving soul food table. RSVPs are open and spaces are limited.',
       meta: ['Fri 20 Nov', 'London', 'Time to be announced', 'Location to be announced'],
       flyer: { src: '/flyers/soulfood-friday-2.webp', alt: 'Flyer: We’re back. Soulfood Friday 2.0, a Thanksgiving pop-up on Friday 20 November in London. Come. Eat. Be thankful. RSVPs open, limited spaces.' },
+      preorder: { label: 'Pre-order now', to: '/soulfood' },
       cta: { label: 'RSVP now', href: 'https://partiful.com/e/W4FoWq5EC4V1RDj6lua7?c=U5d0J40B' },
-      link: 'https://partiful.com/e/W4FoWq5EC4V1RDj6lua7?c=U5d0J40B',
+      link: '/soulfood',
     },
     {
       live: false,
@@ -399,6 +401,89 @@ export const NOW = {
       cta: { label: 'Register interest', to: '/enquire?lane=events' },
     },
   ],
+}
+
+/* Soulfood Friday 2.0: the pop-up's own order page at thecreatistecatering.com/soulfood.
+   The menu and prices are held in The Creatiste Command (Pre-orders → Soulfood Friday 2.0), which prices every order and
+   takes the payment; `menu` below is a mirror so the page still shows the full menu if Command can't be reached. */
+const SF_PROTEINS = [
+  { name: 'Smothered cajun butter wings', desc: 'Fried, then baked in a creamy, cajun butter-style sauce with peppers and onions.' },
+  { name: 'Jerk pot roast', desc: 'Spicy slow-braised beef with butter beans.' },
+  { name: 'Crispy fried shrimp', desc: 'Fried golden, finished with a hot honey drizzle.' },
+]
+const SF_VEG = { name: 'Vegetarian option', desc: 'A vegetarian main in place of the meat or seafood.' }
+const SF_SIDES = ['Sweet potato yams', 'Creamy mac', 'Smoked turkey greens', 'Garlic parm fried corn', 'Honey butter cornbread', 'Croissant milk rolls']
+const SF_DESSERTS = ['Plantain caramel sponge cake, whipped cream', 'Plantain caramel sponge cake, custard']
+const SF_WORDS = { 1: 'one', 2: 'two', 3: 'three', 4: 'four', 6: 'six' }
+const sfExtras = () => [
+  { id: 'extra_protein', label: 'Extra protein', pick: 'optional · £5.50 each', min: 0, max: 6, repeat: true, options: [...SF_PROTEINS, SF_VEG].map((p) => ({ ...p, surcharge: 5.5 })) },
+  { id: 'extra_side', label: 'Extra side', pick: 'optional · £3.50 each', min: 0, max: 12, repeat: true, options: SF_SIDES.map((name) => ({ name, surcharge: 3.5 })) },
+  { id: 'dessert', label: 'Dessert', pick: 'optional · £6.50 each', min: 0, max: 6, repeat: true, desc: 'Plantain caramel sponge cake: sweet mascarpone glaze, caramelised apples, with whipped cream or custard.', options: SF_DESSERTS.map((name) => ({ name, surcharge: 6.5 })) },
+]
+const sfCombo = (id, name, price, proteins, sides) => ({
+  id, name, price, desc: `${proteins} protein${proteins > 1 ? 's' : ''} + ${sides} sides`,
+  groups: [
+    { id: 'protein', label: proteins === 1 ? 'Protein' : 'Proteins', pick: `choose ${SF_WORDS[proteins]}`, min: proteins, max: proteins, repeat: true, options: [...SF_PROTEINS, SF_VEG].map((p) => ({ ...p })) },
+    { id: 'sides', label: 'Sides', pick: `choose ${SF_WORDS[sides]}`, min: sides, max: sides, repeat: true, options: SF_SIDES.map((name) => ({ name })) },
+    ...sfExtras(),
+  ],
+})
+
+export const SOULFOOD = {
+  slug: 'soulfood-friday-2',
+  path: '/soulfood',
+  name: 'Soulfood Friday 2.0',
+  tag: 'soulfood friday 2.0',
+  when: 'friday 20 november',
+  where: 'london',
+  sub: 'A one-night Thanksgiving soul food pop-up. On the night it’s first come, first served, so pre-order now, pay online, and your food is boxed and waiting under your name.',
+  cover: { src: '/flyers/soulfood-menu.webp', alt: 'Soulfood Friday 2.0, the menu. Friday 20 November.' },
+  rsvp: 'https://partiful.com/e/W4FoWq5EC4V1RDj6lua7?c=U5d0J40B',
+  how: [
+    ['Build your box', 'Choose a combo, pick your proteins and sides, add extras or dessert, and name who it’s for.'],
+    ['Pay online', 'Pay securely by card. Your order is confirmed straight away and a receipt is emailed to you.'],
+    ['Collect on the night', 'Come to the pop-up on Friday 20 November and collect your box under your name.'],
+  ],
+  /* The dish cards, styled like the menu slides. `lines` are the words as they sit on the slide. */
+  dishes: [
+    { lines: ['smothered', 'cajun butter', 'wings'], desc: 'Fried, then baked in a creamy, cajun butter-style sauce with peppers and onions.', bg: '#18100A', fg: '#FFA900' },
+    { lines: ['jerk', 'pot roast'], desc: 'Spicy slow-braised beef with butter beans.', bg: '#F24101', fg: '#18100A' },
+    { lines: ['crispy fried', 'shrimp'], desc: 'Fried golden, finished with a hot honey drizzle.', bg: '#FAEDD5', fg: '#18100A' },
+    { lines: ['sweet potato', 'yams', 'creamy', 'mac'], desc: 'Self-explanatory. Take your pick, or both.', bg: '#FFA900', fg: '#18100A' },
+    { lines: ['smoked turkey', 'greens', 'garlic parm', 'fried corn'], desc: 'Self-explanatory. Take your pick, or both.', bg: '#F24101', fg: '#18100A' },
+    { lines: ['honey butter', 'cornbread', 'croissant', 'milk rolls'], desc: 'Self-explanatory. Take your pick, or both.', bg: '#18100A', fg: '#FAEDD5' },
+    { lines: ['plantain', 'caramel', 'sponge cake'], desc: 'Finished with a sweet mascarpone glaze, caramelised apples, and whipped cream or custard.', bg: '#FAEDD5', fg: '#18100A' },
+  ],
+  prices: [['combo 1', '1 protein + 3 sides', 17], ['combo 2', '2 proteins + 3 sides', 21], ['combo 3', '2 proteins + 4 sides', 23], ['all in', '3 proteins + all sides', 30]],
+  addOns: [['add dessert', 6.5], ['extra protein', 5.5], ['extra side', 3.5]],
+  notes: ['Vegetarian option available.', 'Please tell us about any allergies before you pay.'],
+  collect: 'Collect under your name at the pop-up on Friday 20 November. The time and location are announced on our Instagram, and we will message you before the night.',
+  terms: 'Pre-orders are paid in advance and collected on the night. Can’t make it? Tell us before pre-orders close and we will refund you; after that, payment is non-refundable as your food is made for you.',
+  closed: {
+    closed: ['Pre-orders have closed.', 'Thank you to everyone who ordered. Come down on the night: it’s first come, first served.'],
+    sold_out: ['Pre-orders are full.', 'Every pre-order box has gone. Come down on the night: it’s first come, first served.'],
+    paused: ['Pre-orders are paused.', 'We will open them again shortly. Follow our Instagram for updates.'],
+    finished: ['That’s a wrap.', 'Soulfood Friday 2.0 has been and gone. Thank you for coming. Follow our Instagram for the next one.'],
+  },
+  menu: {
+    slug: 'soulfood-friday-2', title: 'Soulfood Friday 2.0', kind: 'popup', path: 'soulfood', currency: 'GBP',
+    date: '2026-11-20', closes: '2026-11-19T20:00', pay: 'card', capacity: 0,
+    items: [
+      sfCombo('combo-1', 'Combo 1', 17, 1, 3),
+      sfCombo('combo-2', 'Combo 2', 21, 2, 3),
+      sfCombo('combo-3', 'Combo 3', 23, 2, 4),
+      { id: 'all-in', name: 'All in', price: 30, desc: '3 proteins + all sides', groups: [
+        { id: 'protein', label: 'Proteins', pick: 'all three', min: 3, max: 3, fixed: true, options: SF_PROTEINS.map((p) => ({ ...p })) },
+        { id: 'sides', label: 'Sides', pick: 'all six', min: 6, max: 6, fixed: true, options: SF_SIDES.map((name) => ({ name })) },
+        ...sfExtras(),
+      ] },
+      { id: 'dessert-only', name: 'Dessert', price: 6.5, desc: 'Plantain caramel sponge cake on its own: sweet mascarpone glaze, caramelised apples, with whipped cream or custard.', groups: [
+        { id: 'dessert', label: 'Dessert', pick: 'whipped cream or custard', min: 1, max: 1, options: SF_DESSERTS.map((name) => ({ name })) },
+      ] },
+    ],
+    slots: [{ id: 'popup', label: 'Collect at the pop-up', place: 'London, location to be announced', time: '' }],
+    delivery: { enabled: false },
+  },
 }
 
 /* Clean Dream: the public copy. The menu, slots and prices are served by The Creatiste Command
@@ -670,6 +755,7 @@ export const LEGAL = {
     sections: [
       ['Bookings and payment', 'Every booking begins with a consultation. We then send a tailored quotation; nothing is confirmed until you have accepted it in writing and paid what it states. Full payment is required for all personal chef services (Batchfully Made, The Home Edit and Sorted & Served) before the service begins. Private catering (The Loaded Bar, Corporate Curations, Private & Personal and The Creatiste Table) is secured with a 50% deposit, with the balance due by the date on the quotation. Private catering must be booked at least 14 days before the event; a private catering booking made within 14 days of the event requires full payment at the time of booking. Personal chef services need at least 7 days’ notice before the start date, subject to availability. Final guest numbers, dietary requirements and allergies must be confirmed by the date given on the quotation.'],
       ['Reserving a date', 'Regular and already-consulted clients can ask for dates in advance from their account, for any of our services. A date you ask for is held for you straight away while we confirm that we are free. Once we confirm, a £15 deposit per date is paid by bank transfer within 12 hours; if it has not reached us in that time the date is released. The deposit is non-refundable, but it can be moved to a later date on request, and it is taken off the final invoice. Each service needs a minimum amount of notice, shown when you choose it (personal chef services usually one week, private catering two weeks), and Sundays are not available.'],
+      ['Pop-up pre-orders', 'Pre-orders for a pop-up (such as Soulfood Friday) are paid in advance online and collected under your name on the night. They close at the time shown on the order page, or sooner if every box has gone. If you can’t make it, tell us before pre-orders close and we will refund you; after they close, payment is non-refundable because your food is made for you. Please tell us about any allergies before you pay.'],
       ['Clean Dream orders', 'Orders placed by 10:00am are made the same day, Monday to Friday; orders after 10:00am roll to the next weekday. Payment is by bank transfer using the details shown at checkout. Your order is confirmed only once we have sent a receipt of payment and the final collection or delivery details by WhatsApp. Delivery between the collection points is by request and charged separately at £0.65 per mile. Because every order is cooked fresh for you, an order cancelled after the 10:00am cut-off on its day results in loss of payment; no refund is given.'],
       ['Allergies and dietary needs', 'Tell us about every allergy and dietary requirement when you enquire or order, and again if anything changes. Our food is prepared in a kitchen that handles all fourteen major allergens, so we cannot guarantee any dish is entirely free of an allergen even where we have left it out. Every box and dish is labelled with the details you give us.'],
       ['Cancellations and changes', 'Deposits and booking payments are non-refundable once paid, because they hold a date we then turn other work away from. Changes to a confirmed booking are by agreement and may change the price. If we have to cancel for reasons within our control, you will receive a full refund of everything paid.'],
@@ -730,6 +816,11 @@ export const FAQ = {
       'An order cancelled after the 10am cut-off on its day results in loss of payment.',
       'Your order is confirmed once we send a receipt of payment and the final collection or delivery details by WhatsApp.',
       'Delivery between the collection points is by request at £0.65 per mile.',
+    ] },
+    { q: 'How do I pre-order for a pop-up?', a: [
+      'Each pop-up has its own order page, for example thecreatistecatering.com/soulfood for Soulfood Friday.',
+      'Build your box, pay online by card, and collect it under your name on the night.',
+      'Pre-orders close at the time shown on the page, or sooner if every box has gone.',
     ] },
     { q: 'Can I see which dates you have free?', a: [
       'Yes. The live availability calendar on What’s Up With Us shows every day for the next few months as open, limited or fully booked, straight from our diary.',

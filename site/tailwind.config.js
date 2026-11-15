@@ -20,6 +20,8 @@ export default {
         display: ['"Playfair Display"', 'Georgia', 'serif'],
         body: ['Jost', 'system-ui', 'sans-serif'],
         accent: ['Lora', 'Georgia', 'serif'],
+        anton: ['Anton', 'Impact', '"Arial Narrow"', 'sans-serif'],
+        oswald: ['Oswald', '"Arial Narrow"', 'sans-serif'],
       },
       letterSpacing: { eyebrow: '0.28em', wide: '0.14em' },
       maxWidth: { page: '1240px' },

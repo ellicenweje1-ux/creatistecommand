@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { CAREERS, NOW, nowActive } from '../content/site.js'
 import { Button, Eyebrow, Heading, Reveal, Section, asset } from '../ui.jsx'
 import { EnquireBand } from './Home.jsx'
@@ -34,7 +35,8 @@ function Featured({ item }) {
     <Reveal id={slug(item.kind)} className="scroll-mt-24 border border-gold/40 bg-ink-2/70" data-featured={slug(item.kind)}>
       <div className="grid items-center gap-8 p-5 sm:p-8 lg:grid-cols-12 lg:gap-12 lg:p-10">
         <div className="mx-auto w-full max-w-[440px] lg:col-span-5">
-          {rsvp ? <a href={rsvp} target="_blank" rel="noreferrer" aria-label={`${item.cta.label}: ${item.name}`} data-flyer className="block border border-gold/30 transition-colors hover:border-gold">{img}</a> : img}
+          {item.preorder ? <Link to={item.preorder.to} aria-label={`${item.preorder.label}: ${item.name}`} data-flyer className="block border border-gold/30 transition-colors hover:border-gold">{img}</Link>
+            : rsvp ? <a href={rsvp} target="_blank" rel="noreferrer" aria-label={`${item.cta.label}: ${item.name}`} data-flyer className="block border border-gold/30 transition-colors hover:border-gold">{img}</a> : img}
         </div>
         <div className="lg:col-span-7">
           <div className="flex items-center gap-4">
@@ -46,7 +48,12 @@ function Featured({ item }) {
           <p className="mt-2 font-display text-[22px] italic text-gold-light">{item.when}</p>
           <p className="mt-6 max-w-xl font-body text-[16px] font-light leading-relaxed text-ivory/80">{item.detail}</p>
           {item.meta?.length ? <ul className="mt-6 flex flex-wrap gap-2">{item.meta.map((m) => <li key={m} className="border border-gold/40 px-3 py-1.5 font-body text-[11px] uppercase tracking-wide text-gold">{m}</li>)}</ul> : null}
-          {item.cta ? <div className="mt-8"><Button href={item.cta.href} target="_blank" rel="noreferrer" data-rsvp>{item.cta.label}</Button></div> : null}
+          {item.preorder || item.cta ? (
+            <div className="mt-8 flex flex-wrap gap-3">
+              {item.preorder ? <Button to={item.preorder.to} data-preorder>{item.preorder.label}</Button> : null}
+              {item.cta ? <Button href={item.cta.href} target="_blank" rel="noreferrer" variant={item.preorder ? 'ghost' : 'gold'} data-rsvp>{item.cta.label}</Button> : null}
+            </div>
+          ) : null}
           {item.footnote ? <p className="mt-4 font-body text-[12px] italic text-smoke">{item.footnote}</p> : null}
         </div>
       </div>
