@@ -66,15 +66,10 @@ def log_activity(db: Session, user, action: str, obj, entity_type: str | None = 
     ))
 
 
-def crud_router(model, *, required=("title",), search_fields=(), default_order=None, min_plan=1, owner_only=None):
-    """Standard workspace-scoped CRUD with audit logging. Routers add custom endpoints on top.
-
-    `owner_only(row)` marks rows that staff logins must not see or touch (e.g. the owner's personal to-dos)."""
+def crud_router(model, *, required=("title",), search_fields=(), default_order=None, min_plan=1):
+    """Standard workspace-scoped CRUD with audit logging. Routers add custom endpoints on top."""
     deps = [Depends(require_plan(min_plan))] if min_plan > 1 else []
     router = APIRouter(dependencies=deps)
-
-    def hidden(obj, user) -> bool:
-        return bool(owner_only and user.role == "staff" and owner_only(obj))
 
     @router.get("")
     def list_items(
@@ -93,7 +88,7 @@ def crud_router(model, *, required=("title",), search_fields=(), default_order=N
             like = f"%{q}%"
             query = query.filter(or_(*[getattr(model, f).ilike(like) for f in search_fields]))
         order = default_order(model) if default_order else [model.created_at.desc()]
-        return [to_dict(o) for o in query.order_by(*order).all() if not hidden(o, user)]
+        return [to_dict(o) for o in query.order_by(*order).all()]
 
     @router.post("", status_code=201)
     def create_item(payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_active)):
@@ -112,14 +107,14 @@ def crud_router(model, *, required=("title",), search_fields=(), default_order=N
     @router.get("/{item_id}")
     def get_item(item_id: int, db: Session = Depends(get_db), user=Depends(require_active)):
         obj = db.get(model, item_id)
-        if not obj or obj.user_id != ws_id(user) or hidden(obj, user):
+        if not obj or obj.user_id != ws_id(user):
             raise HTTPException(404, "Not found")
         return to_dict(obj)
 
     @router.patch("/{item_id}")
     def update_item(item_id: int, payload: dict = Body(...), db: Session = Depends(get_db), user=Depends(require_active)):
         obj = db.get(model, item_id)
-        if not obj or obj.user_id != ws_id(user) or hidden(obj, user):
+        if not obj or obj.user_id != ws_id(user):
             raise HTTPException(404, "Not found")
         apply_payload(obj, model, payload)
         action = "completed" if payload.get("status") == "done" else "updated"
@@ -131,7 +126,7 @@ def crud_router(model, *, required=("title",), search_fields=(), default_order=N
     @router.delete("/{item_id}", status_code=204)
     def delete_item(item_id: int, db: Session = Depends(get_db), user=Depends(require_active)):
         obj = db.get(model, item_id)
-        if not obj or obj.user_id != ws_id(user) or hidden(obj, user):
+        if not obj or obj.user_id != ws_id(user):
             raise HTTPException(404, "Not found")
         log_activity(db, user, "deleted", obj)
         # Snapshot into the recycle bin so the chef can restore it themselves (lazy import

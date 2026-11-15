@@ -78,7 +78,7 @@ def get_prefs(db: Session = Depends(get_db), user: User = Depends(get_current_us
     """Which pop-ups this business gets, plus whether this account has a device subscribed."""
     owner = db.get(User, ws_id(user))
     devices = db.query(PushSubscription).filter(PushSubscription.user_id == user.id).count()
-    return {**notify.prefs(owner), "types": notify.TYPES, "lead_choices": list(notify.LEAD_CHOICES), "brief_times": list(notify.BRIEF_TIMES),
+    return {**notify.prefs(owner), "types": notify.TYPES, "lead_choices": list(notify.LEAD_CHOICES),
             "enabled": push.push_enabled(), "devices": devices}
 
 

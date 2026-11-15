@@ -50,18 +50,6 @@ DATE_HOLD_MAX_PER_REQUEST = int(os.getenv("DATE_HOLD_MAX_PER_REQUEST", "6"))  # 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY") or os.getenv("EMERGENT_LLM_KEY") or ""
 AI_MODEL = os.getenv("AI_MODEL", "claude-opus-4-8")
 
-# The assistant (routers/assistant.py): one box that turns what the owner says into to-dos, draft invoices and calendar
-# entries. It uses the same key as the rest of Mise; ASSISTANT_MODEL overrides the model for it alone.
-ASSISTANT_MODEL = os.getenv("ASSISTANT_MODEL", "") or AI_MODEL
-ASSISTANT_RATE_MAX = int(os.getenv("ASSISTANT_RATE_MAX", "60"))   # requests an hour, per business
-# Voice dictation: a recording is turned into text by a speech service (Claude's API does not take audio).
-# Inert until one key is set. ElevenLabs (Scribe) is used when its key is present, otherwise OpenAI.
-ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY", "")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-TRANSCRIBE_MODEL = os.getenv("TRANSCRIBE_MODEL", "")              # blank = the service's standard model
-TRANSCRIBE_LANGUAGE = os.getenv("TRANSCRIBE_LANGUAGE", "en")      # blank = let the service detect it
-TRANSCRIBE_MAX_MB = int(os.getenv("TRANSCRIBE_MAX_MB", "12"))
-
 # Stripe — when unset the app runs in "demo billing" mode (payments simulated).
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
