@@ -355,7 +355,12 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
     data = event["data"]["object"]
     settings = get_settings(db)
 
-    if etype == "checkout.session.completed":
+    if etype == "checkout.session.completed" and (data.get("metadata") or {}).get("public_id"):
+        # A pre-order from the platform owner's own order pages, paid into this same Stripe account
+        # (see routers/preorders.py). It is settled there, after asking Stripe that it really is paid.
+        from . import preorders
+        preorders.settle_session(db, data.get("id") or "")
+    elif etype == "checkout.session.completed":
         user = db.get(User, int(data.get("metadata", {}).get("user_id") or 0))
         if user:
             user.stripe_customer_id = data.get("customer") or user.stripe_customer_id

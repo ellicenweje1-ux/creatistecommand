@@ -227,7 +227,7 @@ function Builder({ menu, onAdd, boxCount }) {
 
 /* Lines of big type that each fill the width, the way the menu slides are set, then shrink together if they would
    run taller than the space they have. Re-fitted when the card resizes and once the font has loaded. */
-function FitLines({ lines }) {
+function FitLines({ lines, className = 'justify-end' }) {
   const box = useRef(null)
   const inner = useRef(null)
   useLayoutEffect(() => {
@@ -238,9 +238,9 @@ function FitLines({ lines }) {
       const spans = [...wrap.querySelectorAll('[data-fit]')]
       const w = el.clientWidth
       if (!w || !spans.length) return
-      spans.forEach((sp) => { sp.style.fontSize = '100px'; sp.style.fontSize = `${Math.min(140, (w / Math.max(1, sp.scrollWidth)) * 100 * 0.985)}px` })
-      // Room for the last line's descenders (the p in "pot roast", the g in "sponge"), then shrink everything to fit the height.
-      const pad = parseFloat(spans[spans.length - 1].style.fontSize) * 0.22
+      spans.forEach((sp) => { sp.style.fontSize = '100px'; sp.style.fontSize = `${Math.min(400, (w / Math.max(1, sp.scrollWidth)) * 100 * 0.985)}px` })
+      // Room for the last line's descenders, then shrink everything to fit the height.
+      const pad = parseFloat(spans[spans.length - 1].style.fontSize) * 0.12
       const used = spans.reduce((h, sp) => h + sp.offsetHeight, 0) + pad
       const k = el.clientHeight && used > el.clientHeight ? (el.clientHeight - 1) / used : 1
       if (k < 1) spans.forEach((sp) => { sp.style.fontSize = `${parseFloat(sp.style.fontSize) * k}px` })
@@ -253,20 +253,74 @@ function FitLines({ lines }) {
     return () => ro?.disconnect()
   }, [lines])
   return (
-    <div ref={box} className="flex min-h-0 flex-1 flex-col justify-end overflow-hidden">
+    <div ref={box} className={`flex min-h-0 flex-1 flex-col overflow-hidden ${className}`}>
       <div ref={inner}>{lines.map((l, n) => <span key={n} data-fit className="block w-max whitespace-nowrap font-anton lowercase leading-[0.9]">{l}</span>)}</div>
     </div>
   )
 }
 
-/* A dish card in the style of the menu slides. The last card (the dessert) runs the full width as a banner. */
-function DishTile({ d, tag, wide = false }) {
+const FLYERS = '/flyers/soulfood'
+const full = (name) => asset(`${FLYERS}/${name}.webp`)
+const srcSet = (name) => `${asset(`${FLYERS}/${name}-600.webp`)} 600w, ${full(name)} 1080w`
+
+/* A dish with no slide yet (the tofu), set in the same style as her slides: the small title top left, the dish in big
+   type, a line of detail and the arrow along the bottom. Sizes follow the card's width, so it matches at any size. */
+function SlideCard({ c, tag }) {
   return (
-    <div className={`relative flex flex-col overflow-hidden p-4 sm:p-5 ${wide ? 'col-span-2 h-[230px] sm:col-span-3 sm:h-[250px]' : 'aspect-[4/5]'}`}
-      style={{ background: d.bg, color: d.fg, outline: '1px solid rgba(248,236,215,.14)', outlineOffset: '-1px' }} data-dish>
-      <p className="font-oswald text-[11px] lowercase opacity-90">{tag}</p>
-      <div className={`mt-2 flex min-h-0 flex-1 flex-col ${wide ? 'sm:max-w-[62%]' : ''}`}><FitLines lines={d.lines} /></div>
-      <p className={`mt-2 font-body text-[11px] leading-snug opacity-80 sm:text-[11.5px] ${wide ? 'sm:absolute sm:bottom-5 sm:right-5 sm:mt-0 sm:max-w-[30%]' : ''}`}>{d.desc}</p>
+    <div className="slide-card relative flex aspect-[4/5] flex-col overflow-hidden" style={{ background: c.bg, color: c.fg }} data-slide-card>
+      <p className="sc-tag font-oswald font-light lowercase">{tag}</p>
+      <FitLines lines={c.lines} className="sc-lines justify-center" />
+      <div className="sc-foot flex items-end justify-between gap-3">
+        <p className="sc-note font-oswald font-light lowercase">{c.note}</p>
+        <svg viewBox="0 0 106 12" className="sc-arrow shrink-0" aria-hidden="true"><path d="M0 6h98" stroke="currentColor" strokeWidth="3" /><path d="M96 1l9 5-9 5z" fill="currentColor" /></svg>
+      </div>
+    </div>
+  )
+}
+
+/* One of the menu slides, exactly as posted. Tapping it opens it full size. */
+function Slide({ s, tag, onOpen }) {
+  return (
+    <figure data-dish={s.img || 'card'}>
+      {s.img ? (
+        <button type="button" onClick={onOpen} className="block w-full" aria-label={`See full size: ${s.name}`}>
+          <img src={full(s.img)} srcSet={srcSet(s.img)} sizes="(min-width: 1024px) 320px, 50vw" width="1080" height="1350"
+            loading="lazy" decoding="async" alt={`${s.name}. ${s.desc}`} className="block h-auto w-full" />
+        </button>
+      ) : <SlideCard c={s.card} tag={tag} />}
+      <figcaption className="mt-2 font-oswald text-[13px] font-light lowercase leading-snug opacity-80">{s.desc}</figcaption>
+    </figure>
+  )
+}
+
+/* Full-size viewer for the slides: swipe or use the arrows, Escape or tap outside to close. */
+function Viewer({ items, index, setIndex }) {
+  const startX = useRef(null)
+  const go = (d) => setIndex((i) => (i + d + items.length) % items.length)
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') setIndex(null)
+      else if (e.key === 'ArrowRight') go(1)
+      else if (e.key === 'ArrowLeft') go(-1)
+    }
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    window.addEventListener('keydown', onKey)
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev }
+  }, [items.length])
+  const it = items[index]
+  const btn = 'absolute top-1/2 hidden -translate-y-1/2 px-4 py-6 font-oswald text-[40px] leading-none text-[#F8ECD6]/80 hover:text-[#F8ECD6] sm:block'
+  return (
+    <div role="dialog" aria-modal="true" aria-label={it.alt} className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/95 p-4 sm:p-10"
+      onClick={() => setIndex(null)} data-viewer={index}
+      onTouchStart={(e) => { startX.current = e.touches[0].clientX }}
+      onTouchEnd={(e) => { const dx = e.changedTouches[0].clientX - (startX.current ?? e.changedTouches[0].clientX); if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1); startX.current = null }}>
+      <img src={full(it.img)} alt={it.alt} className="max-h-[84vh] w-auto max-w-full object-contain shadow-2xl" onClick={(e) => e.stopPropagation()} />
+      <p className="mt-3 font-oswald text-[13px] text-[#F8ECD6]/70">{index + 1} / {items.length} · swipe or use the arrows</p>
+      <button type="button" autoFocus onClick={() => setIndex(null)} className="absolute right-4 font-oswald text-[14px] uppercase tracking-wide text-[#F8ECD6]/85 hover:text-[#F8ECD6]"
+        style={{ top: 'calc(1rem + env(safe-area-inset-top))' }} data-viewer-close>Close</button>
+      <button type="button" aria-label="Previous" className={`${btn} left-2`} onClick={(e) => { e.stopPropagation(); go(-1) }}>‹</button>
+      <button type="button" aria-label="Next" className={`${btn} right-2`} onClick={(e) => { e.stopPropagation(); go(1) }} data-viewer-next>›</button>
     </div>
   )
 }
@@ -281,6 +335,7 @@ export default function PopUp({ cfg }) {
   const [state, setState] = useState({ status: 'idle', error: '' })
   const [showBank, setShowBank] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [view, setView] = useState(null)
   const checkoutRef = useRef(null)
   const preview = params.get('preview') === '1'
   const bank = CLEAN_DREAM.bank
@@ -346,6 +401,12 @@ export default function PopUp({ cfg }) {
   }
 
   const closedCopy = cfg.closed[info.state]
+  const priceAlt = `${cfg.name} prices. ${cfg.prices.map(([n, d, p]) => `${n}, ${d}, ${money(p)}`).join('. ')}. ${cfg.addOns.map(([n, p]) => `${n} ${money(p)}`).join(', ')}. Vegetarian option available. Please tell us about any allergies before you pay.`
+  const viewItems = [
+    { img: cfg.cover.src.split('/').pop().replace('.webp', ''), alt: cfg.cover.alt },
+    { img: cfg.priceCard.img, alt: priceAlt },
+    ...cfg.slides.filter((sl) => sl.img).map((sl) => ({ img: sl.img, alt: `${sl.name}. ${sl.desc}` })),
+  ]
   return (
     <div style={{ background: INK }} data-popup={cfg.slug}>
       {/* Hero, in the colours of the printed menu */}
@@ -368,7 +429,9 @@ export default function PopUp({ cfg }) {
             {params.get('cancelled') ? <p className="mt-6 max-w-xl border px-4 py-3 font-body text-[13px]" style={{ borderColor: 'rgba(248,236,215,.5)' }}>Payment was cancelled, so nothing was ordered. Your basket is below whenever you’re ready.</p> : null}
           </div>
           <div className="lg:col-span-5">
-            <img src={asset(cfg.cover.src)} alt={cfg.cover.alt} className="mx-auto block w-full max-w-[460px] shadow-2xl" />
+            <button type="button" onClick={() => setView(0)} className="mx-auto block w-full max-w-[460px]" aria-label="See the menu full size">
+              <img src={asset(cfg.cover.src)} alt={cfg.cover.alt} width="1080" height="1350" className="block h-auto w-full shadow-2xl" data-cover />
+            </button>
           </div>
         </div>
       </section>
@@ -390,24 +453,18 @@ export default function PopUp({ cfg }) {
       <section id="menu" className="scroll-mt-20 py-14 sm:py-20" style={{ color: CREAM }}>
         <div className="mx-auto w-full max-w-page px-5 sm:px-8 lg:px-12">
           <h2 className="font-anton text-[64px] lowercase leading-none sm:text-[96px]">the menu</h2>
-          <div className="mt-8 grid gap-8 lg:grid-cols-12">
-            <div className="self-start p-6 sm:p-8 lg:col-span-5" style={{ background: MAROON }} data-price-card>
-              <p className="font-oswald text-[13px] lowercase opacity-90">{cfg.tag}</p>
-              <ul className="mt-3">
-                {cfg.prices.map(([n, d, p]) => (
-                  <li key={n} className="flex items-end justify-between gap-4 border-b-2 py-3" style={{ borderColor: CREAM }}>
-                    <span><span className="block font-anton text-[40px] lowercase leading-none">{n}</span><span className="mt-1 block font-oswald text-[15px] lowercase">{d}</span></span>
-                    <span className="font-anton text-[40px] leading-none">{money(p)}</span>
-                  </li>
-                ))}
-              </ul>
-              <ul className="mt-4 grid grid-cols-3 gap-3">
-                {cfg.addOns.map(([n, p]) => <li key={n}><span className="block font-anton text-[20px] lowercase leading-none">{n}</span><span className="mt-1 block font-oswald text-[14px]">{money(p)}</span></li>)}
-              </ul>
-              <ul className="mt-5 space-y-1 font-oswald text-[13px] lowercase opacity-90">{cfg.notes.map((n) => <li key={n}>{n}</li>)}</ul>
+          <div className="mt-8 grid gap-6 lg:grid-cols-12 lg:gap-8">
+            <div className="lg:col-span-5">
+              <div className="lg:sticky lg:top-24" data-price-card>
+                <button type="button" onClick={() => setView(1)} className="block w-full" aria-label="See the prices full size">
+                  <img src={full(cfg.priceCard.img)} srcSet={srcSet(cfg.priceCard.img)} sizes="(min-width: 1024px) 460px, 100vw" width="1080" height="1350"
+                    alt={priceAlt} className="block h-auto w-full" />
+                </button>
+                <ul className="mt-4 space-y-1 font-oswald text-[14px] font-light lowercase opacity-90">{cfg.notes.map((n) => <li key={n}>{n}</li>)}</ul>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:col-span-7">
-              {cfg.dishes.map((d, n) => <DishTile key={d.lines.join(' ')} d={d} tag={cfg.tag} wide={n === cfg.dishes.length - 1 && cfg.dishes.length % 3 === 1} />)}
+            <div className="grid grid-cols-2 content-start gap-x-3 gap-y-5 sm:gap-x-4 lg:col-span-7" data-slides>
+              {cfg.slides.map((sl) => <Slide key={sl.name} s={sl} tag={cfg.tag} onOpen={() => setView(viewItems.findIndex((v) => v.img === sl.img))} />)}
             </div>
           </div>
         </div>
@@ -541,6 +598,7 @@ export default function PopUp({ cfg }) {
           </div>
         </section>
       ) : null}
+      {view !== null ? <Viewer items={viewItems} index={view} setIndex={setView} /> : null}
     </div>
   )
 }

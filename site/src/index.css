@@ -80,3 +80,11 @@ select.field option { background: #141210; color: #FFFBF5; }
 .hero-slide.is-active { opacity: .55; }
 /* The highlights strip drifts slowly; the ticker keyframes are shared with the Now strip */
 .ticker-slow { animation-duration: 90s; }
+
+/* A dish card set like the Soulfood slides (PopUp.jsx SlideCard): every size is a share of the card's width,
+   measured from her 1080px slides, so it matches the real slides beside it at any size. */
+.slide-card { container-type: inline-size; padding: 3.4% 3.6% 3.9%; }
+.slide-card .sc-tag { font-size: 11px; font-size: 3.4cqw; line-height: 1.2; }
+.slide-card .sc-lines { margin: 4cqw 0 3cqw; text-shadow: 0 0.6cqw 1.6cqw rgba(0, 0, 0, 0.35); }
+.slide-card .sc-note { font-size: 9px; font-size: 2.7cqw; line-height: 1.25; }
+.slide-card .sc-arrow { width: 9.8cqw; margin-bottom: 0.5cqw; }

@@ -84,7 +84,7 @@ function KitchenList({ rows }) {
 
 /* Each order page on the chef's website: its link, whether it is taking orders, card or bank transfer, and for a one-off
    event the everyday settings (where and when you collect, when pre-orders close, a box limit, pause). */
-function OrderPage({ page, user, cardReady, stripeKey, onSaved }) {
+function OrderPage({ page, user, cardReady, stripeKey, stripeAccount, onSaved }) {
   const [f, setF] = useState(null)
   const [busy, setBusy] = useState(false)
   const [menuJson, setMenuJson] = useState('')
@@ -128,8 +128,8 @@ function OrderPage({ page, user, cardReady, stripeKey, onSaved }) {
           </button>
         ))}
         <span className="text-xs text-fg/55">
-          {page.payments === 'stripe' ? 'Card payments are live on this page.'
-            : !stripeKey ? 'Card payments switch on once your Stripe key is set on the server (PREORDER_STRIPE_SECRET_KEY). Until then customers pay by bank transfer.'
+          {page.payments === 'stripe' ? `Card payments are live on this page${stripeAccount === 'command' ? ', paid into your Creatiste Command Stripe account' : ''}.`
+            : !stripeKey ? 'Card payments switch on once Stripe is connected on the server. Until then customers pay by bank transfer.'
             : !cardReady ? 'The Stripe key on the server belongs to a different account, so card payments are not offered here.'
             : 'Bank transfer: mark each order paid when the money lands.'}
         </span>
@@ -241,7 +241,7 @@ export default function Preorders() {
             </div>
             {pages.templates?.some((t) => !t.added) ? <Button size="sm" variant="ghost" onClick={addPopup} data-add-popup>Add a pop-up page</Button> : null}
           </div>
-          {pages.pages.map((pg) => <OrderPage key={pg.slug} page={pg} user={user} cardReady={pages.card_ready} stripeKey={pages.stripe_key} onSaved={load} />)}
+          {pages.pages.map((pg) => <OrderPage key={pg.slug} page={pg} user={user} cardReady={pages.card_ready} stripeKey={pages.stripe_key} stripeAccount={pages.stripe_account} onSaved={load} />)}
         </section>
       ) : null}
 
@@ -262,13 +262,13 @@ export default function Preorders() {
           <div className="ml-auto flex gap-6 pb-2 text-sm text-fg/70">
             <span><strong className="text-fg">{paidCount}</strong> paid orders</span>
             <span><strong className="text-fg">{boxCount}</strong> boxes</span>
-            <span>Card payments: <Badge tone={pages?.card_ready ? 'green' : 'amber'}>{pages?.card_ready ? 'Stripe connected' : 'Stripe not connected'}</Badge></span>
+            <span>Card payments: <Badge tone={pages?.card_ready ? 'green' : 'amber'}>{pages?.card_ready ? (pages.stripe_account === 'command' ? 'Stripe connected (Command account)' : 'Stripe connected') : 'Stripe not connected'}</Badge></span>
           </div>
         </div>
       </Card>
 
       {groups.length === 0 ? (
-        <EmptyState icon="cart" title="No orders yet" hint={offer.payments === 'stripe' ? 'Orders from your site will appear here, grouped by day.' : 'Orders from your site appear here grouped by day. Bank-transfer orders arrive as “awaiting bank transfer”: mark each paid once the money lands and it becomes a confirmed booking. Set PREORDER_STRIPE_SECRET_KEY (your business Stripe account) to take card payments as well.'} />
+        <EmptyState icon="cart" title="No orders yet" hint={offer.payments === 'stripe' ? 'Orders from your site will appear here, grouped by day.' : 'Orders from your site appear here grouped by day. Bank-transfer orders arrive as “awaiting bank transfer”: mark each paid once the money lands and it becomes a confirmed booking. Switch a page to Card (Stripe) above to take card payments as well.'} />
       ) : groups.map(([date, rows, title]) => (
         <Card key={`${date}|${title}`} className="p-0" data-order-day={date}>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">

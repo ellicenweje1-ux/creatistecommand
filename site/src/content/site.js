@@ -411,7 +411,7 @@ const SF_PROTEINS = [
   { name: 'Jerk pot roast', desc: 'Spicy slow-braised beef with butter beans.' },
   { name: 'Crispy fried shrimp', desc: 'Fried golden, finished with a hot honey drizzle.' },
 ]
-const SF_VEG = { name: 'Vegetarian option', desc: 'A vegetarian main in place of the meat or seafood.' }
+const SF_VEG = { name: 'Deep fried smoked tofu', desc: 'Vegetarian. Finished with a hot honey drizzle.' }
 const SF_SIDES = ['Sweet potato yams', 'Creamy mac', 'Smoked turkey greens', 'Garlic parm fried corn', 'Honey butter cornbread', 'Croissant milk rolls']
 const SF_DESSERTS = ['Plantain caramel sponge cake, whipped cream', 'Plantain caramel sponge cake, custard']
 const SF_WORDS = { 1: 'one', 2: 'two', 3: 'three', 4: 'four', 6: 'six' }
@@ -437,26 +437,30 @@ export const SOULFOOD = {
   when: 'friday 20 november',
   where: 'london',
   sub: 'A one-night Thanksgiving soul food pop-up. On the night it’s first come, first served, so pre-order now, pay online, and your food is boxed and waiting under your name.',
-  cover: { src: '/flyers/soulfood-menu.webp', alt: 'Soulfood Friday 2.0, the menu. Friday 20 November.' },
+  cover: { src: '/flyers/soulfood/the-menu.webp', alt: 'Soulfood Friday 2.0, the menu. Friday 20 November. First come, first served: don’t be late, or pre-order now.' },
   rsvp: 'https://partiful.com/e/W4FoWq5EC4V1RDj6lua7?c=U5d0J40B',
   how: [
     ['Build your box', 'Choose a combo, pick your proteins and sides, add extras or dessert, and name who it’s for.'],
     ['Pay online', 'Pay securely by card. Your order is confirmed straight away and a receipt is emailed to you.'],
     ['Collect on the night', 'Come to the pop-up on Friday 20 November and collect your box under your name.'],
   ],
-  /* The dish cards, styled like the menu slides. `lines` are the words as they sit on the slide. */
-  dishes: [
-    { lines: ['smothered', 'cajun butter', 'wings'], desc: 'Fried, then baked in a creamy, cajun butter-style sauce with peppers and onions.', bg: '#18100A', fg: '#FFA900' },
-    { lines: ['jerk', 'pot roast'], desc: 'Spicy slow-braised beef with butter beans.', bg: '#F24101', fg: '#18100A' },
-    { lines: ['crispy fried', 'shrimp'], desc: 'Fried golden, finished with a hot honey drizzle.', bg: '#FAEDD5', fg: '#18100A' },
-    { lines: ['sweet potato', 'yams', 'creamy', 'mac'], desc: 'Self-explanatory. Take your pick, or both.', bg: '#FFA900', fg: '#18100A' },
-    { lines: ['smoked turkey', 'greens', 'garlic parm', 'fried corn'], desc: 'Self-explanatory. Take your pick, or both.', bg: '#F24101', fg: '#18100A' },
-    { lines: ['honey butter', 'cornbread', 'croissant', 'milk rolls'], desc: 'Self-explanatory. Take your pick, or both.', bg: '#18100A', fg: '#FAEDD5' },
-    { lines: ['plantain', 'caramel', 'sponge cake'], desc: 'Finished with a sweet mascarpone glaze, caramelised apples, and whipped cream or custard.', bg: '#FAEDD5', fg: '#18100A' },
+  /* Her menu slides exactly as posted, in /flyers/soulfood/ (a 600px copy, name-600.webp, sits beside each). The tofu has
+     no slide yet, so it gets a card set in the same style: send a slide and swap `card` for `img`. */
+  priceCard: { img: 'prices' },
+  slides: [
+    { img: 'wings', name: 'Smothered cajun butter wings', desc: 'Fried, then baked in a creamy, cajun butter-style sauce with peppers and onions.' },
+    { img: 'jerk-pot-roast', name: 'Jerk pot roast', desc: 'Spicy slow-braised beef with butter beans.' },
+    { img: 'crispy-fried-shrimp', name: 'Crispy fried shrimp', desc: 'Fried golden, finished with a hot honey drizzle.' },
+    { card: { lines: ['deep fried', 'smoked', 'tofu'], note: 'finished with a hot honey drizzle', bg: '#18110B', fg: '#F8ECD6' }, name: 'Deep fried smoked tofu', desc: 'The vegetarian option. Finished with a hot honey drizzle.' },
+    { img: 'yams-mac', name: 'Sweet potato yams, creamy mac', desc: 'Self-explanatory. Take your pick, or both.' },
+    { img: 'greens-corn', name: 'Smoked turkey greens, garlic parm fried corn', desc: 'Self-explanatory. Take your pick, or both.' },
+    { img: 'cornbread-milk-rolls', name: 'Honey butter cornbread, croissant milk rolls', desc: 'Self-explanatory. Take your pick, or both.' },
+    { img: 'plantain-cake', name: 'Plantain caramel sponge cake', desc: 'Finished with a sweet mascarpone glaze, caramelised apples, and whipped cream or custard.' },
   ],
+  /* What the price card says, for screen readers and search. */
   prices: [['combo 1', '1 protein + 3 sides', 17], ['combo 2', '2 proteins + 3 sides', 21], ['combo 3', '2 proteins + 4 sides', 23], ['all in', '3 proteins + all sides', 30]],
   addOns: [['add dessert', 6.5], ['extra protein', 5.5], ['extra side', 3.5]],
-  notes: ['Vegetarian option available.', 'Please tell us about any allergies before you pay.'],
+  notes: ['Vegetarian? Pick the deep fried smoked tofu in place of any protein.', 'Tap a card to see it full size.'],
   collect: 'Collect under your name at the pop-up on Friday 20 November. The time and location are announced on our Instagram, and we will message you before the night.',
   terms: 'Pre-orders are paid in advance and collected on the night. Can’t make it? Tell us before pre-orders close and we will refund you; after that, payment is non-refundable as your food is made for you.',
   closed: {
@@ -467,7 +471,7 @@ export const SOULFOOD = {
   },
   menu: {
     slug: 'soulfood-friday-2', title: 'Soulfood Friday 2.0', kind: 'popup', path: 'soulfood', currency: 'GBP',
-    date: '2026-11-20', closes: '2026-11-19T20:00', pay: 'card', capacity: 0,
+    date: '2026-11-20', closes: '2026-11-18T09:00', pay: 'card', capacity: 0,
     items: [
       sfCombo('combo-1', 'Combo 1', 17, 1, 3),
       sfCombo('combo-2', 'Combo 2', 21, 2, 3),

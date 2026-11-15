@@ -3,9 +3,12 @@ card before the order is confirmed. The chef's "offer" (menu with choice groups,
 delivery policy, order cut-off) lives on their Command account; the public site reads it, and every
 order is PRICED HERE from that offer, never from the browser.
 
-Payment goes to the chef's own Stripe account (PREORDER_STRIPE_SECRET_KEY) — deliberately separate
-from the platform's subscription billing. Until the key is set, the site shows the menu and offers
-WhatsApp/email ordering instead (house pattern: inert until configured).
+Card payments go into ONE business's Stripe account and are only offered on that business's own pages (card_ready):
+its own account when PREORDER_STRIPE_SECRET_KEY is set, otherwise the platform's Stripe account (STRIPE_SECRET_KEY),
+which the platform owner can use for her own catering business. On the platform account, paid sessions also reach the
+platform's billing webhook, which hands them to settle_session here, so no second webhook is needed. Every confirmation
+asks Stripe whether the session is paid rather than trusting the caller. With no key at all, the site takes bank
+transfers or hands the order to WhatsApp/email (house pattern: inert until configured).
 
 A chef can run more than one order page: the main one (users.preorder_offer, e.g. a weekday lunch service) and any number
 of one-off events (users.preorder_offers, e.g. a pop-up on a single night with a closing time and an optional box limit).
@@ -98,7 +101,7 @@ _SF_PROTEINS = [
     {"name": "Jerk pot roast", "desc": "Spicy slow-braised beef with butter beans."},
     {"name": "Crispy fried shrimp", "desc": "Fried golden, finished with a hot honey drizzle."},
 ]
-_SF_VEG = {"name": "Vegetarian option", "desc": "A vegetarian main in place of the meat or seafood."}
+_SF_VEG = {"name": "Deep fried smoked tofu", "desc": "Vegetarian. Finished with a hot honey drizzle."}
 _SF_SIDES = ["Sweet potato yams", "Creamy mac", "Smoked turkey greens", "Garlic parm fried corn", "Honey butter cornbread",
              "Croissant milk rolls"]
 _SF_DESSERTS = ["Plantain caramel sponge cake, whipped cream", "Plantain caramel sponge cake, custard"]
@@ -138,7 +141,8 @@ SOULFOOD_OFFER = {
     "intro": "A one-night Thanksgiving soul food pop-up. Pre-order and pay now, then collect under your name on the night.",
     "currency": "GBP",
     "date": "2026-11-20",
-    "closes": "2026-11-19T20:00",             # local time; after this the page shows that pre-orders have closed
+    "closes": "2026-11-18T09:00",             # local time; after this the page shows that pre-orders have closed
+    "rev": 2,                                 # bump to push a menu or closing-time change onto the saved copy once (apply_owner_offers)
     "pay": "card",                            # card through Stripe when it is connected; bank transfer until then
     "capacity": 0,                            # most boxes to take (0 = no limit)
     "paused": False,
@@ -163,7 +167,7 @@ SOULFOOD_OFFER = {
     "delivery": {"enabled": False},
     "collect_note": "Collect under your name at the pop-up on Friday 20 November. The time and location are announced on our "
                     "Instagram and we will message you before the night.",
-    "allergens_note": "Please tell us about any allergies before you pay. A vegetarian option is available.",
+    "allergens_note": "Please tell us about any allergies before you pay. Vegetarian? Choose the deep fried smoked tofu.",
 }
 
 
@@ -226,9 +230,18 @@ def offer_state(offer: dict, now: datetime | None = None) -> str:
     return "open"
 
 
+def stripe_key() -> str:
+    """The Stripe account pre-orders are paid into: the business's own account when one is set, else the platform's."""
+    return config.PREORDER_STRIPE_SECRET_KEY or config.STRIPE_SECRET_KEY
+
+
+def stripe_account() -> str:
+    return "own" if config.PREORDER_STRIPE_SECRET_KEY else ("command" if config.STRIPE_SECRET_KEY else "")
+
+
 def card_ready(owner: User | None) -> bool:
     """Card payments go into one business's Stripe account, so they are only offered on that business's own pages."""
-    if not config.PREORDER_STRIPE_SECRET_KEY or not owner:
+    if not stripe_key() or not owner:
         return False
     acct = config.PREORDER_STRIPE_ACCOUNT
     return (owner.email or "").lower() == acct if acct else owner.role == "admin"
@@ -274,12 +287,12 @@ def _owner(token: str, db: Session) -> User:
 
 
 def payments_enabled() -> bool:
-    return bool(config.PREORDER_STRIPE_SECRET_KEY)
+    return bool(stripe_key())
 
 
 def _stripe():
     import stripe
-    stripe.api_key = config.PREORDER_STRIPE_SECRET_KEY
+    stripe.api_key = stripe_key()
     return stripe
 
 
@@ -534,20 +547,32 @@ def order_status(public_id: str, db: Session = Depends(get_db)):
     return _summary(order)
 
 
+def settle_session(db: Session, session_id: str, public_id: str = "") -> PreOrder | None:
+    """Mark an order paid once Stripe says its checkout session is paid. It asks Stripe rather than trusting whoever
+    called (the customer's return, either webhook), so a forged notification can't confirm an unpaid order."""
+    if not session_id or not payments_enabled():
+        return None
+    try:
+        session = _stripe().checkout.Session.retrieve(session_id)
+    except Exception:
+        return None
+    pid = (session.get("metadata") or {}).get("public_id") or ""
+    if not pid or (public_id and pid != public_id):
+        return None
+    order = db.query(PreOrder).filter(PreOrder.public_id == pid).first()
+    if order and order.status == "pending_payment" and session.get("payment_status") == "paid":
+        mark_paid(db, order, session.get("payment_intent") or "")
+    return order
+
+
 @public_router.post("/confirm")
 def confirm(payload: dict = Body(...), db: Session = Depends(get_db)):
     """Called when the customer lands back from Stripe. Works even with no webhook configured."""
     order = db.query(PreOrder).filter(PreOrder.public_id == (payload.get("public_id") or "")).first()
     if not order:
         raise HTTPException(404, "Order not found")
-    if order.status == "pending_payment" and payments_enabled():
-        session_id = payload.get("session_id") or order.stripe_session_id
-        try:
-            session = _stripe().checkout.Session.retrieve(session_id)
-        except Exception:
-            session = None
-        if session and session.get("metadata", {}).get("public_id") == order.public_id and session.get("payment_status") == "paid":
-            mark_paid(db, order, session.get("payment_intent") or "")
+    if order.status == "pending_payment":
+        settle_session(db, payload.get("session_id") or order.stripe_session_id, order.public_id)
     return _summary(order)
 
 
@@ -566,10 +591,7 @@ async def webhook(request: Request, db: Session = Depends(get_db)):
         import json
         event = json.loads(body)
     if event["type"] == "checkout.session.completed":
-        data = event["data"]["object"]
-        order = db.query(PreOrder).filter(PreOrder.public_id == (data.get("metadata") or {}).get("public_id", "")).first()
-        if order and data.get("payment_status") == "paid":
-            mark_paid(db, order, data.get("payment_intent") or "")
+        settle_session(db, event["data"]["object"].get("id") or "")
     return {"ok": True}
 
 
@@ -798,7 +820,8 @@ def list_pages(db: Session = Depends(get_db), user: User = Depends(require_plan(
     owner = db.get(User, ws_id(user))
     main = offer_for(owner)
     return {"pages": [_page(db, owner, main, True)] + [_page(db, owner, o, False) for o in extra_offers(owner) if o.get("slug") != main.get("slug")],
-            "card_ready": card_ready(owner), "stripe_key": bool(config.PREORDER_STRIPE_SECRET_KEY), "token": owner.enquiry_token,
+            "card_ready": card_ready(owner), "stripe_key": bool(stripe_key()), "stripe_account": stripe_account(),
+            "token": owner.enquiry_token,
             "templates": [{"id": "soulfood", "title": SOULFOOD_OFFER["title"], "added": any(o.get("slug") == SOULFOOD_OFFER["slug"] for o in extra_offers(owner))}]}
 
 
@@ -892,14 +915,20 @@ def add_page(payload: dict = Body(...), db: Session = Depends(get_db), user: Use
 def apply_owner_offers(db: Session) -> bool:
     """The business owner's own order pages (The Creatiste Catering, on the platform owner's account only):
     the Soulfood Friday 2.0 pop-up until its night has passed, and Clean Dream kept on bank transfer as she asked
-    (once; she can switch it to card on the Pre-orders page)."""
+    (once; she can switch it to card on the Pre-orders page). When SOULFOOD_OFFER["rev"] goes up, its menu and closing
+    time are pushed onto her saved copy once; her place, time, payment choice, box limit and pause are kept."""
     owner = db.query(User).filter(User.email == config.ADMIN_EMAIL.lower(), User.role == "admin").first()
     if not owner:
         return False
     changed = False
     extras = [dict(o) for o in (owner.preorder_offers or []) if isinstance(o, dict)]
-    if not any(o.get("slug") == SOULFOOD_OFFER["slug"] for o in extras) and SOULFOOD_OFFER["date"] >= datetime.now(_tz()).date().isoformat():
+    idx = next((i for i, o in enumerate(extras) if o.get("slug") == SOULFOOD_OFFER["slug"]), None)
+    if idx is None and SOULFOOD_OFFER["date"] >= datetime.now(_tz()).date().isoformat():
         extras.append(copy.deepcopy(SOULFOOD_OFFER))
+        owner.preorder_offers = extras
+        changed = True
+    elif idx is not None and int(extras[idx].get("rev") or 1) < SOULFOOD_OFFER["rev"]:
+        extras[idx] = {**extras[idx], **{k: copy.deepcopy(SOULFOOD_OFFER[k]) for k in ("items", "closes", "allergens_note", "rev")}}
         owner.preorder_offers = extras
         changed = True
     main = dict(owner.preorder_offer or {})

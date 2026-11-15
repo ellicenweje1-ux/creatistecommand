@@ -958,7 +958,7 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
     Orders are grouped by day AND page. "Add a pop-up page" when the template isn't on the account.
   - **Site:** `site/src/pages/PopUp.jsx` (generic pop-up page, `cfg` = `SOULFOOD` in content): maroon hero in her flyer colours (#5A1D20 /
     #F8ECD7 / #18100A / #FFA900 / #F24101), **Anton + Oswald self-hosted** (`site/src/fonts/`, from google/fonts via raw.githubusercontent.com
-    — github.com/raw 403s through the proxy; Tailwind `font-anton`/`font-oswald`), her "the menu" cover (`site/public/flyers/soulfood-menu.webp`),
+    — github.com/raw 403s through the proxy; Tailwind `font-anton`/`font-oswald`), her "the menu" cover (now her exact slide, `site/public/flyers/soulfood/the-menu.webp`),
     the price card, dish tiles set like her slides (`FitLines`: each line fitted to the card width, shrunk together to the height, room kept
     for descenders), stepped builder (box → proteins → sides → extras (steppers) → name it), basket, checkout (collect at the pop-up; card via
     Stripe Checkout when live, else bank transfer → `/bank`, else WhatsApp/email), `?preview=1`, closed/sold-out/paused/finished states,
@@ -979,6 +979,32 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
     (in her organisation, NOT the Command account) → live secret key → Render env **`PREORDER_STRIPE_SECRET_KEY`**; webhook
     `https://creatistecommand.onrender.com/api/public/preorder/webhook` (event `checkout.session.completed`) → **`PREORDER_STRIPE_WEBHOOK_SECRET`**.
     Until then the page takes bank transfers (orders land as "awaiting bank transfer"). Then set the place/time in Pre-orders when announced.
+- **Soulfood follow-up (twenty-second batch, 2026-11-15): tofu, Wednesday 9am close, her EXACT slides, card payments through the COMMAND
+  Stripe account.** Ellice: "Deep fried smoked tofu with hot honey drizzle / Orders close Wed 18th 9am / Can't I use the same stripe account
+  as command / Use exacts attached".
+  - Vegetarian protein = **Deep fried smoked tofu** ("Vegetarian. Finished with a hot honey drizzle."), as a protein and an extra, site mirror
+    + `SOULFOOD_OFFER`. `closes` = **2026-11-18T09:00**. `SOULFOOD_OFFER["rev"] = 2`: `apply_owner_offers` pushes `items`, `closes`,
+    `allergens_note`, `rev` onto her SAVED copy once when its rev is lower, keeping slots (place/time), pay, capacity, paused, collect_note.
+    Bump `rev` again for any future menu/closing change to her live page.
+  - **Stripe: `preorders.stripe_key()` = `PREORDER_STRIPE_SECRET_KEY or STRIPE_SECRET_KEY`** (`stripe_account()` own|command|""), so her
+    pages take cards into the Command Stripe account with NO setup; `card_ready` gating unchanged (admin / `PREORDER_STRIPE_ACCOUNT`), so no
+    other chef's page can pay into it. Clean Dream stays on bank transfer (her choice). **`settle_session(db, session_id, public_id="")`**
+    retrieves the session from Stripe and marks paid only if Stripe says paid + metadata matches; used by `/confirm`, the pre-order webhook
+    AND the **Command billing webhook** (`billing.webhook`: `checkout.session.completed` with `metadata.public_id` → settle, skips
+    subscription logic), so the existing Command webhook confirms pre-orders and forged notifications can't (this closed a hole: the
+    pre-order webhook used to trust an unsigned payload when no secret was set). Pre-order money does not create platform `Payment` rows.
+    Trade-offs told to her: catering money shares the Command Stripe balance/payouts and its name on checkout + bank statements; a
+    separate catering account later = set `PREORDER_STRIPE_SECRET_KEY` (+ its webhook) and it takes over automatically.
+  - **Her exact images** in `site/public/flyers/soulfood/` (webp 1080 + `-600` copies; the-menu, prices, wings, jerk-pot-roast,
+    crispy-fried-shrimp, yams-mac, greens-corn, cornbread-milk-rolls, plantain-cake). `SOULFOOD.cover/priceCard/slides` in content;
+    PopUp.jsx: hero = her "the menu" slide, price card = her image (sticky on desktop, alt carries every price), 2-col grid of her 7 slides
+    with captions + a **tofu card** in her style (`SlideCard`, sizes in `cqw` via `.slide-card` CSS; swap `card` for `img` when she sends a
+    tofu slide), tap → `Viewer` (arrows/swipe/Escape). Old `soulfood-menu.webp` removed. Pre-orders page says "paid into your Creatiste
+    Command Stripe account"; Support FAQ no longer mentions the env var.
+  - Verified: `test_popup.py` 53/53, new `test_stripe_command.py` 28/28 (Command key, gating, forged/unknown sessions refused, Command
+    webhook settles + idempotent, subscriptions still activate, rev-2 migration keeps her settings, own key takes over),
+    `test_preorders.py` 37/37 (webhook tests now mark the fake session paid first); Playwright `pop_e2e/verify_pop.py` 78/78 with Command
+    in Command-account mode (slides load, phone uses -600 copies, tofu card fits, viewer, Wednesday 9am, card flow, zero errors).
 - **ASSISTANT + simpler app: PAUSED (2026-11-14, her call: "pause the personal assistant job").** Backend-only work-in-progress is
   committed as **`b7c0c8e`** and immediately **reverted by `5eb4cfc`**, so nothing of it is deployed. It holds: `routers/assistant.py`
   (Mise as an assistant: tools for to-dos business/personal, notes, draft invoices with package prices, mark paid, pencil in, block time,
