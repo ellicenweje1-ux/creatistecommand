@@ -93,6 +93,18 @@ function Flag({ f, services, actions }) {
               <Button size="sm" variant="ghost" onClick={() => actions.openInvoice(f.invoice_id)}>Open invoice</Button>
             </>
           ) : null}
+          {f.kind === 'double_invoice' ? (
+            <>
+              <Button size="sm" onClick={() => actions.openInvoice(f.invoice_id)} data-fix-open>Open this one</Button>
+              <Button size="sm" variant="secondary" onClick={() => actions.openInvoice(f.other_invoice_id)}>Open the other</Button>
+            </>
+          ) : null}
+          {f.kind === 'double' ? (
+            <>
+              <Button size="sm" variant="secondary" onClick={() => actions.openJob(f.booking_id)} data-fix-open>Open it</Button>
+              {!f.invoiced ? <Button size="sm" onClick={() => actions.removeEntry(f.booking_id)} data-fix-remove>Remove the extra entry</Button> : null}
+            </>
+          ) : null}
           {['draft', 'deposit_unused', 'no_client'].includes(f.kind) ? <Button size="sm" variant={fix ? 'primary' : 'secondary'} onClick={() => actions.openInvoice(f.invoice_id)} data-fix-open>Open the invoice</Button> : null}
           {['request', 'deposit_owed', 'lapsed'].includes(f.kind) ? <Button size="sm" variant={fix ? 'primary' : 'secondary'} onClick={toStrip} data-fix-answer>{f.kind === 'request' ? 'Answer it' : f.kind === 'lapsed' ? 'Decide' : 'Deposit received?'}</Button> : null}
         </div>
@@ -218,6 +230,11 @@ export default function Standing() {
       } catch (e) { toastErr(e) }
     },
     receipt: (id) => navigate(`/app/finance?tab=invoices&receipt=${id}`),
+    openJob: (id) => navigate(`/app/calendar?job=${id}`),
+    removeEntry: async (id) => {
+      if (!window.confirm('Remove this extra entry from your diary? The other one stays.')) return
+      try { await api.patch(`/bookings/${id}`, { status: 'cancelled' }); toast('Removed. The other entry stays in your diary.', 'sage'); load() } catch (e) { toastErr(e) }
+    },
     settleInvoice: async (id, undo = false) => { try { await api.post('/standing/settle', { invoice_ids: [id], undo }); load() } catch (e) { toastErr(e) } },
     settleBooking: async (id, undo = false) => { try { await api.post('/standing/settle', { booking_ids: [id], undo }); if (!undo) toast('Taken off the list'); load() } catch (e) { toastErr(e) } },
   }
@@ -233,6 +250,29 @@ export default function Standing() {
       <PageHeader title="Paid & booked" sub="Every client: the dates they have, what they’ve paid, and anything that doesn’t match yet." />
 
       <HoldsStrip holds={holds} currency={cur} onChanged={load} onPaid={(h) => jobInvoice(h.id, 'Deposit in. Here is their invoice: take the deposit off with one tap.')} />
+
+      {data.tidied?.length ? (
+        <div className="mb-4 rounded-xl border border-sage/40 bg-sage/[0.06] px-4 py-3" data-tidied>
+          <p className="flex items-center gap-2 text-sm font-semibold"><Icon name="check" size={15} className="text-sage" />Tidied up for you</p>
+          <ul className="mt-1.5 space-y-1 pl-[23px] text-sm text-fg/75">
+            {data.tidied.slice(0, 6).map((t, i) => <li key={i}>{t.text}</li>)}
+          </ul>
+          {data.tidied.length > 6 ? <p className="mt-1 pl-[23px] text-xs text-fg/50">And {data.tidied.length - 6} more this week.</p> : null}
+          <p className="mt-1.5 pl-[23px] text-xs text-fg/50">Doubles are joined automatically. Nothing was sent to anyone, and no invoice was changed.</p>
+        </div>
+      ) : null}
+
+      {data.clashes?.length ? (
+        <div className="mb-4 rounded-xl border border-amber-500/50 bg-amber-500/[0.06] px-4 py-3" data-clashes>
+          <p className="flex items-center gap-2 text-sm font-semibold"><Icon name="alert" size={15} className="text-amber-600 dark:text-amber-400" />{data.clashes.length === 1 ? 'A day' : 'Days'} with more booked than fits</p>
+          <ul className="mt-1.5 space-y-1 pl-[23px] text-sm text-fg/75">
+            {data.clashes.map((c) => (
+              <li key={c.date}><button type="button" className="font-medium text-fg hover:text-copper" onClick={() => navigate('/app/calendar')}>{day(c.date)}:</button> {c.who.join(', ')}</li>
+            ))}
+          </ul>
+          <p className="mt-1.5 pl-[23px] text-xs text-fg/50">These are different clients on the same day, so only you can decide. Move one from the Calendar if it is too much.</p>
+        </div>
+      ) : null}
 
       <div className="mb-4 grid grid-cols-3 gap-2" data-standing-counts>
         <div className={cls('rounded-xl border px-3 py-2.5', c.fix ? 'border-amber-500/50 bg-amber-500/[0.06]' : 'border-line bg-card')}>

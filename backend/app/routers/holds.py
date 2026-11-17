@@ -450,6 +450,9 @@ def _client_of(db: Session, bk: Booking) -> Client | None:
 @router.get("")
 def list_holds(db: Session = Depends(get_db), user: User = Depends(require_active)):
     expire_holds(db, ws_id(user))
+    from .. import tidy
+
+    tidy.run(db, db.get(User, ws_id(user)))      # a request already booked by hand is not listed as waiting
     rows = (db.query(Booking).filter(Booking.user_id == ws_id(user), Booking.date_hold == True,  # noqa: E712
                                      Booking.status.in_(["enquiry", "confirmed", "cancelled"]),
                                      Booking.deposit_paid == False).order_by(Booking.date.asc()).all())  # noqa: E712

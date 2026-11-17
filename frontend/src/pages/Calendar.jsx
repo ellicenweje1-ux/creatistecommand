@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { addDaysISO, cls, fmtDate, fmtMoney, todayISO } from '../format'
 import { Badge, Button, Card, Field, Input, Modal, PageHeader, Select, Spinner, Tabs, Textarea, Toggle, toast, toastErr } from '../ui'
 import ExampleCard from '../examples'
+import { useAssistantChanged } from '../assistant'
 import { parseTime, showTime, timeHint, timeRange } from '../timeinput'
 import { HoldsStrip } from './Bookings'
 import { InvoiceEditorModal } from './Finance'
@@ -21,6 +22,13 @@ const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'Au
 const dow = (iso) => new Date(`${iso}T00:00:00`).getDay()
 const short = (iso) => `${WD[dow(iso)]} ${Number(iso.slice(8))}`
 const mondayOf = (iso) => addDaysISO(iso, -((dow(iso) + 6) % 7))
+const shiftMonth = (ym, n) => { const d = new Date(Number(ym.slice(0, 4)), Number(ym.slice(5)) - 1 + n, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` }
+// The whole weeks (Mon to Sun) that cover a month: what the month grid shows.
+const monthRange = (ym) => {
+  const first = `${ym}-01`
+  const last = addDaysISO(`${shiftMonth(ym, 1)}-01`, -1)
+  return [mondayOf(first), addDaysISO(mondayOf(last), 6)]
+}
 const windowText = ([a, b]) => (a === b ? `On ${short(a)}` : `Any day ${short(a)} to ${short(b)}`)
 const daysBetween = (a, b) => { const out = []; for (let d = a; d <= b && out.length < 40; d = addDaysISO(d, 1)) out.push(d); return out }
 const runWord = (st) => (st.kind === 'shop' ? 'shop run' : st.kind === 'prep' ? 'prep session' : st.name.toLowerCase())
@@ -63,6 +71,12 @@ function CalendarTab() {
   const { user } = useAuth()
   const [params, setParams] = useSearchParams()
   const [start, setStart] = useState(() => mondayOf(todayISO()))
+  // Month is the default: the whole picture in one block. Week is one tap away, and the choice is remembered.
+  const [view, setViewState] = useState(() => { try { return localStorage.getItem('cc_cal_view') === 'week' ? 'week' : 'month' } catch { return 'month' } })
+  const setView = (v) => { setViewState(v); try { localStorage.setItem('cc_cal_view', v) } catch { /* private window */ } }
+  const [month, setMonth] = useState(() => todayISO().slice(0, 7))      // YYYY-MM
+  const [sel, setSel] = useState(() => todayISO())                       // the day opened under the month
+  const range = view === 'week' ? [start, addDaysISO(start, 6)] : monthRange(month)
   const [data, setData] = useState(null)
   const [holds, setHolds] = useState([])
   const [job, setJob] = useState(null)          // { id, focus?: {si, ii} }
@@ -70,10 +84,11 @@ function CalendarTab() {
   const [block, setBlock] = useState(null)
   const canInvoice = !user?.is_staff && ((user?.plan_level ?? 1) >= 2 || user?.role === 'admin')
 
-  const load = () => api.get(`/jobs/calendar?from_date=${start}&to_date=${addDaysISO(start, 6)}`).then(setData).catch(toastErr)
+  const load = () => api.get(`/jobs/calendar?from_date=${range[0]}&to_date=${range[1]}`).then(setData).catch(toastErr)
   const loadHolds = () => api.get('/holds').then(setHolds).catch(() => setHolds([]))
   const refresh = () => { load(); loadHolds() }
-  useEffect(() => { load() }, [start]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load() }, [range[0], range[1]]) // eslint-disable-line react-hooks/exhaustive-deps
+  useAssistantChanged(() => { load(); loadHolds() })
   useEffect(() => { loadHolds() }, [])
   // Opened from a notification: /app/calendar?job=12
   useEffect(() => { const j = Number(params.get('job')); if (j) setJob({ id: j }) }, [params])
@@ -115,12 +130,13 @@ function CalendarTab() {
 
   const days = data?.days || []
   const title = useMemo(() => {
+    if (view === 'month') return `${MON[Number(month.slice(5)) - 1]} ${month.slice(0, 4)}`
     if (!days.length) return ''
     const a = days[0].date, b = days[days.length - 1].date
     return a.slice(5, 7) === b.slice(5, 7)
       ? `${Number(a.slice(8))} to ${Number(b.slice(8))} ${MON[Number(a.slice(5, 7)) - 1]}`
       : `${Number(a.slice(8))} ${MON[Number(a.slice(5, 7)) - 1].slice(0, 3)} to ${Number(b.slice(8))} ${MON[Number(b.slice(5, 7)) - 1].slice(0, 3)}`
-  }, [days])
+  }, [days, view, month])
   if (!data) return <Spinner />
   const today = data.today
 
@@ -132,10 +148,16 @@ function CalendarTab() {
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-xl font-semibold" data-week-title>{title}</h2>
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="secondary" onClick={() => setStart(addDaysISO(start, -7))} aria-label="Previous week">‹ Previous</Button>
-            <Button size="sm" variant="secondary" onClick={() => setStart(mondayOf(todayISO()))}>This week</Button>
-            <Button size="sm" variant="secondary" onClick={() => setStart(addDaysISO(start, 7))} aria-label="Next week">Next ›</Button>
-            <Button size="sm" variant="secondary" icon="clock" onClick={() => setBlock(blankBlock(today))} data-block-time>Block time</Button>
+            <div className="inline-flex rounded-lg border border-line bg-card p-0.5" role="tablist" data-cal-view>
+              {[['month', 'Month'], ['week', 'Week']].map(([id, label]) => (
+                <button key={id} type="button" role="tab" aria-selected={view === id} onClick={() => setView(id)} data-view={id}
+                  className={cls('rounded-md px-3 py-1 text-xs font-medium', view === id ? 'bg-copper text-ink' : 'text-fg/60 hover:text-fg')}>{label}</button>
+              ))}
+            </div>
+            <Button size="sm" variant="secondary" onClick={() => (view === 'week' ? setStart(addDaysISO(start, -7)) : setMonth(shiftMonth(month, -1)))} aria-label={view === 'week' ? 'Previous week' : 'Previous month'} data-cal-prev>‹ Previous</Button>
+            <Button size="sm" variant="secondary" onClick={() => { setStart(mondayOf(todayISO())); setMonth(todayISO().slice(0, 7)); setSel(todayISO()) }} data-cal-today>{view === 'week' ? 'This week' : 'This month'}</Button>
+            <Button size="sm" variant="secondary" onClick={() => (view === 'week' ? setStart(addDaysISO(start, 7)) : setMonth(shiftMonth(month, 1)))} aria-label={view === 'week' ? 'Next week' : 'Next month'} data-cal-next>Next ›</Button>
+            <Button size="sm" variant="secondary" icon="clock" onClick={() => setBlock(blankBlock(view === 'month' && sel ? sel : today))} data-block-time>Block time</Button>
             {canInvoice ? <Button size="sm" icon="plus" onClick={() => setInvoice({})} data-new-invoice>New invoice</Button> : null}
           </div>
         </div>
@@ -150,6 +172,10 @@ function CalendarTab() {
         {days.some((d) => d.entries.some((e) => e.auto)) ? (
           <p className="mb-3 text-xs text-fg/55" data-suggested-note>A dashed shop or prep is on a <strong>suggested day</strong>. Tap it to give it your own day and time, or tell Mise.</p>
         ) : null}
+        {view === 'month' ? (
+          <MonthGrid days={days} month={month} today={today} sel={sel} onSelect={setSel} onEntry={clickEntry}
+            onInvoice={canInvoice ? (d) => setInvoice({ prefill: { service_date: d } }) : null} onBlock={(d) => setBlock(blankBlock(d))} />
+        ) : (
         <div className="grid grid-cols-1 gap-2 lg:grid-cols-7" data-week>
           {days.map((d) => (
             <div key={d.date} data-day={d.date}
@@ -167,6 +193,7 @@ function CalendarTab() {
             </div>
           ))}
         </div>
+        )}
       </section>
 
       {canInvoice ? <UndatedInvoices onChanged={load} /> : null}
@@ -177,6 +204,58 @@ function CalendarTab() {
         initial={invoice?.initial || null} bookingId={invoice?.bookingId ?? null} clientId={invoice?.clientId ?? null}
         prefill={invoice?.prefill || null} currency={user?.currency || 'GBP'} />
       <BlockModal form={block} onClose={() => setBlock(null)} onSave={saveBlock} onDelete={deleteBlock} />
+    </div>
+  )
+}
+
+const CHIP = {
+  day: 'bg-copper text-ink', shop: 'border border-copper text-fg', prep: 'border border-fg/25 bg-parchment text-fg', custom: 'border border-fg/25 bg-parchment text-fg',
+  held: 'border border-dashed border-copper text-copper', calendar: 'border border-dashed border-fg/30 text-fg/60', block: 'border border-dashed border-fg/30 text-fg/60',
+  todo: 'text-fg/70',
+}
+const CHIP_ORDER = { day: 0, held: 1, shop: 2, prep: 3, custom: 3, block: 4, calendar: 4, todo: 5 }
+const firstName = (s) => (s || '').trim().split(/\s+/)[0] || ''
+const chipText = (e) => (e.kind === 'day' ? firstName(e.who) : e.kind === 'held' ? `Held ${firstName(e.who)}` : ['shop', 'prep', 'custom'].includes(e.kind) ? `${e.label} ${firstName(e.who)}`
+  : e.kind === 'todo' ? `• ${e.who}` : e.who)
+
+/* The month in one block: every day shows who is on it (gold), shop and prep, held dates, time blocked out and to-dos.
+   Tap a day and everything on it opens underneath, where each line works exactly as it does in the week view. */
+function MonthGrid({ days, month, today, sel, onSelect, onEntry, onInvoice, onBlock }) {
+  const picked = days.find((d) => d.date === sel) || null
+  return (
+    <div data-month={month}>
+      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-xl border border-line bg-line">
+        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((h) => <div key={h} className="bg-card py-1.5 text-center text-[10px] font-semibold uppercase tracking-wider text-fg/45">{h}</div>)}
+        {days.map((d) => {
+          const inMonth = d.date.slice(0, 7) === month
+          const chips = d.entries.filter((e) => !(e.kind === 'todo' && e.done)).sort((a, b) => (CHIP_ORDER[a.kind] ?? 9) - (CHIP_ORDER[b.kind] ?? 9))
+          return (
+            <button key={d.date} type="button" onClick={() => onSelect(d.date)} data-mday={d.date} data-count={chips.length} aria-pressed={sel === d.date}
+              className={cls('flex min-h-[4.75rem] min-w-0 flex-col items-stretch gap-0.5 p-1 text-left align-top sm:min-h-[6.75rem] sm:p-1.5',
+                d.workday ? 'bg-card' : 'bg-base', !inMonth && 'opacity-40', sel === d.date && 'ring-2 ring-inset ring-copper')}>
+              <span className={cls('self-start text-[11px] font-semibold leading-5', d.date === today ? 'rounded-full bg-copper px-1.5 text-ink' : 'px-0.5 text-fg/70')}>{Number(d.date.slice(8))}</span>
+              {chips.slice(0, 3).map((e, i) => (
+                <span key={i} className={cls('block truncate rounded px-1 text-[9px] font-medium leading-[1.35] sm:text-[11px]', CHIP[e.kind] || CHIP.prep, e.auto && 'border-dashed opacity-80')} data-chip={e.kind}>{chipText(e)}</span>
+              ))}
+              {chips.length > 3 ? <span className="px-0.5 text-[9px] text-fg/50 sm:text-[10px]">+{chips.length - 3} more</span> : null}
+            </button>
+          )
+        })}
+      </div>
+      {picked ? (
+        <div className="mt-3 rounded-xl border border-copper/60 bg-card p-3" data-day-panel={picked.date}>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <p className="font-display text-[17px] font-semibold">{fmtDate(picked.date)}{picked.date === today ? <span className="ml-2 text-[10px] font-semibold uppercase tracking-wider text-copper">Today</span> : !picked.workday ? <span className="ml-2 text-[10px] font-semibold uppercase tracking-wider text-fg/40">Day off</span> : null}</p>
+            <div className="flex flex-wrap gap-2">
+              {onInvoice ? <Button size="sm" variant="secondary" icon="plus" onClick={() => onInvoice(picked.date)} data-day-invoice>Invoice for this day</Button> : null}
+              <Button size="sm" variant="ghost" icon="clock" onClick={() => onBlock(picked.date)}>Block it out</Button>
+            </div>
+          </div>
+          {picked.entries.length ? (
+            <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">{picked.entries.map((e, i) => <Entry key={i} e={e} onClick={() => onEntry(e)} />)}</div>
+          ) : <p className="text-sm text-fg/50">{picked.workday ? 'Nothing on this day. It is free.' : 'A day off. Nothing booked.'}</p>}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -372,7 +451,14 @@ function ServicesTab() {
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [adding, setAdding] = useState({ name: '', category: 'delivered' })
+  const leaving = useRef({ dirty: false, services: [] })
   useEffect(() => { api.get('/jobs/setup').then(setSetup).catch(toastErr) }, [])
+  useEffect(() => () => {
+    const { dirty: d, services: list } = leaving.current
+    if (d && list.length && list.every((x) => (x.name || '').trim())) {
+      api.put('/jobs/setup', { services: list }).then(() => toast('Your changes to your services were saved', 'sage')).catch(() => {})
+    }
+  }, [])
   if (!setup) return <Spinner />
   const services = setup.services
   const put = (next) => { setSetup({ ...setup, services: next }); setDirty(true) }
@@ -388,6 +474,8 @@ function ServicesTab() {
     setSaving(true)
     try { const r = await api.put('/jobs/setup', { services, remind_unplanned: setup.remind_unplanned }); setSetup(r); setDirty(false); toast('Saved. New invoices use these steps.', 'sage') } catch (e) { toastErr(e) } finally { setSaving(false) }
   }
+  // Leaving the page with changes not yet saved: save them anyway, so nothing typed here is ever lost.
+  leaving.current = { dirty, services }
   const addService = () => {
     const name = adding.name.trim()
     if (!name) return toast('Name the service first')
@@ -448,18 +536,23 @@ function ServicesTab() {
             <p className="label mt-4">Packages</p>
             {s.packages.length ? (
               <div className="space-y-1.5">
-                <div className="grid grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_2rem] gap-1.5 text-[11px] uppercase tracking-wider text-fg/45"><span>Package</span><span>Days a week</span><span>Hours a day</span><span /></div>
+                <div className="hidden grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_6rem_2rem] gap-1.5 text-[11px] uppercase tracking-wider text-fg/45 sm:grid"><span>Package</span><span>Days a week</span><span>Hours a day</span><span>Price</span><span /></div>
                 {s.packages.map((p, k) => (
-                  <div key={p.id || k} className="grid grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_2rem] items-center gap-1.5" data-package-row>
-                    <Input value={p.name} onChange={(e) => updPkg(i, k, { name: e.target.value })} className="!py-1.5" aria-label="Package name" />
-                    <Select value={p.days} onChange={(e) => updPkg(i, k, { days: Number(e.target.value) })} className="!py-1.5" aria-label="Days a week">{[1, 2, 3, 4, 5, 6, 7].map((n) => <option key={n}>{n}</option>)}</Select>
-                    <Input type="number" min="0.25" max="16" step="0.25" value={p.hours} onChange={(e) => updPkg(i, k, { hours: e.target.value })} className="!py-1.5" aria-label="Hours a day" />
-                    <button type="button" className="text-fg/45 hover:text-red-500" aria-label="Remove package" onClick={() => upd(i, { packages: s.packages.filter((_, j) => j !== k) })}>×</button>
+                  <div key={p.id || k} className="grid grid-cols-[1fr_1fr_1fr_2rem] items-end gap-1.5 rounded-lg border border-line p-2 sm:grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_6rem_2rem] sm:items-center sm:border-0 sm:p-0" data-package-row>
+                    <Input value={p.name} onChange={(e) => updPkg(i, k, { name: e.target.value })} className="col-span-4 !py-1.5 sm:col-span-1" aria-label="Package name" data-package-name />
+                    <label className="block"><span className="mb-0.5 block text-[10px] uppercase tracking-wider text-fg/45 sm:hidden">Days a week</span>
+                      <Select value={p.days} onChange={(e) => updPkg(i, k, { days: Number(e.target.value) })} className="!py-1.5" aria-label="Days a week">{[1, 2, 3, 4, 5, 6, 7].map((n) => <option key={n}>{n}</option>)}</Select></label>
+                    <label className="block"><span className="mb-0.5 block text-[10px] uppercase tracking-wider text-fg/45 sm:hidden">Hours a day</span>
+                      <Input type="number" min="0.25" max="16" step="0.25" value={p.hours} onChange={(e) => updPkg(i, k, { hours: e.target.value })} className="!py-1.5" aria-label="Hours a day" /></label>
+                    <label className="block"><span className="mb-0.5 block text-[10px] uppercase tracking-wider text-fg/45 sm:hidden">Price</span>
+                      <Input type="number" min="0" step="0.01" value={p.price || ''} placeholder="0" onChange={(e) => updPkg(i, k, { price: e.target.value })} className="!py-1.5" aria-label="Price" data-package-price /></label>
+                    <button type="button" className="pb-2 text-fg/45 hover:text-red-500 sm:pb-0" aria-label="Remove package" onClick={() => upd(i, { packages: s.packages.filter((_, j) => j !== k) })}>×</button>
                   </div>
                 ))}
               </div>
             ) : <p className="text-xs text-fg/45">None. Add one if this service is sold as packages (it sets how many days go on the calendar and how long each runs).</p>}
-            <button type="button" className="mt-1 text-xs font-medium text-copper hover:underline" onClick={() => upd(i, { packages: [...s.packages, { id: `p-${Date.now()}`, name: 'New package', days: 1, hours: 4 }] })}>+ Add a package</button>
+            <button type="button" className="mt-1 text-xs font-medium text-copper hover:underline" onClick={() => upd(i, { packages: [...s.packages, { id: `p-${Date.now()}`, name: 'New package', days: 1, hours: 4, price: 0 }] })} data-add-package>+ Add a package</button>
+            {s.packages.length ? <p className="mt-1 text-xs text-fg/45">A price here fills in the invoice for you when you pick the package (or tell Mise).</p> : null}
 
             <div className="mt-4 border-t border-line pt-3" data-request-block>
               <Toggle checked={!!s.requestable} onChange={(v) => upd(i, { requestable: v })} label="Regular clients can request dates for this on my website" />
@@ -512,7 +605,7 @@ function ServicesTab() {
       <AvailabilityCard />
 
       {dirty ? (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-card/95 px-4 py-3 backdrop-blur" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }} data-save-bar>
+        <div className="fixed inset-x-0 bottom-[calc(3.6rem+env(safe-area-inset-bottom))] z-[46] border-t border-copper/50 bg-card px-4 py-3 shadow-pop lg:bottom-0 lg:left-60" data-save-bar>
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-3">
             <p className="text-sm text-fg/70">You have changes to your services.</p>
             <Button onClick={save} disabled={saving} data-save-services>{saving ? 'Saving…' : 'Save changes'}</Button>

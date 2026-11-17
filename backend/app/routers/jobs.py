@@ -599,6 +599,9 @@ def calendar(from_date: str = "", to_date: str = "", db: Session = Depends(get_d
     uid = ws_id(user)
     owner = db.get(User, uid)
     today = _date.today()
+    from .. import tidy
+
+    tidy.run(db, owner, today)      # doubles are joined before anything is drawn
     start = _parse_day(from_date, today - timedelta(days=today.weekday()))
     end = _parse_day(to_date, start + timedelta(days=6))
     if end < start or (end - start).days > 62:
@@ -622,7 +625,7 @@ def save_setup(payload: dict = Body(...), db: Session = Depends(get_db), user: U
         raise HTTPException(403, "Only the business owner can change how services run")
     was = owner.job_setup or {}
     cleaned = clean_setup({**{k: was[k] for k in ("remind_unplanned", "todos_in_feed") if k in was}, **(payload or {})})
-    keep = {k: v for k, v in was.items() if k in ("preset", "applied")}
+    keep = {k: v for k, v in was.items() if k in ("preset", "applied", "tidied", "tidy_apart")}
     owner.job_setup = {**keep, **cleaned}
     db.commit()
     return setup_for(db, owner)

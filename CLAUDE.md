@@ -1081,6 +1081,46 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
     attribute (select by text); `NotifyPrefs` only shows when VAPID keys are set.
   - **For Ellice:** add her ElevenLabs key on Render as `ELEVENLABS_API_KEY` to switch voice on. Optional: `ASSISTANT_MODEL` for a
     stronger model just for Mise. If her greeting has no name, set her name in Settings → Profile.
+- **SERVICES SAVE FIX + MONTH CALENDAR + AUTOMATIC TIDY-UP OF DOUBLES (2026-11-17, same day).** Ellice: "changes I'm making are not
+  saving in Your services", "I need to see it as a monthly view calendar", "there are discrepancies, double dates, booked etc. the platform
+  should automatically pick these up and clear up any doubles / mistakes".
+  - **Services not saving = the "Save changes" bar was hidden behind the phone's bottom menu** (fixed bar at bottom-0, z-30, under the z-40
+    nav). Now `bottom-[calc(3.6rem+safe-area)]`, `z-[46]`, `lg:bottom-0 lg:left-60`; and leaving the tab with unsaved changes saves them
+    anyway (unmount effect in `ServicesTab`, via a `leaving` ref). Packages gained a **Price** field (phone layout: name on its own row,
+    days/hours/price below). `PUT /jobs/setup` now also keeps `tidied` and `tidy_apart` in `job_setup`.
+  - **Month view (`Calendar.jsx MonthGrid`) is the default**, Week one tap away (`[data-cal-view]`, remembered in localStorage
+    `cc_cal_view`). The API already accepted any range ≤62 days; `monthRange(ym)` = whole Mon–Sun weeks covering the month. Each cell
+    (`[data-mday]`) shows up to 3 chips (`[data-chip]`: day = gold client first name, held, shop/prep, blocks, to-dos) + "+n more";
+    tapping a day opens `[data-day-panel]` underneath with the full `Entry` list, "Invoice for this day" (prefills service_date) and
+    "Block it out". Pages reload on the assistant's `cc-assistant-changed` event.
+  - **`backend/app/tidy.py` — the automatic tidy-up**, run (serialised per business with a thread lock, after a `db.commit()` so each run
+    sees the last one's work) by `GET /today`, `/jobs/calendar`, `/standing` and `/holds`. (1) **Clients entered twice are joined**:
+    same email or same phone **and the same first name**, or the same full name (2+ words) with no conflicting email/phone. A shared
+    phone/inbox with different first names is never joined (a family, a PA). Everything that points at a client moves (Booking, Invoice,
+    Quote, ClientReview, Appointment, PreOrder, SiteCustomer); the copy goes to the recycle bin; its id is remembered in
+    `job_setup["tidy_apart"]` so a client restored from Recently deleted is never joined again. (2) **The same client on the same day**
+    (live statuses + held requests, not website enquiries, not pre-order days), when the services match (`same_service`: "The Home
+    Edit" = "Home edit" = "Personal chef · The Home Edit"; blank fits anything) and **not both invoiced**: merged into the entry with an
+    invoice / furthest status / paid deposit; deposit, hold stage, times, venue, notes carried over; the other is cancelled with
+    `MERGED_NOTE`. (3) A lapsed old-rule hold whose client is booked that day anyway is closed off. Log of what was done in
+    `job_setup["tidied"]` (last 25), shown on Paid & booked as **"Tidied up for you"** (last 7 days). Never emails, never touches an
+    invoice. **What it won't decide is flagged on Paid & booked:** `double` (two entries one day, different services or both invoiced;
+    "Remove the extra entry" when not invoiced = PATCH booking cancelled), `double_invoice` (same client, day and total), and
+    **`clashes`** (working days in the next 45 with more than a full day booked, from the diary's day shares).
+  - Floating Mise button is icon-only on phones (it covered buttons). FAQs (rule #3): Support Calendar answer (month view), Your
+    services (Save bar, saves on leaving, package price), new "Why did some entries join together on their own?"; public `/faq` line.
+  - **LESSON (caught in testing): every seeded test client shared one phone number and the first version joined all seven into one.**
+    Never join on a shared contact detail alone. And two screens loading together ran the tidy-up at the same time → the lock.
+  - **Verified:** `scratchpad/test_tidy.py` **25/25** (email/phone/full-name joins, family phone and shared inbox kept apart, first name
+    alone kept apart, references follow, recycle bin + restored client not re-joined, request + manual booking merged, accepted hold +
+    invoiced job merged keeping deposit owed, paid deposit kept, two invoiced jobs / two services left and flagged, double invoice
+    flagged and kept, different clients untouched, enquiries/pre-orders untouched, lapsed closed when booked, idempotent, services save
+    keeps the log, clashes); all other suites green (standing 39, assistant 104, capacity 66, jobs 66, requests 30, phone 19, popup 53,
+    stripe-command 29, preorders 37, stripe-real 8, calsync 35; reviews 22/23 old). Playwright `mise_e2e/verify_round2.py` **24/24**
+    (phone: Save bar above the menu and tappable, package + price saved, saves on leaving; month on phone + desktop, day panel, job,
+    invoice for the day, next month, week remembered; doubles joined/merged in the browser, clash shown, Today clear) and
+    `verify_mise.py` **70/70**, zero page errors.
+
 - **Soulfood Friday 2.0 flyer on What's Up (sixteenth batch):** her flyer (`site/public/flyers/soulfood-friday-2.webp`, 1080x1350) now has a **featured block** on
   `/whats-up` (`Featured` in `WhatsOn.jsx`, `[data-featured="pop-up"]`, id `pop-up` so the nav "Pop-ups & events" link still lands): flyer beside the details, the
   flyer itself and the gold **"RSVP now"** button both link to her Partiful page (`NOW.items[1].cta.href`, new tab, `rel=noreferrer`). **Time and location are marked

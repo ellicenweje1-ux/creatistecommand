@@ -454,7 +454,8 @@ export function Faq() {
         <p>
           Yes. Paid &amp; booked lists every client with the dates they have, what they have paid and what they still
           owe, and points out anything that doesn&rsquo;t match, such as a payment with no date or a date with no
-          invoice, each with a one-tap fix.
+          invoice, each with a one-tap fix. Doubles (a client entered twice, the same day booked twice) are tidied up
+          automatically, and your calendar shows the whole month at a glance.
         </p>
       </Section>
       <Section heading="Can I just invoice, and have the rest planned for me?">

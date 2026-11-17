@@ -188,6 +188,9 @@ def today_view(db: Session = Depends(get_db), user: User = Depends(require_activ
     from .assistant import status_for
 
     owner = db.get(User, ws_id(user))
+    from .. import tidy
+
+    tidy.run(db, owner, local_today())
     staff = user.role == "staff"
     finance = (not staff) and (user.workspace_plan_level >= 2 or user.role == "admin")
     snap = snapshot(db, owner, personal=not staff, finance=finance)

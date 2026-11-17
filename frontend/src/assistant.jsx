@@ -283,8 +283,8 @@ export function AssistantLauncher() {
     <>
       {!open ? (
         <button type="button" onClick={() => setOpen(true)} aria-label="Ask Mise" data-mise-launcher
-          className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 z-[45] inline-flex h-12 items-center gap-2 rounded-full bg-copper px-4 text-sm font-semibold text-ink shadow-lg transition-transform hover:scale-105 lg:bottom-6 lg:right-6 print:hidden">
-          <Icon name="sparkle" size={18} /><span>Mise</span>
+          className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-3 z-[45] inline-flex h-11 w-11 items-center justify-center gap-2 rounded-full bg-copper text-sm font-semibold text-ink shadow-lg transition-transform hover:scale-105 sm:h-12 sm:w-auto sm:px-4 lg:bottom-6 lg:right-6 print:hidden">
+          <Icon name="sparkle" size={18} /><span className="hidden sm:inline">Mise</span>
         </button>
       ) : null}
       {open ? (

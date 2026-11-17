@@ -204,6 +204,35 @@ def build(db: Session, owner: User, today: _date | None = None) -> dict:
             else:
                 flag(r, "draft", "watch", f"Draft {tag} ({money(total, owner)}) has not been sent" + (f"; it is for {_days_text(days, today)}." if days else ", and has no date yet."), invoice_id=i.id, amount=total, date=day)
 
+    # The same invoice twice (same client, same day, same total): money documents are never touched automatically.
+    seen_inv: dict[tuple, dict] = {}
+    for r in rows.values():
+        for i in r["invoices"]:
+            if not i["service_date"] or not r["client_id"]:
+                continue
+            k = (r["client_id"], i["service_date"], i["total"])
+            if k in seen_inv:
+                first = seen_inv[k]
+                flag(r, "double_invoice", "fix", f"Invoices {first['number']} and {i['number']} are both {money(i['total'], owner)} for {pretty_day(i['service_date'], today)}. "
+                                                 "If one is a copy, open it and delete it or mark it void.", invoice_id=i["id"], other_invoice_id=first["id"])
+            else:
+                seen_inv[k] = i
+    # Two entries for one client on one day that could not be merged (both invoiced, for different services).
+    for r in rows.values():
+        days_seen: dict[str, dict] = {}
+        for d in r["dates"]:
+            if d["state"] in ("lapsed",):
+                continue
+            if d["date"] in days_seen and r["client_id"]:
+                first = days_seen[d["date"]]
+                both = bool(first["invoices"]) and bool(d["invoices"])
+                tail = (" Both have an invoice: if it is one job, open the extra invoice and delete it or mark it void." if both
+                        else " If it is one job, remove the extra entry.")
+                flag(r, "double", "fix", f"{pretty_day(d['date'], today)} is in your diary twice for them ({first['service']} and {d['service']}).{tail}",
+                     booking_id=d["booking_id"], date=d["date"], invoiced=both)
+            else:
+                days_seen[d["date"]] = d
+
     out = []
     for r in rows.values():
         if not r["dates"] and not r["invoices"]:
@@ -218,10 +247,31 @@ def build(db: Session, owner: User, today: _date | None = None) -> dict:
         r["_key"] = (0 if r["fix"] else 1 if r["watch"] else 2, nxt, r["name"].lower())
         out.append(r)
     out.sort(key=lambda r: r.pop("_key"))
-    return {"today": t_iso, "clients": out,
+    return {"today": t_iso, "clients": out, "clashes": clashes(db, owner, today), "tidied": _tidied(owner),
             "counts": {"fix": sum(r["fix"] for r in out), "watch": sum(r["watch"] for r in out),
                        "clients": len(out), "clients_fix": len([r for r in out if r["fix"]]),
                        "matched": len([r for r in out if not r["fix"] and not r["watch"]])}}
+
+
+def clashes(db: Session, owner: User, today: _date, days: int = 45) -> list[dict]:
+    """Working days ahead with more booked than fits in a day, by the owner's own day shares."""
+    try:
+        from .diary import compute_days, rules_for
+
+        rows_ = compute_days(db, owner.id, rules_for(owner), today, today + timedelta(days=days), True)
+    except Exception:
+        return []
+    out = []
+    for d in rows_:
+        if d.get("workday") and d.get("load", 0) > 1.001 and len(d.get("bookings") or []) > 1:
+            out.append({"date": d["date"], "load": d["load"], "who": [b["title"] for b in d["bookings"]][:6]})
+    return out[:10]
+
+
+def _tidied(owner: User) -> list[dict]:
+    from ..tidy import recent
+
+    return recent(owner)
 
 
 STATE_WORDS = {"requested": "requested, I will confirm shortly", "pencilled": "pencilled in", "booked": "booked", "done": "done"}
@@ -293,6 +343,9 @@ def standing(db: Session = Depends(get_db), user: User = Depends(require_owner))
     if not (user.role == "admin" or user.workspace_plan_level >= 2):
         raise HTTPException(403, "Paid & booked is part of the Pro Caterer plan.")
     owner = db.get(User, ws_id(user))
+    from .. import tidy
+
+    tidy.run(db, owner, local_today())
     return build(db, owner)
 
 
