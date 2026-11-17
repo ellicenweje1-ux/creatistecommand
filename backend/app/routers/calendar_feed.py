@@ -126,6 +126,21 @@ def calendar_feed(token: str, request: Request, db: Session = Depends(get_db)):
             stamp=a.updated_at,
         ))
 
+    # Dated to-dos (business and personal), so the phone calendar and the Command calendar say the same thing. The owner can
+    # switch this off under Calendar → Phone.
+    from datetime import date as _date, timedelta
+    from ..models import Task
+    from .jobs import add_hours, setup_for
+
+    if setup_for(db, owner).get("todos_in_feed", True):
+        lo = (_date.today() - timedelta(days=14)).isoformat()
+        for t in db.query(Task).filter(Task.user_id == owner.id, Task.status != "done", Task.due_date >= lo).limit(400).all():
+            events.append(ics.event(
+                uid=f"todo-{t.id}@creatistecommand", summary=f"To-do: {t.title}", date_str=t.due_date, start_time=t.due_time or "",
+                end_time=add_hours(t.due_time, 0.5) if t.due_time else "", location="", description=(t.description or "").strip(),
+                status="CONFIRMED", stamp=t.updated_at,
+            ))
+
     name = f"{owner.business_name or owner.name or 'Creatiste'} — events & tastings"
     body = ics.calendar(name, [e for e in events if e])
     return Response(

@@ -155,7 +155,7 @@ export default function Tasks() {
 
   return (
     <div>
-      <PageHeader title="Tasks" sub="Prep, shopping, admin, logistics — everything with a deadline, in date and time order." />
+      <PageHeader title="To-dos" sub="Everything you need to do, at work and in your own life, in date and time order. Tell Mise and it lands here." />
       <ExampleCard k="tasks" />
       <TaskComposer onCreated={load} />
       <div className="mt-4 flex flex-wrap gap-1.5">

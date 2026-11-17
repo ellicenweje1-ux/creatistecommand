@@ -441,11 +441,27 @@ export function Faq() {
           your Command calendar and on your website, so you only ever keep one calendar up to date.
         </p>
       </Section>
+      <Section heading="Is there an assistant that does the admin for me?">
+        <p>
+          Yes, on the Elite Kitchen plan. Mise sits at the top of your Today screen: type or speak what you need
+          (&ldquo;Rita paid, her dates are the 24th and 26th&rdquo;, &ldquo;remind me to call the bank tomorrow&rdquo;,
+          &ldquo;draft Iva&rsquo;s invoice, same as last time&rdquo;) and it adds the to-dos, drafts the invoice, records the
+          payment and puts the dates on your calendar. Everything can be undone, and nothing is ever sent to a client
+          unless you send it yourself.
+        </p>
+      </Section>
+      <Section heading="Can I see at a glance who has paid and who is booked?">
+        <p>
+          Yes. Paid &amp; booked lists every client with the dates they have, what they have paid and what they still
+          owe, and points out anything that doesn&rsquo;t match, such as a payment with no date or a date with no
+          invoice, each with a one-tap fix.
+        </p>
+      </Section>
       <Section heading="Can I just invoice, and have the rest planned for me?">
         <p>
           Yes. Every job starts from an invoice. Save it with the service, the day and the time, and the job lands
-          on your calendar with its shopping and prep waiting to be given a day and a time, inside the windows you set
-          for each service. The same calendar shows on your phone, and pop-up notifications tell you about new date
+          on your calendar with its shopping and prep on a suggested day, ready for you to give them your own day and
+          time, inside the windows you set for each service. The same calendar shows on your phone, and pop-up notifications tell you about new date
           requests, orders, reviews and enquiries, and remind you before each shop, prep and job.
         </p>
       </Section>

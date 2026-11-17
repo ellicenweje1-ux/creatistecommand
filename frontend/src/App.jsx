@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, NavLink, Outlet, Route, Routes, useNavigate } from 'react-router-dom'
+import { Link, Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { RequireActive, RequireAdmin, RequireAuth, useAuth } from './auth'
 import { cls } from './format'
+import { AssistantLauncher } from './assistant'
+import { NAV_GROUPS, NAV_ITEMS, QUICK_PATHS } from './nav'
 import { useOfflineState } from './offline'
 import Admin from './pages/Admin'
 import Allergens from './pages/Allergens'
@@ -37,57 +39,14 @@ import RoutesPage from './pages/RoutesPage'
 import Settings, { SettingsAbout, SettingsAppearance, SettingsBusiness, SettingsIntegrations, SettingsInvoices, SettingsMembership, SettingsProfile, SettingsRecycle, SettingsSecurity } from './pages/Settings'
 import Support from './pages/Support'
 import Shopping from './pages/Shopping'
+import Standing from './pages/Standing'
 import Suppliers from './pages/Suppliers'
 import Tastings from './pages/Tastings'
 import Tasks from './pages/Tasks'
+import Today from './pages/Today'
 import Team from './pages/Team'
 import { Brand, Icon, toast } from './ui'
 import { VersionStamp } from './version'
-
-// Ordered to follow a catering job's natural flow: see the day → take the booking →
-// plan the menu → source & prep → deliver → bill. (Reordered 2026, owner's steer.)
-const NAV_GROUPS = [
-  {
-    label: 'Operations',
-    items: [
-      { to: '/app', icon: 'home', label: 'Home', end: true },
-      { to: '/app/dashboard', icon: 'pulse', label: 'Dashboard' },
-      { to: '/app/calendar', icon: 'clock', label: 'Calendar' },
-      { to: '/app/bookings', icon: 'calendar', label: 'Bookings' },
-      { to: '/app/preorders', icon: 'cart', label: 'Pre-orders', min: 2 },
-      { to: '/app/clients', icon: 'users', label: 'Clients', min: 2 },
-      { to: '/app/tastings', icon: 'fork', label: 'Tastings', min: 2 },
-      { to: '/app/tasks', icon: 'checks', label: 'Tasks' },
-      { to: '/app/routes', icon: 'map', label: 'Routes', min: 2 },
-      { to: '/app/team', icon: 'users', label: 'Team', min: 3 },
-    ],
-  },
-  {
-    label: 'Kitchen',
-    items: [
-      { to: '/app/menus', icon: 'doc', label: 'Menus' },
-      { to: '/app/recipes', icon: 'book', label: 'Recipes' },
-      { to: '/app/allergens', icon: 'grid2', label: 'Allergens' },
-      { to: '/app/inventory', icon: 'box', label: 'Inventory' },
-      { to: '/app/shopping', icon: 'cart', label: 'Shopping' },
-      { to: '/app/orders', icon: 'truck', label: 'Orders', min: 2 },
-      { to: '/app/suppliers', icon: 'tag', label: 'Suppliers', min: 2 },
-      { to: '/app/packing', icon: 'clipboard', label: 'Packing' },
-    ],
-  },
-  {
-    label: 'Business',
-    items: [
-      { to: '/app/finance', icon: 'coins', label: 'Finance', min: 2, ownerOnly: true },
-      { to: '/app/reviews', icon: 'star', label: 'Reviews', min: 2 },
-      { to: '/app/designs', icon: 'layout', label: 'Designs', min: 2 },
-      { to: '/app/ideas', icon: 'bulb', label: 'My Brain' },
-    ],
-  },
-]
-
-// Bottom-nav quick links (mobile) — referenced by path so the reorder above can't break them.
-const QUICK_PATHS = ['/app/dashboard', '/app/calendar', '/app/tasks', '/app/shopping']
 
 const PLAN_NAMES = { 2: 'Pro Caterer', 3: 'Elite Kitchen' }
 
@@ -100,6 +59,9 @@ function userLevel(user) {
 function visibleItems(items, user) {
   return items.filter((i) => !(i.ownerOnly && user?.is_staff))
 }
+
+// The sections a chef has tucked away under "More tools". Today always stays.
+const hiddenPaths = (user) => new Set((user?.nav_hidden || []).filter((p) => p !== '/app'))
 
 function lockToast(item) {
   toast(`${item.label} is part of the ${PLAN_NAMES[item.min]} plan — upgrade in Settings → Membership`, 'red')
@@ -174,11 +136,19 @@ function AppShell() {
     window.addEventListener('cc-synced', bump)
     return () => window.removeEventListener('cc-synced', bump)
   }, [])
-  // Daily-use shortcuts; Home (the module guide at /app) stays reachable via the
-  // brand logo tap and the "More" sheet.
+  // Daily-use shortcuts; Today (/app) is also the brand logo tap. Everything else is in the "More" sheet.
   const allItems = NAV_GROUPS.flatMap((g) => visibleItems(g.items, user))
-  const byPath = Object.fromEntries(NAV_GROUPS.flatMap((g) => g.items).map((i) => [i.to, i]))
-  const mobileMain = QUICK_PATHS.map((p) => byPath[p]).filter(Boolean)
+  const byPath = Object.fromEntries(NAV_ITEMS.map((i) => [i.to, i]))
+  const hidden = hiddenPaths(user)
+  const mainItems = allItems.filter((i) => !hidden.has(i.to))
+  const moreItems = allItems.filter((i) => hidden.has(i.to))
+  const mobileMain = QUICK_PATHS.map((p) => byPath[p])
+    .filter((i) => i && allItems.includes(i) && !hidden.has(i.to) && !(i.min && level < i.min)).slice(0, 4)
+  // "More tools" in the sidebar: closed until wanted, open when the page you're on lives inside it.
+  const { pathname } = useLocation()
+  const inMore = moreItems.some((i) => pathname === i.to || pathname.startsWith(`${i.to}/`))
+  const [moreTools, setMoreTools] = useState(() => { try { return localStorage.getItem('cc_more_tools') === '1' } catch { return false } })
+  const toggleMoreTools = () => setMoreTools((v) => { try { localStorage.setItem('cc_more_tools', v ? '0' : '1') } catch { /* private window */ } return !v })
 
   return (
     <div className="min-h-screen bg-base lg:pl-60 print:bg-white print:pl-0">
@@ -186,7 +156,26 @@ function AppShell() {
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-white/5 bg-ink lg:flex print:!hidden">
         <div className="px-5 pb-4 pt-6"><Brand on="dark" small /></div>
         <nav className="scrollbar-thin flex-1 space-y-3 overflow-y-auto px-3 pb-2">
-          {NAV_GROUPS.map((group) => {
+          {moreItems.length ? (
+            <>
+              {/* A chef who has trimmed their menu: the everyday sections, then everything else one tap away. */}
+              <div className="space-y-0.5" data-nav-main>
+                {mainItems.map((item) => <SideLink key={item.to} item={item} locked={item.min && level < item.min} />)}
+              </div>
+              <div data-nav-more>
+                <button type="button" onClick={toggleMoreTools} aria-expanded={moreTools || inMore} data-more-tools
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-cream/45 hover:bg-white/5 hover:text-cream">
+                  <Icon name="dots" size={17} /><span className="flex-1 text-left">More tools</span>
+                  <Icon name={moreTools || inMore ? 'chevronDown' : 'chevronRight'} size={14} />
+                </button>
+                {moreTools || inMore ? (
+                  <div className="mt-0.5 space-y-0.5">
+                    {moreItems.map((item) => <SideLink key={item.to} item={item} locked={item.min && level < item.min} />)}
+                  </div>
+                ) : null}
+              </div>
+            </>
+          ) : NAV_GROUPS.map((group) => {
             const items = visibleItems(group.items, user)
             if (items.length === 0) return null
             return (
@@ -233,12 +222,13 @@ function AppShell() {
       </main>
 
       <OfflineChip />
+      <AssistantLauncher />
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden print:hidden">
         {mobileMain.map((item) => (
           <NavLink key={item.to} to={item.to} end={item.end}
-            className={({ isActive }) => cls('flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium', isActive ? 'text-copper' : 'text-fg/45')}>
+            className={({ isActive }) => cls('flex flex-col items-center gap-0.5 whitespace-nowrap py-2 text-[10px] font-medium', isActive ? 'text-copper' : 'text-fg/45')}>
             <Icon name={item.icon} size={19} />
             {item.label}
           </NavLink>
@@ -253,31 +243,45 @@ function AppShell() {
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px] lg:hidden" onClick={() => setMoreOpen(false)}>
           <div className="absolute inset-x-0 bottom-0 max-h-[80vh] overflow-y-auto rounded-t-2xl bg-base p-4 pb-[calc(2rem+env(safe-area-inset-bottom))]" onClick={(e) => e.stopPropagation()}>
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-fg/15" />
-            <div className="grid grid-cols-4 gap-3">
-              {[...allItems, { to: '/app/support', icon: 'help', label: 'Help' }, { to: '/app/settings', icon: 'settings', label: 'Settings' },
-                ...(user?.role === 'admin' ? [{ to: '/app/admin', icon: 'shield', label: 'Admin' }] : [])].map((item) => {
+            {(() => {
+              const tile = (item) => {
                 const locked = item.min && level < item.min
                 if (locked) {
                   return (
                     <button key={item.to} onClick={() => lockToast(item)}
-                      className="flex flex-col items-center gap-1.5 rounded-xl border border-line bg-card p-3 text-xs font-medium text-fg/30">
+                      className="flex flex-col items-center gap-1.5 rounded-xl border border-line bg-card p-3 text-center text-xs font-medium text-fg/30">
                       <Icon name="lock" size={20} />
                       {item.label}
                     </button>
                   )
                 }
                 return (
-                  <NavLink key={item.to} to={item.to} onClick={() => setMoreOpen(false)}
-                    className="flex flex-col items-center gap-1.5 rounded-xl border border-line bg-card p-3 text-xs font-medium text-fg/70">
+                  <NavLink key={item.to} to={item.to} end={item.end} onClick={() => setMoreOpen(false)}
+                    className="flex flex-col items-center gap-1.5 rounded-xl border border-line bg-card p-3 text-center text-xs font-medium text-fg/70">
                     <Icon name={item.icon} size={20} className="text-copper" />
                     {item.label}
                   </NavLink>
                 )
-              })}
-              <button onClick={logout} className="flex flex-col items-center gap-1.5 rounded-xl border border-line bg-card p-3 text-xs font-medium text-fg/70">
-                <Icon name="logout" size={20} className="text-red-500" /> Log out
-              </button>
-            </div>
+              }
+              const extras = [{ to: '/app/support', icon: 'help', label: 'Help' }, { to: '/app/settings', icon: 'settings', label: 'Settings' },
+                ...(user?.role === 'admin' ? [{ to: '/app/admin', icon: 'shield', label: 'Admin' }] : [])]
+              return (
+                <>
+                  <div className="grid grid-cols-4 gap-3" data-sheet-main>
+                    {[...mainItems, ...extras].map(tile)}
+                    <button onClick={logout} className="flex flex-col items-center gap-1.5 rounded-xl border border-line bg-card p-3 text-xs font-medium text-fg/70">
+                      <Icon name="logout" size={20} className="text-red-500" /> Log out
+                    </button>
+                  </div>
+                  {moreItems.length ? (
+                    <>
+                      <p className="mb-2 mt-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-fg/40">More tools</p>
+                      <div className="grid grid-cols-4 gap-3" data-sheet-more>{moreItems.map(tile)}</div>
+                    </>
+                  ) : null}
+                </>
+              )
+            })()}
           </div>
         </div>
       )}
@@ -304,7 +308,9 @@ export default function App() {
       <Route path="/enquire/:token" element={<PublicEnquiry />} />
       <Route path="/founders/:code" element={<FoundersInvite />} />
       <Route path="/app" element={<RequireAuth><RequireActive><AppShell /></RequireActive></RequireAuth>}>
-        <Route index element={<Home />} />
+        <Route index element={<Today />} />
+        <Route path="guide" element={<Home />} />
+        <Route path="standing" element={<Standing />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="bookings" element={<Bookings />} />
         <Route path="bookings/:id" element={<BookingDetail />} />

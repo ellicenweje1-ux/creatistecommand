@@ -1031,16 +1031,56 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
     booking has an unapplied paid deposit.
   - Verified: capacity 66/66 (rewritten hold checks), requests 30/30, jobs 66/66, phone 19/19, popup 53/53, stripe-command 29/29,
     preorders 37/37, real-Stripe 8/8; Playwright `pop_e2e/verify_step1.py` 6/6 (tabs, past order, invoice deposit lines, zero errors).
-- **ASSISTANT + simpler app: PAUSED (2026-11-14, her call: "pause the personal assistant job").** Backend-only work-in-progress is
-  committed as **`b7c0c8e`** and immediately **reverted by `5eb4cfc`**, so nothing of it is deployed. It holds: `routers/assistant.py`
-  (Mise as an assistant: tools for to-dos business/personal, notes, draft invoices with package prices, mark paid, pencil in, block time,
-  plan shop/prep, move jobs, shopping items, client history, draft messages, undo; voice via `/assistant/transcribe` with ElevenLabs Scribe
-  or OpenAI, keys `ELEVENLABS_API_KEY` / `OPENAI_API_KEY`), `routers/today.py` (Today snapshot + morning summary text), jobs.py
-  "suggested days" (every shop/prep step sits on the last working day of its window until planned; no To plan queue), dated to-dos on
-  the calendar + phone feed, personal to-dos hidden from staff (`crud_router(owner_only=)`), morning summary push (`notify` "brief",
-  `brief_time`), `users.nav_hidden` + her simpler-menu default. No screens were built yet; `scratchpad/test_assistant.py` was written but
-  never run. **To resume: `git revert 5eb4cfc`** (then build the screens: the assistant box with voice, Today page, simplified menu with
-  "More tools", calendar day view), run the test, verify, ship.
+- **AUDIT STEPS 2 TO 4 SHIPPED (2026-11-17): TODAY + MISE THE ASSISTANT + PAID & BOOKED + SIMPLER MENU.** Ellice: "some have paid and
+  I don't have dates, I'm confused and they're confused… get it all cleared up… implement the assistant so I can just update as and
+  when." The paused assistant work (`b7c0c8e`, reverted by `5eb4cfc`) was restored with `git revert 5eb4cfc`, finished and deployed.
+  - **ROOT CAUSE of "paid but no dates":** the old "Invoices not on your calendar yet" card skipped PAID invoices, so a payment with
+    no service day was invisible everywhere. Fixed by Paid & booked.
+  - **Paid & booked (`/app/standing`, `routers/standing.py`, `pages/Standing.jsx`; owner, Pro+).** `build()` lists every client with
+    anything live: dates (state requested | deposit_owed | pencilled | booked | done | lapsed, with their invoices), invoices, paid/owed
+    totals, and **flags** (`fix` or `watch`): `paid_no_date` (paid in the last 45 days, no service day), `unpaid_no_date`, `no_invoice`
+    (fix when within 7 days or already done), `unpaid` (fix when overdue or the day is here), `deposit_owed`, `request`, `lapsed`,
+    `draft`, `deposit_unused`, `no_client`. One-tap fixes: add the date(s) (PATCH invoice + sync-booking), "already done / no date
+    needed", make the invoice, "no invoice needed", mark paid (no email) or paid + receipt. HoldsStrip sits at the top. "Send update"
+    = `message_for()`, a plain summary to copy / WhatsApp / email. New additive columns **`invoices.no_date`, `bookings.no_invoice`**
+    (in the single `invoices` / `bookings` keys; drilled). `POST /standing/settle {invoice_ids|booking_ids, undo}`.
+    `sort_summary()` feeds Today; `lines_for_assistant()` feeds Mise. Website enquiries and pre-order days are left out.
+  - **One invoice, several dates without a package:** `jobs.apply_invoice` now uses `service_days` whenever there are 2+ days; the
+    invoice editor has "More days on this invoice" (`[data-more-days]`).
+  - **Today (`/app`, `routers/today.py`, `pages/Today.jsx`) is the landing page for everyone.** Mise box, "Waiting for you" (needs:
+    request → Calendar; deposit/lapsed → Paid & booked; orders, reviews, enquiries, overdue), the Paid & booked line, today + coming up
+    (to-dos tick in place), undated to-dos, money line. `needs()` follows the new hold rule (accepted = confirmed + awaiting_deposit).
+    The module guide moved to **`/app/guide`** ("Guide"); Dashboard stays at `/app/dashboard`.
+  - **Mise (`routers/assistant.py`, `frontend/src/assistant.jsx`):** `AssistantBox` inline on Today, `AssistantLauncher` floating on
+    every other page (same thread, kept in sessionStorage). Cards with Undo, links, "Open invoice" / "Email receipt" (go through
+    Finance `?tab=invoices&invoice=ID` / `&receipt=ID`), message cards with Copy / WhatsApp / Email. Pages reload on the
+    `cc-assistant-changed` event. 15 tools; new this wave: **`set_invoice_day`** (give an existing invoice its day(s) or `no_date`),
+    **`draft_invoice paid:true`** ("X paid me £180" with no invoice), several dates on any invoice, context sections RECENTLY PAID +
+    TO SORT OUT. `max_tokens` 16000 and a cut-off answer (`stop_reason max_tokens`) runs nothing. Owner only, Elite or admin, needs
+    `ANTHROPIC_API_KEY` (set). Model = `ASSISTANT_MODEL` or `AI_MODEL` (hers: claude-sonnet-4-6). Nothing it does reaches a client.
+  - **Voice:** the mic records (MediaRecorder) → `POST /assistant/transcribe` → text lands in the box for her to send. **Needs
+    `ELEVENLABS_API_KEY` (or `OPENAI_API_KEY`) on Render; until then the mic is hidden** and a line says to use the keyboard mic.
+  - **Suggested days (restored):** every shop/prep step sits on the last working day of its window (`auto: true`) until given a day;
+    there is no "To plan" queue or "To plan:" phone entries any more. Calendar.jsx shows them dashed ("suggested day"), to-dos on
+    their day (tap = tick). Morning summary push (`notify` "brief", time in Phone & notifications). Dated to-dos in the phone feed
+    (`todos_in_feed`). Personal to-dos hidden from staff.
+  - **Simpler menu:** `frontend/src/nav.js` holds NAV_GROUPS. `users.nav_hidden` paths move under **"More tools"** (sidebar section +
+    phone More sheet). Her default (owner update `simple-menu-1`, once): Today, Calendar, Paid & booked, Pre-orders, Clients, To-dos,
+    Finance in view; the other 17 under More tools. **Settings → Appearance → Your menu** has toggles, "Show everything", "Keep it
+    simple". Other chefs keep the full grouped menu. Phone bottom bar: Today, Calendar, Paid & booked, To-dos, More.
+  - Finance reads `?tab=`, `?invoice=`, `?receipt=`; Bookings reads `?view=pipeline`; Tasks page is titled "To-dos".
+    `/assistant`, `/standing`, `/holds` are online-only (offline NO_QUEUE). FAQs (rule #3): Support (Today, Mise, voice, Paid &
+    booked, several dates, simpler menu, Calendar rewritten) + public `/faq` (assistant, who has paid).
+  - **Verified:** `test_standing.py` 39/39, `test_assistant.py` 104/104, capacity 66, jobs 66 (8 checks rewritten for suggested days),
+    requests 30, phone 19, popup 53, stripe-command 29, preorders 37, stripe-real 8, calsync 35 (reviews 22/23 = the old known check).
+    Playwright `scratchpad/mise_e2e/verify_mise.py` **70/70** desktop + phone + staff + another chef, zero page errors (stand-in model
+    and speech service in `app_mise.py`; fake mic via `--use-fake-device-for-media-stream`). **Not testable here: the real model's
+    answers and real speech-to-text**; first live use is the real test.
+  - **Harness lessons:** changing tables from a second sqlite connection needs `engine.dispose()` before `ensure_columns()` in a test;
+    `python -m app.seed` needs the same `DATA_DIR` env as the server; the invoice editor's save button has no `type="submit"`
+    attribute (select by text); `NotifyPrefs` only shows when VAPID keys are set.
+  - **For Ellice:** add her ElevenLabs key on Render as `ELEVENLABS_API_KEY` to switch voice on. Optional: `ASSISTANT_MODEL` for a
+    stronger model just for Mise. If her greeting has no name, set her name in Settings → Profile.
 - **Soulfood Friday 2.0 flyer on What's Up (sixteenth batch):** her flyer (`site/public/flyers/soulfood-friday-2.webp`, 1080x1350) now has a **featured block** on
   `/whats-up` (`Featured` in `WhatsOn.jsx`, `[data-featured="pop-up"]`, id `pop-up` so the nav "Pop-ups & events" link still lands): flyer beside the details, the
   flyer itself and the gold **"RSVP now"** button both link to her Partiful page (`NOW.items[1].cta.href`, new tab, `rel=noreferrer`). **Time and location are marked

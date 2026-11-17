@@ -43,6 +43,8 @@ def dashboard(db: Session = Depends(get_db), user=Depends(require_active)):
         .filter(Task.user_id == ws_id(user), Task.status != "done")
         .order_by(Task.due_date.asc()).all()
     )
+    if user.role == "staff":  # the owner's personal to-dos are theirs alone
+        open_tasks = [t for t in open_tasks if (t.category or "") != "personal"]
     overdue = [t for t in open_tasks if t.due_date and t.due_date < today]
     due_today = [t for t in open_tasks if t.due_date == today]
 

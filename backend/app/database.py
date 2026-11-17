@@ -53,7 +53,7 @@ def ensure_columns():
             "invoice_payment_link": "VARCHAR(500) DEFAULT ''", "invoice_payment_link_label": "VARCHAR(80) DEFAULT ''",
             "invoice_notes_default": "TEXT DEFAULT ''", "invoice_deposit_percent": "INTEGER DEFAULT 0",
             "is_comp": "BOOLEAN DEFAULT 0",
-            "examples_hidden": "JSON",
+            "examples_hidden": "JSON", "nav_hidden": "JSON",
             "preorder_offer": "JSON", "preorder_offers": "JSON", "diary_rules": "JSON",
             "invoice_tax_label": "VARCHAR(20) DEFAULT ''",
             "job_setup": "JSON", "notify_prefs": "JSON",
@@ -65,7 +65,7 @@ def ensure_columns():
             "date_hold": "BOOLEAN DEFAULT 0", "hold_expires_at": "VARCHAR(19) DEFAULT ''",
             "deposit_amount": "FLOAT DEFAULT 0", "deposit_applied": "BOOLEAN DEFAULT 0",
             "hold_stage": "VARCHAR(16) DEFAULT ''", "day_load": "FLOAT DEFAULT 0",
-            "job_plan": "JSON",
+            "job_plan": "JSON", "no_invoice": "BOOLEAN DEFAULT 0",
         },
         "clients": {"regular": "BOOLEAN DEFAULT 0"},
         "diary_blocks": {"source": "VARCHAR(16) DEFAULT ''", "ext_uid": "VARCHAR(200) DEFAULT ''"},
@@ -88,6 +88,7 @@ def ensure_columns():
             "deposit_type": "VARCHAR(10) DEFAULT ''", "deposit_value": "FLOAT DEFAULT 0",
             "service_date": "VARCHAR(10) DEFAULT ''", "service_type": "VARCHAR(80) DEFAULT ''",
             "service_time": "VARCHAR(5) DEFAULT ''", "service_package": "VARCHAR(80) DEFAULT ''", "service_days": "JSON",
+            "no_date": "BOOLEAN DEFAULT 0",
         },
     }
     inspector = sa.inspect(engine)

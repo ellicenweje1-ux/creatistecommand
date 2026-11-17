@@ -196,6 +196,9 @@ def update_me(payload: dict = Body(...), db: Session = Depends(get_db), user: Us
     # Assign a fresh list so SQLAlchemy detects the JSON change.
     if isinstance(payload.get("examples_hidden"), list):
         user.examples_hidden = [str(k).strip()[:30] for k in payload["examples_hidden"] if str(k).strip()][:60]
+    # Menu items tucked away under "More tools" (a fresh list, so the JSON change is saved).
+    if isinstance(payload.get("nav_hidden"), list):
+        user.nav_hidden = [str(k).strip()[:60] for k in payload["nav_hidden"] if str(k).strip().startswith("/app")][:60]
     # Changing the logo on a live public listing sends it back for re-approval.
     if user.feature_publicly and user.feature_status == "approved" and user.avatar_url != old_avatar:
         user.feature_status = "pending"

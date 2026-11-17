@@ -29,7 +29,8 @@ orders = crud_router(OnlineOrder, required=("supplier",), search_fields=("suppli
 shopping = crud_router(ShoppingList, required=("title",), search_fields=("title",),
                        default_order=lambda m: [m.status.asc(), m.shop_date.asc()])
 tasks = crud_router(Task, required=("title",), search_fields=("title", "description"),
-                    default_order=lambda m: [m.status.asc(), m.due_date.asc(), m.sort_order.asc()])
+                    default_order=lambda m: [m.status.asc(), m.due_date.asc(), m.sort_order.asc()],
+                    owner_only=lambda t: (t.category or "") == "personal")   # the owner's personal to-dos stay private from staff
 routes = crud_router(RoutePlan, required=("title",), search_fields=("title",),
                      default_order=lambda m: [m.date.asc()], min_plan=2)
 appointments = crud_router(Appointment, required=("title",), search_fields=("title", "location"),

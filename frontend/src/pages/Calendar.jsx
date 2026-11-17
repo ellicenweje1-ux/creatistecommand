@@ -11,9 +11,10 @@ import { InvoiceEditorModal } from './Finance'
 import { CalendarFeedCard, NotificationsCard } from './Settings'
 
 /* Calendar — invoice-first. Every job starts as an invoice (or a website order / date request); saving it puts the job on
-   its day, and the service's setup adds its shop and prep as steps with a window of days. The chef picks the day and types
-   the time for each step (To plan), exactly as they would on a pad. The same calendar goes to their phone (Phone &
-   notifications), and how each service runs is theirs to set (Your services). */
+   its day, and the service's setup adds its shop and prep as steps with a window of days. Each step sits on a suggested
+   day (the last working day of its window) until the chef gives it a day and time, exactly as they would on a pad, or tells
+   the assistant. Dated to-dos show on their day too. The same calendar goes to their phone (Phone & notifications), and how
+   each service runs is theirs to set (Your services). */
 
 const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -31,10 +32,12 @@ const KIND_STYLE = {
   held: 'border-dashed border-copper text-copper',
   calendar: 'border-dashed border-fg/30 text-fg/60',
   block: 'border-dashed border-fg/30 text-fg/60',
+  todo: 'border-line text-fg/80',
 }
 const DOT = {
   day: 'bg-copper', shop: 'border-[1.5px] border-copper', prep: 'border border-fg/40 bg-parchment', custom: 'border border-fg/40 bg-parchment',
   held: 'border-[1.5px] border-dashed border-copper', calendar: 'border-[1.5px] border-dashed border-fg/40',
+  todo: 'rounded-full border-[1.5px] border-fg/50',
 }
 const Dot = ({ kind }) => <span className={cls('inline-block h-2.5 w-2.5 shrink-0 rounded-[3px]', DOT[kind] || DOT.prep)} aria-hidden="true" />
 
@@ -99,8 +102,12 @@ function CalendarTab() {
     if (!window.confirm('Remove this from your calendar?')) return
     try { await api.del(`/diary/blocks/${f.id}`); toast('Removed'); setBlock(null); load() } catch (e) { toastErr(e) }
   }
+  const tickTodo = async (e) => {
+    try { await api.patch(`/tasks/${e.task_id}`, { status: e.done ? 'todo' : 'done' }); if (!e.done) toast('Ticked off', 'sage'); load() } catch (err) { toastErr(err) }
+  }
   const clickEntry = (e) => {
-    if (e.job_id) setJob({ id: e.job_id, focus: e.si != null ? { si: e.si, ii: e.ii } : null })
+    if (e.kind === 'todo') tickTodo(e)
+    else if (e.job_id) setJob({ id: e.job_id, focus: e.si != null ? { si: e.si, ii: e.ii } : null })
     else if (e.kind === 'held') document.querySelector('[data-holds-strip]')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     else if (e.kind === 'calendar') toast('This comes from your other calendar. Change it there and Command follows.')
     else if (e.block_id) openBlock(e.block_id)
@@ -121,34 +128,6 @@ function CalendarTab() {
     <div className="space-y-5">
       <HoldsStrip holds={holds} currency={user?.currency} onChanged={refresh} onPaid={afterDeposit} />
 
-      <section data-to-plan>
-        <div className="mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h2 className="font-display text-xl font-semibold">To plan</h2>
-          <p className="text-sm text-fg/55">{data.to_plan.length ? `${data.to_plan.length} still need a day and time. Write them in like you would on your pad.` : 'Nothing waiting. Every shop and prep has a day.'}</p>
-        </div>
-        {data.to_plan.length ? (
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            {data.to_plan.slice(0, 12).map((t) => {
-              const last = t.window[1]
-              const soon = last <= addDaysISO(today, 1)
-              return (
-                <div key={`${t.job_id}-${t.si}-${t.ii}`} className="flex min-w-0 flex-col gap-1 rounded-xl border border-line bg-card px-3 py-2.5" data-plan-card>
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="flex min-w-0 items-center gap-2 text-sm font-medium"><Dot kind={t.kind} /><span className="truncate">{t.name} · {t.who}</span></p>
-                    <span className={cls('shrink-0 rounded-full border px-2 py-0.5 text-[11px]', soon ? 'border-amber-500 text-amber-600 dark:text-amber-400' : 'border-line text-fg/55')}>
-                      {last < today ? 'Window passed' : last === today ? 'By today' : `By ${short(last)}`}
-                    </span>
-                  </div>
-                  <p className="text-xs text-fg/55">{t.service} on {short(t.job_date)}. {t.window[0] === t.window[1] ? (t.window[0] === t.job_date ? 'Same day.' : `On ${short(t.window[0])}.`) : `${windowText(t.window)}.`}</p>
-                  <Button size="sm" variant="secondary" className="mt-1 self-start" onClick={() => setJob({ id: t.job_id, focus: { si: t.si, ii: t.ii } })} data-plan-it>Plan it</Button>
-                </div>
-              )
-            })}
-          </div>
-        ) : <p className="rounded-xl border border-dashed border-line px-4 py-3 text-sm text-fg/55">All planned. New invoices add their shop and prep here.</p>}
-        {data.to_plan.length > 12 ? <p className="mt-2 text-xs text-fg/50">And {data.to_plan.length - 12} more further ahead.</p> : null}
-      </section>
-
       <section>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-xl font-semibold" data-week-title>{title}</h2>
@@ -166,7 +145,11 @@ function CalendarTab() {
           <span className="inline-flex items-center gap-1.5"><Dot kind="day" />On the day</span>
           <span className="inline-flex items-center gap-1.5"><Dot kind="held" />Held for a date request</span>
           <span className="inline-flex items-center gap-1.5"><Dot kind="calendar" />From your other calendar, or blocked out</span>
+          <span className="inline-flex items-center gap-1.5"><Dot kind="todo" />To-do</span>
         </div>
+        {days.some((d) => d.entries.some((e) => e.auto)) ? (
+          <p className="mb-3 text-xs text-fg/55" data-suggested-note>A dashed shop or prep is on a <strong>suggested day</strong>. Tap it to give it your own day and time, or tell Mise.</p>
+        ) : null}
         <div className="grid grid-cols-1 gap-2 lg:grid-cols-7" data-week>
           {days.map((d) => (
             <div key={d.date} data-day={d.date}
@@ -199,12 +182,26 @@ function CalendarTab() {
 }
 
 function Entry({ e, onClick }) {
+  if (e.kind === 'todo') {
+    return (
+      <button type="button" onClick={onClick} data-entry="todo" title={e.done ? 'Not done after all' : 'Tick off'}
+        className={cls('flex w-full min-w-0 items-start gap-1.5 rounded-lg border px-2 py-1.5 text-left transition-opacity hover:opacity-90', KIND_STYLE.todo, e.done && 'opacity-50')}>
+        <span className={cls('mt-0.5 inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border-[1.5px]', e.done ? 'border-copper bg-copper text-ink' : 'border-fg/50')}>
+          {e.done ? <svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5 10 17l9-10" /></svg> : null}
+        </span>
+        <span className="min-w-0">
+          <span className={cls('block break-words text-[13px] font-medium leading-snug', e.done && 'line-through')}>{e.who}</span>
+          <span className="block text-[10px] font-semibold uppercase tracking-wide opacity-70">{['To-do', e.time ? showTime(e.time) : '', e.overdue ? 'overdue' : '', e.sub].filter(Boolean).join(' · ')}</span>
+        </span>
+      </button>
+    )
+  }
   const allDay = e.kind === 'held' || e.kind === 'calendar' || e.kind === 'block'
-  const t = e.time ? timeRange(e.time, e.end) : allDay ? 'All day' : 'Any time'
+  const t = e.time ? timeRange(e.time, e.end) : allDay ? 'All day' : e.auto ? 'Suggested day' : 'Any time'
   const head = e.kind === 'held' ? 'Held' : e.kind === 'calendar' ? 'Busy' : e.kind === 'block' ? e.sub : e.label
   return (
-    <button type="button" onClick={onClick} data-entry={e.kind}
-      className={cls('w-full min-w-0 rounded-lg border px-2 py-1.5 text-left transition-opacity hover:opacity-90', KIND_STYLE[e.kind] || KIND_STYLE.prep)}>
+    <button type="button" onClick={onClick} data-entry={e.kind} data-auto={e.auto ? '1' : undefined}
+      className={cls('w-full min-w-0 rounded-lg border px-2 py-1.5 text-left transition-opacity hover:opacity-90', KIND_STYLE[e.kind] || KIND_STYLE.prep, e.auto && 'border-dashed opacity-80')}>
       <span className="block text-[10px] font-semibold uppercase tracking-wide">{head} · {t}</span>
       <span className="block break-words text-[13px] font-medium leading-snug">{e.who}</span>
       {e.sub && e.kind !== 'block' ? <span className="block break-words text-[11px] leading-snug opacity-75">{e.sub}</span> : null}
@@ -242,7 +239,7 @@ function JobModal({ job: target, onClose, onChanged, canInvoice, onMakeInvoice, 
   }
   const unplan = async () => {
     setBusy(true)
-    try { const j = await api.patch(`/jobs/${job.id}/session`, { si: edit.si, ii: edit.ii, day: '', time: '' }); setEdit(null); done(j, 'Back in To plan') } catch (e) { toastErr(e) } finally { setBusy(false) }
+    try { const j = await api.patch(`/jobs/${job.id}/session`, { si: edit.si, ii: edit.ii, day: '', time: '' }); setEdit(null); done(j, 'Back on its suggested day') } catch (e) { toastErr(e) } finally { setBusy(false) }
   }
   const removeRun = async () => {
     setBusy(true)
@@ -259,7 +256,7 @@ function JobModal({ job: target, onClose, onChanged, canInvoice, onMakeInvoice, 
     setBusy(true)
     try {
       const j = await api.patch(`/jobs/${job.id}`, payload)
-      done(j, payload.date ? `Moved to ${fmtDate(j.date)}.${j.cleared ? ` ${j.cleared} step${j.cleared > 1 ? 's' : ''} went back to To plan.` : ''}` : 'Saved')
+      done(j, payload.date ? `Moved to ${fmtDate(j.date)}.${j.cleared ? ` ${j.cleared} step${j.cleared > 1 ? 's' : ''} moved to a new suggested day.` : ''}` : 'Saved')
     } catch (e) { toastErr(e) } finally { setBusy(false) }
   }
 
@@ -317,8 +314,9 @@ function JobModal({ job: target, onClose, onChanged, canInvoice, onMakeInvoice, 
                   return (
                     <div key={ii} className="mt-2 border-t border-line pt-2" data-session={`${si}-${ii}`}>
                       <div className="flex items-center justify-between gap-2 text-sm">
-                        {s.day ? <span>{fmtDate(s.day)} · {s.time ? showTime(s.time) : 'any time'}</span> : <span className="text-amber-600 dark:text-amber-400">Not planned yet</span>}
-                        {!editing ? <Button size="sm" variant="secondary" onClick={() => setEdit({ si, ii, day: s.day, text: showTime(s.time) })} data-plan-open>{s.day ? 'Change' : 'Plan it'}</Button> : null}
+                        {s.day ? <span>{fmtDate(s.day)} · {s.time ? showTime(s.time) : 'any time'}{s.auto ? <span className="ml-2 rounded-full border border-dashed border-fg/30 px-2 py-0.5 text-[11px] text-fg/55" data-suggested>suggested</span> : null}</span>
+                          : <span className="text-amber-600 dark:text-amber-400">No day yet</span>}
+                        {!editing ? <Button size="sm" variant="secondary" onClick={() => setEdit({ si, ii, day: s.day, text: showTime(s.time) })} data-plan-open>{s.day && !s.auto ? 'Change' : 'Set day & time'}</Button> : null}
                       </div>
                       {editing ? (
                         <div className="mt-2 rounded-lg border border-copper/50 p-3" data-plan-editor>
@@ -342,7 +340,7 @@ function JobModal({ job: target, onClose, onChanged, canInvoice, onMakeInvoice, 
                           <div className="mt-3 flex flex-wrap gap-2">
                             <Button size="sm" onClick={savePlan} disabled={busy} data-plan-save>Save</Button>
                             <Button size="sm" variant="ghost" onClick={() => setEdit(null)}>Cancel</Button>
-                            {s.day ? <Button size="sm" variant="ghost" onClick={unplan} disabled={busy}>Unplan</Button> : null}
+                            {s.day && !s.auto ? <Button size="sm" variant="ghost" onClick={unplan} disabled={busy}>Back to the suggested day</Button> : null}
                             {st.sessions.length > 1 ? <Button size="sm" variant="ghost" icon="trash" onClick={removeRun} disabled={busy}>Remove this one</Button> : null}
                           </div>
                         </div>
@@ -557,8 +555,8 @@ function PhoneTab() {
   const owner = !user?.is_staff
   const [setup, setSetup] = useState(null)
   useEffect(() => { if (owner) api.get('/jobs/setup').then(setSetup).catch(() => {}) }, [owner])
-  const toggleRemind = async (v) => {
-    try { setSetup(await api.put('/jobs/setup', { services: setup.services, remind_unplanned: v })); toast(v ? 'Unplanned steps will show on your phone' : 'Only planned steps will show on your phone') } catch (e) { toastErr(e) }
+  const toggleTodos = async (v) => {
+    try { setSetup(await api.put('/jobs/setup', { services: setup.services, todos_in_feed: v })); toast(v ? 'Dated to-dos will show on your phone calendar' : 'To-dos stay off your phone calendar') } catch (e) { toastErr(e) }
   }
   const [status, setStatus] = useState(null)
   const loadStatus = () => api.get('/jobs/phone-status').then(setStatus).catch(() => {})
@@ -583,8 +581,8 @@ function PhoneTab() {
         {owner && user?.calendar_token ? <CalendarFeedCard token={user.calendar_token} /> : null}
         {owner && setup ? (
           <Card className="p-4">
-            <Toggle checked={setup.remind_unplanned} onChange={toggleRemind} label="Show unplanned steps on my phone as all-day reminders" />
-            <p className="mt-1.5 text-xs text-fg/50">Anything still in To plan appears on its last possible day, so it isn’t forgotten.</p>
+            <Toggle checked={setup.todos_in_feed !== false} onChange={toggleTodos} label="Show my dated to-dos on my phone calendar" />
+            <p className="mt-1.5 text-xs text-fg/50">To-dos with a date appear on that day, business and personal. Shop and prep always show, on the day you gave them or their suggested day.</p>
           </Card>
         ) : null}
         {owner ? <CalendarCard onChanged={loadStatus} /> : null}

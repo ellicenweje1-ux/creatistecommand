@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { cls, fmtDate, fmtMoney, INVOICE_STATUSES, INVOICE_TONES, invoiceTotal, SYMBOLS, todayISO, uid } from '../format'
@@ -72,6 +73,7 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
   }, [open, form.booking_id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
+  const [moreDay, setMoreDay] = useState('')
   // The service decides the job's shop / prep steps; a package can cover several days and sets how long each runs.
   const svc = services.find((x) => x.name.toLowerCase() === (form.service_type || '').trim().toLowerCase())
   const svcPackage = (svc?.packages || []).find((p) => p.name === form.service_package)
@@ -126,10 +128,14 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
     ? Math.max(0, total * (Number(form.deposit_value) || 0) / 100)
     : form.deposit_type === 'amount' ? Math.min(Number(form.deposit_value) || 0, total) : 0
 
+  // Several dates on one invoice without a package (one payment for two visits): the first day + the extra days.
+  const extraDays = multiDay ? [] : [...new Set((form.service_days || []).filter((d) => d && d !== form.service_date))].sort()
+  const allDays = [...new Set([form.service_date, ...extraDays].filter(Boolean))].sort()
   const buildPayload = () => ({
     ...form, tax_rate: Number(form.tax_rate) || 0, discount: Number(form.discount) || 0,
     service_time: parseTime(timeText) || '',
-    service_days: multiDay ? [...(form.service_days || [])].sort() : [],
+    service_date: multiDay ? form.service_date : (allDays[0] || ''),
+    service_days: multiDay ? [...(form.service_days || [])].sort() : (allDays.length > 1 ? allDays : []),
     service_package: svcPackage ? svcPackage.name : '',
     deposit_type: form.deposit_type || '', deposit_value: Number(form.deposit_value) || 0,
     client_id: form.client_id ? Number(form.client_id) : null,
@@ -251,10 +257,10 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
             </Field>
           )}
           <Field label={multiDay ? 'First day' : 'Service day'} hint={form.service_date ? 'Puts this job on your calendar, with its shop and prep.' : 'The day you are cooking or delivering. Add it to put this job on your calendar.'}>
-            <Input type="date" value={form.service_date || ''} onChange={(e) => setForm({ ...form, service_date: e.target.value, service_days: multiDay && e.target.value ? spread(weekOf(e.target.value), svcPackage.days) : form.service_days })} data-service-date className={!form.service_date && form.client_id ? 'ring-1 ring-amber-400/60' : ''} />
+            <Input type="date" value={form.service_date || ''} onChange={(e) => setForm({ ...form, service_date: e.target.value, service_days: multiDay && e.target.value ? spread(weekOf(e.target.value), svcPackage.days) : extraDays })} data-service-date className={!form.service_date && form.client_id ? 'ring-1 ring-amber-400/60' : ''} />
           </Field>
           <Field label="Service" hint="Sets the shop and prep steps on your calendar.">
-            <ComboInput value={form.service_type || ''} onChange={(e) => setForm({ ...form, service_type: e.target.value, service_package: '', service_days: [] })} options={[...new Set([...services.map((x) => x.name), ...(user?.services || [])])]} data-service-type />
+            <ComboInput value={form.service_type || ''} onChange={(e) => setForm({ ...form, service_type: e.target.value, service_package: '', service_days: form.service_package ? [] : extraDays })} options={[...new Set([...services.map((x) => x.name), ...(user?.services || [])])]} data-service-type />
           </Field>
           {svc?.packages?.length ? (
             <Field label="Package" hint={svcPackage ? `${svcPackage.days} day${svcPackage.days > 1 ? 's' : ''} · ${svcPackage.hours} hours a day` : 'Optional'}>
@@ -276,6 +282,22 @@ export function InvoiceEditorModal({ open, onClose, onSaved, initial = null, boo
                   return <button key={iso} type="button" onClick={() => toggleServiceDay(iso)} aria-pressed={on} data-service-day={iso}
                     className={cls('rounded-full border px-3 py-1 text-xs', on ? 'border-copper bg-copper text-ink' : 'border-line text-fg/65 hover:border-copper/60')}>{fmtDate(iso)}</button>
                 })}
+              </div>
+            </div>
+          ) : null}
+          {!multiDay && form.service_date ? (
+            <div className="col-span-2" data-more-days>
+              <p className="label">More days on this invoice <span className="normal-case tracking-normal text-fg/45">(optional: when one payment covers several dates)</span></p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                {extraDays.map((iso) => (
+                  <span key={iso} className="inline-flex items-center gap-1.5 rounded-full border border-copper/60 px-3 py-1 text-xs" data-extra-day={iso}>
+                    {fmtDate(iso)}
+                    <button type="button" aria-label={`Remove ${fmtDate(iso)}`} className="text-fg/50 hover:text-fg" onClick={() => setForm({ ...form, service_days: extraDays.filter((d) => d !== iso) })}>×</button>
+                  </span>
+                ))}
+                <Input type="date" className="!w-40" value={moreDay} onChange={(e) => setMoreDay(e.target.value)} aria-label="Another day" data-more-day />
+                <Button type="button" size="sm" variant="secondary" disabled={!moreDay || moreDay === form.service_date || extraDays.includes(moreDay)}
+                  onClick={() => { setForm({ ...form, service_days: [...extraDays, moreDay] }); setMoreDay('') }} data-add-day>Add this day</Button>
               </div>
             </div>
           ) : null}
@@ -560,7 +582,8 @@ function MonthlyChart({ monthly, currency }) {
 export default function Finance() {
   const { user } = useAuth()
   const cur = user?.currency || 'GBP'
-  const [tab, setTab] = useState('overview')
+  const [params, setParams] = useSearchParams()
+  const [tab, setTab] = useState(() => (['overview', 'quotes', 'invoices', 'expenses'].includes(params.get('tab')) ? params.get('tab') : 'overview'))
   const [summary, setSummary] = useState(null)
   const [invoices, setInvoices] = useState([])
   const [expenses, setExpenses] = useState([])
@@ -601,6 +624,15 @@ export default function Finance() {
     } catch (e) { toastErr(e) } finally { setReceipting(null) }
   }
   useEffect(load, [])
+  // Opened from Today, Paid & booked or the assistant: /app/finance?tab=invoices&invoice=12 (or &receipt=12).
+  useEffect(() => {
+    const openId = Number(params.get('invoice')), receiptId = Number(params.get('receipt'))
+    if (!openId && !receiptId) return
+    const inv = invoices.find((i) => i.id === (openId || receiptId))
+    if (!inv) return
+    if (openId) setInvoiceModal({ open: true, initial: inv }); else sendReceipt(inv)
+    const p = new URLSearchParams(params); p.delete('invoice'); p.delete('receipt'); setParams(p, { replace: true })
+  }, [invoices, params]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!summary) return <Spinner />
 
   return (

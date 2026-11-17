@@ -94,6 +94,8 @@ class User(Base):
     # Worked-example cards shown at the top of each module for new chefs — page keys the
     # user has dismissed ("all" hides every card). NB existing rows migrate as NULL.
     examples_hidden: Mapped[list] = mapped_column(JSON, default=list)
+    # Menu items this login has tucked away under "More tools" (paths like /app/routes). NULL / [] = the full menu.
+    nav_hidden: Mapped[list] = mapped_column(JSON, default=list)
     # The chef's public pre-order offer (menu, slots, delivery policy) — see routers/preorders.py.
     preorder_offer: Mapped[dict] = mapped_column(JSON, default=dict)
     # More order pages beside the main one: one-off pop-ups and events ([{slug, title, date, closes, items, ...}]).
@@ -251,6 +253,8 @@ class Booking(OwnedMixin, Base):
     # The job plan (invoice-first calendar): {service, package, days:[iso...], steps:[{kind,name,from,to,sessions:[{day,time,sent?}]}],
     # built, sent:[...]}. Built from the chef's service setup (routers/jobs.py); shop / prep sessions are planned by the chef.
     job_plan: Mapped[dict] = mapped_column(JSON, default=dict)
+    # "No invoice needed" (a favour, a free tasting): keeps this job off the Paid & booked "no invoice yet" list.
+    no_invoice: Mapped[bool] = mapped_column(Boolean, default=False)
     menu: Mapped[list] = mapped_column(JSON, default=list)       # [{id,course,name,recipe_id,notes}]
     equipment: Mapped[list] = mapped_column(JSON, default=list)  # [str]
     dietary_notes: Mapped[str] = mapped_column(Text, default="")
@@ -389,6 +393,8 @@ class Invoice(OwnedMixin, Base):
     service_time: Mapped[str] = mapped_column(String(5), default="")      # start time on the day, HH:MM (optional)
     service_package: Mapped[str] = mapped_column(String(80), default="")  # a package of the service (sets days a week + hours)
     service_days: Mapped[list] = mapped_column(JSON, default=list)        # every day a multi-day package covers (first = service_date)
+    # "No date needed" (a product, a past job, a top-up): keeps this invoice off the Paid & booked "no date yet" list.
+    no_date: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class Expense(OwnedMixin, Base):

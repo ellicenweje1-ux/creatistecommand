@@ -5,6 +5,7 @@ import { useAuth } from '../auth'
 import { perkIcon, perkTitle } from '../booking'
 import { DEFAULT_CONTACT_TEMPLATE } from '../contact'
 import { cls, fmtMoney, label, renderDocNumber, SYMBOLS, todayISO } from '../format'
+import { NAV_ITEMS } from '../nav'
 import { getInstallPrompt, isStandalone } from '../offline'
 import { currentSubscription, disablePush, enablePush, getPushConfig, iosNeedsInstall, permissionState, pushSupported, sendTestPush } from '../push'
 import { Badge, Button, Card, Field, Icon, IconButton, Input, PasswordInput, Modal, PageHeader, Select, Stars, Textarea, Toggle, toast, toastErr } from '../ui'
@@ -619,10 +620,44 @@ export function SettingsAppearance() {
         ))}
       </div>
     </Card>
+      <MenuCard />
       <ExamplesCard />
     </>
   )
 }
+
+/* Your menu: keep the sections you use every day in view; the rest sit under "More tools", one tap away. Nothing is
+   switched off or deleted by this, it only tidies the menu. Saved on the account (users.nav_hidden), so it follows you. */
+function MenuCard() {
+  const { user, setUser } = useAuth()
+  const level = user?.role === 'admin' ? 3 : (user?.plan_level ?? 1)
+  const items = NAV_ITEMS.filter((i) => i.to !== '/app' && !(i.ownerOnly && user?.is_staff) && !(i.min && level < i.min))
+  const hidden = new Set(user?.nav_hidden || [])
+  const save = (list) => api.put('/auth/me', { nav_hidden: list }).then(setUser).catch(toastErr)
+  const toggle = (to, show) => save(show ? [...hidden].filter((p) => p !== to) : [...hidden, to])
+  return (
+    <Card title="Your menu" data-menu-card>
+      <p className="mb-3 text-sm text-fg/60">
+        Keep the sections you use every day in your menu. Anything you switch off moves under <strong>More tools</strong>, one tap away. Nothing is deleted.
+      </p>
+      <ul className="divide-y divide-line rounded-lg border border-line">
+        <li className="flex items-center justify-between gap-3 px-3 py-2 text-sm"><span className="flex items-center gap-2.5"><Icon name="sun" size={16} className="text-copper" />Today</span><span className="text-xs text-fg/45">Always in your menu</span></li>
+        {items.map((i) => (
+          <li key={i.to} className="flex items-center justify-between gap-3 px-3 py-2 text-sm" data-menu-item={i.to}>
+            <span className="flex items-center gap-2.5"><Icon name={i.icon} size={16} className="text-copper" />{i.label}</span>
+            <Toggle checked={!hidden.has(i.to)} onChange={(v) => toggle(i.to, v)} />
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button size="sm" variant="secondary" onClick={() => save([])} disabled={!hidden.size} data-menu-all>Show everything</Button>
+        <Button size="sm" variant="secondary" onClick={() => save(items.filter((i) => !EVERYDAY.includes(i.to)).map((i) => i.to))} data-menu-simple>Keep it simple</Button>
+      </div>
+      <p className="mt-2 text-xs text-fg/45">“Keep it simple” leaves Today, Calendar, Paid &amp; booked, Clients, Finance, Pre-orders and To-dos in view.</p>
+    </Card>
+  )
+}
+const EVERYDAY = ['/app/calendar', '/app/standing', '/app/clients', '/app/finance', '/app/preorders', '/app/tasks']
 
 /* Bring back the dismissed worked-example cards shown at the top of each module. */
 function ExamplesCard() {
@@ -1098,7 +1133,14 @@ function NotifyPrefs() {
           {(p.lead_choices || []).map((n) => <option key={n} value={n}>{leadLabel(n)}</option>)}
         </Select>
       </Field>
-      <p className="mt-1.5 text-xs text-fg/45">Steps with no time set pop up at 8am on their day. Anything still unplanned gets a nudge at 6pm the evening before its last day.</p>
+      {p.brief ? (
+        <Field label="Send my morning summary at" className="mt-3">
+          <Select value={p.brief_time} onChange={(e) => save({ brief_time: e.target.value })} data-notify-brief-time>
+            {(p.brief_times || []).map((t) => <option key={t} value={t}>{t}</option>)}
+          </Select>
+        </Field>
+      ) : null}
+      <p className="mt-1.5 text-xs text-fg/45">{p.brief ? 'The morning summary says what is on today and what is waiting for you. Shop, prep and jobs with no time set are part of it, rather than popping up one by one.' : 'Steps with no time set pop up at 8am on their day.'}</p>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { BOOKING_STATUSES, BOOKING_TONES, cls, fmtDate, fmtMoney, label, relDays, todayISO } from '../format'
@@ -337,7 +337,8 @@ export default function Bookings() {
   const navigate = useNavigate()
   const [bookings, setBookings] = useState(null)
   const [holds, setHolds] = useState([])
-  const [view, setView] = useState('list')
+  const [params] = useSearchParams()   // Today links straight to the pipeline: /app/bookings?view=pipeline
+  const [view, setView] = useState(() => (['list', 'pipeline', 'calendar'].includes(params.get('view')) ? params.get('view') : 'list'))
   const [filter, setFilter] = useState('upcoming')
   const [creating, setCreating] = useState(false)
   const [pencil, setPencil] = useState(false)
