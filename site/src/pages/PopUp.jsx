@@ -327,8 +327,11 @@ function Viewer({ items, index, setIndex }) {
 
 export default function PopUp({ cfg }) {
   const [params] = useSearchParams()
+  // A private link (?invite=code) keeps the page open for the people it was shared with after it closes to the public.
+  // Bank transfer only; the code is checked by Command, so a wrong or switched-off code just shows the page as closed.
+  const invite = (params.get('invite') || '').trim()
   const [menu, setMenu] = useState(cfg.menu)
-  const [info, setInfo] = useState({ payments: 'off', state: localState(cfg.menu), closes_text: closesText(cfg.menu.closes), boxes_left: null, live: false })
+  const [info, setInfo] = useState({ payments: 'off', state: invite && API ? 'checking' : localState(cfg.menu), closes_text: closesText(cfg.menu.closes), boxes_left: null, live: false, private: false })
   const [boxes, setBoxes] = useState([])
   const [stage, setStage] = useState('build')
   const [f, setF] = useState({ name: '', email: '', phone: '', allergies: '', note: '', company: '' })
@@ -345,18 +348,18 @@ export default function PopUp({ cfg }) {
   useEffect(() => {
     document.title = `Pre-order · ${cfg.name} · The Creatiste Catering`
     if (!API) return
-    fetch(`${API}/${SETTINGS.enquiryToken}?offer=${encodeURIComponent(cfg.slug)}`).then((r) => (r.ok ? r.json() : Promise.reject(r))).then((d) => {
+    fetch(`${API}/${SETTINGS.enquiryToken}?offer=${encodeURIComponent(cfg.slug)}${invite ? `&key=${encodeURIComponent(invite)}` : ''}`).then((r) => (r.ok ? r.json() : Promise.reject(r))).then((d) => {
       if (d.offer?.items?.length) setMenu(d.offer)
-      setInfo({ payments: d.payments, state: d.state, closes_text: d.closes_text || closesText(d.offer?.closes), boxes_left: d.boxes_left ?? null, live: true })
-    }).catch(() => {})
-  }, [cfg.slug, cfg.name])
+      setInfo({ payments: d.payments, state: d.state, closes_text: d.closes_text || closesText(d.offer?.closes), boxes_left: d.boxes_left ?? null, live: true, private: !!d.private })
+    }).catch(() => setInfo((i) => ({ ...i, state: i.state === 'checking' ? localState(cfg.menu) : i.state })))
+  }, [cfg.slug, cfg.name, invite])
 
   const total = useMemo(() => boxes.reduce((s, b) => s + b.price, 0), [boxes])
   const slot = (menu.slots || [])[0]
   const open = info.state === 'open'
   const card = API && info.payments === 'stripe'
   const ready = boxes.length && f.name.trim() && f.email.trim() && f.phone.trim()
-  const payload = () => ({ ...f, offer: cfg.slug, date: menu.date, fulfilment: 'collection', slot_id: slot?.id || '', boxes: boxes.map((b) => ({ item_id: b.item_id, for: b.for, choices: b.choices, note: b.note })) })
+  const payload = () => ({ ...f, ...(info.private ? { key: invite } : {}), offer: cfg.slug, date: menu.date, fulfilment: 'collection', slot_id: slot?.id || '', boxes: boxes.map((b) => ({ item_id: b.item_id, for: b.for, choices: b.choices, note: b.note })) })
   const toCheckout = () => { setStage('checkout'); setTimeout(() => checkoutRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60) }
   const bankText = () => `${bank.name}\n${bank.bank}\nAccount number ${bank.account}\nSort code ${bank.sort}\nReference ${f.name || 'your name'}\nAmount ${money(total)}`
   const copyBank = async () => { try { await navigator.clipboard.writeText(bankText()); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {} }
@@ -418,8 +421,12 @@ export default function PopUp({ cfg }) {
             <p className="mt-4 font-oswald text-[20px] font-light lowercase sm:text-[24px]">{cfg.when} · {cfg.where}</p>
             <p className="mt-6 max-w-xl font-body text-[16px] font-light leading-relaxed opacity-90">{cfg.sub}</p>
             <p className="mt-6 inline-block border px-4 py-2 font-oswald text-[14px] uppercase tracking-wide" style={{ borderColor: 'rgba(248,236,215,.45)' }} data-popup-state={info.state}>
-              {open ? (info.closes_text ? `Pre-orders close ${info.closes_text}` : 'Pre-orders open') + (info.boxes_left != null ? ` · ${info.boxes_left} boxes left` : '') : closedCopy?.[0]}
+              {info.state === 'checking' ? 'Opening your private link…'
+                : open && info.private ? 'Private pre-orders open' + (info.boxes_left != null ? ` · ${info.boxes_left} boxes left` : '')
+                  : open ? (info.closes_text ? `Pre-orders close ${info.closes_text}` : 'Pre-orders open') + (info.boxes_left != null ? ` · ${info.boxes_left} boxes left` : '') : closedCopy?.[0]}
             </p>
+            {info.private && open ? <p className="mt-4 max-w-xl border px-4 py-3 font-body text-[13px]" style={{ borderColor: AMBER, color: AMBER }} data-private-banner>You’re on a private pre-order link, shared with you personally. Orders here are paid by bank transfer. Please don’t pass the link on.</p> : null}
+            {invite && info.live && !info.private ? <p className="mt-4 max-w-xl border px-4 py-3 font-body text-[13px]" style={{ borderColor: 'rgba(248,236,215,.5)' }} data-private-expired>This private link isn’t active any more. Message us if you were hoping to order.</p> : null}
             <div className="mt-8 flex flex-wrap gap-3">
               {open ? <a href="#build" className="px-7 py-4 font-oswald text-[15px] uppercase tracking-wide" style={{ background: CREAM, color: MAROON }}>Build your box</a> : null}
               <a href="#menu" className="border px-7 py-4 font-oswald text-[15px] uppercase tracking-wide" style={{ borderColor: 'rgba(248,236,215,.6)' }}>See the menu</a>
@@ -505,7 +512,7 @@ export default function PopUp({ cfg }) {
                 </aside>
               </div>
             </>
-          ) : (
+          ) : info.state === 'checking' ? null : (
             <div className="mt-8 max-w-2xl border-l-4 py-2 pl-5" style={{ borderColor: MAROON }} data-closed>
               <p className="font-anton text-[34px] lowercase leading-none" style={{ color: MAROON }}>{closedCopy?.[0]}</p>
               <p className="mt-3 font-body text-[15px] leading-relaxed text-black/75">{closedCopy?.[1]}</p>

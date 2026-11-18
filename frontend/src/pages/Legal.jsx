@@ -480,7 +480,8 @@ export function Faq() {
           cut-off once; every order is priced from that on our side, each box is named by the customer so labelling
           is a read-off, and paid orders land on your calendar and in your inbox. Payments go to your own Stripe
           account, not ours. A pop-up gets its own order page with a closing time and an optional limit on boxes,
-          and a kitchen list adds up every portion for the night.
+          and a kitchen list adds up every portion for the night. After it closes, a private link lets the people you
+          choose still order, while the public page stays closed.
         </p>
       </Section>
       <Section heading="What if I delete something by mistake?">

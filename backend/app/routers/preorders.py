@@ -213,8 +213,16 @@ def _pretty_when(dt: datetime) -> str:
     return f"{dt.strftime('%A')} {dt.day} {dt.strftime('%B')} at {t}"
 
 
-def offer_state(offer: dict, now: datetime | None = None) -> str:
-    """open | paused | closed (pre-orders over) | finished (the day has passed). A lunch service is always open."""
+def invited(offer: dict, key: str | None) -> bool:
+    """The order page's private link: a secret code that keeps it open for the people it is shared with after it has
+    closed to the public. Bank transfer only. Pause still stops it, and nothing opens once the day has passed."""
+    want = str(offer.get("private_key") or "")
+    return bool(want) and bool(key) and secrets.compare_digest(want, str(key))
+
+
+def offer_state(offer: dict, now: datetime | None = None, private: bool = False) -> str:
+    """open | paused | closed (pre-orders over) | finished (the day has passed). A lunch service is always open.
+    `private`: the request came through the page's private link, so the closing time does not apply."""
     now = now or datetime.now(_tz())
     if offer.get("paused"):
         return "paused"
@@ -225,9 +233,14 @@ def offer_state(offer: dict, now: datetime | None = None) -> str:
         except ValueError:
             return "closed"
         closes = _closes(offer)
-        if closes and now >= closes:
+        if closes and now >= closes and not private:
             return "closed"
     return "open"
+
+
+def public_copy(offer: dict) -> dict:
+    """The offer as the public sees it: never the private link's code."""
+    return {k: v for k, v in offer.items() if k != "private_key"}
 
 
 def stripe_key() -> str:
@@ -255,12 +268,12 @@ def slot_text(slot: dict) -> str:
     return f"{slot['label']} | {slot.get('place') or ''}" + (f" @ {slot['time']}" if slot.get("time") else "")
 
 
-def open_dates(offer: dict, now: datetime | None = None) -> list[dict]:
+def open_dates(offer: dict, now: datetime | None = None, private: bool = False) -> list[dict]:
     """The next bookable days, in the business's local time, honouring the order cut-off. A one-off event (an offer with
     a `date`) has just that day, while it is open for orders."""
     now = now or datetime.now(_tz())
     if offer.get("date"):
-        if offer_state(offer, now) != "open":
+        if offer_state(offer, now, private) != "open":
             return []
         d = _date.fromisoformat(offer["date"])
         return [{"date": d.isoformat(), "label": f"{DAY_LABELS[d.weekday()]} {d.day} {d.strftime('%b')}"}]
@@ -352,9 +365,12 @@ def boxes_taken(db: Session, owner_id: int, offer: dict, day: str) -> int:
                if o.status in ("paid", "collected") or (o.status == "pending_payment" and o.pay_method == "bank"))
 
 
-def public_offer(db: Session, owner: User, offer: dict) -> dict:
-    out = {"offer": offer, "dates": open_dates(offer), "payments": payments_for(owner, offer), "state": offer_state(offer),
-           "business": owner.business_name or owner.name}
+def public_offer(db: Session, owner: User, offer: dict, private: bool = False) -> dict:
+    out = {"offer": public_copy(offer), "dates": open_dates(offer, private=private),
+           "payments": "off" if private else payments_for(owner, offer),        # the private link is bank transfer only
+           "state": offer_state(offer, private=private), "business": owner.business_name or owner.name}
+    if private:
+        out["private"] = True
     closes = _closes(offer)
     if closes:
         out["closes_text"] = _pretty_when(closes)
@@ -369,15 +385,16 @@ def public_offer(db: Session, owner: User, offer: dict) -> dict:
 
 
 @public_router.get("/{token}")
-def get_offer(token: str, offer: str = "", db: Session = Depends(get_db)):
+def get_offer(token: str, offer: str = "", key: str = "", db: Session = Depends(get_db)):
     owner = _owner(token, db)
-    return public_offer(db, owner, find_offer(owner, offer))
+    o = find_offer(owner, offer)
+    return public_offer(db, owner, o, private=invited(o, key))
 
 
 def _summary(order: PreOrder) -> dict:
     return {
         "public_id": order.public_id, "status": order.status, "title": order.offer_title, "offer_slug": order.offer_slug or "",
-        "pay_method": order.pay_method or "card", "name": order.customer_name,
+        "pay_method": order.pay_method or "card", "name": order.customer_name, "via": order.via or "",
         "date": order.for_date, "fulfilment": order.fulfilment, "slot": order.slot_label,
         "delivery_address": order.delivery_address, "total": order.subtotal, "currency": order.currency,
         "boxes": [{"for": b["for"], "item": b["item"], "summary": b["summary"], "price": b["price"]} for b in order.boxes or []],
@@ -600,7 +617,8 @@ def build_order(owner: User, payload: dict) -> PreOrder:
     """Validate a public order payload against the chef's offer and build the (unsaved) PreOrder.
     Shared by the card path (Stripe Checkout) and the bank-transfer path."""
     offer = find_offer(owner, payload.get("offer") or "")
-    state = offer_state(offer)
+    private = invited(offer, payload.get("key"))
+    state = offer_state(offer, private=private)
     if state != "open":
         msg = {"paused": "Orders are paused just now.", "finished": "This event has finished.",
                "closed": "Pre-orders have closed."}.get(state, "Orders aren't open.")
@@ -615,7 +633,7 @@ def build_order(owner: User, payload: dict) -> PreOrder:
     if not phone:
         raise HTTPException(422, "Please give a phone number so we can reach you about your order")
     date = (payload.get("date") or "").strip()[:10] or (offer.get("date") or "")
-    if date not in {d["date"] for d in open_dates(offer)}:
+    if date not in {d["date"] for d in open_dates(offer, private=private)}:
         raise HTTPException(422, "That day isn't open for orders. Pick one of the dates offered.")
     fulfilment = payload.get("fulfilment") or "collection"
     slot_label, slot_id, address = "", "", ""
@@ -644,7 +662,7 @@ def build_order(owner: User, payload: dict) -> PreOrder:
         status="pending_payment", customer_name=name, email=email, phone=phone,
         allergies=(payload.get("allergies") or "").strip()[:1000], for_date=date, fulfilment=fulfilment,
         slot_id=slot_id, slot_label=slot_label, delivery_address=address, note=(payload.get("note") or "").strip()[:1000],
-        boxes=boxes, subtotal=subtotal, currency=offer.get("currency") or "GBP",
+        boxes=boxes, subtotal=subtotal, currency=offer.get("currency") or "GBP", via="private" if private else "",
     )
 
 
@@ -680,7 +698,7 @@ def place_bank_order(request: Request, token: str, payload: dict = Body(...), db
     mails = awaiting_emails(owner, order)
     mailer.send_email(mails["chef"]["to"], mails["chef"]["subject"], mails["chef"]["body"])
     mailer.send_email(mails["customer"]["to"], mails["customer"]["subject"], mails["customer"]["body"])
-    notify.notify(db, owner, "orders", f"New {order.offer_title} order · £{order.subtotal:.2f}",
+    notify.notify(db, owner, "orders", f"New {order.offer_title} order{' (private link)' if order.via == 'private' else ''} · £{order.subtotal:.2f}",
                   f"{order.customer_name} · {_pretty_date(order.for_date)} · {len(order.boxes or [])} box(es). Paying by bank transfer: mark it paid once it lands.",
                   url="/app/preorders", tag=f"order-{order.public_id}")
     return {"ok": True, "public_id": order.public_id, "status": order.status, "total": order.subtotal}
@@ -711,6 +729,8 @@ def place_order(request: Request, token: str, payload: dict = Body(...), db: Ses
     if (payload.get("company") or "").strip():  # honeypot
         return {"ok": True, "public_id": secrets.token_hex(8), "status": "pending_payment", "url": ""}
     offer = find_offer(owner, payload.get("offer") or "")
+    if payload.get("key"):
+        raise HTTPException(422, "Orders through this link are paid by bank transfer.")
     if payments_for(owner, offer) != "stripe":
         raise HTTPException(503, "Card payment isn't switched on for this order page yet. Pay by bank transfer instead.")
 
@@ -823,7 +843,8 @@ def _page(db: Session, owner: User, offer: dict, main: bool) -> dict:
             "boxes_left": pub.get("boxes_left"), "paused": bool(offer.get("paused")),
             "slot": (offer.get("slots") or [{}])[0], "collect_note": offer.get("collect_note") or "",
             "items": [{"id": i["id"], "name": i["name"], "price": i.get("price") or 0} for i in offer.get("items") or []],
-            "offer": offer}
+            "private_key": offer.get("private_key") or "", "private_state": offer_state(offer, private=True),
+            "offer": public_copy(offer)}
 
 
 @router.get("/offers")
@@ -865,7 +886,14 @@ def save_page(slug: str, payload: dict = Body(...), db: Session = Depends(get_db
         raise HTTPException(404, "That order page isn't here")
     cur = copy.deepcopy(main if is_main else extras[idx])
     if isinstance(payload.get("offer"), dict):
+        keep = cur.get("private_key")
         cur = _clean_offer({**payload["offer"], "slug": slug})
+        if keep:
+            cur["private_key"] = keep          # the advanced editor never sees the code, so it can't wipe it
+    if payload.get("private_link") == "new":
+        cur["private_key"] = secrets.token_urlsafe(9)      # a fresh code: any earlier private link stops working
+    elif payload.get("private_link") == "off":
+        cur.pop("private_key", None)
     if payload.get("pay") in ("card", "bank"):
         cur["pay"] = payload["pay"]
     if "paused" in payload:

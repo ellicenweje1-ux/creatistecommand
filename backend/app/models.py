@@ -617,6 +617,7 @@ class PreOrder(OwnedMixin, Base):
     subtotal: Mapped[float] = mapped_column(Float, default=0)
     currency: Mapped[str] = mapped_column(String(8), default="GBP")
     pay_method: Mapped[str] = mapped_column(String(20), default="stripe")  # stripe | bank (transfer, confirmed by the chef)
+    via: Mapped[str] = mapped_column(String(16), default="")   # "private" = placed through the order page's private link
     stripe_session_id: Mapped[str] = mapped_column(String(120), default="")
     stripe_payment_intent: Mapped[str] = mapped_column(String(120), default="")
     paid_at: Mapped[datetime] = mapped_column(DateTime, nullable=True)

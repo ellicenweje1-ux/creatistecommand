@@ -69,7 +69,7 @@ def ensure_columns():
         },
         "clients": {"regular": "BOOLEAN DEFAULT 0"},
         "diary_blocks": {"source": "VARCHAR(16) DEFAULT ''", "ext_uid": "VARCHAR(200) DEFAULT ''"},
-        "preorders": {"pay_method": "VARCHAR(20) DEFAULT 'stripe'"},
+        "preorders": {"pay_method": "VARCHAR(20) DEFAULT 'stripe'", "via": "VARCHAR(16) DEFAULT ''"},
         "supplier_prices": {"quantity": "FLOAT DEFAULT 0"},
         "client_reviews": {
             "source": "VARCHAR(16) DEFAULT 'chef'", "status": "VARCHAR(16) DEFAULT ''",

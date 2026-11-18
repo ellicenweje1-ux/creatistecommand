@@ -103,6 +103,8 @@ function OrderPage({ page, user, cardReady, stripeKey, stripeAccount, onSaved })
   const link = page.path ? `${base}/${page.path}` : ''
   const [stateLabel, tone] = STATE[page.state] || [page.state, 'gray']
   const copy = async () => { try { await navigator.clipboard.writeText(link); toast('Link copied') } catch { window.prompt('Copy the link:', link) } }
+  const privateLink = page.private_key && page.path ? `${base || ''}/${page.path}?invite=${page.private_key}` : ''
+  const copyPrivate = async () => { try { await navigator.clipboard.writeText(privateLink); toast('Private link copied') } catch { window.prompt('Copy the private link:', privateLink) } }
   if (!f) return null
   const event = !!page.date
   return (
@@ -134,6 +136,25 @@ function OrderPage({ page, user, cardReady, stripeKey, stripeAccount, onSaved })
             : 'Bank transfer: mark each order paid when the money lands.'}
         </span>
       </div>
+
+      {event ? (
+        <div className="mt-4 border-t border-line pt-4" data-private-link>
+          <p className="text-sm font-medium">Private link</p>
+          <p className="mt-0.5 text-xs text-fg/55">For people you choose. It keeps this page open for them after it closes to everyone else (the public page stays closed), and they pay by bank transfer. Their orders land here with the rest, marked “Private link”.</p>
+          {privateLink ? (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <code className="max-w-full break-all rounded-md bg-fg/5 px-2 py-1 text-xs" data-private-url>{privateLink.replace(/^https?:\/\//, '')}</code>
+              <Button size="sm" onClick={copyPrivate} data-private-copy>Copy</Button>
+              <Button size="sm" variant="ghost" disabled={busy} onClick={() => window.confirm('Make a new private link? The old one stops working.') && save({ private_link: 'new' }, 'New private link made. The old one no longer works.')} data-private-new>New link</Button>
+              <Button size="sm" variant="ghost" disabled={busy} onClick={() => window.confirm('Turn the private link off? Anyone with it will see the page closed.') && save({ private_link: 'off' }, 'Private link turned off')} data-private-off>Turn off</Button>
+              <span className="text-xs text-fg/55">{page.private_state === 'open' ? 'Taking orders.' : page.private_state === 'paused' ? 'Paused, like the page.' : 'The event has passed.'}</span>
+            </div>
+          ) : (
+            <Button size="sm" variant="secondary" className="mt-2" disabled={busy || !page.path} onClick={() => save({ private_link: 'new' }, 'Private link ready: copy it and send it to who you choose')} data-private-make>Make a private link</Button>
+          )}
+          {privateLink && !base ? <p className="mt-1 text-xs text-fg/55">Add your website under Settings → Business and the full address shows here.</p> : null}
+        </div>
+      ) : null}
 
       {event ? (
         <div className="mt-4 grid gap-3 border-t border-line pt-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -296,6 +317,7 @@ export default function Preorders() {
                     {o.note ? <p className="mt-1 text-sm text-fg/60">Note: {o.note}</p> : null}
                   </div>
                   <div className="flex items-center gap-2">
+                    {o.via === 'private' ? <span data-via-private><Badge tone="copper">Private link</Badge></span> : null}
                     <Badge tone={TONES[o.status] || 'gray'}>{label(o)}</Badge>
                     {o.status === 'pending_payment' && o.pay_method === 'bank' ? <Button size="sm" onClick={() => setStatus(o, 'paid')} data-mark-paid>Mark paid</Button> : null}
                     {o.status === 'paid' || o.status === 'collected' ? <Button size="sm" variant="ghost" onClick={() => copyReceipt(o)} data-copy-receipt>Copy WhatsApp receipt</Button> : null}

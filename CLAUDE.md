@@ -1121,6 +1121,31 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
     invoice for the day, next month, week remembered; doubles joined/merged in the browser, clash shown, Today clear) and
     `verify_mise.py` **70/70**, zero page errors.
 
+- **PRIVATE PRE-ORDER LINK (2026-11-18).** Ellice: "a private pre-order link, same page, open to close individuals, bank transfer; /soulfood stays
+  closed to the public; the private orders sit with the rest." Generic, any order page with a `date` (pop-up).
+  - **Server (`preorders.py`):** offer key **`private_key`** (`secrets.token_urlsafe(9)`), never public: `public_copy()` strips it from
+    `public_offer` and from the chef `_page()['offer']`; `_page` returns `private_key` + `private_state` to the owner. `invited(offer, key)`
+    (constant-time compare). `offer_state(..., private=True)` skips the closing time only (pause and a passed date still apply);
+    `open_dates(..., private)`. Public `GET …/{token}?offer=&key=` → `private: true`, `payments: "off"` (bank only). `build_order` reads
+    `payload.key`; private orders get additive **`preorders.via = "private"`** (model + the single `"preorders"` key; drilled), shown in
+    `_summary` / the chef list; the card path refuses a key (422). Box limit still applies. Chef `PUT /preorders/offers/{slug}`
+    `{private_link: "new"|"off"}`; the advanced `{offer}` editor keeps the existing key. Pop-up notification says "(private link)".
+  - **Site (`PopUp.jsx`):** `?invite=<code>` → state "checking" until Command answers; valid → "Private pre-orders open" + amber
+    `[data-private-banner]` (bank transfer, don't pass it on), `key` sent in every payload; invalid/off → page closed +
+    `[data-private-expired]`. The public `/soulfood` is unchanged (closed).
+  - **Command (`Preorders.jsx`):** pop-up card gains **Private link** (`[data-private-link]`: Make / Copy / New link (old stops) / Turn off,
+    the full `site/<path>?invite=<code>` address); orders through it show a **"Private link"** badge (`[data-via-private]`) in the same
+    day/page group, with Mark paid as usual (→ the night's booking, receipt).
+  - Verified: `scratchpad/test_private_link.py` 24/24, popup 53, preorders 37, stripe-command 29, standing 39, assistant 104
+    (`test_stripe_real` now fails identically without this change: it orders Soulfood for real and real pre-orders closed this morning);
+    Playwright `pop_e2e/verify_private.py` 13/13 (Command make/copy/turn off, public closed, private open + bank only + order placed,
+    wrong code closed, order in Command under the night with the badge, zero page errors). FAQs (rule #3): Support pop-up answer + public `/faq`.
+- **Embroidery files of the logo (2026-11-18):** `brand/embroidery/creatiste-catering-logo-95mm.dst` (full lockup 95 × 50 mm, ~3,400
+  stitches, fits a 10 × 10 hoop) and `creatiste-flame-50mm.dst` (flame + leaf, 22 × 50 mm), with `-preview.png` of each (drawn from the DST
+  read back). Thread 1 gold (flame, CREATISTE), thread 2 ivory (leaf, THE, CATERING; use black on light garments). Made by
+  `scripts/make_embroidery.py` from `site/public/brand/lockup-dark.png` (pyembroidery; tatami 0.4 mm rows, 3.5 mm stitches, vertical
+  underlay, 0.12 mm pull compensation, 0.7 mm minimum width, ties + trims). Regenerate at a new size rather than scaling on the machine.
+
 - **Soulfood Friday 2.0 flyer on What's Up (sixteenth batch):** her flyer (`site/public/flyers/soulfood-friday-2.webp`, 1080x1350) now has a **featured block** on
   `/whats-up` (`Featured` in `WhatsOn.jsx`, `[data-featured="pop-up"]`, id `pop-up` so the nav "Pop-ups & events" link still lands): flyer beside the details, the
   flyer itself and the gold **"RSVP now"** button both link to her Partiful page (`NOW.items[1].cta.href`, new tab, `rel=noreferrer`). **Time and location are marked
