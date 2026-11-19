@@ -1144,7 +1144,19 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
   stitches, fits a 10 × 10 hoop) and `creatiste-flame-50mm.dst` (flame + leaf, 22 × 50 mm), with `-preview.png` of each (drawn from the DST
   read back). Thread 1 gold (flame, CREATISTE), thread 2 ivory (leaf, THE, CATERING; use black on light garments). Made by
   `scripts/make_embroidery.py` from `site/public/brand/lockup-dark.png` (pyembroidery; tatami 0.4 mm rows, 3.5 mm stitches, vertical
-  underlay, 0.12 mm pull compensation, 0.7 mm minimum width, ties + trims). Regenerate at a new size rather than scaling on the machine.
+  underlay, 0.12 mm pull compensation, 0.7 mm minimum width). Regenerate at a new size rather than scaling on the machine.
+  **Fixed 2026-11-19 (Ellice: "continuously starting and stopping the machine"):** the first version put a TRIM (+ ties + jump) every
+  time a fill block inside a letter ended: 120 trims / 131 jumps in the logo, and pyembroidery writes each DST trim as a run of 4 jumps,
+  which trimming machines read as "stop and cut". Rewritten so **each separate shape sews in one continuous run**: underlay and fill
+  blocks are joined by running-stitch travel routed inside the shape (Dijkstra on a 0.25 mm grid; unsewn cells cheap, over sewn fill
+  dear, cheaper along the outline so it sinks in), next fill block = cheapest by real route, and several endings are tried per shape
+  (`sew_shape_best`) keeping the one that shows least while the hop out stays one jump record. **No TRIM commands at all**; letters are
+  visited in the exact shortest order (Held-Karp, `plan_order`, a hop costs extra per additional jump record; a DST record moves up to
+  12.1 mm per axis). Result, logo: 0 trims, 22 hops (one per letter), 29 jump records; the only multi-record moves are the start from
+  the hoop centre, the hop after the colour change, and THE → CATERING (2 records, unavoidable: it crosses the gold line). ~4 cm of
+  travel crosses finished fill mid-letter across the whole logo. Also writes **`.pes` (Brother) and `.jef` (Janome)**: those formats
+  mark a cut at each hop between letters (never inside one), which is what those machines expect. `report()` + `dst_records()` print
+  the counts; the old file decoded as 120 groups of 4 jump records.
 
 - **Soulfood Friday 2.0 flyer on What's Up (sixteenth batch):** her flyer (`site/public/flyers/soulfood-friday-2.webp`, 1080x1350) now has a **featured block** on
   `/whats-up` (`Featured` in `WhatsOn.jsx`, `[data-featured="pop-up"]`, id `pop-up` so the nav "Pop-ups & events" link still lands): flyer beside the details, the
