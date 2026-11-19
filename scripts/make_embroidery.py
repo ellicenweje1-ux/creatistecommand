@@ -9,9 +9,9 @@ a sparse vertical underlay, with a little pull compensation and a minimum stitch
 Written so the machine runs smoothly:
   * every letter (every separate shape) is sewn in ONE continuous run: underlay and fill are joined by short running stitches
     routed inside the shape (preferring parts not yet filled, so the fill covers them), never by a cut;
-  * there are NO trim commands at all, and the only moves are the hops from one letter to the next, each a single short jump
-    (DST machines read three or more jumps in a row as "cut the thread", and some cut on every jump: this keeps that to one
-    hop per letter);
+  * the only moves are the hops from one letter to the next, each a single short jump, and only hops longer than TRIM_OVER
+    (3 mm) get a cut, so a machine with a thread cutter cuts between letters that are far apart and never inside a letter
+    (the first version cut 120 times inside letters, which made a BAI multi-needle stop and start every few stitches);
   * the letters are visited in the order that keeps every hop shortest (worked out exactly, not guessed).
 Each hop is tied off and tied in, so the little connecting threads can be snipped after sewing without anything unravelling."""
 import heapq, math, sys
@@ -31,6 +31,7 @@ TRAVEL = 2.2               # running stitch length for travel inside a shape, mm
 CELL = 5                   # travel route grid: 5 px = 0.25 mm
 SEWN_MID, SEWN_EDGE = 10.0, 3.0   # route cost over fill already sewn: through the middle (shows) vs along the outline (sinks in)
 JUMP_MAX = 12.1            # longest move one DST jump record can make on each axis, mm
+TRIM_OVER = 3.0            # hops between letters longer than this get a cut (machines with a thread cutter); shorter ones just jump
 GOLD, IVORY = (0xBF, 0xA9, 0x87), (0xFF, 0xFB, 0xF5)
 
 
@@ -424,7 +425,15 @@ def build(src, width_mm, out_base, label, crop=None):
     p.add_thread(pe.EmbThread(thread='#FFFBF5')); p.threadlist[-1].description = 'Ivory'
     p.metadata('name', label)
     ops = sewer.ops[:-1]                                 # drop the trailing colour stop
+    here, started = None, False
     for kind, x, y in ops:
+        if kind == 'jump' and started and here is not None and math.dist(here, (x, y)) > TRIM_OVER:
+            p.add_command(pe.TRIM)                       # cut before a long hop (already tied off)
+        if kind == 'stitch':
+            started = True
+        elif kind == 'color':
+            started = False                              # the needle change cuts the thread anyway
+        here = (x, y)
         X, Y = round((x - cx) * 10), round((y - cy) * 10)        # pyembroidery units are 0.1 mm, design centred on the hoop centre
         if kind == 'stitch':
             p.add_stitch_absolute(pe.STITCH, X, Y)
@@ -455,7 +464,7 @@ def dst_records(path):
             st += 1
             if run:
                 runs.append(run); run = 0
-    return {'stitch_records': st, 'jump_records': jumps, 'colour_stops': stops, 'hops': len(runs),
+    return {'stitch_records': st, 'jump_records': jumps, 'colour_stops': stops, 'jump_groups': len(runs),
             'longest_jump_run': max(runs) if runs else 0, 'runs_of_3_or_more': sum(1 for r in runs if r >= 3)}
 
 

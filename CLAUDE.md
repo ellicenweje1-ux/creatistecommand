@@ -1150,9 +1150,11 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
   which trimming machines read as "stop and cut". Rewritten so **each separate shape sews in one continuous run**: underlay and fill
   blocks are joined by running-stitch travel routed inside the shape (Dijkstra on a 0.25 mm grid; unsewn cells cheap, over sewn fill
   dear, cheaper along the outline so it sinks in), next fill block = cheapest by real route, and several endings are tried per shape
-  (`sew_shape_best`) keeping the one that shows least while the hop out stays one jump record. **No TRIM commands at all**; letters are
+  (`sew_shape_best`) keeping the one that shows least while the hop out stays one jump record. **Cuts only before hops longer than
+  `TRIM_OVER` = 3 mm** (14 in the logo; shorter hops between neighbouring letters just jump; no cut at the colour change); letters are
   visited in the exact shortest order (Held-Karp, `plan_order`, a hop costs extra per additional jump record; a DST record moves up to
-  12.1 mm per axis). Result, logo: 0 trims, 22 hops (one per letter), 29 jump records; the only multi-record moves are the start from
+  12.1 mm per axis). **Her machine is a BAI 12-needle commercial (Instich Cloud) with a thread cutter**: it cut on the old file's
+  4-jump groups (a pyembroidery DST trim = 3 jump records), seen in her video recorded before the fix. Result, logo: 14 cuts, 22 hops; the only multi-record moves are the start from
   the hoop centre, the hop after the colour change, and THE → CATERING (2 records, unavoidable: it crosses the gold line). ~4 cm of
   travel crosses finished fill mid-letter across the whole logo. Also writes **`.pes` (Brother) and `.jef` (Janome)**: those formats
   mark a cut at each hop between letters (never inside one), which is what those machines expect. `report()` + `dst_records()` print
