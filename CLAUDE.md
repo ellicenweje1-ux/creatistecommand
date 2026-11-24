@@ -1159,6 +1159,12 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
   travel crosses finished fill mid-letter across the whole logo. Also writes **`.pes` (Brother) and `.jef` (Janome)**: those formats
   mark a cut at each hop between letters (never inside one), which is what those machines expect. `report()` + `dst_records()` print
   the counts; the old file decoded as 120 groups of 4 jump records.
+- **Batchfully Made price list updated (2026-11-24, her uploaded PDF in our doc style):** proteins + Chicken drumsticks £8.50/£14, Beef
+  mince £9.50/£15.50, Lamb koftas £10/£16.50; sides "Roast sweet potato" → "Roast cubed sweet potato", + Baked plantain £6/£9, Rice & peas
+  £6.50/£9.50, Boiled eggs £5.50 32oz only (`'—'` string in the 58oz slot; `money()` passes strings through); vegetables + Beetroot £5/£7.50.
+  Edited `BATCHFULLY_LIST` in `site/src/content/site.js`, reprinted `site/public/docs/batchfully-made-price-list.pdf` from
+  `/batchfully-made-price-list` (node Playwright `page.pdf` preferCSSPageSize + printBackground; Python playwright isn't installed in a fresh
+  container). Text identical to her file, 1 A4 page; the `?v=` build id busts her cached copy.
 
 - **Soulfood Friday 2.0 flyer on What's Up (sixteenth batch):** her flyer (`site/public/flyers/soulfood-friday-2.webp`, 1080x1350) now has a **featured block** on
   `/whats-up` (`Featured` in `WhatsOn.jsx`, `[data-featured="pop-up"]`, id `pop-up` so the nav "Pop-ups & events" link still lands): flyer beside the details, the
