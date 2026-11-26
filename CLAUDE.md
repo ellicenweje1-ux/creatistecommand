@@ -1165,6 +1165,10 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
   Edited `BATCHFULLY_LIST` in `site/src/content/site.js`, reprinted `site/public/docs/batchfully-made-price-list.pdf` from
   `/batchfully-made-price-list` (node Playwright `page.pdf` preferCSSPageSize + printBackground; Python playwright isn't installed in a fresh
   container). Text identical to her file, 1 A4 page; the `?v=` build id busts her cached copy.
+  **2026-11-26: foil packs for baked dishes.** Her standard sizes for baked dishes that can't go in the black containers are **17oz (0.5L)
+  and 23oz foil packs**. The Pastas section carries a `baked` sub-block (`{label:'Baked', columns:['17oz','23oz'], note:'foil pack',
+  items}`) rendered by `BatchfullyCard` under the pasta rows (`[data-doc-baked]`, header "17OZ (foil pack) · 23OZ (foil pack)", 80px
+  columns, small first like 32/58). First item: **Mac & cheese £6 / £8**. Add more baked dishes to `baked.items`. Still 1 A4 page.
 
 - **Soulfood Friday 2.0 flyer on What's Up (sixteenth batch):** her flyer (`site/public/flyers/soulfood-friday-2.webp`, 1080x1350) now has a **featured block** on
   `/whats-up` (`Featured` in `WhatsOn.jsx`, `[data-featured="pop-up"]`, id `pop-up` so the nav "Pop-ups & events" link still lands): flyer beside the details, the

@@ -892,7 +892,9 @@ export const BATCHFULLY_LIST = {
   columns: ['32oz', '58oz'],
   sections: [
     { name: 'Proteins', items: [['Garlic & herb prawns', 13, 22], ['Salmon bites', 10.5, 17.5], ['Salmon', 10, 16.5], ['Blackened Cajun basa', 9, 15], ['Tuna fishcakes', 9, 15], ['Chicken thigh', 9, 15], ['Chicken wings', 8.5, 14], ['Chicken drumsticks', 8.5, 14], ['Turkey meatballs', 9, 15], ['Beef mince', 9.5, 15.5], ['Lamb koftas', 10, 16.5]] },
-    { name: 'Pastas', items: [['Prawn pasta', 10, 15], ['Creamy Alfredo pasta', 8, 13], ['Chicken pasta', 8, 13], ['Sausage pasta', 8, 13], ['Tuna pasta salad', 8, 13]] },
+    // Baked dishes that can't go in the black containers come in foil packs, 17oz and 23oz (her standard baked sizes).
+    { name: 'Pastas', items: [['Prawn pasta', 10, 15], ['Creamy Alfredo pasta', 8, 13], ['Chicken pasta', 8, 13], ['Sausage pasta', 8, 13], ['Tuna pasta salad', 8, 13]],
+      baked: { label: 'Baked', columns: ['17oz', '23oz'], note: 'foil pack', items: [['Mac & cheese', 6, 8]] } },
     // Boiled eggs come in the 32oz size only ('—' prints in the 58oz column).
     { name: 'Sides', items: [['Creamy red potato mash', 6.5, 10], ['Sweet potato & halloumi hash', 7, 10.5], ['Roast cubed sweet potato', 6, 7.5], ['Whole roasted sweet potato', 5.5, 7.5], ['Baked plantain', 6, 9], ['Fragrant coconut white rice', 6, 9], ['Rice & peas', 6.5, 9.5], ['Tomato & red pepper bulgur', 6, 9], ['Seasoned rice', 5.5, 8.5], ['Boiled eggs', 5.5, '—']] },
     { name: 'Vegetables', items: [['Asparagus & tenderstem broccoli', 6.5, 10], ['Honey glazed carrots', 5.5, 8.5], ['Mixed salad with avocado', 5.5, 8.5], ['Sweetcorn cobettes', 5, 7.5], ['Steamed mixed veg', 5, 7.5], ['Beetroot', 5, 7.5]] },

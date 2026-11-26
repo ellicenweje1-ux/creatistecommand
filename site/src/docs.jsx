@@ -52,6 +52,24 @@ export function BatchfullyCard({ className = '' }) {
                 </li>
               ))}
             </ul>
+            {sec.baked ? (
+              <div className="mt-3" data-doc-baked>
+                <div className="flex items-end justify-between gap-3 border-b border-gold/30 pb-1">
+                  <h4 className="whitespace-nowrap font-body text-[10px] font-bold uppercase tracking-[0.16em] text-gold/90">{sec.baked.label}</h4>
+                  <p className="flex shrink-0 justify-end gap-2 font-body text-[10px] uppercase tracking-wide text-ivory/60">
+                    {sec.baked.columns.map((c) => <span key={c} className="w-[80px] whitespace-nowrap text-right">{c} <span className="text-[8.5px] normal-case tracking-normal text-ivory/50">({sec.baked.note})</span></span>)}
+                  </p>
+                </div>
+                <ul className="mt-1.5 space-y-1">
+                  {sec.baked.items.map(([name, a, b]) => (
+                    <li key={name} className="flex items-baseline justify-between gap-2 font-body text-[12.5px] text-ivory/95">
+                      <span className="min-w-0 flex-1 leading-snug">{amp(name)}</span>
+                      <span className="flex shrink-0 justify-end gap-2 tabular-nums text-ivory/90"><span className="w-[80px] text-right">{money(a)}</span><span className="w-[80px] text-right">{money(b)}</span></span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </section>
         ))}
       </div>
