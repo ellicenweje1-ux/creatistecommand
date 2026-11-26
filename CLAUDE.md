@@ -1167,8 +1167,10 @@ Command** (matched by the email used on invoices); the £15 is **non-refundable,
   container). Text identical to her file, 1 A4 page; the `?v=` build id busts her cached copy.
   **2026-11-26: foil packs for baked dishes.** Her standard sizes for baked dishes that can't go in the black containers are **17oz (0.5L)
   and 23oz foil packs**. The Pastas section carries a `baked` sub-block (`{label:'Baked', columns:['17oz','23oz'], note:'foil pack',
-  items}`) rendered by `BatchfullyCard` under the pasta rows (`[data-doc-baked]`, header "17OZ (foil pack) · 23OZ (foil pack)", 80px
-  columns, small first like 32/58). First item: **Mac & cheese £6 / £8**. Add more baked dishes to `baked.items`. Still 1 A4 page.
+  items}`) rendered by `BatchfullyCard` under the pasta rows (`[data-doc-baked]`: "BAKED (foil pack)" on the left, then 17OZ / 23OZ in the
+  same 96px two-column grid as every 32/58 header so the sizes and prices line up down the page). **Mac & cheese £6 / £8.50.** Add more
+  baked dishes to `baked.items`. Same day: Boiled eggs now have a 58oz price (**£5.50 / £8.50**); the "Sauces £2 · Dressings 50p" note is
+  gone from the Sauces & dressings header (her call). Still 1 A4 page.
 
 - **Soulfood Friday 2.0 flyer on What's Up (sixteenth batch):** her flyer (`site/public/flyers/soulfood-friday-2.webp`, 1080x1350) now has a **featured block** on
   `/whats-up` (`Featured` in `WhatsOn.jsx`, `[data-featured="pop-up"]`, id `pop-up` so the nav "Pop-ups & events" link still lands): flyer beside the details, the
